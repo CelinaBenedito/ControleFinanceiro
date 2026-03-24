@@ -1,0 +1,91 @@
+DROP DATABASE IF EXISTS controle;
+CREATE DATABASE controle;
+USE controle;
+
+CREATE TABLE  usuario  (
+   id  BINARY NOT NULL PRIMARY KEY,
+   nome  varchar(50) DEFAULT NULL,
+   sobrenome  varchar(100) DEFAULT NULL,
+   dataNascimento  date DEFAULT NULL,
+   sexo  enum('Feminino','Masculino','Prefiro não identificar') DEFAULT NULL,
+   imagem  varchar(500) DEFAULT NULL,
+   email  varchar(150) DEFAULT NULL,
+   senha  varchar(25) DEFAULT NULL
+);
+
+CREATE TABLE cofiguracoes(
+fkUsuario BINARY NOT NULL,
+inicioMesFiscal DATE,
+finalMesFiscal DATE,
+ultimaAtualizacao DATE,
+limiteDesejadoMensal DOUBLE(10,2)
+);
+
+CREATE TABLE instituicao (
+	id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    fkUsuario BINARY NOT NULL,
+	nome varchar(50) DEFAULT NULL
+);
+
+CREATE TABLE limitePorInstituicao(
+fkUsuario BINARY NOT NULL,
+fkInstituicao INT NOT NULL,
+limiteDesejado DOUBLE(10,2),
+PRIMARY KEY (fkUsuario,fkInstituicao),
+CONSTRAINT  fkInstituicao_limite FOREIGN KEY ( fkInstituicao ) REFERENCES instituicao ( id ),
+CONSTRAINT  fkUsuario_limite FOREIGN KEY ( fkUsuario ) REFERENCES usuario ( id )
+);
+
+CREATE TABLE  categoria  (
+   id  int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+   titulo  varchar(30) DEFAULT NULL
+);
+
+
+CREATE TABLE evento_financeiro (
+    id BINARY NOT NULL PRIMARY KEY,
+    fkUsuario BINARY NOT NULL,
+    tipo ENUM('GASTO','RECEBIMENTO','TRANSFERENCIA') NOT NULL,
+    valor DOUBLE(10,2) NOT NULL,
+    descricao VARCHAR(500),
+    dataEvento DATE NOT NULL,
+    dataRegistro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fkUsuario_evento
+        FOREIGN KEY (fkUsuario) REFERENCES usuario(id)
+);
+
+CREATE TABLE evento_instituicao (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    fkEvento BINARY NOT NULL,
+    fkInstituicao INT NOT NULL,
+    tipoMovimento ENUM('DEBITO','CREDITO') NOT NULL,
+    valor DOUBLE(10,2) NOT NULL,
+
+    CONSTRAINT fkEvento_evtInst
+        FOREIGN KEY (fkEvento) REFERENCES evento_financeiro(id),
+
+    CONSTRAINT fkInstituicao_evtInst
+        FOREIGN KEY (fkInstituicao) REFERENCES instituicao(id)
+);
+
+CREATE TABLE gasto_detalhe (
+    fkEvento BINARY NOT NULL PRIMARY KEY,
+    fkCategoria INT NOT NULL,
+    tituloGasto VARCHAR(50) NOT NULL,
+
+    CONSTRAINT fkEvento_gasto
+        FOREIGN KEY (fkEvento) REFERENCES evento_financeiro(id),
+
+    CONSTRAINT fkCategoria_gasto
+        FOREIGN KEY (fkCategoria) REFERENCES categoria(id)
+);
+
+
+insert into categoria(titulo)
+values('Comida'),
+	('Transporte'),
+    ('Roupa'),
+    ('Lazer'),
+    ('Mercado'),
+    ('Carro');
