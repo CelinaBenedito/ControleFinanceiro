@@ -6,45 +6,50 @@ import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
 public class UsuarioCreateDTO {
+
     @Size(max = 50)
     @NotBlank
     @Schema(example = "João", description = "Representa o nome do usuário")
     private String nome;
+
     @Size(max = 100)
     @NotBlank
     @Column(nullable = false)
     @Schema(example = "Da Silva Santos", description = "Representa o sobrenome do usuário")
     private String sobrenome;
+
     @Past
+    @NotNull
     @Column(nullable = false)
     @Schema(example = "07-13-2006", description = "Representa a data de nascimento do usuário")
     private LocalDate dataNascimento;
+
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Schema(example = "07-13-2006", description = "Representa a data de nascimento do usuário")
     private UsuarioSexo sexo;
-    @Size(max=500)
-    @Schema(example = "[caminho da imagem]", description = "Representa a imagem do usuário")
-    private String imagem;
-    @Size(max=25)
+
+    @Size(max=25, min = 6)
+    @NotBlank
     @Schema(example = "Senha123!?", description = "Representa a senha do usuário")
     private String senha;
 
     public UsuarioCreateDTO() {
     }
 
-    public UsuarioCreateDTO(String nome, String sobrenome, LocalDate dataNascimento, UsuarioSexo sexo, String imagem, String senha) {
+    public UsuarioCreateDTO(String nome, String sobrenome, LocalDate dataNascimento, UsuarioSexo sexo, String senha) {
         this.nome = nome;
         this.sobrenome = sobrenome;
         this.dataNascimento = dataNascimento;
         this.sexo = sexo;
-        this.imagem = imagem;
         this.senha = senha;
     }
 
@@ -78,14 +83,6 @@ public class UsuarioCreateDTO {
 
     public void setSexo(UsuarioSexo sexo) {
         this.sexo = sexo;
-    }
-
-    public String getImagem() {
-        return imagem;
-    }
-
-    public void setImagem(String imagem) {
-        this.imagem = imagem;
     }
 
     public String getSenha() {

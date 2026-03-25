@@ -1,6 +1,10 @@
-package controle.api.back_end.model;
+package controle.api.back_end.dto.configuracoes;
 
-import jakarta.persistence.*;
+import controle.api.back_end.model.Usuario;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
@@ -8,20 +12,17 @@ import jakarta.validation.constraints.Positive;
 import java.time.LocalDate;
 import java.util.UUID;
 
-@Entity
-public class Configuracoes {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
-
-    @OneToOne
-    @JoinColumn(name = "fkUsuario")
+public class ConfiguracoesCreateDTO {
     @NotNull
-    private Usuario fkUsuario;
+    @Schema(description="Representa o id do usuario associado a configuração")
+    private UUID fkUsuario;
 
-    @Column(columnDefinition = "integer default 1")
+    @Positive
+    @Schema(example = "01", description="Representa o inicio do mês fiscal do usuario")
     private Integer inicioMesFiscal;
-    @Column(columnDefinition = "integer default 30")
+
+    @Positive
+    @Schema(example = "30", description="Representa o final do mês fiscal do usuario")
     private Integer finalMesFiscal;
 
     @PastOrPresent
@@ -31,11 +32,7 @@ public class Configuracoes {
     @Positive
     private Double limiteDesejadoMensal;
 
-    public Configuracoes() {
-    }
-
-    public Configuracoes(UUID id, Usuario fkUsuario, Integer inicioMesFiscal, Integer finalMesFiscal, LocalDate ultimaAtualizacao, Double limiteDesejadoMensal) {
-        this.id = id;
+    public ConfiguracoesCreateDTO(UUID fkUsuario, Integer inicioMesFiscal, Integer finalMesFiscal, LocalDate ultimaAtualizacao, Double limiteDesejadoMensal) {
         this.fkUsuario = fkUsuario;
         this.inicioMesFiscal = inicioMesFiscal;
         this.finalMesFiscal = finalMesFiscal;
@@ -43,19 +40,14 @@ public class Configuracoes {
         this.limiteDesejadoMensal = limiteDesejadoMensal;
     }
 
-    public UUID getId() {
-        return id;
+    public ConfiguracoesCreateDTO() {
     }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public Usuario getFkUsuario() {
+    public UUID getFkUsuario() {
         return fkUsuario;
     }
 
-    public void setFkUsuario(Usuario fkUsuario) {
+    public void setFkUsuario(UUID fkUsuario) {
         this.fkUsuario = fkUsuario;
     }
 

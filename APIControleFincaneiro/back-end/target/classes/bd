@@ -16,17 +16,23 @@ CREATE TABLE  usuario  (
 CREATE TABLE configuracoes(
 id BINARY PRIMARY KEY NOT NULL,
 fkUsuario BINARY NOT NULL,
-inicioMesFiscal DATE,
-finalMesFiscal DATE,
+inicioMesFiscal INT,
+finalMesFiscal INT,
 ultimaAtualizacao DATE,
 limiteDesejadoMensal DOUBLE(10,2)
 );
 
 CREATE TABLE instituicao (
 	id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    fkUsuario BINARY NOT NULL,
 	nome varchar(50) DEFAULT NULL
 );
+
+CREATE TABLE intituicao_usuario(
+    fkUsuario BINARY NOT NULL,
+    fkInstituicao INT NOT NULL,
+    PRIMARY KEY (fkUsuario,fkInstituicao),
+    FOREING KEY
+    );
 
 CREATE TABLE limitePorInstituicao(
 fkUsuario BINARY NOT NULL,
