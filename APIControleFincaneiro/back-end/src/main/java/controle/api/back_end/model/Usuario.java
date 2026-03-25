@@ -27,6 +27,9 @@ public class Usuario {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UsuarioSexo sexo;
-
+    @Size(max=500)
+    private String imagem;
+    @Size(max=25)
+    private String senha;
 
 }

@@ -13,7 +13,8 @@ CREATE TABLE  usuario  (
    senha  varchar(25) DEFAULT NULL
 );
 
-CREATE TABLE cofiguracoes(
+CREATE TABLE configuracoes(
+id BINARY PRIMARY KEY NOT NULL,
 fkUsuario BINARY NOT NULL,
 inicioMesFiscal DATE,
 finalMesFiscal DATE,
