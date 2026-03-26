@@ -13,17 +13,8 @@ public class CategoriaCreateDTO {
     public CategoriaCreateDTO() {
     }
 
-    public CategoriaCreateDTO(String sobrenome, String titulo) {
-        this.sobrenome = sobrenome;
+    public CategoriaCreateDTO(String titulo) {
         this.titulo = titulo;
-    }
-
-    public String getSobrenome() {
-        return sobrenome;
-    }
-
-    public void setSobrenome(String sobrenome) {
-        this.sobrenome = sobrenome;
     }
 
     public String getTitulo() {

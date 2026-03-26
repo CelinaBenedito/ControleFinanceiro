@@ -1,10 +1,7 @@
 package controle.api.back_end.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Past;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -34,9 +31,12 @@ public class Usuario {
     @Column(nullable = false)
     private UsuarioSexo sexo;
 
-    @NotBlank
     @Size(max=500)
     private String imagem;
+
+    @NotBlank
+    @Size(max = 150)
+    private String email;
 
     @NotBlank
     @Size(max=25)
@@ -45,13 +45,14 @@ public class Usuario {
     public Usuario() {
     }
 
-    public Usuario(UUID id, String nome, String sobrenome, LocalDate dataNascimento, UsuarioSexo sexo, String imagem, String senha) {
+    public Usuario(UUID id, String nome, String sobrenome, LocalDate dataNascimento, UsuarioSexo sexo, String imagem, String email, String senha) {
         this.id = id;
         this.nome = nome;
         this.sobrenome = sobrenome;
         this.dataNascimento = dataNascimento;
         this.sexo = sexo;
         this.imagem = imagem;
+        this.email = email;
         this.senha = senha;
     }
 
@@ -101,6 +102,14 @@ public class Usuario {
 
     public void setImagem(String imagem) {
         this.imagem = imagem;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getSenha() {

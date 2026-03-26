@@ -27,7 +27,7 @@ CREATE TABLE instituicao (
 	nome varchar(50) DEFAULT NULL
 );
 
-CREATE TABLE intituicao_usuario(
+CREATE TABLE instituicao_usuario(
     fkUsuario BINARY NOT NULL,
     fkInstituicao INT NOT NULL,
     PRIMARY KEY (fkUsuario,fkInstituicao),
@@ -35,12 +35,10 @@ CREATE TABLE intituicao_usuario(
     );
 
 CREATE TABLE limitePorInstituicao(
-fkUsuario BINARY NOT NULL,
-fkInstituicao INT NOT NULL,
+fkInstituicaoUsuario INT NOT NULL,
 limiteDesejado DOUBLE(10,2),
-PRIMARY KEY (fkUsuario,fkInstituicao),
-CONSTRAINT  fkInstituicao_limite FOREIGN KEY ( fkInstituicao ) REFERENCES instituicao ( id ),
-CONSTRAINT  fkUsuario_limite FOREIGN KEY ( fkUsuario ) REFERENCES usuario ( id )
+PRIMARY KEY (fkUsuarioInstituicao),
+CONSTRAINT  fk_usuario_instituicao_limite FOREIGN KEY ( fkInstituicaoUsuario ) REFERENCES instituicao_usuario ( id )
 );
 
 CREATE TABLE  categoria  (
@@ -65,15 +63,15 @@ CREATE TABLE evento_financeiro (
 CREATE TABLE evento_instituicao (
     id INT AUTO_INCREMENT PRIMARY KEY,
     fkEvento BINARY NOT NULL,
-    fkInstituicao INT NOT NULL,
+    fkInstituicaoUsuario INT NOT NULL,
     tipoMovimento ENUM('DEBITO','CREDITO') NOT NULL,
     valor DOUBLE(10,2) NOT NULL,
 
     CONSTRAINT fkEvento_evtInst
         FOREIGN KEY (fkEvento) REFERENCES evento_financeiro(id),
 
-    CONSTRAINT fkInstituicao_evtInst
-        FOREIGN KEY (fkInstituicao) REFERENCES instituicao(id)
+    CONSTRAINT fkInstituicaoUsuario_evtInst
+        FOREIGN KEY (fkInstituicaoUsuario) REFERENCES instituicao_usuario(id)
 );
 
 CREATE TABLE gasto_detalhe (

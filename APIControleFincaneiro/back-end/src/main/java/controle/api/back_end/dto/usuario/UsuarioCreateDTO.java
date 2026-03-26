@@ -21,21 +21,23 @@ public class UsuarioCreateDTO {
 
     @Size(max = 100)
     @NotBlank
-    @Column(nullable = false)
     @Schema(example = "Da Silva Santos", description = "Representa o sobrenome do usuário")
     private String sobrenome;
 
     @Past
     @NotNull
-    @Column(nullable = false)
-    @Schema(example = "07-13-2006", description = "Representa a data de nascimento do usuário")
+    @Schema(example = "2006-07-13", description = "Representa a data de nascimento do usuário")
     private LocalDate dataNascimento;
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Schema(example = "07-13-2006", description = "Representa a data de nascimento do usuário")
+    @Schema(example = "1", description = "Representa o sexo do usuario")
     private UsuarioSexo sexo;
+
+    @Size(max = 150, min = 10)
+    @NotBlank
+    @Schema(example = "joaosilva@gmail.com", description = "Representa o email do usuario")
+    private String email;
 
     @Size(max=25, min = 6)
     @NotBlank
@@ -43,14 +45,6 @@ public class UsuarioCreateDTO {
     private String senha;
 
     public UsuarioCreateDTO() {
-    }
-
-    public UsuarioCreateDTO(String nome, String sobrenome, LocalDate dataNascimento, UsuarioSexo sexo, String senha) {
-        this.nome = nome;
-        this.sobrenome = sobrenome;
-        this.dataNascimento = dataNascimento;
-        this.sexo = sexo;
-        this.senha = senha;
     }
 
     public String getNome() {
@@ -83,6 +77,14 @@ public class UsuarioCreateDTO {
 
     public void setSexo(UsuarioSexo sexo) {
         this.sexo = sexo;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getSenha() {
