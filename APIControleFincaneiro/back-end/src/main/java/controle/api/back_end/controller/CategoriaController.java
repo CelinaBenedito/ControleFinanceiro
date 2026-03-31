@@ -1,32 +1,91 @@
 package controle.api.back_end.controller;
 
+import controle.api.back_end.dto.categoria.CategoriaCreateDTO;
+import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
+import controle.api.back_end.dto.categoria.mapper.CategoriaMapper;
 import controle.api.back_end.model.Categoria;
-import controle.api.back_end.model.Configuracoes;
-import controle.api.back_end.repository.CategoriaRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import controle.api.back_end.service.CategoriaService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @CrossOrigin
 @RestController
 @RequestMapping("/categorias")
 public class CategoriaController {
-    private final CategoriaRepository repository;
+    private final CategoriaService categoriaService;
 
-    public CategoriaController(CategoriaRepository repository) {
-        this.repository = repository;
+    public CategoriaController(CategoriaService categoriaService) {
+        this.categoriaService = categoriaService;
     }
 
     @GetMapping
-    public ResponseEntity<List<Categoria>> getInstituicoes(){
-        List<Categoria> all = repository.findAll();
+    public ResponseEntity<List<CategoriaResponseDTO>> getCategorias(){
+        List<Categoria> all = categoriaService.getCategorias();
         if(all.isEmpty()){
             return ResponseEntity.noContent().build();
         }
-        return ResponseEntity.ok(all);
+        List<CategoriaResponseDTO> response = CategoriaMapper.toDto(all);
+        return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoriaResponseDTO> getById(@PathVariable Integer id){
+        Categoria byId = categoriaService.getById(id);
+        CategoriaResponseDTO response = CategoriaMapper.toDto(byId);
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/usuario/{user_id}")
+    public ResponseEntity<List<CategoriaResponseDTO>> getByUserId(@PathVariable UUID user_id){
+        List<Categoria> byUserId = categoriaService.getByUserId(user_id);
+        if(byUserId.isEmpty()){
+            return ResponseEntity.status(204).build();
+        }
+        List<CategoriaResponseDTO> response = CategoriaMapper.toDto(byUserId);
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @PostMapping
+    @Operation(summary = "Adicionar uma categoria",
+            description = "Cria uma nova categoria no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Categoria criada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+    })
+    public ResponseEntity<CategoriaResponseDTO> createCategoria(
+            @Valid @RequestBody CategoriaCreateDTO dto){
+        Categoria entity = CategoriaMapper.toEntity(dto);
+        Categoria categoriaCreated = categoriaService.createCategoria(entity, dto.getFkUsuario());
+        CategoriaResponseDTO response = CategoriaMapper.toDto(categoriaCreated);
+        return ResponseEntity.status(201).body(response);
+    }
+
+    @PostMapping("/lote")
+    @Operation(summary = "Adicionar várias categorias",
+            description = "Cria múltiplas categorias de uma vez no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Categorias criadas com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+    })
+    public ResponseEntity<List<CategoriaResponseDTO>> createCategoria(
+            @Valid @RequestBody List<CategoriaCreateDTO> dtos){
+        List<Categoria> entitys = CategoriaMapper.toEntity(dtos);
+        List<Categoria> categoriaCreated = categoriaService.createCategoria(entitys, dtos.getFirst().getFkUsuario());
+        List<CategoriaResponseDTO> response = CategoriaMapper.toDto(categoriaCreated);
+        return ResponseEntity.status(201).body(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<CategoriaResponseDTO> deleteCategoria(@PathVariable Integer id){
+        categoriaService.deleteCategoria(id);
+        return ResponseEntity.status(204).build();
+    }
+
 }

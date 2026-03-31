@@ -30,6 +30,7 @@ public class UsuarioEditDTO {
     private String imagem;
 
     @Size(max = 150, min = 10)
+    @Email
     @Schema(example = "joaosilva@gmail.com", description = "Representa o email do usuario")
     private String email;
 

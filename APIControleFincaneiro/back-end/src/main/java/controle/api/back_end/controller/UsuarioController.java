@@ -6,7 +6,6 @@ import controle.api.back_end.dto.usuario.UsuarioLoginDTO;
 import controle.api.back_end.dto.usuario.UsuarioResponseDTO;
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.model.Usuario;
-import controle.api.back_end.repository.UsuarioRepository;
 import controle.api.back_end.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -66,6 +65,5 @@ public class UsuarioController {
         UsuarioResponseDTO response = UsuarioMappper.toDto(usuarioEditado);
         return ResponseEntity.ok(response);
     }
-
 
 }

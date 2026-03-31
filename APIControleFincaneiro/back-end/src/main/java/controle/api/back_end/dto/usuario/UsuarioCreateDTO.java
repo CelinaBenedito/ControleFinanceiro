@@ -5,10 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Past;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
 
@@ -36,6 +33,7 @@ public class UsuarioCreateDTO {
 
     @Size(max = 150, min = 10)
     @NotBlank
+    @Email
     @Schema(example = "joaosilva@gmail.com", description = "Representa o email do usuario")
     private String email;
 

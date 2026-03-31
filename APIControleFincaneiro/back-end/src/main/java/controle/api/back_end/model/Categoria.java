@@ -1,22 +1,25 @@
 package controle.api.back_end.model;
 
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-@Entity
-public class Categoria {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @Entity
+    public class Categoria {
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Integer id;
 
-    @NotBlank
-    @Size(max = 30)
-    private String titulo;
+        @NotBlank
+        @Size(max = 30)
+        private String titulo;
+
+        @NotNull
+        @ManyToOne
+        @JoinColumn(name = "fkUsuario")
+        private Usuario usuario;
 
     public Categoria() {
     }
@@ -40,5 +43,13 @@ public class Categoria {
 
     public void setTitulo(String titulo) {
         this.titulo = titulo;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 }

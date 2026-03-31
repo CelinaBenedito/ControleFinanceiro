@@ -1,0 +1,54 @@
+package controle.api.back_end.dto.categoria.mapper;
+
+import controle.api.back_end.dto.categoria.CategoriaCreateDTO;
+import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
+import controle.api.back_end.model.Categoria;
+import controle.api.back_end.model.Usuario;
+import jakarta.validation.Valid;
+
+import java.util.List;
+
+public class CategoriaMapper {
+    public static CategoriaResponseDTO toDto(Categoria entity) {
+        if(entity == null){
+            return null;
+        }
+        CategoriaResponseDTO response = new CategoriaResponseDTO();
+        Usuario user = entity.getUsuario();
+
+        CategoriaResponseDTO.UsuarioCategoriaDTO usuarioCategoria = new CategoriaResponseDTO.UsuarioCategoriaDTO();
+
+        usuarioCategoria.setId(user.getId());
+        usuarioCategoria.setNome(user.getNome());
+        usuarioCategoria.setSobrenome(user.getSobrenome());
+        usuarioCategoria.setDataNascimento(user.getDataNascimento());
+        usuarioCategoria.setSexo(user.getSexo());
+        usuarioCategoria.setEmail(user.getEmail());
+
+        response.setId(entity.getId());
+        response.setTitulo(entity.getTitulo());
+        response.setUsuario(usuarioCategoria);
+
+        return response;
+    }
+
+
+    public static List<CategoriaResponseDTO> toDto(List<Categoria> entitys) {
+        return entitys.stream()
+                .map(CategoriaMapper::toDto)
+                .toList();
+    }
+
+    public static Categoria toEntity(@Valid CategoriaCreateDTO dto) {
+        Categoria entity = new Categoria();
+
+        entity.setTitulo(dto.getTitulo());
+        return entity;
+    }
+
+    public static List<Categoria> toEntity(@Valid List<CategoriaCreateDTO> dtos){
+        return dtos.stream()
+                .map(CategoriaMapper::toEntity)
+                .toList();
+    }
+}
