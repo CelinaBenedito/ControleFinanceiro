@@ -26,6 +26,12 @@ public class CategoriaController {
     }
 
     @GetMapping
+    @Operation(summary = "Listar categorias",
+            description = "Busca todas as categorias no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados."),
+            @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e retornou sem dados.")
+    })
     public ResponseEntity<List<CategoriaResponseDTO>> getCategorias(){
         List<Categoria> all = categoriaService.getCategorias();
         if(all.isEmpty()){
@@ -36,6 +42,12 @@ public class CategoriaController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Busca a categoria desejada por id",
+            description = "Busca a categorias no banco de dados com base no id que possue.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados."),
+            @ApiResponse(responseCode = "404", description = "Categoria não encontrada.")
+    })
     public ResponseEntity<CategoriaResponseDTO> getById(@PathVariable Integer id){
         Categoria byId = categoriaService.getById(id);
         CategoriaResponseDTO response = CategoriaMapper.toDto(byId);
@@ -43,6 +55,13 @@ public class CategoriaController {
     }
 
     @GetMapping("/usuario/{user_id}")
+    @Operation(summary = "Listar categorias por usuario",
+            description = "Busca as categorias no banco de dados baseado no id do usuário que as possue.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados."),
+            @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e retornou sem dados."),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.")
+    })
     public ResponseEntity<List<CategoriaResponseDTO>> getByUserId(@PathVariable UUID user_id){
         List<Categoria> byUserId = categoriaService.getByUserId(user_id);
         if(byUserId.isEmpty()){
@@ -83,6 +102,12 @@ public class CategoriaController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Deletar uma categoria",
+            description = "Deletar uma categoria por seu id.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Categorias deletada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Categoria não encontrada")
+    })
     public ResponseEntity<CategoriaResponseDTO> deleteCategoria(@PathVariable Integer id){
         categoriaService.deleteCategoria(id);
         return ResponseEntity.status(204).build();

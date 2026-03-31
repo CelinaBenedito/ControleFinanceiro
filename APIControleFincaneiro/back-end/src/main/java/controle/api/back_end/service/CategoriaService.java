@@ -71,6 +71,11 @@ public class CategoriaService {
 
 
     public void deleteCategoria(Integer id) {
-        categoriaRepository.deleteCategoriaById(id);
+        if(categoriaRepository.existsById(id)){
+            categoriaRepository.deleteCategoriaById(id);
+
+        }else {
+            throw new EntidadeNaoEncontradaException("Categoria de id: %d não encontrada.".formatted(id));
+        }
     }
 }
