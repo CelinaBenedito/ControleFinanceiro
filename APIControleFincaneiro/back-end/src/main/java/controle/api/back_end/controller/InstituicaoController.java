@@ -2,8 +2,11 @@ package controle.api.back_end.controller;
 
 import controle.api.back_end.dto.instituicao.InstituicaoCreateDTO;
 import controle.api.back_end.dto.instituicao.InstituicaoResponseDTO;
+import controle.api.back_end.dto.instituicao.InstituicaoUsuarioResponseDTO;
 import controle.api.back_end.dto.instituicao.mapper.InstituicaoMapper;
+import controle.api.back_end.dto.instituicao.mapper.InstituicaoUsuarioMapper;
 import controle.api.back_end.model.Instituicao;
+import controle.api.back_end.model.InstituicaoUsuario;
 import controle.api.back_end.model.Usuario;
 import controle.api.back_end.repository.InstituicaoRepository;
 import controle.api.back_end.service.InstituicaoService;
@@ -15,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @CrossOrigin
 @RestController
@@ -69,6 +73,21 @@ public class InstituicaoController {
         Instituicao entity = InstituicaoMapper.toEntity(dto);
         Instituicao created = instituicaoService.createInstituicao(entity);
         InstituicaoResponseDTO response = InstituicaoMapper.toDto(created);
+        return ResponseEntity.status(201).body(response);
+    }
+
+    @PostMapping("/{instituicao_id}/usuarios/{user_id}")
+    @Operation(summary = "Vincular uma instituição a um usuario",
+            description = "Vincular por meio de uma tabela associativa no banco de dados uma instituição a um usuario.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Instituição associada a um usuario com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Dados Inválidos")
+    })
+    public ResponseEntity<InstituicaoUsuarioResponseDTO> createInstituicaoForUser(
+            @PathVariable Integer instituicao_id,
+            @PathVariable UUID user_id){
+        InstituicaoUsuario created = instituicaoService.createInstituicaoForUsuario(instituicao_id, user_id);
+        InstituicaoUsuarioResponseDTO response = InstituicaoUsuarioMapper.toDto(created);
         return ResponseEntity.status(201).body(response);
     }
 

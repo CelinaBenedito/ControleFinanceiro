@@ -2,6 +2,7 @@ package controle.api.back_end.dto.categoria.mapper;
 
 import controle.api.back_end.dto.categoria.CategoriaCreateDTO;
 import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
+import controle.api.back_end.dto.categoria.CategoriasResponsesDTO;
 import controle.api.back_end.model.Categoria;
 import controle.api.back_end.model.Usuario;
 import jakarta.validation.Valid;
@@ -9,14 +10,32 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 public class CategoriaMapper {
-    public static CategoriaResponseDTO toDto(Categoria entity) {
+
+    public static CategoriaResponseDTO toDto(Categoria entity){
         if(entity == null){
             return null;
         }
         CategoriaResponseDTO response = new CategoriaResponseDTO();
+        response.setId(entity.getId());
+        response.setTitulo(entity.getTitulo());
+
+        return response;
+    }
+
+    public static List<CategoriaResponseDTO> toDto(List<Categoria> entitys){
+        return entitys.stream()
+                .map(CategoriaMapper::toDto)
+                .toList();
+    }
+
+    public static CategoriasResponsesDTO toDtoUser(Categoria entity) {
+        if(entity == null){
+            return null;
+        }
+        CategoriasResponsesDTO response = new CategoriasResponsesDTO();
         Usuario user = entity.getUsuario();
 
-        CategoriaResponseDTO.UsuarioCategoriaDTO usuarioCategoria = new CategoriaResponseDTO.UsuarioCategoriaDTO();
+        CategoriasResponsesDTO.UsuarioCategoriaDTO usuarioCategoria = new CategoriasResponsesDTO.UsuarioCategoriaDTO();
 
         usuarioCategoria.setId(user.getId());
         usuarioCategoria.setNome(user.getNome());
@@ -33,9 +52,9 @@ public class CategoriaMapper {
     }
 
 
-    public static List<CategoriaResponseDTO> toDto(List<Categoria> entitys) {
+    public static List<CategoriasResponsesDTO> toDtoUser(List<Categoria> entitys) {
         return entitys.stream()
-                .map(CategoriaMapper::toDto)
+                .map(CategoriaMapper::toDtoUser)
                 .toList();
     }
 

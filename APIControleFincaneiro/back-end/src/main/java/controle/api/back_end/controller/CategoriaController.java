@@ -2,6 +2,7 @@ package controle.api.back_end.controller;
 
 import controle.api.back_end.dto.categoria.CategoriaCreateDTO;
 import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
+import controle.api.back_end.dto.categoria.CategoriasResponsesDTO;
 import controle.api.back_end.dto.categoria.mapper.CategoriaMapper;
 import controle.api.back_end.model.Categoria;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,9 +49,9 @@ public class CategoriaController {
             @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados."),
             @ApiResponse(responseCode = "404", description = "Categoria não encontrada.")
     })
-    public ResponseEntity<CategoriaResponseDTO> getById(@PathVariable Integer id){
+    public ResponseEntity<CategoriasResponsesDTO> getById(@PathVariable Integer id){
         Categoria byId = categoriaService.getById(id);
-        CategoriaResponseDTO response = CategoriaMapper.toDto(byId);
+        CategoriasResponsesDTO response = CategoriaMapper.toDtoUser(byId);
         return ResponseEntity.status(200).body(response);
     }
 
@@ -62,12 +63,12 @@ public class CategoriaController {
             @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e retornou sem dados."),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado.")
     })
-    public ResponseEntity<List<CategoriaResponseDTO>> getByUserId(@PathVariable UUID user_id){
+    public ResponseEntity<List<CategoriasResponsesDTO>> getByUserId(@PathVariable UUID user_id){
         List<Categoria> byUserId = categoriaService.getByUserId(user_id);
         if(byUserId.isEmpty()){
             return ResponseEntity.status(204).build();
         }
-        List<CategoriaResponseDTO> response = CategoriaMapper.toDto(byUserId);
+        List<CategoriasResponsesDTO> response = CategoriaMapper.toDtoUser(byUserId);
         return ResponseEntity.status(200).body(response);
     }
 

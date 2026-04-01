@@ -23,11 +23,13 @@ public class ConfiguracoesController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Configuracoes>> getInstituicoes(){
+    public ResponseEntity<List<Configuracoes>> getConfiguracoes(){
         List<Configuracoes> all = repository.findAll();
         if(all.isEmpty()){
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(all);
     }
+
+
 }
