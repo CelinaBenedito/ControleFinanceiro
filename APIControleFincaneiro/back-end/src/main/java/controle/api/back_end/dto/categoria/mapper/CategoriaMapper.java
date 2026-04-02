@@ -3,8 +3,8 @@ package controle.api.back_end.dto.categoria.mapper;
 import controle.api.back_end.dto.categoria.CategoriaCreateDTO;
 import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
 import controle.api.back_end.dto.categoria.CategoriasResponsesDTO;
-import controle.api.back_end.model.Categoria;
-import controle.api.back_end.model.Usuario;
+import controle.api.back_end.model.categoria.Categoria;
+import controle.api.back_end.model.usuario.Usuario;
 import jakarta.validation.Valid;
 
 import java.util.List;

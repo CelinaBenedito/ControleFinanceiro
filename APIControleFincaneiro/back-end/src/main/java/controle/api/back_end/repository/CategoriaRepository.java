@@ -1,6 +1,6 @@
 package controle.api.back_end.repository;
 
-import controle.api.back_end.model.Categoria;
+import controle.api.back_end.model.categoria.Categoria;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

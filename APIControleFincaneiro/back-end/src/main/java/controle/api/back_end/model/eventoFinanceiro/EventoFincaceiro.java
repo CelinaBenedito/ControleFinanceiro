@@ -1,5 +1,6 @@
-package controle.api.back_end.model;
+package controle.api.back_end.model.eventoFinanceiro;
 
+import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 

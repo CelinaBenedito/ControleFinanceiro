@@ -1,5 +1,6 @@
-package controle.api.back_end.model;
+package controle.api.back_end.model.eventoFinanceiro;
 
+import controle.api.back_end.model.categoria.Categoria;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

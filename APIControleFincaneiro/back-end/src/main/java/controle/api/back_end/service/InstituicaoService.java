@@ -2,9 +2,9 @@ package controle.api.back_end.service;
 
 import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
-import controle.api.back_end.model.Instituicao;
-import controle.api.back_end.model.InstituicaoUsuario;
-import controle.api.back_end.model.Usuario;
+import controle.api.back_end.model.instituicao.Instituicao;
+import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.InstituicaoRepository;
 import controle.api.back_end.repository.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.UsuarioRepository;

@@ -3,7 +3,7 @@ package controle.api.back_end.service;
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.exception.MenorDeIdadeException;
-import controle.api.back_end.model.Usuario;
+import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 

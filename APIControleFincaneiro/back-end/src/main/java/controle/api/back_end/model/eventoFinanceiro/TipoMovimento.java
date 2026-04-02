@@ -1,4 +1,4 @@
-package controle.api.back_end.model;
+package controle.api.back_end.model.eventoFinanceiro;
 
 public enum TipoMovimento {
     Debito,

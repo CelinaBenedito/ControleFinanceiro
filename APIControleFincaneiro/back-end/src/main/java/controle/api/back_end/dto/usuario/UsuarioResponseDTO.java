@@ -1,6 +1,6 @@
 package controle.api.back_end.dto.usuario;
 
-import controle.api.back_end.model.UsuarioSexo;
+import controle.api.back_end.model.usuario.UsuarioSexo;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.NotBlank;

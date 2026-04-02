@@ -1,39 +1,68 @@
-package controle.api.back_end.dto.usuario;
+package controle.api.back_end.model.usuario;
 
-import controle.api.back_end.model.usuario.UsuarioSexo;
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
-public class UsuarioEditDTO {
+@Entity
+public class Usuario {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Size(max = 50)
-    @Schema(example = "José", description = "Representa o nome do usuario")
+    @NotBlank
     private String nome;
 
     @Size(max = 100)
-    @Schema(example = "Da Silva Pereira", description = "Representa o sobrenome do usuario")
+    @NotBlank
+    @Column(nullable = false)
     private String sobrenome;
 
     @Past
-    @Schema(example = "2006-07-15", description = "Representa a data de nascimento do usuario")
+    @NotNull
+    @Column(nullable = false)
     private LocalDate dataNascimento;
 
+    @NotNull
     @Enumerated(EnumType.STRING)
-    @Schema(example = "1", description = "Representa o sexo do usuario")
+    @Column(nullable = false)
     private UsuarioSexo sexo;
 
     @Size(max=500)
     private String imagem;
 
-    @Size(max = 150, min = 10)
-    @Email
-    @Schema(example = "joaosilva@gmail.com", description = "Representa o email do usuario")
+    @NotBlank
+    @Size(max = 150)
     private String email;
 
+    @NotBlank
+    @Size(max=25)
+    private String senha;
+
+    public Usuario() {
+    }
+
+    public Usuario(UUID id, String nome, String sobrenome, LocalDate dataNascimento, UsuarioSexo sexo, String imagem, String email, String senha) {
+        this.id = id;
+        this.nome = nome;
+        this.sobrenome = sobrenome;
+        this.dataNascimento = dataNascimento;
+        this.sexo = sexo;
+        this.imagem = imagem;
+        this.email = email;
+        this.senha = senha;
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
 
     public String getNome() {
         return nome;
@@ -81,5 +110,13 @@ public class UsuarioEditDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getSenha() {
+        return senha;
+    }
+
+    public void setSenha(String senha) {
+        this.senha = senha;
     }
 }

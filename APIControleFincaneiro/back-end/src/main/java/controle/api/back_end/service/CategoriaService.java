@@ -1,9 +1,8 @@
 package controle.api.back_end.service;
 
-import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
-import controle.api.back_end.model.Categoria;
-import controle.api.back_end.model.Usuario;
+import controle.api.back_end.model.categoria.Categoria;
+import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.CategoriaRepository;
 import controle.api.back_end.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;

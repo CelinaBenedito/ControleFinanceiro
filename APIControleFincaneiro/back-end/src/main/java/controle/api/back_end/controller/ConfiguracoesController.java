@@ -1,7 +1,6 @@
 package controle.api.back_end.controller;
 
-import controle.api.back_end.model.Configuracoes;
-import controle.api.back_end.model.Instituicao;
+import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.repository.ConfiguracoesRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;

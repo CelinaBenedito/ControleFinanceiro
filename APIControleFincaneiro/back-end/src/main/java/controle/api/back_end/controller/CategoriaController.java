@@ -4,7 +4,7 @@ import controle.api.back_end.dto.categoria.CategoriaCreateDTO;
 import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
 import controle.api.back_end.dto.categoria.CategoriasResponsesDTO;
 import controle.api.back_end.dto.categoria.mapper.CategoriaMapper;
-import controle.api.back_end.model.Categoria;
+import controle.api.back_end.model.categoria.Categoria;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

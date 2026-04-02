@@ -1,5 +1,6 @@
-package controle.api.back_end.model;
+package controle.api.back_end.model.configuracoes;
 
+import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;

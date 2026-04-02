@@ -1,5 +1,6 @@
-package controle.api.back_end.model;
+package controle.api.back_end.model.configuracoes;
 
+import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;

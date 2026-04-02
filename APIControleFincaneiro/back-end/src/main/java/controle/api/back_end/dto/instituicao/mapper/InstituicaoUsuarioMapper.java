@@ -1,10 +1,9 @@
 package controle.api.back_end.dto.instituicao.mapper;
 
-import controle.api.back_end.dto.instituicao.InstituicaoResponseDTO;
 import controle.api.back_end.dto.instituicao.InstituicaoUsuarioResponseDTO;
-import controle.api.back_end.model.Instituicao;
-import controle.api.back_end.model.InstituicaoUsuario;
-import controle.api.back_end.model.Usuario;
+import controle.api.back_end.model.instituicao.Instituicao;
+import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.model.usuario.Usuario;
 
 public class InstituicaoUsuarioMapper {
 

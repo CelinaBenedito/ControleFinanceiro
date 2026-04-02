@@ -5,7 +5,7 @@ import controle.api.back_end.dto.usuario.UsuarioEditDTO;
 import controle.api.back_end.dto.usuario.UsuarioLoginDTO;
 import controle.api.back_end.dto.usuario.UsuarioResponseDTO;
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
-import controle.api.back_end.model.Usuario;
+import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

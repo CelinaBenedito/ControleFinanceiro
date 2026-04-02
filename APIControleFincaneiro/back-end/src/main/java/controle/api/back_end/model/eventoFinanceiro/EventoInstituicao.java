@@ -1,5 +1,6 @@
-package controle.api.back_end.model;
+package controle.api.back_end.model.eventoFinanceiro;
 
+import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;

@@ -1,6 +1,6 @@
 package controle.api.back_end.dto.categoria;
 
-import controle.api.back_end.model.UsuarioSexo;
+import controle.api.back_end.model.usuario.UsuarioSexo;
 
 import java.time.LocalDate;
 import java.util.UUID;
