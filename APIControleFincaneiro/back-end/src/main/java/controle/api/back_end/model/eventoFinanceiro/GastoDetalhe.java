@@ -12,7 +12,7 @@ public class GastoDetalhe {
     @ManyToOne(optional = false)
     @JoinColumn(name = "fkEvento", nullable = false)
     @NotNull
-    private EventoFincaceiro eventoFincaceiro;
+    private EventoFinanceiro eventoFinanceiro;
 
     @ManyToOne
     @JoinColumn(name = "fkCategoria")
@@ -31,12 +31,12 @@ public class GastoDetalhe {
         this.categoria = categoria;
     }
 
-    public EventoFincaceiro getEventoFincaceiro() {
-        return eventoFincaceiro;
+    public EventoFinanceiro getEventoFincaceiro() {
+        return eventoFinanceiro;
     }
 
-    public void setEventoFincaceiro(EventoFincaceiro eventoFincaceiro) {
-        this.eventoFincaceiro = eventoFincaceiro;
+    public void setEventoFincaceiro(EventoFinanceiro eventoFinanceiro) {
+        this.eventoFinanceiro = eventoFinanceiro;
     }
 
 

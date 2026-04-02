@@ -29,7 +29,7 @@ public class UsuarioController {
 
     @GetMapping
     @Operation(summary = "Buscar todos os usuarios",
-            description = "Busca todos os usuarios registradas no banco de dados.")
+            description = "Busca todos os usuarios registrados no banco de dados.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados"),
             @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e não retornou dados")

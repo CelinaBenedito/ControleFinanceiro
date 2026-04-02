@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public class ConfiguracoesCreateDTO {
     @NotNull
-    @Schema(description="Representa o id do usuario associado a configuração")
+    @Schema(example="21eb5d2f-3fd8-439e-b647-5cc1f753ae58", description="Representa o id do usuario associado a configuração")
     private UUID fkUsuario;
 
     @Positive
@@ -22,18 +22,14 @@ public class ConfiguracoesCreateDTO {
     @Schema(example = "30", description="Representa o final do mês fiscal do usuario")
     private Integer finalMesFiscal;
 
-    @PastOrPresent
-    @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    private LocalDate ultimaAtualizacao;
-
     @Positive
+    @Schema(example = "1150.0", description="Representa limite total que o usuario deseja gastar por mês, sem especificar o quanto vai ser por instituição")
     private Double limiteDesejadoMensal;
 
-    public ConfiguracoesCreateDTO(UUID fkUsuario, Integer inicioMesFiscal, Integer finalMesFiscal, LocalDate ultimaAtualizacao, Double limiteDesejadoMensal) {
+    public ConfiguracoesCreateDTO(UUID fkUsuario, Integer inicioMesFiscal, Integer finalMesFiscal, Double limiteDesejadoMensal) {
         this.fkUsuario = fkUsuario;
         this.inicioMesFiscal = inicioMesFiscal;
         this.finalMesFiscal = finalMesFiscal;
-        this.ultimaAtualizacao = ultimaAtualizacao;
         this.limiteDesejadoMensal = limiteDesejadoMensal;
     }
 
@@ -62,14 +58,6 @@ public class ConfiguracoesCreateDTO {
 
     public void setFinalMesFiscal(Integer finalMesFiscal) {
         this.finalMesFiscal = finalMesFiscal;
-    }
-
-    public LocalDate getUltimaAtualizacao() {
-        return ultimaAtualizacao;
-    }
-
-    public void setUltimaAtualizacao(LocalDate ultimaAtualizacao) {
-        this.ultimaAtualizacao = ultimaAtualizacao;
     }
 
     public Double getLimiteDesejadoMensal() {

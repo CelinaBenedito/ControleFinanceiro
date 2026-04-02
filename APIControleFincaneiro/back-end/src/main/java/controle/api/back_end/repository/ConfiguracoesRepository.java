@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface ConfiguracoesRepository extends JpaRepository<Configuracoes, UUID> {
+
+    boolean existsConfiguracoesByFkUsuario_Id(UUID fkUsuarioId);
 }

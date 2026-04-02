@@ -8,7 +8,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-public class EventoFincaceiro {
+public class EventoFinanceiro {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
