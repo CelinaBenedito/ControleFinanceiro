@@ -7,6 +7,9 @@ import controle.api.back_end.dto.usuario.UsuarioResponseDTO;
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.model.Usuario;
 import controle.api.back_end.service.UsuarioService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +28,12 @@ public class UsuarioController {
     }
 
     @GetMapping
+    @Operation(summary = "Buscar todos os usuarios",
+            description = "Busca todos os usuarios registradas no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados"),
+            @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e não retornou dados")
+    })
     public ResponseEntity<List<UsuarioResponseDTO>> getUsuarios(){
         List<Usuario> all = usuarioService.getUsuarios();
         if(all.isEmpty()){
@@ -35,6 +44,12 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Buscar o usuario que contém o id desejado ",
+            description = "Busca no banco de dados o usuario com o id desejado.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados"),
+            @ApiResponse(responseCode = "404", description = "Usuario não encontrado.")
+    })
     public ResponseEntity<UsuarioResponseDTO> getUsuarioById(@PathVariable UUID id){
         Usuario usuario = usuarioService.getUsuarioById(id);
         UsuarioResponseDTO response = UsuarioMappper.toDto(usuario);
@@ -43,6 +58,12 @@ public class UsuarioController {
     }
 
     @PostMapping
+    @Operation(summary = "Adicionar um novo usuario.",
+            description = "Cria um novo usuario no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Usuario criado com sucesso!"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos.")
+    })
     public ResponseEntity<UsuarioResponseDTO> createUsuario(@Valid @RequestBody UsuarioCreateDTO dto){
         Usuario entity = UsuarioMappper.toEntity(dto);
         Usuario userCreated = usuarioService.createUsuario(entity);
@@ -51,6 +72,12 @@ public class UsuarioController {
     }
 
     @PostMapping("/login")
+    @Operation(summary = "Logar um usuario.",
+            description = "Busca pelo email e a senha o usuário no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Usuario encontrado!"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos.")
+    })
     public ResponseEntity<UsuarioResponseDTO> loginUsuario(@Valid @RequestBody UsuarioLoginDTO dto){
         Usuario login = UsuarioMappper.toEntity(dto);
         Usuario usuarioEncontrado = usuarioService.LoginUsuario(login);
@@ -59,6 +86,12 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Editar as informações do usuário.",
+            description = "Editar de um usuario já presente no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Usuario editado com sucesso!"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos.")
+    })
     public ResponseEntity<UsuarioResponseDTO> editUsuario(@PathVariable UUID id, @Valid @RequestBody UsuarioEditDTO dto){
         Usuario usuarioEdicao = UsuarioMappper.toEntity(dto);
         Usuario usuarioEditado = usuarioService.editUsuario(id, usuarioEdicao);

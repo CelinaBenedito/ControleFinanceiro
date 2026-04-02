@@ -50,7 +50,7 @@ public class UsuarioService {
         );
                if(usuarioByEmailAndSenha.isEmpty()){
                    throw new EntidadeNaoEncontradaException(
-                           "Usuario de email: %s e senha: s% não encontrado".
+                           "Usuario de email: %s e senha: %s não encontrado".
                            formatted(
                                    login.getEmail(),
                                    login.getSenha()

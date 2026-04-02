@@ -78,11 +78,11 @@ public class InstituicaoController {
     }
 
     @PostMapping
-    @Operation(summary = "Adicionar uma instituição",
+    @Operation(summary = "Adicionar uma instituição.",
             description = "Cria uma nova instituição no banco de dados.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Instituição criada com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+            @ApiResponse(responseCode = "201", description = "Instituição criada com sucesso!"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos.")
     })
     public ResponseEntity<InstituicaoResponseDTO> createInstituicao(@Valid @RequestBody InstituicaoCreateDTO dto){
         Instituicao entity = InstituicaoMapper.toEntity(dto);
@@ -106,6 +106,7 @@ public class InstituicaoController {
         return ResponseEntity.status(201).body(response);
     }
 
+
     @PatchMapping("/{instituicao_id}/usuarios/{user_id}")
     @Operation(summary = "Desvincular uma instituição de um usuario",
             description = "Desativa o vinculo do usuario com a instituição.")
@@ -120,6 +121,7 @@ public class InstituicaoController {
         instituicaoService.detachUserFromInstituicao(instituicao_id,user_id);
         return ResponseEntity.status(204).build();
     }
+
 
     @DeleteMapping("{id}")
     @Operation(summary = "Deletar uma instituição",
