@@ -33,6 +33,7 @@ public class InstituicaoUsuarioMapper {
         dto.setId(entity.getId());
         dto.setUsuario(entityUsuario);
         dto.setIntituicao(entityInstituicao);
+        dto.setAtivo(entity.getAtivo());
 
         return dto;
     }

@@ -16,6 +16,9 @@ public class InstituicaoUsuario {
     @JoinColumn(name = "fkInstituicao")
     private Instituicao fkInstituicao;
 
+    @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean isAtivo;
+
     public Usuario getFkUsuario() {
         return fkUsuario;
     }
@@ -38,5 +41,13 @@ public class InstituicaoUsuario {
 
     public void setFkInstituicao(Instituicao fkInstituicao) {
         this.fkInstituicao = fkInstituicao;
+    }
+
+    public Boolean getAtivo() {
+        return isAtivo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        isAtivo = ativo;
     }
 }

@@ -1,5 +1,6 @@
 package controle.api.back_end.service;
 
+import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.Instituicao;
 import controle.api.back_end.model.InstituicaoUsuario;
@@ -41,6 +42,10 @@ public class InstituicaoService {
 
 
     public Instituicao createInstituicao(Instituicao entity) {
+        Instituicao instituicaoByNomeContainingIgnoreCase = instituicaoRepository.findInstituicaoByNomeContainingIgnoreCase(entity.getNome());
+        if (instituicaoByNomeContainingIgnoreCase != null){
+            throw new EntidadeJaExisteException("Já existe uma instituição com o nome %s no banco de dados".formatted(entity.getNome()));
+        }
         return instituicaoRepository.save(entity);
     }
 
@@ -63,9 +68,33 @@ public class InstituicaoService {
 
         Optional<Usuario> user = usuarioRepository.findById(user_id);
         Optional<Instituicao> instituicao = instituicaoRepository.findById(instituicao_id);
+
+        if (instituicaoUsuarioRepository.existsByFkUsuarioAndFkInstituicao(user.get(), instituicao.get())) {
+            throw new IllegalArgumentException("Usuário já vinculado a esta instituição.");
+        }
         InstituicaoUsuario instituicaoUsuario = new InstituicaoUsuario();
         instituicaoUsuario.setFkInstituicao(instituicao.get());
         instituicaoUsuario.setFkUsuario(user.get());
+        instituicaoUsuario.setAtivo(true);
+        return instituicaoUsuarioRepository.save(instituicaoUsuario);
+    }
+
+    public List<InstituicaoUsuario> getInstituicoesByUserId(UUID idUser) {
+        if(!usuarioRepository.existsById(idUser)){
+            throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado".formatted(idUser));
+        }
+        return instituicaoUsuarioRepository.findInstituicaoUsuarioByFkUsuario_IdAndIsAtivoIsTrue(idUser);
+    }
+
+    public InstituicaoUsuario detachUserFromInstituicao(Integer instituicaoId, UUID userId) {
+        if(!usuarioRepository.existsById(userId)){
+            throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado".formatted(userId));
+        }
+        if(!instituicaoRepository.existsById(instituicaoId)){
+            throw new EntidadeNaoEncontradaException("Instituicao de id: %d não encontrado".formatted(instituicaoId));
+        }
+        InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findByFkUsuario_IdAndFkInstituicao_Id(userId,instituicaoId);
+        instituicaoUsuario.setAtivo(false);
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
     }
 }

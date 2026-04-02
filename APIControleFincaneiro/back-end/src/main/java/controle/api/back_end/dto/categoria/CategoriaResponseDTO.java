@@ -1,9 +1,9 @@
 package controle.api.back_end.dto.categoria;
 
-public class CategoriaResponseDTO {
+public class CategoriaResponseDTO{
     private Integer id;
-
     private String titulo;
+
 
     public Integer getId() {
         return id;

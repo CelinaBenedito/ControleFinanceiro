@@ -7,8 +7,6 @@ import controle.api.back_end.dto.instituicao.mapper.InstituicaoMapper;
 import controle.api.back_end.dto.instituicao.mapper.InstituicaoUsuarioMapper;
 import controle.api.back_end.model.Instituicao;
 import controle.api.back_end.model.InstituicaoUsuario;
-import controle.api.back_end.model.Usuario;
-import controle.api.back_end.repository.InstituicaoRepository;
 import controle.api.back_end.service.InstituicaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -62,6 +60,23 @@ public class InstituicaoController {
         return ResponseEntity.status(200).body(response);
     }
 
+    @GetMapping("/usuarios/{user_id}")
+    @Operation(summary = "Buscar instituições pelo id do usuário",
+            description = "Deletar uma instituição por seu id.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Busca feita com sucesso e não a dados para retornar"),
+            @ApiResponse(responseCode = "200", description = "Busca feita com sucesso e a dados para retornar"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+    })
+    public ResponseEntity<List<InstituicaoResponseDTO>> getInstituicoesByUserId(@PathVariable UUID user_id){
+     List<InstituicaoUsuario> instituicoes = instituicaoService.getInstituicoesByUserId(user_id);
+     if (instituicoes.isEmpty()){
+         return ResponseEntity.status(204).build();
+     }
+     List<InstituicaoResponseDTO> response = InstituicaoMapper.instituicaoUsuarioToDto(instituicoes);
+     return ResponseEntity.status(200).body(response);
+    }
+
     @PostMapping
     @Operation(summary = "Adicionar uma instituição",
             description = "Cria uma nova instituição no banco de dados.")
@@ -91,6 +106,21 @@ public class InstituicaoController {
         return ResponseEntity.status(201).body(response);
     }
 
+    @PatchMapping("/{instituicao_id}/usuarios/{user_id}")
+    @Operation(summary = "Desvincular uma instituição de um usuario",
+            description = "Desativa o vinculo do usuario com a instituição.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Instituição desasociado do usuario com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Dados Inválidos")
+    })
+    public ResponseEntity<List<InstituicaoUsuarioResponseDTO>> detachUserFromInstituicao(
+            @PathVariable Integer instituicao_id,
+            @PathVariable UUID user_id
+    ){
+        instituicaoService.detachUserFromInstituicao(instituicao_id,user_id);
+        return ResponseEntity.status(204).build();
+    }
+
     @DeleteMapping("{id}")
     @Operation(summary = "Deletar uma instituição",
             description = "Deletar uma instituição por seu id.")
@@ -102,4 +132,5 @@ public class InstituicaoController {
         instituicaoService.deleteInstituicao(id);
         return ResponseEntity.status(204).build();
     }
+
 }

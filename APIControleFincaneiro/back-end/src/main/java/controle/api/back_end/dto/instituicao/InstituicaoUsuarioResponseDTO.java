@@ -10,6 +10,7 @@ public class InstituicaoUsuarioResponseDTO {
     private Integer id;
     private UsuarioInstituicaoDTO usuario;
     private InstituicaoUsuarioDTO intituicao;
+    private Boolean isAtivo;
 
     public static class UsuarioInstituicaoDTO{
         private UUID id;
@@ -121,5 +122,13 @@ public class InstituicaoUsuarioResponseDTO {
 
     public void setIntituicao(InstituicaoUsuarioDTO intituicao) {
         this.intituicao = intituicao;
+    }
+
+    public Boolean getAtivo() {
+        return isAtivo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        isAtivo = ativo;
     }
 }
