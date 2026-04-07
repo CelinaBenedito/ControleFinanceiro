@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <link rel="icon" type="image/png" href="assets/glaceonIcon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link href='https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="styles/Estilos.css">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body onload="gerarInformações()">
+    <div class="containerGeral">
+        <nav class="side-bar" id="navbar">
+            <ul>
+                <li onclick="sidebarFunction()">
+                    <i class='bx  bx-menu-closer'></i>
+                </li>
+                <li>
+                    <a href="dashboard.html"> <i class='bx  bx-home'></i> <span id="home">Home</span></a>
+                </li>
+                <li>
+                    <a href="registros.html"> <i class='bx  bx-address-book'></i> <span id="reg"> Registros </span></a>
+                </li>
+                <li>
+                    <a href="adicinarRegistros.html"> <i class='bx  bx-file-plus'></i> <span id="add">Adicionar
+                            Registros</span></a>
+                </li>
+                <li>
+                    <a href="agendaGastos.html"><i class='bx  bx-calendar-event'></i> <span
+                            id="agenda">Agenda</span></a>
+                </li>
+                <li>
+                    <a id="toggleTheme">
+                        <span id="icone"><i class='bx bx-moon'></i></span>
+                        <span id="tema">Tema</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="configurações.html"><i class='bx  bx-cog'></i> <span id="config">Configurações</span></a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Conteudo do site -->
+        <div id="main" class="main">
+            <h1>Bem Vindo!</h1>
+            <button>Ver instituições</button>
+            <p>Período analisado: <span>20/12/2025 - 19/01/2026</span></p>
+            <div id="filtros" class="filtros">
+                <div class="campo">
+                    <select id="select_tempo" onchange="tempo()">
+                        <option value="mes">Mensal</option>
+                        <option value="ano">Anual</option>
+                    </select>
+                    <label>Selecionar periodo de tempo</label>
+                </div>
+                <div class="campo" id="visualizaçãoPeriodo">
+                    <select id="select_periodo" onchange="periodo()">
+                        <option value="#">Selecionar Mês</option>
+                        <option value="01">Janeiro</option>
+                        <option value="02"> Fevereiro</option>
+                        <option value="03">Março</option>
+                        <option value="04">Abril</option>
+                        <option value="05">Maio</option>
+                        <option value="06">Junho</option>
+                        <option value="07">Julho</option>
+                        <option value="08">Agosto</option>
+                        <option value="09">Setembro</option>
+                        <option value="10">Outubro</option>
+                        <option value="11">Novembro</option>
+                        <option value="12">Dezembro</option>
+                    </select>
+
+                    <label id="labelMes"> Selecionar mês</label>
+                </div>
+                <div class="campo" id="div_ano">
+                    <select id="anoAnalisado" onchange="periodo()">
+                        <option value="#">Selecionar ano</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                    </select>
+                    <label>Selecionar o ano</label>
+                </div>
+            </div>
+            <div class="containerKPIS" id="containerKPIS">
+                <!-- KPI: Gasto Total -->
+                <div class="KPI">
+                    <div>
+                        <p class="kpi-label">Gasto total do <span id="dataKPIgastoTotal">ano</span> atual</p>
+                        <span class="gasto-valor" id="gastoTotal">...</span>
+                    </div>
+                    <div>
+                        <span class="badge-delta" id="percentual">...</span>
+                        <span class="subtexto" id="subtexto">e...</span>
+                    </div>
+                </div>
+
+                <!-- KPI: Maior Gasto -->
+                <div class="KPI KPI-maior-gasto">
+                    <div>
+                        <p class="kpi-label">Maior gasto do <span id="kpiMaiorGastoTitulo">ano</span></p>
+                        <p class="categoria-nome" id="categoria">...</p>
+                        <p class="valor-destaque" id="valorCategoria">...</p>
+                        <p class="subtexto" id="tituloGasto"
+                            style="font-weight: 700; text-transform: uppercase; font-size: 10px;">do total</p>
+                    </div>
+                </div>
+
+                <!-- KPI: Categoria de Impacto -->
+                <div class="KPI">
+                    <p class="kpi-label">Categoria que mais impactou</p>
+
+                    <div class="impacto-container">
+                        <div>
+                            <span class="impactoKPI" id="percentualKPItipo">...</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="valorKPItipo" id="valorKPItipo">...</span>
+                            <p class="subtexto" style="font-weight: 700; text-transform: uppercase; font-size: 10px;">do
+                                total</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="containerGraficos">
+                <div class="campo-grafico">
+                    <div class="titulo-grafico">
+                        <span>Categorias utilizadas</span>
+                        <i class='bx bx-info-circle tooltip-icon'></i>
+
+                        <div class="tooltip">
+                            Mostra quantas vezes cada categoria apareceu no período selecionado.
+                        </div>
+                    </div>
+
+                    <div id="graficoTipo" class="grafico"></div>
+                </div>
+
+                <div class="campo-grafico">
+
+                    <div class="titulo-grafico">
+                        <span>Porcentagem do total por categoria</span>
+                        <i class='bx bx-info-circle tooltip-icon'></i>
+                        <div class="tooltip">
+                            Exibe quanto cada categoria representa do total de gastos no período analisado.
+                        </div>
+                    </div>
+                    
+                    <div id="graficoDonut" class="grafico"></div>
+                </div>
+                <div class="campo-grafico">
+
+                    <div class="titulo-grafico">
+                        <span>Evolução dos gastos no tempo</span>
+                        <i class='bx bx-info-circle tooltip-icon'></i>
+                        <div class="tooltip">
+                            Permite visualizar como os gastos variaram ao longo do tempo dentro do período selecionado.
+                        </div>
+                    </div>
+
+                    <div id="graficoTemporal" class="grafico"></div>
+                </div>
+
+                <div id="graficoComparacao" class="grafico"></div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <a href="teamo.html">Te amo meu bem</a>
+    </footer>
+</body>
+
+</html>
+<script src="js/index.js"></script>
+<script src="js/navbar.js"></script>
