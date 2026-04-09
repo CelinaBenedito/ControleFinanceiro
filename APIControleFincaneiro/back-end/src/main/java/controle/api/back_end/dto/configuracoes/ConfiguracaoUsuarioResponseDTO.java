@@ -7,7 +7,6 @@ public class ConfiguracaoUsuarioResponseDTO {
     private UUID id;
     private ConfiguracaoUsuarioDTO usuario;
     private Integer inicioMesFiscal;
-    private Integer finalMesFiscal;
     private LocalDate ultimaAtualizacao;
     private Double limiteDesejadoMensal;
 
@@ -33,14 +32,6 @@ public class ConfiguracaoUsuarioResponseDTO {
 
     public void setInicioMesFiscal(Integer inicioMesFiscal) {
         this.inicioMesFiscal = inicioMesFiscal;
-    }
-
-    public Integer getFinalMesFiscal() {
-        return finalMesFiscal;
-    }
-
-    public void setFinalMesFiscal(Integer finalMesFiscal) {
-        this.finalMesFiscal = finalMesFiscal;
     }
 
     public LocalDate getUltimaAtualizacao() {

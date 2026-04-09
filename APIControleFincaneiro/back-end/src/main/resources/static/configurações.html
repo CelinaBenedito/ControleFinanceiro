@@ -43,8 +43,164 @@
             </ul>
         </nav>
 
-        <div class="main" id="main">
-            <h1>Configurações</h1>
+        <div class="containerGeral">
+
+            <main id="main" class="main">
+                <h1>⚙️ Configurações</h1>
+
+                <!-- MÊS FISCAL -->
+                <div class="card">
+                    <h2>Mês Fiscal</h2>
+
+                    <div class="campo">
+                        <select id="mesFiscal" required>
+                            <option value="" disabled selected></option>
+                            <option value="1">Dia 1</option>
+                            <option value="5">Dia 5</option>
+                            <option value="10">Dia 10</option>
+                            <option value="15">Dia 15</option>
+                        </select>
+                        <label>Início do mês fiscal</label>
+                    </div>
+
+                    <button>Salvar</button>
+                </div>
+
+                <!-- LIMITES DE GASTOS -->
+                <div class="card">
+                    <h2>Limites de Gastos</h2>
+
+                    <div class="formulario">
+                        <div class="campo">
+                            <select required>
+                                <option value="" disabled selected></option>
+                                <option>Total Geral</option>
+                                <option>Itaú</option>
+                                <option>Nubank</option>
+                            </select>
+                            <label>Instituição</label>
+                        </div>
+
+                        <div class="campo">
+                            <select required>
+                                <option value="" disabled selected></option>
+                                <option>Todas</option>
+                                <option>Mercado</option>
+                                <option>Roupas</option>
+                                <option>Luz e Água</option>
+                            </select>
+                            <label>Categoria</label>
+                        </div>
+
+                        <div class="campo">
+                            <input type="number" placeholder=" " />
+                            <label>Limite mensal (R$)</label>
+                        </div>
+                    </div>
+
+                    <button>Salvar limite</button>
+                </div>
+
+                <!-- ALERTAS -->
+                <div class="card">
+                    <h2>Alertas de Limite</h2>
+
+                    <div class="campo">
+                        <label>
+                            <input type="checkbox">
+                            Receber alerta por WhatsApp
+                        </label>
+                    </div>
+
+                    <div class="campo">
+                        <label>
+                            <input type="checkbox">
+                            Receber alerta por Email
+                        </label>
+                    </div>
+
+                    <button>Salvar alertas</button>
+                </div>
+
+                <!-- LIMPEZA DE DADOS -->
+                <div class="card">
+                    <h2>Limpeza de Dados</h2>
+
+                    <button class="danger">
+                        Apagar TODOS os registros
+                    </button>
+
+                    <div class="formulario">
+                        <div class="campo">
+                            <input type="date" placeholder=" ">
+                            <label>Data inicial</label>
+                        </div>
+
+                        <div class="campo">
+                            <input type="date" placeholder=" ">
+                            <label>Data final</label>
+                        </div>
+                    </div>
+
+                    <button class="secondary">
+                        Apagar registros do período
+                    </button>
+                </div>
+
+                <!-- INSTITUIÇÕES -->
+                <div class="card">
+                    <h2>Instituições Financeiras</h2>
+
+                    <div class="campo">
+                        <input type="text" placeholder=" ">
+                        <label>Nova instituição</label>
+                    </div>
+
+                    <button>Adicionar instituição</button>
+
+                    <div class="lista">
+                        <div class="cardRegistro">
+                            <span class="registroTitulo">Itaú</span>
+                            <button class="danger">✖</button>
+                        </div>
+
+                        <div class="cardRegistro">
+                            <span class="registroTitulo">Nubank</span>
+                            <button class="danger">✖</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CATEGORIAS -->
+                <div class="card">
+                    <h2>Categorias</h2>
+
+                    <div class="campo">
+                        <input type="text" placeholder=" ">
+                        <label>Nova categoria</label>
+                    </div>
+
+                    <button>Adicionar categoria</button>
+
+                    <div class="lista">
+                        <div class="cardRegistro">
+                            <span class="registroTitulo">Mercado</span>
+                            <button class="danger">✖</button>
+                        </div>
+
+                        <div class="cardRegistro">
+                            <span class="registroTitulo">Roupas</span>
+                            <button class="danger">✖</button>
+                        </div>
+
+                        <div class="cardRegistro">
+                            <span class="registroTitulo">Luz e Água</span>
+                            <button class="danger">✖</button>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
         </div>
     </div>
 </body>

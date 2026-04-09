@@ -1,12 +1,9 @@
 package controle.api.back_end.dto.configuracoes;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 public class ConfiguracoesCreateDTO {
@@ -19,17 +16,12 @@ public class ConfiguracoesCreateDTO {
     private Integer inicioMesFiscal;
 
     @Positive
-    @Schema(example = "30", description="Representa o final do mês fiscal do usuario")
-    private Integer finalMesFiscal;
-
-    @Positive
     @Schema(example = "1150.0", description="Representa limite total que o usuario deseja gastar por mês, sem especificar o quanto vai ser por instituição")
     private Double limiteDesejadoMensal;
 
-    public ConfiguracoesCreateDTO(UUID fkUsuario, Integer inicioMesFiscal, Integer finalMesFiscal, Double limiteDesejadoMensal) {
+    public ConfiguracoesCreateDTO(UUID fkUsuario, Integer inicioMesFiscal, Double limiteDesejadoMensal) {
         this.fkUsuario = fkUsuario;
         this.inicioMesFiscal = inicioMesFiscal;
-        this.finalMesFiscal = finalMesFiscal;
         this.limiteDesejadoMensal = limiteDesejadoMensal;
     }
 
@@ -50,14 +42,6 @@ public class ConfiguracoesCreateDTO {
 
     public void setInicioMesFiscal(Integer inicioMesFiscal) {
         this.inicioMesFiscal = inicioMesFiscal;
-    }
-
-    public Integer getFinalMesFiscal() {
-        return finalMesFiscal;
-    }
-
-    public void setFinalMesFiscal(Integer finalMesFiscal) {
-        this.finalMesFiscal = finalMesFiscal;
     }
 
     public Double getLimiteDesejadoMensal() {

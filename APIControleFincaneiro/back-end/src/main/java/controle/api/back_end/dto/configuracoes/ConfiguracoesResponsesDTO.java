@@ -6,7 +6,6 @@ import java.util.UUID;
 public class ConfiguracoesResponsesDTO {
     private UUID id;
     private Integer inicioMesFiscal;
-    private Integer finalMesFiscal;
     private LocalDate ultimaAtualizacao;
     private Double limiteDesejadoMensal;
 
@@ -24,14 +23,6 @@ public class ConfiguracoesResponsesDTO {
 
     public void setInicioMesFiscal(Integer inicioMesFiscal) {
         this.inicioMesFiscal = inicioMesFiscal;
-    }
-
-    public Integer getFinalMesFiscal() {
-        return finalMesFiscal;
-    }
-
-    public void setFinalMesFiscal(Integer finalMesFiscal) {
-        this.finalMesFiscal = finalMesFiscal;
     }
 
     public LocalDate getUltimaAtualizacao() {

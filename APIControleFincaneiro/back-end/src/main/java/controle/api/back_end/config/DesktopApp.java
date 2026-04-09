@@ -8,7 +8,6 @@ public class DesktopApp extends Application {
     @Override
     public void start(Stage stage) {
         WebView webView = new WebView();
-        // Aponta para o seu backend Spring
         webView.getEngine().load(
                 getClass().getResource("/static/index.html").toExternalForm()
         );

@@ -12,11 +12,32 @@ public class ConfiguracaoEditDTO {
     @Schema(example = "01", description="Representa o inicio do mês fiscal do usuario")
     private Integer inicioMesFiscal;
 
-    @Positive
-    @Schema(example = "30", description="Representa o final do mês fiscal do usuario")
-    private Integer finalMesFiscal;
 
     @Positive
     @Schema(example = "1150.0", description="Representa limite total que o usuario deseja gastar por mês, sem especificar o quanto vai ser por instituição")
     private Double limiteDesejadoMensal;
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public Integer getInicioMesFiscal() {
+        return inicioMesFiscal;
+    }
+
+    public void setInicioMesFiscal(Integer inicioMesFiscal) {
+        this.inicioMesFiscal = inicioMesFiscal;
+    }
+
+    public Double getLimiteDesejadoMensal() {
+        return limiteDesejadoMensal;
+    }
+
+    public void setLimiteDesejadoMensal(Double limiteDesejadoMensal) {
+        this.limiteDesejadoMensal = limiteDesejadoMensal;
+    }
 }

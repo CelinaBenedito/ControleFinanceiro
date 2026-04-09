@@ -20,7 +20,6 @@ public class ConfiguracoesMapper {
 
         dto.setId(model.getId());
         dto.setInicioMesFiscal(model.getInicioMesFiscal());
-        dto.setFinalMesFiscal(model.getFinalMesFiscal());
         dto.setLimiteDesejadoMensal(model.getLimiteDesejadoMensal());
         dto.setUltimaAtualizacao(model.getUltimaAtualizacao());
 
@@ -48,7 +47,6 @@ public class ConfiguracoesMapper {
         dto.setId(model.getId());
         dto.setUsuario(dtoUser);
         dto.setInicioMesFiscal(model.getInicioMesFiscal());
-        dto.setFinalMesFiscal(model.getFinalMesFiscal());
         dto.setLimiteDesejadoMensal(model.getLimiteDesejadoMensal());
         dto.setUltimaAtualizacao(model.getUltimaAtualizacao());
 
@@ -68,7 +66,6 @@ public class ConfiguracoesMapper {
         Configuracoes entity = new Configuracoes();
 
         entity.setInicioMesFiscal(dto.getInicioMesFiscal());
-        entity.setFinalMesFiscal(dto.getFinalMesFiscal());
         entity.setLimiteDesejadoMensal(dto.getLimiteDesejadoMensal());
         return entity;
     }
