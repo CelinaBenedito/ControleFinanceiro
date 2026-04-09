@@ -85,12 +85,3 @@ CREATE TABLE gasto_detalhe (
     CONSTRAINT fkCategoria_gasto
         FOREIGN KEY (fkCategoria) REFERENCES categoria(id)
 );
-
-
-insert into categoria(titulo)
-values('Comida'),
-	('Transporte'),
-    ('Roupa'),
-    ('Lazer'),
-    ('Mercado'),
-    ('Carro');

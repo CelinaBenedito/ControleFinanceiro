@@ -91,7 +91,7 @@ public class InstituicaoController {
         return ResponseEntity.status(201).body(response);
     }
 
-    @PostMapping("/{instituicao_id}/usuarios/{user_id}")
+    @PostMapping("/{instituicao_id}/usuarios/{usuario_id}")
     @Operation(summary = "Vincular uma instituição a um usuario",
             description = "Vincular por meio de uma tabela associativa no banco de dados uma instituição a um usuario.")
     @ApiResponses(value = {
@@ -100,8 +100,8 @@ public class InstituicaoController {
     })
     public ResponseEntity<InstituicaoUsuarioResponseDTO> createInstituicaoForUser(
             @PathVariable Integer instituicao_id,
-            @PathVariable UUID user_id){
-        InstituicaoUsuario created = instituicaoService.createInstituicaoForUsuario(instituicao_id, user_id);
+            @PathVariable UUID usuario_id){
+        InstituicaoUsuario created = instituicaoService.createInstituicaoForUsuario(instituicao_id, usuario_id);
         InstituicaoUsuarioResponseDTO response = InstituicaoUsuarioMapper.toDto(created);
         return ResponseEntity.status(201).body(response);
     }

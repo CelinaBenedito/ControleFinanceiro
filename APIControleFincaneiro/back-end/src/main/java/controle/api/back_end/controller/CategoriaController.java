@@ -2,9 +2,10 @@ package controle.api.back_end.controller;
 
 import controle.api.back_end.dto.categoria.CategoriaCreateDTO;
 import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
-import controle.api.back_end.dto.categoria.CategoriasResponsesDTO;
+import controle.api.back_end.dto.categoria.CategoriaUsuarioResponseDTO;
 import controle.api.back_end.dto.categoria.mapper.CategoriaMapper;
 import controle.api.back_end.model.categoria.Categoria;
+import controle.api.back_end.model.categoria.CategoriaUsuario;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -44,14 +45,14 @@ public class CategoriaController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Busca a categoria desejada por id",
-            description = "Busca a categorias no banco de dados com base no id que possue.")
+            description = "Busca a categoria no banco de dados com base no id que possue.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados."),
             @ApiResponse(responseCode = "404", description = "Categoria não encontrada.")
     })
-    public ResponseEntity<CategoriasResponsesDTO> getById(@PathVariable Integer id){
+    public ResponseEntity<CategoriaResponseDTO> getById(@PathVariable Integer id){
         Categoria byId = categoriaService.getById(id);
-        CategoriasResponsesDTO response = CategoriaMapper.toDtoUser(byId);
+        CategoriaResponseDTO response = CategoriaMapper.toDto(byId);
         return ResponseEntity.status(200).body(response);
     }
 
@@ -63,12 +64,12 @@ public class CategoriaController {
             @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e retornou sem dados."),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado.")
     })
-    public ResponseEntity<List<CategoriasResponsesDTO>> getByUserId(@PathVariable UUID user_id){
-        List<Categoria> byUserId = categoriaService.getByUserId(user_id);
+    public ResponseEntity<List<CategoriaUsuarioResponseDTO>> getByUserId(@PathVariable UUID user_id){
+        List<CategoriaUsuario> byUserId = categoriaService.getByUserId(user_id);
         if(byUserId.isEmpty()){
             return ResponseEntity.status(204).build();
         }
-        List<CategoriasResponsesDTO> response = CategoriaMapper.toDtoUser(byUserId);
+        List<CategoriaUsuarioResponseDTO> response = CategoriaMapper.toDtoUser(byUserId);
         return ResponseEntity.status(200).body(response);
     }
 
@@ -82,7 +83,7 @@ public class CategoriaController {
     public ResponseEntity<CategoriaResponseDTO> createCategoria(
             @Valid @RequestBody CategoriaCreateDTO dto){
         Categoria entity = CategoriaMapper.toEntity(dto);
-        Categoria categoriaCreated = categoriaService.createCategoria(entity, dto.getFkUsuario());
+        Categoria categoriaCreated = categoriaService.createCategoria(entity);
         CategoriaResponseDTO response = CategoriaMapper.toDto(categoriaCreated);
         return ResponseEntity.status(201).body(response);
     }
@@ -97,9 +98,34 @@ public class CategoriaController {
     public ResponseEntity<List<CategoriaResponseDTO>> createCategoria(
             @Valid @RequestBody List<CategoriaCreateDTO> dtos){
         List<Categoria> entitys = CategoriaMapper.toEntity(dtos);
-        List<Categoria> categoriaCreated = categoriaService.createCategoria(entitys, dtos.getFirst().getFkUsuario());
+        List<Categoria> categoriaCreated = categoriaService.createCategoria(entitys);
         List<CategoriaResponseDTO> response = CategoriaMapper.toDto(categoriaCreated);
         return ResponseEntity.status(201).body(response);
+    }
+
+    @PostMapping("/{categoria_id}/usuarios/{usuario_id}")
+    @Operation(summary = "Associar uma categoria a um usuário",
+            description = "Associa a categoria do id passado com o usuário do id passado.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Associação criada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Entidade não encontrada")
+    })
+    public ResponseEntity<CategoriaUsuarioResponseDTO> createCategoriaForUser(@PathVariable Integer categoria_id, @PathVariable UUID usuario_id){
+        CategoriaUsuario entity = categoriaService.createCategoriaForUser(categoria_id,usuario_id);
+        CategoriaUsuarioResponseDTO response = CategoriaMapper.toDtoUser(entity);
+        return ResponseEntity.status(201).body(response);
+    }
+
+    @PatchMapping("/{categoria_id}/usuarios/{usuario_id}")
+    @Operation(summary = "Desassociar uma categoria de um usuário",
+            description = "Desassocia a categoria referente ao id passado com o usuário referente ao id passado.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Desassociação feita com sucesso!"),
+            @ApiResponse(responseCode = "404", description = "Entidade não encontrada.")
+    })
+    public ResponseEntity<CategoriaUsuarioResponseDTO> detachUserFromCategoria(@PathVariable Integer categoria_id, @PathVariable UUID usuario_id){
+        CategoriaUsuario entity = categoriaService.detachUserFromCategoria(categoria_id, usuario_id);
+        return ResponseEntity.status(204).build();
     }
 
     @DeleteMapping("/{id}")

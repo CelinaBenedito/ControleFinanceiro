@@ -16,8 +16,8 @@ public class InstituicaoUsuarioMapper {
         InstituicaoUsuarioResponseDTO.UsuarioInstituicaoDTO entityUsuario = new InstituicaoUsuarioResponseDTO.UsuarioInstituicaoDTO();
         InstituicaoUsuarioResponseDTO.InstituicaoUsuarioDTO entityInstituicao = new InstituicaoUsuarioResponseDTO.InstituicaoUsuarioDTO();
 
-        Usuario dtoUsuario = entity.getFkUsuario();
-        Instituicao dtoInstituicao = entity.getFkInstituicao();
+        Usuario dtoUsuario = entity.getUsuario();
+        Instituicao dtoInstituicao = entity.getInstituicao();
 
         entityUsuario.setId(dtoUsuario.getId());
         entityUsuario.setNome(dtoUsuario.getNome());

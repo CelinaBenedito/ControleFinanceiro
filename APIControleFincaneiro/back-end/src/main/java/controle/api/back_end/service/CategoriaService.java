@@ -2,8 +2,10 @@ package controle.api.back_end.service;
 
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.categoria.Categoria;
+import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.CategoriaRepository;
+import controle.api.back_end.repository.CategoriaUsuarioRepository;
 import controle.api.back_end.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +19,12 @@ public class CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final CategoriaUsuarioRepository categoriaUsuarioRepository;
 
-    public CategoriaService(CategoriaRepository categoriaRepository, UsuarioRepository usuarioRepository) {
+    public CategoriaService(CategoriaRepository categoriaRepository, UsuarioRepository usuarioRepository, CategoriaUsuarioRepository categoriaUsuarioRepository) {
         this.categoriaRepository = categoriaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.categoriaUsuarioRepository = categoriaUsuarioRepository;
     }
 
     public List<Categoria> getCategorias() {
@@ -35,33 +39,24 @@ public class CategoriaService {
                 );
     }
 
-    public List<Categoria> getByUserId(UUID userId) {
+    public List<CategoriaUsuario> getByUserId(UUID userId) {
         if(!usuarioRepository.existsById(userId)){
             throw new EntidadeNaoEncontradaException(
                     "Usuario de id: %s não encontrado"
                             .formatted(userId)
             );
         }
-        List<Categoria> categorias = categoriaRepository.findAllByUsuarioId(userId);
-        return categorias;
+        return categoriaUsuarioRepository.findAllByUsuario_Id(userId);
     }
 
-    public Categoria createCategoria(Categoria entity, UUID fkUsuario) {
-        if (!usuarioRepository.existsById(fkUsuario)){
-            throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado".formatted(fkUsuario));
-        }
-        Optional<Usuario> byId = usuarioRepository.findById(fkUsuario);
-        entity.setUsuario(byId.get());
+    public Categoria createCategoria(Categoria entity) {
+
         return categoriaRepository.save(entity);
     }
-    public List<Categoria> createCategoria(List<Categoria> entitys, UUID fkUsuario) {
-        if (!usuarioRepository.existsById(fkUsuario)){
-            throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado".formatted(fkUsuario));
-        }
-        Optional<Usuario> byId = usuarioRepository.findById(fkUsuario);
+    public List<Categoria> createCategoria(List<Categoria> entitys) {
+
         List<Categoria> categorias = new ArrayList<>();
         for(Categoria c : entitys){
-            c.setUsuario(byId.get());
             categoriaRepository.save(c);
             categorias.add(c);
         }
@@ -76,5 +71,38 @@ public class CategoriaService {
         }else {
             throw new EntidadeNaoEncontradaException("Categoria de id: %d não encontrada.".formatted(id));
         }
+    }
+
+    public CategoriaUsuario createCategoriaForUser(Integer categoriaId, UUID usuarioId) {
+        CategoriaUsuario categoriaUsuario = new CategoriaUsuario();
+
+        Usuario usuario = usuarioRepository.findById(usuarioId).orElseThrow(() ->
+                new EntidadeNaoEncontradaException(
+                        "Usuario de id: %s não encontrado"
+                                .formatted(usuarioId)
+                )
+        );
+
+        Categoria categoria = categoriaRepository.findById(categoriaId).orElseThrow(() ->
+                new EntidadeNaoEncontradaException(
+                        "Categoria de id: %d não encontrada"
+                                .formatted(categoriaId)
+                )
+        );
+
+        categoriaUsuario.setUsuario(usuario);
+        categoriaUsuario.setCategoria(categoria);
+        categoriaUsuario.setAtivo(true);
+
+        return categoriaUsuarioRepository.save(categoriaUsuario);
+    }
+
+    public CategoriaUsuario detachUserFromCategoria(Integer categoriad, UUID usuarioId){
+        if (!categoriaUsuarioRepository.existsByCategoria_IdOrUsuario_Id(categoriad, usuarioId)){
+            throw new EntidadeNaoEncontradaException("Entidade não foi encontrada!");
+        }
+        CategoriaUsuario byUsuarioIdAndCategoriaId = categoriaUsuarioRepository.findByUsuario_idAndCategoria_id(usuarioId, categoriad);
+        byUsuarioIdAndCategoriaId.setAtivo(false);
+        return categoriaUsuarioRepository.save(byUsuarioIdAndCategoriaId);
     }
 }

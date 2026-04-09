@@ -1,25 +1,26 @@
 package controle.api.back_end.model.configuracoes;
 
-import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.model.categoria.CategoriaUsuario;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 
 @Entity
-public class limitePorInstituicao {
+public class LimitePorCategoria {
+
     @Id
     @ManyToOne(optional = false)
-    @JoinColumn(name = "fkInstituicaoUsuario", nullable = false)
-    private InstituicaoUsuario institucaousuario;
+    private CategoriaUsuario categoriaUsuario;
+
     private Double limiteDesejado;
 
-    public InstituicaoUsuario getInstitucaousuario() {
-        return institucaousuario;
+    public CategoriaUsuario getCategoriaUsuario() {
+        return categoriaUsuario;
     }
 
-    public void setInstitucaousuario(InstituicaoUsuario institucaousuario) {
-        this.institucaousuario = institucaousuario;
+    public void setCategoriaUsuario(CategoriaUsuario categoriaUsuario) {
+        this.categoriaUsuario = categoriaUsuario;
     }
 
     public Double getLimiteDesejado() {

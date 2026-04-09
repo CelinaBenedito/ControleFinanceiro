@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface CategoriaRepository extends JpaRepository<Categoria,Integer> {
-    List<Categoria> findAllByUsuarioId(UUID userId);
 
     @Modifying
     @Transactional

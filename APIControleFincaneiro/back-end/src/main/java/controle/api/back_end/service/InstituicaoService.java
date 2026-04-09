@@ -69,12 +69,12 @@ public class InstituicaoService {
         Optional<Usuario> user = usuarioRepository.findById(user_id);
         Optional<Instituicao> instituicao = instituicaoRepository.findById(instituicao_id);
 
-        if (instituicaoUsuarioRepository.existsByFkUsuarioAndFkInstituicao(user.get(), instituicao.get())) {
+        if (instituicaoUsuarioRepository.existsByUsuarioAndInstituicao(user.get(), instituicao.get())) {
             throw new IllegalArgumentException("Usuário já vinculado a esta instituição.");
         }
         InstituicaoUsuario instituicaoUsuario = new InstituicaoUsuario();
-        instituicaoUsuario.setFkInstituicao(instituicao.get());
-        instituicaoUsuario.setFkUsuario(user.get());
+        instituicaoUsuario.setInstituicao(instituicao.get());
+        instituicaoUsuario.setUsuario(user.get());
         instituicaoUsuario.setAtivo(true);
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
     }
@@ -83,7 +83,7 @@ public class InstituicaoService {
         if(!usuarioRepository.existsById(idUser)){
             throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado".formatted(idUser));
         }
-        return instituicaoUsuarioRepository.findInstituicaoUsuarioByFkUsuario_IdAndIsAtivoIsTrue(idUser);
+        return instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(idUser);
     }
 
     public InstituicaoUsuario detachUserFromInstituicao(Integer instituicaoId, UUID userId) {
@@ -93,7 +93,7 @@ public class InstituicaoService {
         if(!instituicaoRepository.existsById(instituicaoId)){
             throw new EntidadeNaoEncontradaException("Instituicao de id: %d não encontrado".formatted(instituicaoId));
         }
-        InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findByFkUsuario_IdAndFkInstituicao_Id(userId,instituicaoId);
+        InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findByUsuario_IdAndInstituicao_Id(userId,instituicaoId);
         instituicaoUsuario.setAtivo(false);
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
     }

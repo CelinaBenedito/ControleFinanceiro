@@ -1,10 +1,11 @@
-package controle.api.back_end.model.instituicao;
+package controle.api.back_end.model.categoria;
 
+import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 
 @Entity
-public class InstituicaoUsuario {
+public class CategoriaUsuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -13,18 +14,10 @@ public class InstituicaoUsuario {
     private Usuario usuario;
 
     @ManyToOne
-    private Instituicao instituicao;
+    private Categoria categoria;
 
     @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean isAtivo;
-
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario fkUsuario) {
-        this.usuario = fkUsuario;
-    }
 
     public Integer getId() {
         return id;
@@ -34,12 +27,20 @@ public class InstituicaoUsuario {
         this.id = id;
     }
 
-    public Instituicao getInstituicao() {
-        return instituicao;
+    public Usuario getUsuario() {
+        return usuario;
     }
 
-    public void setInstituicao(Instituicao fkInstituicao) {
-        this.instituicao = fkInstituicao;
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
+
+    public Categoria getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(Categoria categoria) {
+        this.categoria = categoria;
     }
 
     public Boolean getAtivo() {

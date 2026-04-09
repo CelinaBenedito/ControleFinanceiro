@@ -9,11 +9,10 @@ import java.util.List;
 import java.util.UUID;
 
 public interface InstituicaoUsuarioRepository extends JpaRepository<InstituicaoUsuario, Integer> {
-    List<InstituicaoUsuario> findInstituicaoUsuarioByFkUsuario_Id(UUID idUser);
 
-    boolean existsByFkUsuarioAndFkInstituicao(Usuario usuario, Instituicao instituicao);
+    boolean existsByUsuarioAndInstituicao(Usuario usuario, Instituicao instituicao);
     
-    InstituicaoUsuario findByFkUsuario_IdAndFkInstituicao_Id(UUID userId, Integer instituicaoId);
+    InstituicaoUsuario findByUsuario_IdAndInstituicao_Id(UUID userId, Integer instituicaoId);
 
-    List<InstituicaoUsuario> findInstituicaoUsuarioByFkUsuario_IdAndIsAtivoIsTrue(UUID idUser);
+    List<InstituicaoUsuario> findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(UUID idUser);
 }

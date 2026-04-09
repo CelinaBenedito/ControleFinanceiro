@@ -7,7 +7,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-    @Entity
+import java.util.UUID;
+
+@Entity
     public class Categoria {
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,10 +19,6 @@ import jakarta.validation.constraints.Size;
         @Size(max = 30)
         private String titulo;
 
-        @NotNull
-        @ManyToOne
-        @JoinColumn(name = "fkUsuario")
-        private Usuario usuario;
 
     public Categoria() {
     }
@@ -46,11 +44,4 @@ import jakarta.validation.constraints.Size;
         this.titulo = titulo;
     }
 
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
-    }
 }

@@ -24,7 +24,7 @@ VALUES ('1', 'itau'),
         ('13', 'Vale Refeição'),
         ('14', 'Vale Alimentação');
 
-INSERT INTO instituicao_usuario(fk_usuario, fk_instituicao)
+INSERT INTO instituicao_usuario(usuario_id, instituicao_id)
 VALUES ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58', '13'),
        ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58','1'),
        ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58','5'),
@@ -51,3 +51,12 @@ VALUES ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58', '13'),
        ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','9'),
        ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','13'),
        ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','14');
+
+INSERT INTO categoria(titulo)
+VALUES('Roupas'),
+      ('Comida'),
+      ('Mercado'),
+      ('Conta de Água'),
+      ('Conta de Luz'),
+      ('Transporte'),
+      ('Bilhete Unico');

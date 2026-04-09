@@ -2,9 +2,9 @@ package controle.api.back_end.dto.categoria.mapper;
 
 import controle.api.back_end.dto.categoria.CategoriaCreateDTO;
 import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
-import controle.api.back_end.dto.categoria.CategoriasResponsesDTO;
+import controle.api.back_end.dto.categoria.CategoriaUsuarioResponseDTO;
 import controle.api.back_end.model.categoria.Categoria;
-import controle.api.back_end.model.usuario.Usuario;
+import controle.api.back_end.model.categoria.CategoriaUsuario;
 import jakarta.validation.Valid;
 
 import java.util.List;
@@ -28,31 +28,36 @@ public class CategoriaMapper {
                 .toList();
     }
 
-    public static CategoriasResponsesDTO toDtoUser(Categoria entity) {
+    public static CategoriaUsuarioResponseDTO toDtoUser(CategoriaUsuario entity){
         if(entity == null){
             return null;
         }
-        CategoriasResponsesDTO response = new CategoriasResponsesDTO();
-        Usuario user = entity.getUsuario();
+        //Criando as instâncias das classes para fazer o mapeamento.
+        CategoriaUsuarioResponseDTO dto = new CategoriaUsuarioResponseDTO();
+        CategoriaUsuarioResponseDTO.UsuarioDTO dtoUser = new CategoriaUsuarioResponseDTO.UsuarioDTO();
+        CategoriaUsuarioResponseDTO.CategoriaDTO dtoCategoria = new CategoriaUsuarioResponseDTO.CategoriaDTO();
 
-        CategoriasResponsesDTO.UsuarioCategoriaDTO usuarioCategoria = new CategoriasResponsesDTO.UsuarioCategoriaDTO();
+        //Pegando os dados da categoria na entidade e adicionando a um dto parceiro.
+        dtoCategoria.setId(entity.getCategoria().getId());
+        dtoCategoria.setTitulo(entity.getCategoria().getTitulo());
 
-        usuarioCategoria.setId(user.getId());
-        usuarioCategoria.setNome(user.getNome());
-        usuarioCategoria.setSobrenome(user.getSobrenome());
-        usuarioCategoria.setDataNascimento(user.getDataNascimento());
-        usuarioCategoria.setSexo(user.getSexo());
-        usuarioCategoria.setEmail(user.getEmail());
+        //Pegando os dados do usuario na entidade e adicionando a um dto parceiro.
+        dtoUser.setId(entity.getUsuario().getId());
+        dtoUser.setNome(entity.getUsuario().getNome());
+        dtoUser.setSobrenome(entity.getUsuario().getSobrenome());
+        dtoUser.setDataNascimento(entity.getUsuario().getDataNascimento());
+        dtoUser.setSexo(entity.getUsuario().getSexo());
 
-        response.setId(entity.getId());
-        response.setTitulo(entity.getTitulo());
-        response.setUsuario(usuarioCategoria);
+        //Preenchendo o DTO principal com os dados da entidade principal e do DTO parceiro.
+        dto.setId(entity.getId());
+        dto.setCategoria(dtoCategoria);
+        dto.setUsuario(dtoUser);
+        dto.setAtivo(entity.getAtivo());
 
-        return response;
+        return dto;
     }
 
-
-    public static List<CategoriasResponsesDTO> toDtoUser(List<Categoria> entitys) {
+    public static List<CategoriaUsuarioResponseDTO> toDtoUser(List<CategoriaUsuario> entitys){
         return entitys.stream()
                 .map(CategoriaMapper::toDtoUser)
                 .toList();

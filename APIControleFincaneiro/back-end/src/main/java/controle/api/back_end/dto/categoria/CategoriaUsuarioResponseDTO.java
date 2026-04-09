@@ -1,24 +1,23 @@
 package controle.api.back_end.dto.categoria;
 
+
 import controle.api.back_end.model.usuario.UsuarioSexo;
 
 import java.time.LocalDate;
 import java.util.UUID;
 
-public class CategoriasResponsesDTO {
+public class CategoriaUsuarioResponseDTO {
     private Integer id;
+    private UsuarioDTO usuario;
+    private CategoriaDTO categoria;
+    private Boolean isAtivo;
 
-    private String titulo;
-
-    private UsuarioCategoriaDTO usuario;
-
-    public static class UsuarioCategoriaDTO{
+    public static class UsuarioDTO{
         private UUID id;
         private String nome;
         private String sobrenome;
         private LocalDate dataNascimento;
         private UsuarioSexo sexo;
-        private String email;
 
         public UUID getId() {
             return id;
@@ -59,13 +58,25 @@ public class CategoriasResponsesDTO {
         public void setSexo(UsuarioSexo sexo) {
             this.sexo = sexo;
         }
+    }
+    public static class CategoriaDTO{
+        private Integer id;
+        private String titulo;
 
-        public String getEmail() {
-            return email;
+        public Integer getId() {
+            return id;
         }
 
-        public void setEmail(String email) {
-            this.email = email;
+        public void setId(Integer id) {
+            this.id = id;
+        }
+
+        public String getTitulo() {
+            return titulo;
+        }
+
+        public void setTitulo(String titulo) {
+            this.titulo = titulo;
         }
     }
 
@@ -77,19 +88,27 @@ public class CategoriasResponsesDTO {
         this.id = id;
     }
 
-    public String getTitulo() {
-        return titulo;
-    }
-
-    public void setTitulo(String titulo) {
-        this.titulo = titulo;
-    }
-
-    public UsuarioCategoriaDTO getUsuario() {
+    public UsuarioDTO getUsuario() {
         return usuario;
     }
 
-    public void setUsuario(UsuarioCategoriaDTO usuario) {
+    public void setUsuario(UsuarioDTO usuario) {
         this.usuario = usuario;
+    }
+
+    public CategoriaDTO getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(CategoriaDTO categoria) {
+        this.categoria = categoria;
+    }
+
+    public Boolean getAtivo() {
+        return isAtivo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        isAtivo = ativo;
     }
 }

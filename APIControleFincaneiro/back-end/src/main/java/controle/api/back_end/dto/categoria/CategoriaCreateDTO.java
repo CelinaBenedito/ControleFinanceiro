@@ -14,9 +14,6 @@ public class CategoriaCreateDTO {
     @Size(max = 30)
     @Schema(example = "Eletrônicos", description = "Representa o nome da categoria")
     private String titulo;
-    @NotNull
-    @Schema(example = "21eb5d2f-3fd8-439e-b647-5cc1f753a58e", description = "Representa o id do usuario a quem pertence essa classe")
-    private UUID fkUsuario;
 
     public CategoriaCreateDTO() {
     }
@@ -31,13 +28,5 @@ public class CategoriaCreateDTO {
 
     public void setTitulo(String titulo) {
         this.titulo = titulo;
-    }
-
-    public UUID getFkUsuario() {
-        return fkUsuario;
-    }
-
-    public void setFkUsuario(UUID fkUsuario) {
-        this.fkUsuario = fkUsuario;
     }
 }

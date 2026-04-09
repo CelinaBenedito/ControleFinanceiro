@@ -42,7 +42,7 @@ public class InstituicaoMapper {
         }
         InstituicaoResponseDTO response = new InstituicaoResponseDTO();
 
-        Instituicao modelInstituicao = instituicoeUsuario.getFkInstituicao();
+        Instituicao modelInstituicao = instituicoeUsuario.getInstituicao();
 
         response.setId(modelInstituicao.getId());
         response.setNome(modelInstituicao.getNome());

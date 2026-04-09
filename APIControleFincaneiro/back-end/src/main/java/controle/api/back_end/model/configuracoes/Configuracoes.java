@@ -20,6 +20,12 @@ public class Configuracoes {
     @NotNull
     private Usuario fkUsuario;
 
+    @OneToOne
+    private LimitePorCategoria limitePorCategoria;
+
+    @OneToOne
+    private LimitePorInstituicao limitePorInstituicao;
+
     @Column(columnDefinition = "integer default 1")
     private Integer inicioMesFiscal;
     @Column(columnDefinition = "integer default 30")

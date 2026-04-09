@@ -9,6 +9,10 @@ public class ConfiguracoesResponsesDTO {
     private LocalDate ultimaAtualizacao;
     private Double limiteDesejadoMensal;
 
+    private static class limiteInstituicaoDTO{
+
+    }
+
     public UUID getId() {
         return id;
     }
