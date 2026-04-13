@@ -1,5 +1,6 @@
 package controle.api.back_end.controller;
 
+import controle.api.back_end.dto.configuracoes.ConfiguracaoEditDTO;
 import controle.api.back_end.dto.configuracoes.ConfiguracaoUsuarioResponseDTO;
 import controle.api.back_end.dto.configuracoes.ConfiguracoesCreateDTO;
 import controle.api.back_end.dto.configuracoes.ConfiguracoesResponsesDTO;
@@ -72,6 +73,10 @@ public class ConfiguracoesController {
         return ResponseEntity.status(201).body(response);
     }
 
+    @PutMapping("/edit")
+    public ResponseEntity<ConfiguracaoUsuarioResponseDTO> editConfiguracao(@Valid @RequestBody ConfiguracaoEditDTO editDTO){
+        
+    }
 
 
 }

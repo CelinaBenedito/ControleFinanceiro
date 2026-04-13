@@ -71,7 +71,6 @@ function login(email, senha){
         body: JSON.stringify({
             email: email,
             senha: senha
-
         }),
     }).then((response) => {
         console.warn("Resposta da tentativa de login:", response);
