@@ -73,17 +73,8 @@ public class ConfiguracoesController {
         return ResponseEntity.status(201).body(response);
     }
 
-    @PostMapping("{id}/instituicoes")
-    public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createLimitePorInstituicao(@RequestBody @Valid List<LimitePorInstitucaoCreateDTO> createDtos,
-                                                                                     @PathVariable UUID id){
-        List<LimitePorInstituicao> limites = new ArrayList<>();
-        for (LimitePorInstitucaoCreateDTO dto : createDtos){
-            InstituicaoUsuario instituicaoUsuario = configuracoesService.findInstituicaoUsuario(createDtos.getFirst().getInstitucaoUsuario_id());
-            LimitePorInstituicao limitePorInstituicao = configuracoesService.createLimitePorInstituicao(instituicaoUsuario, dto.getLimiteDesejado());
-            limites.add(limitePorInstituicao);
-        }
-        configuracoesService.updateLimiteInstituicao();
-
+    @PostMapping("/instituicoes")
+    public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createLimitePorInstituicao(@RequestBody @Valid LimitePorInstitucaoCreateDTO createDto){
         return null;
     }
 
