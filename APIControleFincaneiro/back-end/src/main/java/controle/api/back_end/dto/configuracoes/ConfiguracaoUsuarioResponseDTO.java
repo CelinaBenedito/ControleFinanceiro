@@ -256,8 +256,6 @@ public class ConfiguracaoUsuarioResponseDTO {
                 public void setSexo(UsuarioSexo sexo) {
                     this.sexo = sexo;
                 }
-
-                // getters e setters...
             }
 
             public static class InstituicaoDTO {
@@ -367,6 +365,5 @@ public class ConfiguracaoUsuarioResponseDTO {
             this.email = email;
         }
 
-        // getters e setters...
     }
 }

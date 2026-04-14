@@ -3,6 +3,8 @@ package controle.api.back_end.controller;
 import controle.api.back_end.dto.configuracoes.*;
 import controle.api.back_end.dto.configuracoes.mapper.ConfiguracoesMapper;
 import controle.api.back_end.model.configuracoes.Configuracoes;
+import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
+import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.service.ConfiguracoesService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -11,6 +13,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -70,8 +73,17 @@ public class ConfiguracoesController {
         return ResponseEntity.status(201).body(response);
     }
 
-    @PostMapping("/instituicoes")
-    public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createLimitePorInstituicao(@RequestBody @Valid LimitePorInstitucaoCreateDTO createDto){
+    @PostMapping("{id}/instituicoes")
+    public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createLimitePorInstituicao(@RequestBody @Valid List<LimitePorInstitucaoCreateDTO> createDtos,
+                                                                                     @PathVariable UUID id){
+        List<LimitePorInstituicao> limites = new ArrayList<>();
+        for (LimitePorInstitucaoCreateDTO dto : createDtos){
+            InstituicaoUsuario instituicaoUsuario = configuracoesService.findInstituicaoUsuario(createDtos.getFirst().getInstitucaoUsuario_id());
+            LimitePorInstituicao limitePorInstituicao = configuracoesService.createLimitePorInstituicao(instituicaoUsuario, dto.getLimiteDesejado());
+            limites.add(limitePorInstituicao);
+        }
+        configuracoesService.updateLimiteInstituicao();
+
         return null;
     }
 

@@ -150,4 +150,17 @@ public class ConfiguracoesService {
         return limitePorInstiuicaoRepository.save(limiteInstituicao);
     }
 
+    public InstituicaoUsuario findInstituicaoUsuario(Integer institucaoUsuarioId) {
+        return instituicaoUsuarioRepository.findById(institucaoUsuarioId)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException(
+                                "Associação de instituição e usuário com o id: %d não encontrada."
+                                        .formatted(institucaoUsuarioId)
+                        )
+                );
+    }
+
+    public Configuracoes updateLimiteInstituicao(){
+    return null;
+    }
 }

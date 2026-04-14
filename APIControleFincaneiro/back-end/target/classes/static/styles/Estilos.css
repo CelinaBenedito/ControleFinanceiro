@@ -973,3 +973,32 @@ body.dark-mode .card-formulario .campo label {
     margin: 0;
     padding: 0;
 }
+
+/* Ajustes de largura para a página de configurações */
+.config-main {
+    width: calc(100% - 40px);
+    max-width: 1200px;
+}
+
+.config-main .card {
+    width: 100%;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+.config-main .formulario {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.config-main .campo input,
+.config-main .campo select {
+    width: 100%;
+}
+
+@media (max-width: 900px) {
+    .config-main .formulario {
+        grid-template-columns: 1fr;
+    }
+}
