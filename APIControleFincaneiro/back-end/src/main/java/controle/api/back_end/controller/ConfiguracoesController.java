@@ -72,7 +72,7 @@ public class ConfiguracoesController {
 
     @PostMapping("/instituicoes")
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createLimitePorInstituicao(@RequestBody @Valid LimitePorInstitucaoCreateDTO createDto){
-
+        return null;
     }
 
     @PutMapping("/edit/{id}")
