@@ -1,6 +1,5 @@
 package controle.api.back_end.model.categoria;
 
-import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 

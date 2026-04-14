@@ -4,7 +4,6 @@ import controle.api.back_end.dto.configuracoes.ConfiguracaoEditDTO;
 import controle.api.back_end.dto.configuracoes.ConfiguracaoUsuarioResponseDTO;
 import controle.api.back_end.dto.configuracoes.ConfiguracoesCreateDTO;
 import controle.api.back_end.dto.configuracoes.ConfiguracoesResponsesDTO;
-import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
