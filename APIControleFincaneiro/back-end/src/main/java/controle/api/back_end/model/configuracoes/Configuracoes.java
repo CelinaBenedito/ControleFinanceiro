@@ -7,6 +7,7 @@ import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -16,15 +17,14 @@ public class Configuracoes {
     private UUID id;
 
     @OneToOne
-    @JoinColumn(name = "fkUsuario")
     @NotNull
-    private Usuario fkUsuario;
+    private Usuario usuario;
 
-    @OneToOne
-    private LimitePorCategoria limitePorCategoria;
+    @OneToMany
+    private List<LimitePorCategoria> limitePorCategoria;
 
-    @OneToOne
-    private LimitePorInstituicao limitePorInstituicao;
+    @OneToMany
+    private List<LimitePorInstituicao> limitePorInstituicao;
 
     @Column(columnDefinition = "integer default 1")
     private Integer inicioMesFiscal;
@@ -41,9 +41,9 @@ public class Configuracoes {
     public Configuracoes() {
     }
 
-    public Configuracoes(UUID id, Usuario fkUsuario, Integer inicioMesFiscal, Integer finalMesFiscal, LocalDate ultimaAtualizacao, Double limiteDesejadoMensal) {
+    public Configuracoes(UUID id, Usuario usuario, Integer inicioMesFiscal, Integer finalMesFiscal, LocalDate ultimaAtualizacao, Double limiteDesejadoMensal) {
         this.id = id;
-        this.fkUsuario = fkUsuario;
+        this.usuario = usuario;
         this.inicioMesFiscal = inicioMesFiscal;
         this.finalMesFiscal = finalMesFiscal;
         this.ultimaAtualizacao = ultimaAtualizacao;
@@ -58,12 +58,12 @@ public class Configuracoes {
         this.id = id;
     }
 
-    public Usuario getFkUsuario() {
-        return fkUsuario;
+    public Usuario getUsuario() {
+        return usuario;
     }
 
-    public void setFkUsuario(Usuario fkUsuario) {
-        this.fkUsuario = fkUsuario;
+    public void setUsuario(Usuario fkUsuario) {
+        this.usuario = fkUsuario;
     }
 
     public Integer getInicioMesFiscal() {
@@ -96,5 +96,21 @@ public class Configuracoes {
 
     public void setLimiteDesejadoMensal(Double limiteDesejadoMensal) {
         this.limiteDesejadoMensal = limiteDesejadoMensal;
+    }
+
+    public List<LimitePorCategoria> getLimitePorCategoria() {
+        return limitePorCategoria;
+    }
+
+    public void setLimitePorCategoria(List<LimitePorCategoria> limitePorCategoria) {
+        this.limitePorCategoria = limitePorCategoria;
+    }
+
+    public List<LimitePorInstituicao> getLimitePorInstituicao() {
+        return limitePorInstituicao;
+    }
+
+    public void setLimitePorInstituicao(List<LimitePorInstituicao> limitePorInstituicao) {
+        this.limitePorInstituicao = limitePorInstituicao;
     }
 }

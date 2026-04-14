@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+import java.util.List;
 import java.util.UUID;
 
 public class ConfiguracoesCreateDTO {
@@ -12,20 +13,64 @@ public class ConfiguracoesCreateDTO {
     private UUID fkUsuario;
 
     @Positive
-    @Schema(example = "01", description="Representa o inicio do mês fiscal do usuario")
+    @Schema(example = "1", description="Representa o inicio do mês fiscal do usuario")
     private Integer inicioMesFiscal;
 
     @Positive
     @Schema(example = "1150.0", description="Representa limite total que o usuario deseja gastar por mês, sem especificar o quanto vai ser por instituição")
     private Double limiteDesejadoMensal;
 
-    public ConfiguracoesCreateDTO(UUID fkUsuario, Integer inicioMesFiscal, Double limiteDesejadoMensal) {
-        this.fkUsuario = fkUsuario;
-        this.inicioMesFiscal = inicioMesFiscal;
-        this.limiteDesejadoMensal = limiteDesejadoMensal;
+    private List<LimiteInstituicaoCreateDTO> limitesInstituicao;
+    private List<LimiteCategoriaCreateDTO> limitesCategoria;
+
+    public static class LimiteInstituicaoCreateDTO{
+        @Schema(example = "1", description= "Representa o id da instituição")
+        private Integer instituicaoId;
+
+        @Positive
+        @Schema(example = "100.00", description = "Representa o valor do limite que será atribuido a instituição.")
+        private Double valor;
+
+        public Integer getInstituicaoId() {
+            return instituicaoId;
+        }
+
+        public void setInstituicaoId(Integer instituicaoId) {
+            this.instituicaoId = instituicaoId;
+        }
+
+        public Double getValor() {
+            return valor;
+        }
+
+        public void setValor(Double valor) {
+            this.valor = valor;
+        }
     }
 
-    public ConfiguracoesCreateDTO() {
+    public static class LimiteCategoriaCreateDTO{
+        @Schema(example = "1", description = "Representa o id da categoria")
+        private Integer categoriaId;
+
+        @Schema(example = "100.00", description = "Representa o valor que será definido como limite de gasto mensal para a categoria selecionada")
+        @Positive
+        private Double valor;
+
+        public Integer getCategoriaId() {
+            return categoriaId;
+        }
+
+        public void setCategoriaId(Integer categoriaId) {
+            this.categoriaId = categoriaId;
+        }
+
+        public Double getValor() {
+            return valor;
+        }
+
+        public void setValor(Double valor) {
+            this.valor = valor;
+        }
     }
 
     public UUID getFkUsuario() {
@@ -50,5 +95,21 @@ public class ConfiguracoesCreateDTO {
 
     public void setLimiteDesejadoMensal(Double limiteDesejadoMensal) {
         this.limiteDesejadoMensal = limiteDesejadoMensal;
+    }
+
+    public List<LimiteInstituicaoCreateDTO> getLimitesInstituicao() {
+        return limitesInstituicao;
+    }
+
+    public void setLimitesInstituicao(List<LimiteInstituicaoCreateDTO> limitesInstituicao) {
+        this.limitesInstituicao = limitesInstituicao;
+    }
+
+    public List<LimiteCategoriaCreateDTO> getLimitesCategoria() {
+        return limitesCategoria;
+    }
+
+    public void setLimitesCategoria(List<LimiteCategoriaCreateDTO> limitesCategoria) {
+        this.limitesCategoria = limitesCategoria;
     }
 }

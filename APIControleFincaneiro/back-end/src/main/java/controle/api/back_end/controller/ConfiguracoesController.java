@@ -67,15 +67,18 @@ public class ConfiguracoesController {
     })
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createConfiguracao(@Valid @RequestBody ConfiguracoesCreateDTO createDto){
         Configuracoes entity = ConfiguracoesMapper.toEntity(createDto);
-        Configuracoes created = configuracoesService.createConfiguracao(entity,createDto.getFkUsuario());
+        Configuracoes created = configuracoesService.createConfiguracao(entity,createDto);
         ConfiguracaoUsuarioResponseDTO response = ConfiguracoesMapper.toDtoUser(created);
 
         return ResponseEntity.status(201).body(response);
     }
 
-    @PutMapping("/edit")
-    public ResponseEntity<ConfiguracaoUsuarioResponseDTO> editConfiguracao(@Valid @RequestBody ConfiguracaoEditDTO editDTO){
-        
+    @PutMapping("/edit/{id}")
+    public ResponseEntity<ConfiguracaoUsuarioResponseDTO> editConfiguracao(@Valid @RequestBody ConfiguracaoEditDTO editDTO, @PathVariable UUID id){
+        Configuracoes entity = ConfiguracoesMapper.toEntity(editDTO);
+        Configuracoes edited = configuracoesService.editConfiguracao(entity, editDTO, id);
+        ConfiguracaoUsuarioResponseDTO response = ConfiguracoesMapper.toDtoUser(edited);
+        return ResponseEntity.status(200).body(response);
     }
 
 

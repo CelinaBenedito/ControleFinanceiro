@@ -1,19 +1,22 @@
 package controle.api.back_end.model.configuracoes;
 
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
+
+import java.util.UUID;
 
 @Entity
 public class LimitePorInstituicao {
     @Id
-    @ManyToOne(optional = false)
-    @JoinColumn( nullable = false)
-    private InstituicaoUsuario institucaoUsuario;
-    private Double limiteDesejado;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
+    @ManyToOne(optional = false)
+    @JoinColumn(nullable = false)
+    private InstituicaoUsuario institucaoUsuario;
+
+    @Column(nullable = false)
+    private Double limiteDesejado;
     public InstituicaoUsuario getInstitucaoUsuario() {
         return institucaoUsuario;
     }

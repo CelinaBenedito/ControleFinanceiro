@@ -7,5 +7,5 @@ import java.util.UUID;
 
 public interface ConfiguracoesRepository extends JpaRepository<Configuracoes, UUID> {
 
-    boolean existsConfiguracoesByFkUsuario_Id(UUID fkUsuarioId);
+    boolean existsConfiguracoesByUsuario_Id(UUID fkUsuarioId);
 }

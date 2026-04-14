@@ -1,9 +1,9 @@
 package controle.api.back_end.dto.configuracoes;
 
-import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.usuario.UsuarioSexo;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 //DTO que retorna as configurações em conjunto com o usuário e informações mais detalhadas.
@@ -13,8 +13,8 @@ public class ConfiguracaoUsuarioResponseDTO {
     private Integer inicioMesFiscal;
     private LocalDate ultimaAtualizacao;
     private Double limiteDesejadoMensal;
-    private LimiteInstituicaoDTO limiteInstituicao;
-    private LimiteCategoriaDTO limitePorCategoria;
+    private List<LimiteInstituicaoDTO> limiteInstituicao;
+    private List<LimiteCategoriaDTO> limitePorCategoria;
 
     public UUID getId() {
         return id;
@@ -56,32 +56,33 @@ public class ConfiguracaoUsuarioResponseDTO {
         this.limiteDesejadoMensal = limiteDesejadoMensal;
     }
 
-    public LimiteInstituicaoDTO getLimiteInstituicao() {
+    public List<LimiteInstituicaoDTO> getLimiteInstituicao() {
         return limiteInstituicao;
     }
 
-    public void setLimiteInstituicao(LimiteInstituicaoDTO limiteInstituicao) {
+    public void setLimiteInstituicao(List<LimiteInstituicaoDTO> limiteInstituicao) {
         this.limiteInstituicao = limiteInstituicao;
     }
 
-    public LimiteCategoriaDTO getLimitePorCategoria() {
+    public List<LimiteCategoriaDTO> getLimitePorCategoria() {
         return limitePorCategoria;
     }
 
-    public void setLimitePorCategoria(LimiteCategoriaDTO limitePorCategoria) {
+    public void setLimitePorCategoria(List<LimiteCategoriaDTO> limitePorCategoria) {
         this.limitePorCategoria = limitePorCategoria;
     }
 
-    public static class LimiteCategoriaDTO{
+
+    public static class LimiteCategoriaDTO {
         private CategoriaUsuarioDTO categoriaUsuario;
         private Double limiteDesejado;
 
-        public static class CategoriaUsuarioDTO{
+        public static class CategoriaUsuarioDTO {
             private Integer id;
             private UsuarioDTO usuario;
             private CategoriaDTO categoria;
 
-            public static class UsuarioDTO{
+            public static class UsuarioDTO {
                 private UUID id;
                 private String nome;
                 private String sobrenome;
@@ -127,8 +128,11 @@ public class ConfiguracaoUsuarioResponseDTO {
                 public void setSexo(UsuarioSexo sexo) {
                     this.sexo = sexo;
                 }
+
+                // getters e setters...
             }
-            public static class CategoriaDTO{
+
+            public static class CategoriaDTO {
                 private Integer id;
                 private String titulo;
 
@@ -147,6 +151,8 @@ public class ConfiguracaoUsuarioResponseDTO {
                 public void setTitulo(String titulo) {
                     this.titulo = titulo;
                 }
+
+                // getters e setters...
             }
 
             public Integer getId() {
@@ -172,20 +178,39 @@ public class ConfiguracaoUsuarioResponseDTO {
             public void setCategoria(CategoriaDTO categoria) {
                 this.categoria = categoria;
             }
-        }
-    }
-    public static class LimiteInstituicaoDTO {
 
+            // getters e setters...
+        }
+
+        public CategoriaUsuarioDTO getCategoriaUsuario() {
+            return categoriaUsuario;
+        }
+
+        public void setCategoriaUsuario(CategoriaUsuarioDTO categoriaUsuario) {
+            this.categoriaUsuario = categoriaUsuario;
+        }
+
+        public Double getLimiteDesejado() {
+            return limiteDesejado;
+        }
+
+        public void setLimiteDesejado(Double limiteDesejado) {
+            this.limiteDesejado = limiteDesejado;
+        }
+
+        // getters e setters...
+    }
+
+    public static class LimiteInstituicaoDTO {
         private InstituicaoUsuarioDTO instituicaoUsuario;
         private Double limiteDesejado;
 
         public static class InstituicaoUsuarioDTO {
-
             private Integer id;
             private UsuarioDTO usuario;
             private InstituicaoDTO instituicao;
 
-            public static class UsuarioDTO{
+            public static class UsuarioDTO {
                 private UUID id;
                 private String nome;
                 private String sobrenome;
@@ -231,9 +256,11 @@ public class ConfiguracaoUsuarioResponseDTO {
                 public void setSexo(UsuarioSexo sexo) {
                     this.sexo = sexo;
                 }
+
+                // getters e setters...
             }
 
-            public static class InstituicaoDTO{
+            public static class InstituicaoDTO {
                 private Integer id;
                 private String nome;
 
@@ -252,6 +279,8 @@ public class ConfiguracaoUsuarioResponseDTO {
                 public void setNome(String nome) {
                     this.nome = nome;
                 }
+
+                // getters e setters...
             }
 
             public Integer getId() {
@@ -277,6 +306,8 @@ public class ConfiguracaoUsuarioResponseDTO {
             public void setInstituicao(InstituicaoDTO instituicao) {
                 this.instituicao = instituicao;
             }
+
+            // getters e setters...
         }
 
         public InstituicaoUsuarioDTO getInstituicaoUsuario() {
@@ -294,8 +325,11 @@ public class ConfiguracaoUsuarioResponseDTO {
         public void setLimiteDesejado(Double limiteDesejado) {
             this.limiteDesejado = limiteDesejado;
         }
+
+        // getters e setters...
     }
-    public static class ConfiguracaoUsuarioDTO{
+
+    public static class ConfiguracaoUsuarioDTO {
         private UUID id;
         private String nome;
         private String sobrenome;
@@ -332,5 +366,7 @@ public class ConfiguracaoUsuarioResponseDTO {
         public void setEmail(String email) {
             this.email = email;
         }
+
+        // getters e setters...
     }
 }

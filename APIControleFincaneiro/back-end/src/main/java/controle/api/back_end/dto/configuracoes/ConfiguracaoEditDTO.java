@@ -4,13 +4,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+import java.util.List;
 import java.util.UUID;
 
 public class ConfiguracaoEditDTO {
-    @NotNull
-    @Schema(example = "1", description= "Representa o id das configurações.")
-    private UUID id;
-
     @Positive
     @Schema(example = "01", description="Representa o inicio do mês fiscal do usuário")
     private Integer inicioMesFiscal;
@@ -19,28 +16,49 @@ public class ConfiguracaoEditDTO {
     @Schema(example = "1150.0", description="Representa limite total que o usuário deseja gastar por mês, sem especificar o quanto vai ser por instituição")
     private Double limiteDesejadoMensal;
 
-    @Positive
-    @Schema(example = "1", description= "Representa o id da instituição associada ao usuário para ser definido o limite")
-    private Integer instituicao_id;
+    private List<LimiteInstituicaoEditDTO> limitesInstituicao;
+    private List<LimiteCategoriaEditDTO> limitesCategoria;
 
-    @Positive
-    @Schema(example = "1150.0", description= "Representa limite total que o usuário deseja gastar por mês por instituição")
-    private Double limiteInstituicao;
+    public static class LimiteInstituicaoEditDTO{
+        private Integer instituicaoId;
+        private Double valor;
 
-    @Positive
-    @Schema(example = "1", description= "Representa o id da categoria associada ao usuário para ser definido o limite")
-    private Integer categoria_id;
+        public Integer getInstituicaoId() {
+            return instituicaoId;
+        }
 
-    @Positive
-    @Schema(example = "1000.0", description= "Representa limite total que o usuário deseja gastar por mês por instituição")
-    private Double limiteCategoria;
+        public void setInstituicaoId(Integer instituicaoId) {
+            this.instituicaoId = instituicaoId;
+        }
 
-    public UUID getId() {
-        return id;
+        public Double getValor() {
+            return valor;
+        }
+
+        public void setValor(Double valor) {
+            this.valor = valor;
+        }
     }
 
-    public void setId(UUID id) {
-        this.id = id;
+    public static class LimiteCategoriaEditDTO{
+        private Integer categoriaId;
+        private Double valor;
+
+        public Integer getCategoriaId() {
+            return categoriaId;
+        }
+
+        public void setCategoriaId(Integer categoriaId) {
+            this.categoriaId = categoriaId;
+        }
+
+        public Double getValor() {
+            return valor;
+        }
+
+        public void setValor(Double valor) {
+            this.valor = valor;
+        }
     }
 
     public Integer getInicioMesFiscal() {
@@ -59,35 +77,19 @@ public class ConfiguracaoEditDTO {
         this.limiteDesejadoMensal = limiteDesejadoMensal;
     }
 
-    public Integer getInstituicao_id() {
-        return instituicao_id;
+    public List<LimiteInstituicaoEditDTO> getLimitesInstituicao() {
+        return limitesInstituicao;
     }
 
-    public void setInstituicao_id(Integer instituicao_id) {
-        this.instituicao_id = instituicao_id;
+    public void setLimitesInstituicao(List<LimiteInstituicaoEditDTO> limitesInstituicao) {
+        this.limitesInstituicao = limitesInstituicao;
     }
 
-    public Double getLimiteInstituicao() {
-        return limiteInstituicao;
+    public List<LimiteCategoriaEditDTO> getLimitesCategoria() {
+        return limitesCategoria;
     }
 
-    public void setLimiteInstituicao(Double limiteInstituicao) {
-        this.limiteInstituicao = limiteInstituicao;
-    }
-
-    public Integer getCategoria_id() {
-        return categoria_id;
-    }
-
-    public void setCategoria_id(Integer categoriaUsuario_id) {
-        this.categoria_id = categoriaUsuario_id;
-    }
-
-    public Double getLimiteCategoria() {
-        return limiteCategoria;
-    }
-
-    public void setLimiteCategoria(Double limiteCategoria) {
-        this.limiteCategoria = limiteCategoria;
+    public void setLimitesCategoria(List<LimiteCategoriaEditDTO> limitesCategoria) {
+        this.limitesCategoria = limitesCategoria;
     }
 }
