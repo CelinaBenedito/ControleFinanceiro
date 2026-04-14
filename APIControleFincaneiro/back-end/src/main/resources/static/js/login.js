@@ -75,11 +75,15 @@ function login(email, senha){
     }).then((response) => {
         console.warn("Resposta da tentativa de login:", response);
         if(response.ok){
-            alerta(`Logado com sucesso!`);
-
-             setTimeout(() => {
-        window.location.href = "dashboard.html";
-    }, 1500);
+            response.json().then(usuario => {
+                localStorage.setItem('usuario', JSON.stringify(usuario));
+                alerta(`Logado com sucesso!`);
+                setTimeout(() => {
+                    window.location.href = "dashboard.html";
+                }, 1500);
+            });
+        } else {
+            alerta(`Email ou senha incorretos <button onclick='div_alerta.style.display="none"'>OK</button>`);
         }
     })
 

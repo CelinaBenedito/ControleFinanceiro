@@ -157,20 +157,18 @@ function remover() {
 }
 
 function gerarInstituicao() {
+    const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
     select_instituicao.innerHTML = "<option value='#'> Escolha uma instituição</option>"
-    fetch("/registros/gerarInstituicoes", {
+    fetch(`/instituicoes/usuarios/${usuario.id}`, {
         method: "GET"
     }).then(res => {
+        if (res.status === 204) return;
         res.json().then(json => {
             for (let c = 0; json.length > c; c++) {
                 select_instituicao_remove.innerHTML +=
-                    `
-                            <option value="${json[c].id}">${json[c].nome}</option>
-                    `
+                    `<option value="${json[c].id}">${json[c].nome}</option>`
                 select_instituicao.innerHTML +=
-                    `
-                            <option value="${json[c].id}">${json[c].nome}</option>
-                        `
+                    `<option value="${json[c].id}">${json[c].nome}</option>`
             }
         })
     })

@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="styles/Estilos.css">
 </head>
 
-<body>
+<body onload="carregarConfiguracoes()">
     <div class="containerGeral">
         <nav class="side-bar" id="navbar">
             <ul>
@@ -63,7 +63,7 @@
                         <label>Início do mês fiscal</label>
                     </div>
 
-                    <button>Salvar</button>
+                    <button onclick="salvarConfiguracoes()">Salvar</button>
                 </div>
 
                 <!-- LIMITES DE GASTOS -->
@@ -93,7 +93,7 @@
                         </div>
 
                         <div class="campo">
-                            <input type="number" placeholder=" " />
+                            <input type="number" placeholder=" " id="ipt_limiteMensal" />
                             <label>Limite mensal (R$)</label>
                         </div>
                     </div>
@@ -152,22 +152,13 @@
                     <h2>Instituições Financeiras</h2>
 
                     <div class="campo">
-                        <input type="text" placeholder=" ">
+                        <input type="text" placeholder=" " id="ipt_novaInstituicao">
                         <label>Nova instituição</label>
                     </div>
 
-                    <button>Adicionar instituição</button>
+                    <button onclick="adicionarInstituicao()">Adicionar instituição</button>
 
-                    <div class="lista">
-                        <div class="cardRegistro">
-                            <span class="registroTitulo">Itaú</span>
-                            <button class="danger">✖</button>
-                        </div>
-
-                        <div class="cardRegistro">
-                            <span class="registroTitulo">Nubank</span>
-                            <button class="danger">✖</button>
-                        </div>
+                    <div class="lista" id="listaInstituicoes">
                     </div>
                 </div>
 
@@ -176,27 +167,13 @@
                     <h2>Categorias</h2>
 
                     <div class="campo">
-                        <input type="text" placeholder=" ">
+                        <input type="text" placeholder=" " id="ipt_novaCategoria">
                         <label>Nova categoria</label>
                     </div>
 
-                    <button>Adicionar categoria</button>
+                    <button onclick="adicionarCategoria()">Adicionar categoria</button>
 
-                    <div class="lista">
-                        <div class="cardRegistro">
-                            <span class="registroTitulo">Mercado</span>
-                            <button class="danger">✖</button>
-                        </div>
-
-                        <div class="cardRegistro">
-                            <span class="registroTitulo">Roupas</span>
-                            <button class="danger">✖</button>
-                        </div>
-
-                        <div class="cardRegistro">
-                            <span class="registroTitulo">Luz e Água</span>
-                            <button class="danger">✖</button>
-                        </div>
+                    <div class="lista" id="listaCategorias">
                     </div>
                 </div>
 
@@ -207,3 +184,4 @@
 
 </html>
 <script src="js/navbar.js"></script>
+<script src="js/configuracoes.js"></script>

@@ -2,6 +2,11 @@ div_alerta.style.display = 'none';
 gestaoConta.style.display = "none";
 
 let dataGasto;
+const API_BASE = window.location.port === "8080" ? "" : "http://localhost:8080";
+
+function apiUrl(path) {
+    return `${API_BASE}${path}`;
+}
 
 function alerta(texto) {
     div_alerta.style.display = "flex"
@@ -17,39 +22,36 @@ function gerarInformacoes() {
 }
 
 function gerarTipos() {
+    const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
     select_tipo.innerHTML = "<option value='#'>Escolha um tipo</option>"
-    fetch("/registros/gerarTipos", {
+    fetch(apiUrl(`/categorias/usuario/${usuario.id}`), {
         method: "GET"
     }).then(res => {
+        if (res.status === 204) return;
         res.json().then(json => {
             for (let c = 0; json.length > c; c++) {
-
                 select_tipo.innerHTML +=
-                    `
-                            <option value="${json[c].id}">${json[c].titulo}</option>
-                        `
+                    `<option value="${json[c].categoria.id}">${json[c].categoria.titulo}</option>`
             }
         })
     })
 }
 
 async function gerarInstituicao() {
+    const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
     gestaoInstituicao = document.getElementById("gestaoInstituicao")
     select_instituicao.innerHTML = "<option value='#'> Escolha uma instituição</option>"
-    fetch("/registros/gerarInstituicoes", {
+    fetch(apiUrl(`/instituicoes/usuarios/${usuario.id}`), {
         method: "GET"
     }).then(res => {
+        if (res.status === 204) return;
         res.json().then(json => {
             for (let c = 0; json.length > c; c++) {
                 select_instituicao.innerHTML +=
-                    `
-                        <option value="${json[c].id}">${json[c].nome}</option>
-                    `
+                    `<option value="${json[c].id}">${json[c].nome}</option>`
 
-                gestaoInstituicao.innerHTML += 
-                `
-                 <option onclick="controleInstituicao()">${json[c].nome}</option>
-                `
+                gestaoInstituicao.innerHTML +=
+                    `<option onclick="controleInstituicao()">${json[c].nome}</option>`
             }
         })
     })
@@ -158,27 +160,47 @@ function atualizarSaldo(valor, instituicao) {
 }
 
 function adicionarTipos() {
-    var titulo = ipt_tituloTipo.value
-    fetch("/registros/adicionarTipo", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            tituloServer: titulo
-        }),
-    }).then(function (resposta) {
-        console.log("Resposta: ", resposta);
-        if (resposta.ok) {
+    const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+    if (!usuario.id) {
+        alerta(`Faça login novamente para adicionar tipo <button onclick="div_alerta.style.display='none'">OK</button>`);
+        return;
+    }
+    const titulo = ipt_tituloTipo.value.trim();
+    if (!titulo) {
+        return alerta(`Informe o nome do tipo <button onclick="div_alerta.style.display='none'">OK</button>`);
+    }
+    fetch(apiUrl('/categorias'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titulo: titulo })
+    }).then(res => {
+        if (res.ok) return res.json();
+        if (res.status === 409) {
+            return fetch(apiUrl('/categorias'))
+                .then(r => r.json())
+                .then(all => {
+                    const found = all.find(c => c.titulo.toLowerCase() === titulo.toLowerCase());
+                    if (!found) throw new Error('Categoria não encontrada');
+                    return found;
+                });
+        }
+        throw new Error('Erro ao criar tipo');
+    }).then(cat => {
+        return fetch(apiUrl(`/categorias/${cat.id}/usuarios/${usuario.id}`), { method: 'POST' });
+    }).then(resposta => {
+        if (resposta.ok || resposta.status === 201) {
             gerarTipos();
-            adicioarTipo.close();
-            return alerta(`Tipo adicionado com sucesso!<br>
-                <button onclick="div_alerta.style.display='none'">OK</button>`)
+            adicionarTipo.close();
+            ipt_tituloTipo.value = '';
+            alerta(`Tipo adicionado com sucesso!<br><button onclick="div_alerta.style.display='none'">OK</button>`);
+        } else if (resposta.status === 409) {
+            alerta(`Você já possui esse tipo <button onclick="div_alerta.style.display='none'">OK</button>`);
+        } else {
+            alerta(`Houve um erro ao adicionar tipo <button onclick="div_alerta.style.display='none'">OK</button>`);
         }
-        else {
-            return alerta(`Houve um erro ao adicionar tipo`, resposta)
-        }
-    })
+    }).catch(err => {
+        alerta(`${err.message} <button onclick="div_alerta.style.display='none'">OK</button>`);
+    });
 }
 
 /*-------------- Calendário --------------*/
@@ -188,7 +210,7 @@ const modal = document.getElementById("modal");
 const fechar = document.getElementById("fechar");
 const dias = document.getElementById("dias");
 const mesAno = document.getElementById("mesAno");
-const gastosDoDia = document.getElementById("gastosDoDia");
+const gastosDia = document.getElementById("gastosDia");
 const confirmar = document.getElementById("confirmar");
 const btnAnterior = document.getElementById("btnAnterior");
 const btnProximo = document.getElementById("btnProximo");
@@ -227,9 +249,14 @@ const gastos = {
 async function buscarGastosDia(dataSelecionada) {
     console.log("Buscando gastos para", dataSelecionada);
 
-    const res = await fetch(`/registros/buscarData/${dataSelecionada}`, {
+    const res = await fetch(apiUrl(`/registros/buscarData/${dataSelecionada}`), {
         method: "GET"
     });
+
+    if (!res.ok) {
+        console.warn("Falha ao buscar gastos do dia:", res.status);
+        return [];
+    }
 
     const json = await res.json();
     console.log("Tamanho de gastos:", json.length);
@@ -281,23 +308,28 @@ async function selecionarDia(data, elemento) {
 
     elemento.classList.add("diaSelecionado");
 
-    const listaGastos = await buscarGastosDia(data);
+    try {
+        const listaGastos = await buscarGastosDia(data);
 
-    console.log("tamanho lista gastos: ",listaGastos.length)
-    if (listaGastos.length > 0) {
-        console.log("Lista de gastos > 0")
-        novaData = new Date(listaGastos[0].dataGasto);
-        const dataFormatada = novaData.toLocaleDateString("pt-BR");
-        gastosDia.innerHTML = `
+        console.log("tamanho lista gastos: ",listaGastos.length)
+        if (listaGastos.length > 0) {
+            console.log("Lista de gastos > 0")
+            novaData = new Date(listaGastos[0].dataGasto);
+            const dataFormatada = novaData.toLocaleDateString("pt-BR");
+            gastosDia.innerHTML = `
             <b>Gastos de ${dataFormatada}:</b><br>
         `;
-        for (let c = 0; c < listaGastos.length; c++) {
-            gastosDia.innerHTML += `
+            for (let c = 0; c < listaGastos.length; c++) {
+                gastosDia.innerHTML += `
             <b>${listaGastos[c].tituloGasto} - R$${listaGastos[c].valor}</b><br>
         `;
+            }
+        } else {
+            gastosDia.innerHTML = "<i>Nenhum gasto neste dia.</i>";
         }
-    } else {
-        gastosDia.innerHTML = "<i>Nenhum gasto neste dia.</i>";
+    } catch (erro) {
+        console.error("Erro ao carregar gastos do dia:", erro);
+        gastosDia.innerHTML = "<i>Não foi possível carregar os gastos, mas você pode confirmar a data.</i>";
     }
 
     confirmar.disabled = false;
