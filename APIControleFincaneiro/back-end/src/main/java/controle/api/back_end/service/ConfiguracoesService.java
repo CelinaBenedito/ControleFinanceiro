@@ -57,11 +57,11 @@ public class ConfiguracoesService {
                 );
     }
 
-    public Configuracoes createConfiguracao(Configuracoes entity, ConfiguracoesCreateDTO createDto) {
-        Usuario user = usuarioRepository.findById(createDto.getFkUsuario())
+    public Configuracoes createConfiguracao(Configuracoes entity, UUID idUsuario) {
+        Usuario user = usuarioRepository.findById(idUsuario)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("Usuário não encontrado"));
 
-        if (configuracoesRepository.existsConfiguracoesByUsuario_Id(createDto.getFkUsuario())) {
+        if (configuracoesRepository.existsConfiguracoesByUsuario_Id(idUsuario)) {
             throw new EntidadeJaExisteException("Já existe uma configuração associada ao usuário informado");
         }
 
@@ -160,7 +160,15 @@ public class ConfiguracoesService {
                 );
     }
 
-    public Configuracoes updateLimiteInstituicao(){
-    return null;
+    public Configuracoes updateLimiteInstituicao(UUID id, List<LimitePorInstituicao> limites) {
+        Configuracoes configuracoes = configuracoesRepository.findById(id)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException(
+                                "Configuração de id: %d não encontrado."
+                                        .formatted(id)
+                        )
+                );
+        configuracoes.setLimitePorInstituicao(limites);
+        return configuracoes;
     }
 }

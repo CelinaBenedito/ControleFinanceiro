@@ -3,6 +3,7 @@ package controle.api.back_end.service;
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.exception.MenorDeIdadeException;
+import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
@@ -15,9 +16,11 @@ import java.util.UUID;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final ConfiguracoesService configuracoesService;
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository, ConfiguracoesService configuracoesService) {
         this.usuarioRepository = usuarioRepository;
+        this.configuracoesService = configuracoesService;
     }
 
     public List<Usuario> getUsuarios(){
@@ -38,7 +41,6 @@ public class UsuarioService {
         if(ageValidation(entity.getDataNascimento()) == false){
             throw new MenorDeIdadeException("Usuario menor de idade");
         }
-
         return usuarioRepository.save(entity);
     }
 
@@ -89,5 +91,13 @@ public class UsuarioService {
             return true;
         }
         return false;
+    }
+
+    public void createConfiguracao(Usuario usuario){
+        Configuracoes configuracoes = new Configuracoes();
+        configuracoes.setUsuario(usuario);
+        configuracoes.setInicioMesFiscal(1);
+        configuracoes.setUltimaAtualizacao(LocalDate.now());
+        configuracoesService.createConfiguracao(configuracoes,usuario.getId());
     }
 }
