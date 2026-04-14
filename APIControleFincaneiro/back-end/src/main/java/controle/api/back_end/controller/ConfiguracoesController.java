@@ -67,13 +67,20 @@ public class ConfiguracoesController {
     })
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createConfiguracao(@Valid @RequestBody ConfiguracoesCreateDTO createDto){
         Configuracoes entity = ConfiguracoesMapper.toEntity(createDto);
-        Configuracoes created = configuracoesService.createConfiguracao(entity,createDto);
+        Configuracoes created = configuracoesService.createConfiguracao(entity,createDto.getFkUsuario());
         ConfiguracaoUsuarioResponseDTO response = ConfiguracoesMapper.toDtoUser(created);
 
         return ResponseEntity.status(201).body(response);
     }
 
     @PostMapping("{id}/instituicoes")
+    @Operation(summary = "Adicionar ",
+            description = "Cria uma nova configuração no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Configuracao criada com sucesso!"),
+            @ApiResponse(responseCode = "409", description = "Usuario já tem uma configuração cadastrada"),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+    })
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createLimitePorInstituicao(@RequestBody @Valid List<LimitePorInstitucaoCreateDTO> createDtos,
                                                                                      @PathVariable UUID id){
         List<LimitePorInstituicao> limites = new ArrayList<>();
@@ -82,9 +89,9 @@ public class ConfiguracoesController {
             LimitePorInstituicao limitePorInstituicao = configuracoesService.createLimitePorInstituicao(instituicaoUsuario, dto.getLimiteDesejado());
             limites.add(limitePorInstituicao);
         }
-        configuracoesService.updateLimiteInstituicao();
-
-        return null;
+        Configuracoes configuracoes = configuracoesService.updateLimiteInstituicao(id, limites);
+        ConfiguracaoUsuarioResponseDTO response = ConfiguracoesMapper.toDtoUser(configuracoes);
+        return ResponseEntity.status(200).body(response);
     }
 
     @PutMapping("/edit/{id}")
