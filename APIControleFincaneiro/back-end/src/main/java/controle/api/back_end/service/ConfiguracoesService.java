@@ -68,40 +68,6 @@ public class ConfiguracoesService {
         entity.setUsuario(user);
         entity.setUltimaAtualizacao(LocalDate.now());
 
-        // Limites por categoria
-        if (createDto.getLimitesCategoria() != null) {
-            List<LimitePorCategoria> limitesCategoria = new ArrayList<>();
-            for (ConfiguracoesCreateDTO.LimiteCategoriaCreateDTO limiteDTO : createDto.getLimitesCategoria()) {
-                CategoriaUsuario categoriaUsuario = categoriaUsuarioRepository.findByUsuario_idAndCategoria_id(
-                        user.getId(), limiteDTO.getCategoriaId());
-
-                LimitePorCategoria limite = new LimitePorCategoria();
-                limite.setCategoriaUsuario(categoriaUsuario);
-                limite.setLimiteDesejado(limiteDTO.getValor());
-                limitePorCategoriaRepository.save(limite);
-
-                limitesCategoria.add(limite);
-            }
-            entity.setLimitePorCategoria(limitesCategoria);
-        }
-
-        // Limites por instituição
-        if (createDto.getLimitesInstituicao() != null) {
-            List<LimitePorInstituicao> limitesInstituicao = new ArrayList<>();
-            for (ConfiguracoesCreateDTO.LimiteInstituicaoCreateDTO limiteDTO : createDto.getLimitesInstituicao()) {
-                InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findByUsuario_IdAndInstituicao_Id(
-                        user.getId(), limiteDTO.getInstituicaoId());
-
-                LimitePorInstituicao limite = new LimitePorInstituicao();
-                limite.setInstitucaoUsuario(instituicaoUsuario);
-                limite.setLimiteDesejado(limiteDTO.getValor());
-                limitePorInstiuicaoRepository.save(limite);
-
-                limitesInstituicao.add(limite);
-            }
-            entity.setLimitePorInstituicao(limitesInstituicao);
-        }
-
         return configuracoesRepository.save(entity);
     }
 

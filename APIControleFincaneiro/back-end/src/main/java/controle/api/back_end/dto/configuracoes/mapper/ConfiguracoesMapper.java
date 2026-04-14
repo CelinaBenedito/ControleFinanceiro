@@ -4,6 +4,7 @@ import controle.api.back_end.dto.configuracoes.ConfiguracaoEditDTO;
 import controle.api.back_end.dto.configuracoes.ConfiguracaoUsuarioResponseDTO;
 import controle.api.back_end.dto.configuracoes.ConfiguracoesCreateDTO;
 import controle.api.back_end.dto.configuracoes.ConfiguracoesResponsesDTO;
+import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
@@ -142,19 +143,13 @@ public class ConfiguracoesMapper {
         }
 
         Configuracoes entity = new Configuracoes();
-        List<ConfiguracoesCreateDTO.LimiteCategoriaCreateDTO> limiteCategoriaCreateDTO = new ConfiguracoesCreateDTO.LimiteCategoriaCreateDTO();
-        List<ConfiguracoesCreateDTO.LimiteInstituicaoCreateDTO> limiteInstituicaoCreateDTO = new ConfiguracoesCreateDTO.LimiteInstituicaoCreateDTO()
 
         Usuario user = new Usuario();
         user.setId(dto.getFkUsuario());
 
-        List<ConfiguracoesCreateDTO.LimiteCategoriaCreateDTO> limitesCategoria = dto.getLimitesCategoria();
-
-
         entity.setInicioMesFiscal(dto.getInicioMesFiscal());
         entity.setLimiteDesejadoMensal(dto.getLimiteDesejadoMensal());
         entity.setUsuario(user);
-        entity.setLimitePorInstituicao();
         return entity;
     }
 

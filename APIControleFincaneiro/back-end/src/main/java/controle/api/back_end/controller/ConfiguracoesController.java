@@ -1,9 +1,6 @@
 package controle.api.back_end.controller;
 
-import controle.api.back_end.dto.configuracoes.ConfiguracaoEditDTO;
-import controle.api.back_end.dto.configuracoes.ConfiguracaoUsuarioResponseDTO;
-import controle.api.back_end.dto.configuracoes.ConfiguracoesCreateDTO;
-import controle.api.back_end.dto.configuracoes.ConfiguracoesResponsesDTO;
+import controle.api.back_end.dto.configuracoes.*;
 import controle.api.back_end.dto.configuracoes.mapper.ConfiguracoesMapper;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.service.ConfiguracoesService;
@@ -73,6 +70,11 @@ public class ConfiguracoesController {
         return ResponseEntity.status(201).body(response);
     }
 
+    @PostMapping("/instituicoes")
+    public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createLimitePorInstituicao(@RequestBody @Valid LimitePorInstitucaoCreateDTO createDto){
+
+    }
+
     @PutMapping("/edit/{id}")
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> editConfiguracao(@Valid @RequestBody ConfiguracaoEditDTO editDTO, @PathVariable UUID id){
         Configuracoes entity = ConfiguracoesMapper.toEntity(editDTO);
@@ -80,6 +82,5 @@ public class ConfiguracoesController {
         ConfiguracaoUsuarioResponseDTO response = ConfiguracoesMapper.toDtoUser(edited);
         return ResponseEntity.status(200).body(response);
     }
-
 
 }
