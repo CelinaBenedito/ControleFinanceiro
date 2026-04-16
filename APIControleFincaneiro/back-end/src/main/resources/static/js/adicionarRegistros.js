@@ -138,21 +138,27 @@ function atualizarSaldo(valor, instituicao) {
 }
 
 function adicionarTipos() {
-    var titulo = ipt_tituloTipo.value
+    var titulo = document.getElementById("ipt_tituloTipo").value.trim()
+    if (!titulo) {
+        return alerta(`Digite um nome para o tipo <button onclick='div_alerta.style.display="none"'>OK</button>`);
+    }
     MainAPI.adicionarTipo({
-        tituloServer: titulo
+        titulo: titulo
     }).then(function (resposta) {
         console.log("Resposta: ", resposta);
         if (resposta.ok) {
             gerarTipos();
-            adicioarTipo.close();
+            adicionarTipo.close();
             return alerta(`Tipo adicionado com sucesso!<br>
                 <button onclick="div_alerta.style.display='none'">OK</button>`)
         }
         else {
-            return alerta(`Houve um erro ao adicionar tipo`, resposta)
+            return alerta(`Houve um erro ao adicionar tipo <button onclick='div_alerta.style.display="none"'>OK</button>`)
         }
-    })
+    }).catch(function (error) {
+        console.error("Erro ao adicionar tipo:", error);
+        return alerta(`Erro ao conectar ao servidor. <button onclick='div_alerta.style.display="none"'>OK</button>`);
+    });
 }
 
 /*-------------- Calendário --------------*/

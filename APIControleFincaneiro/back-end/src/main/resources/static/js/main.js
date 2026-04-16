@@ -30,10 +30,10 @@
         request,
         get,
         getTipos() {
-            return get("/registros/gerarTipos");
+            return get("/categorias");
         },
         getInstituicoes() {
-            return get("/registros/gerarInstituicoes");
+            return get("/instituicoes");
         },
         registrarGasto(payload) {
             return postJson("/registros/registrar", payload);
@@ -42,7 +42,7 @@
             return postJson("/registros/atualizarSaldo", payload);
         },
         adicionarTipo(payload) {
-            return postJson("/registros/adicionarTipo", payload);
+            return postJson("/categorias", payload);
         },
         buscarRegistrosPorData(dataSelecionada) {
             return get(`/registros/buscarData/${dataSelecionada}`);
