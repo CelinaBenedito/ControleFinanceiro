@@ -1,6 +1,5 @@
 function carregarRegistros() {
-    fetch("/registros/carregarRegistros")
-        .then(res => res.json())
+    MainAPI.carregarRegistros()
         .then(json => {
 
             registros.innerHTML = "";
@@ -112,15 +111,9 @@ function carregarRegistros() {
 function adicionar() {
     var valor = ipt_valor.value;
     var instituicao = select_instituicao.value;
-    fetch("/registros/adicionarSaldo", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            valorServer: valor,
-            instituicaoServer: instituicao
-        })
+    MainAPI.adicionarSaldo({
+        valorServer: valor,
+        instituicaoServer: instituicao
     }).then((resposta) => {
         console.log("Resposta:", resposta);
         if (resposta.ok) {
@@ -135,15 +128,9 @@ function adicionar() {
 function remover() {
     var valor = ipt_remove.value;
     var instituicao = select_instituicao_remove.value;
-    fetch("/registros/atualizarSaldo", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            valorServer: valor,
-            instituicaoServer: instituicao
-        })
+    MainAPI.atualizarSaldo({
+        valorServer: valor,
+        instituicaoServer: instituicao
     }).then((resposta) => {
         console.log("Resposta:", resposta);
         if (resposta.ok) {
@@ -158,48 +145,36 @@ function remover() {
 
 function gerarInstituicao() {
     select_instituicao.innerHTML = "<option value='#'> Escolha uma instituição</option>"
-    fetch("/registros/gerarInstituicoes", {
-        method: "GET"
-    }).then(res => {
-        res.json().then(json => {
-            for (let c = 0; json.length > c; c++) {
-                select_instituicao_remove.innerHTML +=
-                    `
+    MainAPI.getInstituicoes().then(json => {
+        for (let c = 0; json.length > c; c++) {
+            select_instituicao_remove.innerHTML +=
+                `
                             <option value="${json[c].id}">${json[c].nome}</option>
                     `
-                select_instituicao.innerHTML +=
-                    `
+            select_instituicao.innerHTML +=
+                `
                             <option value="${json[c].id}">${json[c].nome}</option>
                         `
-            }
-        })
+        }
     })
 }
-fetch("/registros/mostrarSaldoTotal", {
-    method: "GET"
-}).then(res => {
-    res.json().then(json => {
-        ValorTotal.innerHTML = json[0].valorTotal
-    })
+MainAPI.mostrarSaldoTotal().then(json => {
+    ValorTotal.innerHTML = json[0].valorTotal
 })
 
 function Consulta() {
     principal.innerHTML = "    "
-    fetch("/registros/mostrarTodasInstituicoes", {
-        method: "GET"
-    }).then(res => {
-        res.json().then(json => {
-            for (let c = 0; json.length > c; c++) {
-                principal.innerHTML +=
-                    `<div>
+    MainAPI.mostrarTodasInstituicoes().then(json => {
+        for (let c = 0; json.length > c; c++) {
+            principal.innerHTML +=
+                `<div>
                             <h1>${json[c].nome}</h1>
                             <div class="textoValor">
                                 <p>${json[c].valor}</p>
                             </div>
                             </div>
                         `
-            }
-        })
+        }
     })
 
 

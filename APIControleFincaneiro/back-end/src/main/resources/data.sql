@@ -1,5 +1,5 @@
 INSERT INTO usuario (id, nome, sobrenome, data_nascimento, sexo, imagem, email, senha)
-VALUES ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58','Marcio', 'Pereira Costa', '1987-05-16', 'Masculino', null, 'marcinho.pereira@gmail.com', 'todosContra1'),
+VALUES ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58','Marcio', 'Pereira Costa', '1987-05-16', 'Masculino', null, 'marcinho.pereira@gmail.com', 'todosContra!'),
        ('b5135981-72fc-46ee-a6c6-4072495f7afd','Jonas', 'Pinto', '1956-09-26', 'Masculino', null, 'jonas@gmail.com', 'antigamenteEraMelhor'),
        ('2f1ed17a-c8b6-425b-adb1-b28126be88de','Mariana', 'Rosa da Silva', '2000-12-05', 'Feminino', null, 'am4nd1nh4@gmail.com', 'iLoveBT2'),
        ('8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11','Carla','Souza Lima','1995-03-22','Feminino',null,'carla.lima95@gmail.com','senhaSegura123'),

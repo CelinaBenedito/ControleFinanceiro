@@ -144,20 +144,14 @@ function checarDados() {
 function cadastrar(nome, sobrenome, dataNascimento, sexo, email, senha) {
     console.warn("Iniciando o cadastro!");
 
-    fetch(`http://localhost:8080/usuarios`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            nome: nome,
-            sobrenome: sobrenome,
-            dataNascimento: dataNascimento,
-            sexo: sexo,
-            email: email,
-            senha: senha
+    MainAPI.cadastrarUsuario({
+        nome: nome,
+        sobrenome: sobrenome,
+        dataNascimento: dataNascimento,
+        sexo: sexo,
+        email: email,
+        senha: senha
 
-        }),
     }).then((response) => {
         console.warn("Resposta da tentativa de cadastro:", response);
         alerta(`Estou no warn e a resposta foi: ${response}`)

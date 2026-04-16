@@ -63,15 +63,9 @@ function checarDados(){
 function login(email, senha){
     console.warn("Iniciando o login!");
 
-    fetch(`http://localhost:8080/usuarios/login`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            email: email,
-            senha: senha
-        }),
+    MainAPI.loginUsuario({
+        email: email,
+        senha: senha
     }).then((response) => {
         console.warn("Resposta da tentativa de login:", response);
         if(response.ok){
