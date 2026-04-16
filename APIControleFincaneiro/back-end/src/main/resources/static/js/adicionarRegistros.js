@@ -18,40 +18,32 @@ function gerarInformacoes() {
 
 function gerarTipos() {
     select_tipo.innerHTML = "<option value='#'>Escolha um tipo</option>"
-    fetch("/registros/gerarTipos", {
-        method: "GET"
-    }).then(res => {
-        res.json().then(json => {
-            for (let c = 0; json.length > c; c++) {
+    MainAPI.getTipos().then(json => {
+        for (let c = 0; json.length > c; c++) {
 
-                select_tipo.innerHTML +=
-                    `
+            select_tipo.innerHTML +=
+                `
                             <option value="${json[c].id}">${json[c].titulo}</option>
                         `
-            }
-        })
+        }
     })
 }
 
 async function gerarInstituicao() {
     gestaoInstituicao = document.getElementById("gestaoInstituicao")
     select_instituicao.innerHTML = "<option value='#'> Escolha uma instituição</option>"
-    fetch("/registros/gerarInstituicoes", {
-        method: "GET"
-    }).then(res => {
-        res.json().then(json => {
-            for (let c = 0; json.length > c; c++) {
-                select_instituicao.innerHTML +=
-                    `
+    MainAPI.getInstituicoes().then(json => {
+        for (let c = 0; json.length > c; c++) {
+            select_instituicao.innerHTML +=
+                `
                         <option value="${json[c].id}">${json[c].nome}</option>
                     `
 
-                gestaoInstituicao.innerHTML += 
-                `
+            gestaoInstituicao.innerHTML += 
+            `
                  <option onclick="controleInstituicao()">${json[c].nome}</option>
                 `
-            }
-        })
+        }
     })
 }
 
@@ -97,19 +89,13 @@ function registrar() {
     </div>
         `), 2000)
 
-    fetch("/registros/registrar", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            valorServer: valor,
-            descServer: Desc,
-            tipoServer: tipo,
-            tituloServer: titulo,
-            dataServer: data,
-            instituicaoServer: instituicao
-        }),
+    MainAPI.registrarGasto({
+        valorServer: valor,
+        descServer: Desc,
+        tipoServer: tipo,
+        tituloServer: titulo,
+        dataServer: data,
+        instituicaoServer: instituicao
     }).then((response) => {
         console.log("Resposta:", response);
         if (response.ok) {
@@ -137,15 +123,9 @@ function registrar() {
 
 function atualizarSaldo(valor, instituicao) {
     console.log("chamou atualizar saldo")
-    fetch(`/registros/atualizarSaldo`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            valorServer: valor,
-            instituicaoServer: instituicao
-        }),
+    MainAPI.atualizarSaldo({
+        valorServer: valor,
+        instituicaoServer: instituicao
     }).then((resposta) => {
         console.log("Resposta:", resposta);
         if (resposta.ok) {
@@ -159,14 +139,8 @@ function atualizarSaldo(valor, instituicao) {
 
 function adicionarTipos() {
     var titulo = ipt_tituloTipo.value
-    fetch("/registros/adicionarTipo", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            tituloServer: titulo
-        }),
+    MainAPI.adicionarTipo({
+        tituloServer: titulo
     }).then(function (resposta) {
         console.log("Resposta: ", resposta);
         if (resposta.ok) {
@@ -227,11 +201,7 @@ const gastos = {
 async function buscarGastosDia(dataSelecionada) {
     console.log("Buscando gastos para", dataSelecionada);
 
-    const res = await fetch(`/registros/buscarData/${dataSelecionada}`, {
-        method: "GET"
-    });
-
-    const json = await res.json();
+    const json = await MainAPI.buscarRegistrosPorData(dataSelecionada);
     console.log("Tamanho de gastos:", json.length);
 
     let listaGastos = [];
