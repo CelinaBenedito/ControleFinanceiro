@@ -144,7 +144,13 @@ public class ConfiguracoesService {
     }
 
     public LimitePorInstituicao createLimitePorInstituicao(InstituicaoUsuario instituicaoUsuario, Double valor){
+
         LimitePorInstituicao limiteInstituicao = new LimitePorInstituicao();
+        List<LimitePorInstituicao> limitePorInstituicaoByInstitucaoUsuarioId = limitePorInstiuicaoRepository
+                .findLimitePorInstituicaoByInstitucaoUsuario_Id(
+                        instituicaoUsuario.getId()
+                );
+
         limiteInstituicao.setInstitucaoUsuario(instituicaoUsuario);
         limiteInstituicao.setLimiteDesejado(valor);
         return limitePorInstiuicaoRepository.save(limiteInstituicao);
@@ -164,7 +170,7 @@ public class ConfiguracoesService {
         Configuracoes configuracoes = configuracoesRepository.findById(id)
                 .orElseThrow(() ->
                         new EntidadeNaoEncontradaException(
-                                "Configuração de id: %d não encontrado."
+                                "Configuração de id: %s não encontrado."
                                         .formatted(id)
                         )
                 );

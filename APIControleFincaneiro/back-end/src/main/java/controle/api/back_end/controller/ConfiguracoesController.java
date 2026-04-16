@@ -74,11 +74,11 @@ public class ConfiguracoesController {
     }
 
     @PostMapping("{id}/instituicoes")
-    @Operation(summary = "Adicionar ",
-            description = "Cria uma nova configuração no banco de dados.")
+    @Operation(summary = "Adicionar uma lista de limite para instituições.",
+            description = "Adição de uma lista de instituições e seus respectivos limites nas configurações.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Configuracao criada com sucesso!"),
-            @ApiResponse(responseCode = "409", description = "Usuario já tem uma configuração cadastrada"),
+            @ApiResponse(responseCode = "201", description = "Lista de instituições criadas!"),
+            @ApiResponse(responseCode = "409", description = "Limite já cadastrado!"),
             @ApiResponse(responseCode = "404", description = "Dados inválidos!")
     })
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createLimitePorInstituicao(@RequestBody @Valid List<LimitePorInstitucaoCreateDTO> createDtos,
