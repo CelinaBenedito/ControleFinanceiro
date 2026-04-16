@@ -5,12 +5,7 @@
         if (/^https?:\/\//i.test(path)) {
             return path;
         }
-
-        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-            return `${LOCAL_API}${path}`;
-        }
-
-        return path;
+        return `${LOCAL_API}${path}`;
     }
 
     function request(path, options) {
@@ -35,10 +30,10 @@
         request,
         get,
         getTipos() {
-            return get("/registros/gerarTipos");
+            return get("/categorias");
         },
         getInstituicoes() {
-            return get("/registros/gerarInstituicoes");
+            return get("/instituicoes");
         },
         registrarGasto(payload) {
             return postJson("/registros/registrar", payload);
@@ -47,7 +42,7 @@
             return postJson("/registros/atualizarSaldo", payload);
         },
         adicionarTipo(payload) {
-            return postJson("/registros/adicionarTipo", payload);
+            return postJson("/categorias", payload);
         },
         buscarRegistrosPorData(dataSelecionada) {
             return get(`/registros/buscarData/${dataSelecionada}`);
