@@ -2,6 +2,8 @@ div_alerta.style.display = 'none';
 gestaoConta.style.display = "none";
 
 let dataGasto;
+const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
+const userId = usuarioLogado ? usuarioLogado.id : null;
 
 function alerta(texto) {
     div_alerta.style.display = "flex"
@@ -17,13 +19,14 @@ function gerarInformacoes() {
 }
 
 function gerarTipos() {
+    if (!userId) return;
     select_tipo.innerHTML = "<option value='#'>Escolha um tipo</option>"
-    MainAPI.getTipos().then(json => {
+    MainAPI.getTipos(userId).then(json => {
         for (let c = 0; json.length > c; c++) {
 
             select_tipo.innerHTML +=
                 `
-                            <option value="${json[c].id}">${json[c].titulo}</option>
+                            <option value="${json[c].categoria.id}">${json[c].categoria.titulo}</option>
                         `
         }
     })
@@ -138,13 +141,14 @@ function atualizarSaldo(valor, instituicao) {
 }
 
 function adicionarTipos() {
+    if (!userId) {
+        return alerta(`Nenhum usuário logado. <button onclick='div_alerta.style.display="none"'>OK</button>`);
+    }
     var titulo = document.getElementById("ipt_tituloTipo").value.trim()
     if (!titulo) {
         return alerta(`Digite um nome para o tipo <button onclick='div_alerta.style.display="none"'>OK</button>`);
     }
-    MainAPI.adicionarTipo({
-        titulo: titulo
-    }).then(function (resposta) {
+    MainAPI.adicionarTipo({ titulo: titulo }, userId).then(function (resposta) {
         console.log("Resposta: ", resposta);
         if (resposta.ok) {
             gerarTipos();
