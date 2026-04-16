@@ -69,6 +69,15 @@ function login(email, senha){
     }).then((response) => {
         console.warn("Resposta da tentativa de login:", response);
         if (response.ok) {
+            response.json().then(usuario => {
+                const perfis = JSON.parse(localStorage.getItem("perfis") || "[]");
+                const jaExiste = perfis.some(p => p.id === usuario.id);
+                if (!jaExiste) {
+                    perfis.push({ id: usuario.id, nome: usuario.nome, imagem: usuario.imagem || null });
+                    localStorage.setItem("perfis", JSON.stringify(perfis));
+                }
+                localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+            });
             alerta(`Logado com sucesso!`);
             setTimeout(() => {
                 window.location.href = "dashboard.html";
