@@ -5,12 +5,7 @@
         if (/^https?:\/\//i.test(path)) {
             return path;
         }
-
-        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-            return `${LOCAL_API}${path}`;
-        }
-
-        return path;
+        return `${LOCAL_API}${path}`;
     }
 
     function request(path, options) {
