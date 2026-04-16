@@ -49,6 +49,12 @@
         <div id="main" class="main">
             <h1>Bem Vindo!</h1>
             <button>Ver instituições</button>
+            <!-- TEMP: botão de deslogar para testes -->
+            <button
+                onclick="localStorage.removeItem('usuarioLogado'); window.location.href='index.html'"
+                style="background:transparent; border:1px solid currentColor; color:inherit; opacity:0.5; font-size:0.75rem; padding:4px 10px; cursor:pointer;">
+                <i class='bx bx-log-out'></i> Deslogar
+            </button>
             <p>Período analisado: <span>20/12/2025 - 19/01/2026</span></p>
             <div id="filtros" class="filtros">
                 <div class="campo">
