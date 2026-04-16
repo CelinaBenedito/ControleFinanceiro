@@ -154,14 +154,17 @@ function cadastrar(nome, sobrenome, dataNascimento, sexo, email, senha) {
 
     }).then((response) => {
         console.warn("Resposta da tentativa de cadastro:", response);
-        alerta(`Estou no warn e a resposta foi: ${response}`)
-        if(response.ok){
-            alerta(`Conta criada com sucesso`);
-
-             setTimeout(() => {
-        window.location.href = "login.html";
-    }, 1500);
+        if (response.ok) {
+            alerta(`Conta criada com sucesso!`);
+            setTimeout(() => {
+                window.location.href = "login.html";
+            }, 1500);
+        } else {
+            alerta(`Erro ao criar conta. Verifique os dados e tente novamente. <button onclick='div_alerta.style.display="none"'>OK</button>`);
         }
-    })
+    }).catch((error) => {
+        console.error("Erro na chamada ao MainAPI:", error);
+        alerta(`Erro ao conectar ao servidor. <button onclick='div_alerta.style.display="none"'>OK</button>`);
+    });
 
 }

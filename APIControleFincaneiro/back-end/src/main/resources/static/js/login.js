@@ -68,13 +68,17 @@ function login(email, senha){
         senha: senha
     }).then((response) => {
         console.warn("Resposta da tentativa de login:", response);
-        if(response.ok){
+        if (response.ok) {
             alerta(`Logado com sucesso!`);
-
-             setTimeout(() => {
-        window.location.href = "dashboard.html";
-    }, 1500);
+            setTimeout(() => {
+                window.location.href = "dashboard.html";
+            }, 1500);
+        } else {
+            alerta(`Email ou senha incorretos. <button onclick='div_alerta.style.display="none"'>OK</button>`);
         }
-    })
+    }).catch((error) => {
+        console.error("Erro na chamada ao MainAPI:", error);
+        alerta(`Erro ao conectar ao servidor. <button onclick='div_alerta.style.display="none"'>OK</button>`);
+    });
 
 }
