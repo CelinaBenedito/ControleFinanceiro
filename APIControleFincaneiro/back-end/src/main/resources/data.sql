@@ -3,7 +3,7 @@ VALUES ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58','Marcio', 'Pereira Costa', '1987-
        ('b5135981-72fc-46ee-a6c6-4072495f7afd','Jonas', 'Pinto', '1956-09-26', 'Masculino', null, 'jonas@gmail.com', 'antigamenteEraMelhor'),
        ('2f1ed17a-c8b6-425b-adb1-b28126be88de','Mariana', 'Rosa da Silva', '2000-12-05', 'Feminino', null, 'am4nd1nh4@gmail.com', 'iLoveBT2'),
        ('8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11','Carla','Souza Lima','1995-03-22','Feminino',null,'carla.lima95@gmail.com','senhaSegura123'),
-       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','Felipe','Almeida Santos','1982-11-09','Masculino',null,'felipe.almeida82@gmail.com','felipe@1982'),
+       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','Felipe','Almeida Santos','1982-11-09','Masculino',null,'felipe.almeida82@gmail.com','Felipe@1982'),
        ('3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33','Luciana','Ferreira','1978-07-14','Feminino',null,'luciana.ferreira78@gmail.com','lucyF78'),
        ('a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44','Rafael','Mendes Oliveira','2001-01-30','Masculino',null,'rafa.mendes01@gmail.com','rafa2001'),
        ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','Patrícia','Costa','1990-08-18','Feminino',null,'patricia.costa90@gmail.com','patyC90');
