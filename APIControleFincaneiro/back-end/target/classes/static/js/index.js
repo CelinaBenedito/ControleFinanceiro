@@ -125,8 +125,7 @@ function buscarMaiorGasto(periodo) {
     labelComparacao = `${nomeMes(mesAnterior)}`;
   }
   console.log("Iniciando fetch na kpi de maior categoria...")
-  return fetch(url)
-    .then(res => res.json())
+  return MainAPI.get(url)
     .then(json => {
       console.log("Dentro do fetch da maior categoria\nJson:", json[0])
 
@@ -181,8 +180,7 @@ function buscarGastoTotal(periodo) {
   }
 
   console.log("Iniciando fetch...")
-  fetch(url)
-    .then(res => res.json())
+  MainAPI.get(url)
     .then(json => {
       console.log("Dentro do fetch\nJson:", json[0])
       div_gastoTotal = document.getElementById('gastoTotal');
@@ -245,8 +243,7 @@ function gerarTipos(periodo) {
     url = `/registros/quantidadeTipoMes/${periodo.ano}/${periodo.mes}`;
   }
 
-  fetch(url)
-    .then(res => res.json())
+  MainAPI.get(url)
     .then(json => {
       console.log("Dentro do fetch do gráfico de barra dos tipos")
       if (!json || json.length === 0) {
@@ -291,8 +288,7 @@ async function gastosMes(param) {
     tipoLabel = 'dia';
   }
 
-  fetch(url)
-    .then(res => res.json())
+  MainAPI.get(url)
     .then(json => {
       const dados = [];
       const labels = [];
@@ -351,8 +347,7 @@ function percentualTipo(periodo) {
     url = `/registros/percentualTipoMes/${periodo.ano}/${periodo.mes}`;
   }
 
-  fetch(url)
-    .then(res => res.json())
+  MainAPI.get(url)
     .then(json => {
 
       if (!json || json.length === 0) {
