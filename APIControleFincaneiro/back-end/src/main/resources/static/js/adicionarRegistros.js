@@ -20,16 +20,13 @@ function gerarInformacoes() {
 function gerarTipos() {
     if (!userId) return;
     const multiTipo = document.getElementById("multi_select_tipo");
-    const multiCategoria = document.getElementById("multi_select_categoria");
     select_tipo.innerHTML = "<option value='#'>Escolha um tipo</option>";
     if (multiTipo) multiTipo.innerHTML = "<option value='#'>Tipo do Evento</option>";
-    if (multiCategoria) multiCategoria.innerHTML = "<option value='#'>Categoria</option>";
     MainAPI.getTipos(userId).then(json => {
         for (let c = 0; json.length > c; c++) {
             const opt = `<option value="${json[c].categoria.id}">${json[c].categoria.titulo}</option>`;
             select_tipo.innerHTML += opt;
             if (multiTipo) multiTipo.innerHTML += opt;
-            if (multiCategoria) multiCategoria.innerHTML += opt;
         }
     }).catch(function(error) {
         console.error("Erro ao carregar tipos:", error);
@@ -362,9 +359,6 @@ function adicionarAoLote() {
     const instNome = instSel.options[instSel.selectedIndex].text;
     const movSel = document.getElementById("multi_select_movimento");
     const movimento = movSel.value;
-    const catSel = document.getElementById("multi_select_categoria");
-    const catId = catSel.value;
-    const catNome = catSel.options[catSel.selectedIndex].text;
     const valor = parseFloat(document.getElementById("ipt_multi_valor").value);
     const desc = document.getElementById("ipt_multi_desc").value.trim() || "Nenhuma descrição fornecida";
     const dataRaw = document.getElementById("multi_data").value;
@@ -379,7 +373,7 @@ function adicionarAoLote() {
     if (!data || dataRaw.length !== 10) return alert("Data inválida. Use o formato DD/MM/AAAA");
     if (!valor || valor <= 0) return alert("Valor inválido");
 
-    loteRegistros.push({ titulo, tipo, tipoNome, instId, instNome, movimento, catId, catNome, valor, desc, data });
+    loteRegistros.push({ titulo, tipo, tipoNome, instId, instNome, movimento, valor, desc, data });
     renderizarTabelaLote();
     document.getElementById("ipt_multi_nome").value = "";
     document.getElementById("ipt_multi_valor").value = "";
@@ -395,7 +389,7 @@ function renderizarTabelaLote() {
         trVazio.id = "loteVazio";
 
         const tdVazio = document.createElement("td");
-        tdVazio.colSpan = 7;
+        tdVazio.colSpan = 6;
         tdVazio.style.textAlign = "center";
         tdVazio.style.color = "#888";
         tdVazio.style.fontStyle = "italic";
@@ -424,10 +418,6 @@ function renderizarTabelaLote() {
         const tdInstNome = document.createElement("td");
         tdInstNome.textContent = r.instNome;
         tr.appendChild(tdInstNome);
-
-        const tdCatNome = document.createElement("td");
-        tdCatNome.textContent = r.catNome;
-        tr.appendChild(tdCatNome);
 
         const tdValor = document.createElement("td");
         tdValor.textContent = `R$ ${r.valor.toFixed(2).replace(".", ",")}`;

@@ -510,11 +510,6 @@
                             <option value="Transferência">Transferência</option>
                         </select>
                     </div>
-                    <div class="ar-select-wrap" style="flex:1; min-width:160px;">
-                        <select class="ar-select" id="multi_select_categoria">
-                            <option value="#">Categoria</option>
-                        </select>
-                    </div>
                     <input class="ar-field" type="number" id="ipt_multi_valor" placeholder="Valor..." style="flex:1; min-width:140px;">
                     <input class="ar-field" type="text" id="ipt_multi_desc" placeholder="Descrição..." style="flex:2; min-width:200px;">
                     <button class="ar-btn" onclick="adicionarAoLote()" style="flex-shrink:0;">Adicionar</button>
@@ -529,14 +524,13 @@
                                 <th>Tipo Evento</th>
                                 <th>Movimento</th>
                                 <th>Instituição</th>
-                                <th>Categoria</th>
                                 <th>Valor</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody id="corpoLote">
                             <tr id="loteVazio">
-                                <td colspan="7" style="text-align:center; color:#888; font-style:italic; padding:20px;">Nenhum registro adicionado ainda.</td>
+                                <td colspan="6" style="text-align:center; color:#888; font-style:italic; padding:20px;">Nenhum registro adicionado ainda.</td>
                             </tr>
                         </tbody>
                     </table>
