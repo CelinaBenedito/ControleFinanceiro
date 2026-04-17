@@ -473,7 +473,7 @@ async function salvarLote() {
                 dataServer: r.data,
                 instituicaoServer: r.instId
             });
-            await atualizarSaldo(r.valor, r.instId);
+            await MainAPI.atualizarSaldo(r.valor, r.instId);
         }
         const total = loteRegistros.length;
         loteRegistros = [];
