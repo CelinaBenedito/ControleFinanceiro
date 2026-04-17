@@ -391,21 +391,63 @@ function renderizarTabelaLote() {
     if (!tbody) return;
     tbody.innerHTML = "";
     if (loteRegistros.length === 0) {
-        tbody.innerHTML = `<tr id="loteVazio"><td colspan="7" style="text-align:center;color:#888;font-style:italic;padding:20px;">Nenhum registro adicionado ainda.</td></tr>`;
+        const trVazio = document.createElement("tr");
+        trVazio.id = "loteVazio";
+
+        const tdVazio = document.createElement("td");
+        tdVazio.colSpan = 7;
+        tdVazio.style.textAlign = "center";
+        tdVazio.style.color = "#888";
+        tdVazio.style.fontStyle = "italic";
+        tdVazio.style.padding = "20px";
+        tdVazio.textContent = "Nenhum registro adicionado ainda.";
+
+        trVazio.appendChild(tdVazio);
+        tbody.appendChild(trVazio);
         return;
     }
     loteRegistros.forEach((r, i) => {
-        tbody.innerHTML += `
-            <tr>
-                <td>${r.titulo}</td>
-                <td>${r.tipoNome}</td>
-                <td>${r.movimento}</td>
-                <td>${r.instNome}</td>
-                <td>${r.catNome}</td>
-                <td>R$ ${r.valor.toFixed(2).replace(".", ",")}</td>
-                <td><button class="ar-btn" style="height:32px;min-width:0;padding:0 10px;font-size:0.8rem;background:#e53e3e;margin:0;" onclick="removerDoLote(${i})">\u2716</button></td>
-            </tr>
-        `;
+        const tr = document.createElement("tr");
+
+        const tdTitulo = document.createElement("td");
+        tdTitulo.textContent = r.titulo;
+        tr.appendChild(tdTitulo);
+
+        const tdTipoNome = document.createElement("td");
+        tdTipoNome.textContent = r.tipoNome;
+        tr.appendChild(tdTipoNome);
+
+        const tdMovimento = document.createElement("td");
+        tdMovimento.textContent = r.movimento;
+        tr.appendChild(tdMovimento);
+
+        const tdInstNome = document.createElement("td");
+        tdInstNome.textContent = r.instNome;
+        tr.appendChild(tdInstNome);
+
+        const tdCatNome = document.createElement("td");
+        tdCatNome.textContent = r.catNome;
+        tr.appendChild(tdCatNome);
+
+        const tdValor = document.createElement("td");
+        tdValor.textContent = `R$ ${r.valor.toFixed(2).replace(".", ",")}`;
+        tr.appendChild(tdValor);
+
+        const tdAcao = document.createElement("td");
+        const botaoRemover = document.createElement("button");
+        botaoRemover.className = "ar-btn";
+        botaoRemover.style.height = "32px";
+        botaoRemover.style.minWidth = "0";
+        botaoRemover.style.padding = "0 10px";
+        botaoRemover.style.fontSize = "0.8rem";
+        botaoRemover.style.background = "#e53e3e";
+        botaoRemover.style.margin = "0";
+        botaoRemover.textContent = "\u2716";
+        botaoRemover.addEventListener("click", () => removerDoLote(i));
+        tdAcao.appendChild(botaoRemover);
+        tr.appendChild(tdAcao);
+
+        tbody.appendChild(tr);
     });
 }
 
