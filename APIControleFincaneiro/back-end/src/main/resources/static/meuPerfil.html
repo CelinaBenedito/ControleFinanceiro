@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <link rel="icon" type="image/png" href="assets/glaceonIcon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Perfil</title>
+    <link href='https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/Estilos.css">
+    <style>
+        /* ── Meu Perfil page ── */
+        .pf-page {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .pf-page h1 {
+            color: #004C58;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 28px;
+        }
+
+        body.dark-mode .pf-page h1 {
+            color: #7dd3fc;
+        }
+
+        /* ── Shared card ── */
+        .pf-card {
+            background: #FAFFFF;
+            border-radius: 30px;
+            box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            padding: 28px 24px;
+            margin-bottom: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        body.dark-mode .pf-card {
+            background: #0f172a;
+        }
+
+        .pf-card h2 {
+            color: #004C58;
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        body.dark-mode .pf-card h2 {
+            color: #7dd3fc;
+        }
+
+        /* ── Profile hero ── */
+        .pf-hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 8px;
+        }
+
+        /* Avatar circle */
+        .pf-avatar {
+            width: 200px;
+            height: 200px;
+            border-radius: 9999px;
+            border: 2px solid #367373;
+            background: #FAFFFF;
+            box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        body.dark-mode .pf-avatar {
+            background: #0f172a;
+            border-color: #7dd3fc;
+        }
+
+        .pf-avatar i {
+            font-size: 5rem;
+            color: #367373;
+        }
+
+        body.dark-mode .pf-avatar i {
+            color: #7dd3fc;
+        }
+
+        /* XP bar */
+        .pf-xp-wrap {
+            width: 320px;
+            background: #FAFFFF;
+            border-radius: 100px;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
+            height: 22px;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body.dark-mode .pf-xp-wrap {
+            background: #1e293b;
+        }
+
+        .pf-xp-bar {
+            height: 100%;
+            width: 30%;
+            background: #367373;
+            border-radius: 100px;
+            transition: width 0.4s ease;
+        }
+
+        .pf-xp-label {
+            position: absolute;
+            right: 12px;
+            font-size: 11px;
+            color: #0E5454;
+            font-weight: 200;
+        }
+
+        body.dark-mode .pf-xp-label {
+            color: #7dd3fc;
+        }
+
+        /* Name row */
+        .pf-nome-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .pf-nome {
+            color: #004C58;
+            font-size: 2.2rem;
+            font-weight: 600;
+            text-align: center;
+            line-height: 1.15;
+        }
+
+        body.dark-mode .pf-nome {
+            color: #7dd3fc;
+        }
+
+        .pf-edit-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            margin: 0;
+            color: #367373;
+            font-size: 1.5rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        body.dark-mode .pf-edit-btn {
+            color: #7dd3fc;
+        }
+
+        /* Info row */
+        .pf-info-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 24px;
+        }
+
+        .pf-info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 1rem;
+        }
+
+        .pf-info-item strong {
+            font-weight: 700;
+            color: #1A1A1A;
+        }
+
+        .pf-info-item span {
+            font-weight: 500;
+            color: #1A1A1A;
+        }
+
+        body.dark-mode .pf-info-item strong,
+        body.dark-mode .pf-info-item span {
+            color: #e5f6ff;
+        }
+
+        /* ── Temas ── */
+        .pf-temas-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            align-items: flex-end;
+        }
+
+        .pf-tema-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .pf-tema-swatch {
+            width: 56px;
+            height: 56px;
+            border-radius: 9999px;
+            border: 3px solid transparent;
+            transition: border-color 0.2s, transform 0.15s;
+        }
+
+        .pf-tema-item:hover .pf-tema-swatch {
+            transform: scale(1.1);
+        }
+
+        .pf-tema-item.ativo .pf-tema-swatch {
+            border-color: #004C58;
+        }
+
+        .pf-tema-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #1A1A1A;
+            text-align: center;
+        }
+
+        body.dark-mode .pf-tema-label {
+            color: #e5f6ff;
+        }
+
+        /* Toggles */
+        .pf-toggles {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .pf-toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 1rem;
+            font-weight: 400;
+            color: #1A1A1A;
+        }
+
+        body.dark-mode .pf-toggle-row {
+            color: #e5f6ff;
+        }
+
+        .pf-toggle {
+            position: relative;
+            width: 44px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+
+        .pf-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .pf-toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: #d1d5db;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            outline: 1px solid #535353;
+        }
+
+        .pf-toggle-slider::after {
+            content: "";
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            top: 2px;
+            left: 2px;
+            background: #535353;
+            border-radius: 12px;
+            transition: transform 0.2s;
+        }
+
+        .pf-toggle input:checked + .pf-toggle-slider {
+            background: #EBF4F4;
+            outline-color: #367373;
+        }
+
+        .pf-toggle input:checked + .pf-toggle-slider::after {
+            background: #367373;
+            transform: translateX(22px);
+        }
+
+        .pf-toggle-state {
+            font-size: 0.7rem;
+            font-weight: 400;
+            color: #1A1A1A;
+            min-width: 24px;
+        }
+
+        body.dark-mode .pf-toggle-state {
+            color: #e5f6ff;
+        }
+
+        /* ── Shared btn (same as cfg-btn) ── */
+        .pf-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 52px;
+            padding: 0 24px;
+            min-width: 130px;
+            background: #367373;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 17px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            cursor: pointer;
+            transition: background 0.2s;
+            align-self: flex-start;
+            margin: 0;
+        }
+
+        .pf-btn:hover {
+            background: #004C58;
+        }
+
+        .pf-btn.danger {
+            background: #e53e3e;
+        }
+
+        .pf-btn.danger:hover {
+            background: #c53030;
+        }
+
+        /* ── Resumo de Configurações ── */
+        .pf-resumo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px 24px;
+        }
+
+        .pf-resumo-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .pf-resumo-label {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1A1A1A;
+        }
+
+        .pf-resumo-valor {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #1A1A1A;
+        }
+
+        body.dark-mode .pf-resumo-label,
+        body.dark-mode .pf-resumo-valor {
+            color: #e5f6ff;
+        }
+
+        /* ── Tables (institutions / categories) ── */
+        .pf-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 15px;
+            overflow: hidden;
+            outline: 2px solid #367373;
+        }
+
+        body.dark-mode .pf-table {
+            outline-color: #7dd3fc;
+        }
+
+        .pf-table th {
+            background: transparent;
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1A1A1A;
+            border-bottom: 1px solid #367373;
+        }
+
+        body.dark-mode .pf-table th {
+            color: #e5f6ff;
+            border-color: #7dd3fc;
+        }
+
+        .pf-table td {
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            color: #0E5454;
+            border-bottom: 1px solid rgba(54, 115, 115, 0.2);
+            vertical-align: middle;
+        }
+
+        body.dark-mode .pf-table td {
+            color: #7dd3fc;
+            border-color: rgba(125, 211, 252, 0.2);
+        }
+
+        .pf-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .pf-table-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pf-icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            margin: 0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+            font-size: 1.2rem;
+        }
+
+        .pf-icon-btn.edit {
+            color: #00BBDD;
+        }
+
+        .pf-icon-btn.edit:hover {
+            background: rgba(0, 187, 221, 0.1);
+        }
+
+        .pf-icon-btn.delete {
+            color: #e53e3e;
+        }
+
+        .pf-icon-btn.delete:hover {
+            background: rgba(229, 62, 62, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="containerGeral">
+        <nav class="side-bar" id="navbar">
+            <ul>
+                <li onclick="sidebarFunction()">
+                    <i class='bx bx-menu-closer'></i>
+                </li>
+                <li>
+                    <a href="dashboard.html"><i class='bx bx-home'></i> <span id="home">Home</span></a>
+                </li>
+                <li>
+                    <a href="registros.html"><i class='bx bx-address-book'></i> <span id="reg">Registros</span></a>
+                </li>
+                <li>
+                    <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i> <span id="add">Adicionar Registros</span></a>
+                </li>
+                <li>
+                    <a href="agendaGastos.html"><i class='bx bx-calendar-event'></i> <span id="agenda">Agenda</span></a>
+                </li>
+                <li>
+                    <a id="toggleTheme">
+                        <span id="icone"><i class='bx bx-moon'></i></span>
+                        <span id="tema">Tema</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="configurações.html"><i class='bx bx-cog'></i> <span id="config">Configurações</span></a>
+                </li>
+            </ul>
+        </nav>
+
+        <div id="main" class="main pf-page">
+            <h1>Meu Perfil</h1>
+
+            <!-- ── PROFILE HERO ── -->
+            <div class="pf-card">
+                <div class="pf-hero">
+                    <!-- Avatar -->
+                    <div class="pf-avatar">
+                        <i class='bx bx-user'></i>
+                    </div>
+
+                    <!-- XP bar -->
+                    <div class="pf-xp-wrap">
+                        <div class="pf-xp-bar" id="xpBar"></div>
+                        <span class="pf-xp-label">LVL 1 - 150 XP</span>
+                    </div>
+
+                    <!-- Name + edit -->
+                    <div class="pf-nome-row">
+                        <div class="pf-nome" id="pfNome">Usuário<br>da Silva Santos</div>
+                        <button class="pf-edit-btn" title="Editar nome"><i class='bx bx-edit'></i></button>
+                    </div>
+
+                    <!-- Sex / birthdate / email -->
+                    <div class="pf-info-row">
+                        <div class="pf-info-item">
+                            <strong>Sexo:</strong>
+                            <span id="pfSexo">Masculino</span>
+                        </div>
+                        <div class="pf-info-item">
+                            <strong>Data de Nascimento:</strong>
+                            <span id="pfNascimento">01/01/2000</span>
+                        </div>
+                    </div>
+                    <div class="pf-info-row">
+                        <div class="pf-info-item">
+                            <strong>Email:</strong>
+                            <span id="pfEmail">usuariodasilva@email.com</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── TEMAS DO SITE ── -->
+            <div class="pf-card">
+                <h2>Temas do site</h2>
+
+                <!-- Swatches -->
+                <div class="pf-temas-grid" id="temasGrid">
+                    <div class="pf-tema-item ativo" data-tema="padrao">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #E2F4FF 0%, #004C58 100%);"></div>
+                        <span class="pf-tema-label">Padrão</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="ceu-azul">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #E2F4FF 0%, #00AEFF 100%);"></div>
+                        <span class="pf-tema-label">Céu-Azul</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="purpura">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #F5CBFF 0%, #680082 100%);"></div>
+                        <span class="pf-tema-label">Purpura</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="vampirico">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #FF0000 0%, #000000 100%);"></div>
+                        <span class="pf-tema-label">Vampirico</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="branco">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #ffffff 0%, #595959 100%);"></div>
+                        <span class="pf-tema-label">Branco</span>
+                    </div>
+                </div>
+
+                <!-- Toggles -->
+                <div class="pf-toggles">
+                    <div class="pf-toggle-row">
+                        <label class="pf-toggle">
+                            <input type="checkbox" id="toggleGlaceon" checked>
+                            <span class="pf-toggle-slider"></span>
+                        </label>
+                        <span class="pf-toggle-state" id="estadoGlaceon">ON</span>
+                        <span>Glaceon</span>
+                    </div>
+                    <div class="pf-toggle-row">
+                        <label class="pf-toggle">
+                            <input type="checkbox" id="toggleVidro">
+                            <span class="pf-toggle-slider"></span>
+                        </label>
+                        <span class="pf-toggle-state" id="estadoVidro">OFF</span>
+                        <span>Modo Vidro</span>
+                    </div>
+                </div>
+
+                <button class="pf-btn" id="btnEscolherTema">Escolher</button>
+            </div>
+
+            <!-- ── RESUMO DAS CONFIGURAÇÕES ── -->
+            <div class="pf-card">
+                <h2>Resumo das Configurações</h2>
+
+                <div class="pf-resumo-grid">
+                    <div class="pf-resumo-item">
+                        <span class="pf-resumo-label">Início do mês Fiscal:</span>
+                        <span class="pf-resumo-valor" id="resumoMesFiscal">—</span>
+                    </div>
+                    <div class="pf-resumo-item">
+                        <span class="pf-resumo-label">Limite mensal total:</span>
+                        <span class="pf-resumo-valor" id="resumoLimite">—</span>
+                    </div>
+                    <div class="pf-resumo-item">
+                        <span class="pf-resumo-label">Última Atualização:</span>
+                        <span class="pf-resumo-valor" id="resumoAtualizacao">—</span>
+                    </div>
+                </div>
+
+                <a href="configurações.html" style="text-decoration:none;">
+                    <button class="pf-btn">Ir para Configurações</button>
+                </a>
+            </div>
+
+            <!-- ── INSTITUIÇÕES VINCULADAS ── -->
+            <div class="pf-card">
+                <h2>Instituições Vinculadas</h2>
+
+                <table class="pf-table" id="tabelaInstituicoes">
+                    <thead>
+                        <tr>
+                            <th>Instituição</th>
+                            <th>Limite</th>
+                            <th>Última modificação</th>
+                            <th>Opções</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoInstituicoes">
+                        <tr>
+                            <td>Nubank</td>
+                            <td>R$ 1.000,00</td>
+                            <td>07/04/26 15:50</td>
+                            <td>
+                                <div class="pf-table-actions">
+                                    <button class="pf-icon-btn edit" title="Editar"><i class='bx bx-edit'></i></button>
+                                    <button class="pf-icon-btn delete" title="Excluir"><i class='bx bx-trash'></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <button class="pf-btn">Adicionar Instituição</button>
+            </div>
+
+            <!-- ── CATEGORIAS REGISTRADAS ── -->
+            <div class="pf-card">
+                <h2>Categorias Registradas</h2>
+
+                <table class="pf-table" id="tabelaCategorias">
+                    <thead>
+                        <tr>
+                            <th>Categoria</th>
+                            <th>Limite</th>
+                            <th>Última modificação</th>
+                            <th>Opções</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoCategorias">
+                        <tr>
+                            <td>Comida</td>
+                            <td>R$ —</td>
+                            <td>07/04/26 15:30</td>
+                            <td>
+                                <div class="pf-table-actions">
+                                    <button class="pf-icon-btn edit" title="Editar"><i class='bx bx-edit'></i></button>
+                                    <button class="pf-icon-btn delete" title="Excluir"><i class='bx bx-trash'></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Roupa</td>
+                            <td>R$ 150,00</td>
+                            <td>07/04/26 15:40</td>
+                            <td>
+                                <div class="pf-table-actions">
+                                    <button class="pf-icon-btn edit" title="Editar"><i class='bx bx-edit'></i></button>
+                                    <button class="pf-icon-btn delete" title="Excluir"><i class='bx bx-trash'></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <button class="pf-btn">Adicionar Categoria</button>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>
+<script src="js/navbar.js"></script>
+<script>
+    // ── Toggle labels ──
+    document.getElementById("toggleGlaceon").addEventListener("change", function () {
+        document.getElementById("estadoGlaceon").textContent = this.checked ? "ON" : "OFF";
+    });
+    document.getElementById("toggleVidro").addEventListener("change", function () {
+        document.getElementById("estadoVidro").textContent = this.checked ? "ON" : "OFF";
+    });
+
+    // ── Theme swatch selection ──
+    document.querySelectorAll(".pf-tema-item").forEach(item => {
+        item.addEventListener("click", () => {
+            document.querySelectorAll(".pf-tema-item").forEach(i => i.classList.remove("ativo"));
+            item.classList.add("ativo");
+        });
+    });
+</script>

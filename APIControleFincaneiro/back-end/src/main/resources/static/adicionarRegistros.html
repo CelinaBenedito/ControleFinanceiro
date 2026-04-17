@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <link rel="icon" type="image/png" href="assets/glaceonIcon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adicionar Registros</title>
+    <link href='https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/Estilos.css">
+    <style>
+        /* ── Adicionar Registros page ── */
+        .ar-page {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .ar-page h1 {
+            color: #004C58;
+            font-size: 2.8rem;
+            font-weight: 400;
+            margin-bottom: 28px;
+        }
+
+        body.dark-mode .ar-page h1 {
+            color: #7dd3fc;
+        }
+
+        /* ── Tab header ── */
+        .ar-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 0;
+        }
+
+        .ar-tab {
+            padding: 10px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #004C58;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            background: #FAFFFF;
+            border: 2px solid #367373;
+            border-bottom: none;
+            border-radius: 2px 2px 0 0;
+            position: relative;
+            bottom: -2px;
+            transition: background 0.15s;
+            text-decoration: none;
+            user-select: none;
+        }
+
+        .ar-tab.ativo {
+            background: #FAFFFF;
+            z-index: 1;
+        }
+
+        .ar-tab:not(.ativo) {
+            background: #d4e8e8;
+            color: #367373;
+        }
+
+        body.dark-mode .ar-tab {
+            background: #0f172a;
+            color: #7dd3fc;
+            border-color: #7dd3fc;
+        }
+
+        body.dark-mode .ar-tab:not(.ativo) {
+            background: #0a0f1e;
+        }
+
+        /* ── Main form card ── */
+        .ar-card {
+            background: #FAFFFF;
+            border-radius: 0 20px 20px 20px;
+            box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            border-left: 2px solid #367373;
+            padding: 28px 24px;
+            display: flex;
+            gap: 32px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        body.dark-mode .ar-card {
+            background: #0f172a;
+            border-color: #7dd3fc;
+        }
+
+        /* Mascot column */
+        .ar-mascot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .ar-mascot-img {
+            width: 200px;
+            border: 1px solid #00AEFF;
+            box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            border-radius: 4px;
+            display: block;
+        }
+
+        /* Form column */
+        .ar-form-col {
+            flex: 1;
+            min-width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Input fields (rounded pill style from model) */
+        .ar-field {
+            height: 58px;
+            border-radius: 30px;
+            outline: 2px solid #367373;
+            outline-offset: -2px;
+            padding: 0 20px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            color: #0E5454;
+            background: transparent;
+            border: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .ar-field:focus {
+            outline-color: #004C58;
+            outline-width: 2px;
+        }
+
+        body.dark-mode .ar-field {
+            outline-color: #7dd3fc;
+            color: #7dd3fc;
+        }
+
+        /* Select fields (chevron style from model) */
+        .ar-select {
+            height: 58px;
+            border-radius: 15px;
+            border: 2px solid #367373;
+            padding: 0 20px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            color: #367373;
+            background: transparent;
+            appearance: none;
+            width: 100%;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        .ar-select:focus {
+            outline: none;
+            border-color: #004C58;
+        }
+
+        body.dark-mode .ar-select {
+            border-color: #7dd3fc;
+            color: #7dd3fc;
+        }
+
+        /* Wrapper for select with label above */
+        .ar-select-wrap {
+            position: relative;
+        }
+
+        .ar-select-wrap::after {
+            content: "▾";
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #367373;
+            pointer-events: none;
+            font-size: 0.9rem;
+        }
+
+        body.dark-mode .ar-select-wrap::after {
+            color: #7dd3fc;
+        }
+
+        /* Date display + button row */
+        .ar-date-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .ar-date-display {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0E5454;
+        }
+
+        body.dark-mode .ar-date-display {
+            color: #7dd3fc;
+        }
+
+        /* Buttons */
+        .ar-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 52px;
+            padding: 0 24px;
+            min-width: 130px;
+            background: #367373;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin: 0;
+        }
+
+        .ar-btn:hover {
+            background: #004C58;
+        }
+
+        .ar-btn.secondary {
+            background: transparent;
+            border: 2px solid #367373;
+            color: #367373;
+        }
+
+        .ar-btn.secondary:hover {
+            background: #367373;
+            color: #fff;
+        }
+
+        body.dark-mode .ar-btn.secondary {
+            border-color: #7dd3fc;
+            color: #7dd3fc;
+        }
+
+        .ar-btns-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        /* Label-data text */
+        .label-data {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #367373;
+            margin: 0;
+        }
+
+        body.dark-mode .label-data {
+            color: #7dd3fc;
+        }
+
+        /* Gestão de Conta section */
+        .ar-gestao-info {
+            background: var(--cor-fundo-pagina);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ar-gestao-info h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #004C58;
+            margin: 0;
+        }
+
+        body.dark-mode .ar-gestao-info h3 {
+            color: #7dd3fc;
+        }
+
+        #ValorTotal {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #367373;
+            margin: 0;
+        }
+
+        body.dark-mode #ValorTotal {
+            color: #7dd3fc;
+        }
+
+        /* ── Múltiplos Registros table ── */
+        .ar-multi-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 15px;
+            overflow: hidden;
+            outline: 2px solid #367373;
+        }
+
+        body.dark-mode .ar-multi-table {
+            outline-color: #7dd3fc;
+        }
+
+        .ar-multi-table th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #367373;
+            border-bottom: 1px solid #367373;
+            font-family: 'Inter', sans-serif;
+            background: #EBF4F4;
+        }
+
+        body.dark-mode .ar-multi-table th {
+            color: #7dd3fc;
+            border-color: #7dd3fc;
+            background: #0a0f1e;
+        }
+
+        .ar-multi-table td {
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            color: #367373;
+            border-bottom: 1px solid rgba(54, 115, 115, 0.2);
+            font-family: 'Inter', sans-serif;
+        }
+
+        body.dark-mode .ar-multi-table td {
+            color: #7dd3fc;
+            border-color: rgba(125, 211, 252, 0.15);
+        }
+
+        .ar-multi-table tr:last-child td {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body onload="gerarInformacoes()">
+    <div class="alerta" id="div_alerta">
+        <div class="conteudoAlerta" id="conteudoAlerta"></div>
+    </div>
+
+    <div class="containerGeral">
+        <nav class="side-bar" id="navbar">
+            <ul>
+                <li onclick="sidebarFunction()">
+                    <i class='bx bx-menu-closer'></i>
+                </li>
+                <li>
+                    <a href="dashboard.html"><i class='bx bx-home'></i> <span id="home">Home</span></a>
+                </li>
+                <li>
+                    <a href="registros.html"><i class='bx bx-address-book'></i> <span id="reg">Registros</span></a>
+                </li>
+                <li>
+                    <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i> <span id="add">Adicionar Registros</span></a>
+                </li>
+                <li>
+                    <a href="agendaGastos.html"><i class='bx bx-calendar-event'></i> <span id="agenda">Agenda</span></a>
+                </li>
+                <li>
+                    <a id="toggleTheme">
+                        <span id="icone"><i class='bx bx-moon'></i></span>
+                        <span id="tema">Tema</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="configurações.html"><i class='bx bx-cog'></i> <span id="config">Configurações</span></a>
+                </li>
+            </ul>
+        </nav>
+
+        <div id="main" class="main ar-page">
+
+            <div class="page-title-row">
+                <h1>Adicionar Registros</h1>
+                <!-- User widget -->
+                <a href="meuPerfil.html" class="user-widget" id="userWidget">
+                    <div class="uw-info">
+                        <span class="uw-nome" id="uw_nome">Usuário</span>
+                        <div class="uw-xp-track">
+                            <div class="uw-xp-fill" id="uw_xp"></div>
+                            <span class="uw-lvl" id="uw_lvl">LVL 1</span>
+                        </div>
+                    </div>
+                    <div class="uw-avatar">
+                        <i class='bx bx-user' style="font-size:1.6rem; color:#367373;"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Tabs -->
+            <div class="ar-tabs">
+                <button type="button" class="ar-tab ativo" id="tabUnico" onclick="trocarFormulario('addGasto')">Registro Único</button>
+                <button type="button" class="ar-tab" id="tabMultiplo" onclick="trocarFormulario('multiplosRegistros')">Múltiplos Registros</button>
+            </div>
+
+            <!-- Card: Registro Único -->
+            <div class="ar-card" id="cardUnico">
+
+                <!-- Mascot -->
+                <div class="ar-mascot">
+                    <img class="ar-mascot-img" src="assets/gif/glaceon fofinha.gif" alt="Glaceon">
+                </div>
+
+                <!-- Adicionar Gasto form -->
+                <div class="ar-form-col" id="addGasto">
+
+                    <input class="ar-field" type="text" id="ipt_nome" placeholder="Título..." required>
+
+                    <div class="ar-select-wrap">
+                        <select class="ar-select" id="select_tipo"></select>
+                    </div>
+
+                    <div class="ar-select-wrap">
+                        <select class="ar-select" id="select_instituicao"></select>
+                    </div>
+
+                    <input class="ar-field" type="number" id="ipt_valor" placeholder="Valor..." required>
+
+                    <input class="ar-field" type="text" id="ipt_desc" placeholder="Descrição...">
+
+                    <!-- Date picker -->
+                    <div>
+                        <p class="label-data">Quando foi?</p>
+                        <div class="ar-date-row" style="margin-top:8px;">
+                            <p class="ar-date-display hidden" id="data"></p>
+                            <button class="ar-btn secondary" id="calendario">
+                                <i class='bx bx-calendar' style="margin-right:6px;"></i> Escolher data
+                            </button>
+                        </div>
+
+                        <div class="modal" id="modal">
+                            <div class="conteudoModal">
+                                <span class="fechar" id="fechar">&times;</span>
+                                <div class="topo-calendario">
+                                    <button id="btnAnterior">◀</button>
+                                    <h2 id="mesAno"></h2>
+                                    <button id="btnProximo">▶</button>
+                                </div>
+                                <div class="calendario">
+                                    <div class="diasSemana">
+                                        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span>
+                                        <span>Qui</span><span>Sex</span><span>Sáb</span>
+                                    </div>
+                                    <div class="dias" id="dias"></div>
+                                </div>
+                                <div class="gastos" id="gastosDia"></div>
+                                <button id="confirmar" disabled>Confirmar dia</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="ar-btns-row">
+                        <button class="ar-btn" onclick="registrar()">Registrar Gasto</button>
+                        <button class="ar-btn secondary" onclick="adicionarTipo.showModal()">+ Novo tipo</button>
+                    </div>
+
+                    <dialog id="adicionarTipo" class="adicionarTipo">
+                        <div class="conteudoTipo">
+                            <h1>Adicionar novo tipo</h1>
+                            <input type="text" placeholder="Adicione o nome" id="ipt_tituloTipo">
+                            <button type="button" onclick="adicionarTipos()">Adicionar</button>
+                        </div>
+                    </dialog>
+                </div>
+
+            </div><!-- /cardUnico -->
+
+            <!-- Card: Múltiplos Registros (hidden by default) -->
+            <div class="ar-card" id="multiplosRegistros" style="display:none; flex-direction:column; gap:24px;">
+
+                <!-- Date row -->
+                <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+                    <input class="ar-field" type="text" id="multi_data" placeholder="DD/MM/AAAA" maxlength="10" style="max-width:200px;">
+                    <span id="multi_data_display" style="font-size:1.6rem; font-weight:400; color:#367373; font-family:'Inter',sans-serif;"></span>
+                </div>
+
+                <!-- Form fields row -->
+                <div style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
+                    <input class="ar-field" type="text" id="ipt_multi_nome" placeholder="Título..." style="flex:1; min-width:160px;">
+                    <div class="ar-select-wrap" style="flex:1; min-width:160px;">
+                        <select class="ar-select" id="multi_select_tipo">
+                            <option value="#">Tipo do Evento</option>
+                        </select>
+                    </div>
+                    <div class="ar-select-wrap" style="flex:1; min-width:160px;">
+                        <select class="ar-select" id="multi_select_instituicao">
+                            <option value="#">Instituição</option>
+                        </select>
+                    </div>
+                    <div class="ar-select-wrap" style="flex:1; min-width:160px;">
+                        <select class="ar-select" id="multi_select_movimento">
+                            <option value="#">Movimento</option>
+                            <option value="Débito">Débito</option>
+                            <option value="Crédito">Crédito</option>
+                            <option value="Transferência">Transferência</option>
+                        </select>
+                    </div>
+                    <input class="ar-field" type="number" id="ipt_multi_valor" placeholder="Valor..." style="flex:1; min-width:140px;">
+                    <input class="ar-field" type="text" id="ipt_multi_desc" placeholder="Descrição..." style="flex:2; min-width:200px;">
+                    <button class="ar-btn" onclick="adicionarAoLote()" style="flex-shrink:0;">Adicionar</button>
+                </div>
+
+                <!-- Preview table -->
+                <div style="overflow-x:auto;">
+                    <table class="ar-multi-table">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Tipo Evento</th>
+                                <th>Movimento</th>
+                                <th>Instituição</th>
+                                <th>Valor</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoLote">
+                            <tr id="loteVazio">
+                                <td colspan="6" style="text-align:center; color:#888; font-style:italic; padding:20px;">Nenhum registro adicionado ainda.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="ar-btn" onclick="salvarLote()" style="align-self:flex-start;">Salvar</button>
+
+            </div><!-- /multiplosRegistros -->
+
+            <div id="modalAddValor" class="modal">
+                <div class="conteudoModal">
+                    <input type="number" id="ipt_valor_add">
+                    <label>Adicione um valor</label>
+                    <div>
+                        <button onclick="addValor.close()">Cancelar</button>
+                        <button onclick="adicionar()">Salvar</button>
+                    </div>
+                </div>
+            </div>
+
+            <dialog id="removeValor" class="modal">
+                <h1>Remover um valor</h1>
+                <input type="number" id="ipt_remove">
+                <select id="select_instituicao_remove"></select>
+                <br>
+                <div>
+                    <button onclick="removeValor.close()">Cancelar</button>
+                    <button onclick="remover()">Salvar</button>
+                </div>
+            </dialog>
+
+            <dialog id="consultaSaldo" class="modal">
+                <div class="principal" id="principal"></div>
+            </dialog>
+
+            <footer>
+                <a href="teamo.html">Te amo meu bem</a>
+            </footer>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/navbar.js"></script>
+    <script src="js/adicionarRegistros.js"></script>
+</body>
+
+</html>
