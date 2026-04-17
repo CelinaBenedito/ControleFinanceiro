@@ -29,7 +29,9 @@ function gerarTipos() {
                             <option value="${json[c].categoria.id}">${json[c].categoria.titulo}</option>
                         `
         }
-    })
+    }).catch(function(error) {
+        console.error("Erro ao carregar tipos:", error);
+    });
 }
 
 async function gerarInstituicao() {

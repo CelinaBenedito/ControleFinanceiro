@@ -48,13 +48,7 @@
             return postJson("/registros/atualizarSaldo", payload);
         },
         adicionarTipo(payload, userId) {
-            return postJson("/categorias", { titulo: payload.titulo })
-                .then(res => {
-                    if (!res.ok) return res;
-                    return res.json().then(categoria =>
-                        postJson(`/categorias/${categoria.id}/usuarios/${userId}`, {})
-                    );
-                });
+            return postJson(`/categorias/usuario/${userId}`, { titulo: payload.titulo });
         },
         buscarRegistrosPorData(dataSelecionada) {
             return get(`/registros/buscarData/${dataSelecionada}`);

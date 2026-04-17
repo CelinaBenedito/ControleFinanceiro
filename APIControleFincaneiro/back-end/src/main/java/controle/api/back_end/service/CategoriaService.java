@@ -8,6 +8,7 @@ import controle.api.back_end.repository.CategoriaRepository;
 import controle.api.back_end.repository.CategoriaUsuarioRepository;
 import controle.api.back_end.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +72,25 @@ public class CategoriaService {
         }else {
             throw new EntidadeNaoEncontradaException("Categoria de id: %d não encontrada.".formatted(id));
         }
+    }
+
+    @Transactional
+    public CategoriaUsuario createCategoriaAndAssociate(Categoria categoria, UUID usuarioId) {
+        Categoria savedCategoria = categoriaRepository.save(categoria);
+
+        Usuario usuario = usuarioRepository.findById(usuarioId).orElseThrow(() ->
+                new EntidadeNaoEncontradaException(
+                        "Usuario de id: %s não encontrado"
+                                .formatted(usuarioId)
+                )
+        );
+
+        CategoriaUsuario categoriaUsuario = new CategoriaUsuario();
+        categoriaUsuario.setUsuario(usuario);
+        categoriaUsuario.setCategoria(savedCategoria);
+        categoriaUsuario.setAtivo(true);
+
+        return categoriaUsuarioRepository.save(categoriaUsuario);
     }
 
     public CategoriaUsuario createCategoriaForUser(Integer categoriaId, UUID usuarioId) {

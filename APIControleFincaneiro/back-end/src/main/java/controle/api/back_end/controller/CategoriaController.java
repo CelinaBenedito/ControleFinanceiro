@@ -103,6 +103,23 @@ public class CategoriaController {
         return ResponseEntity.status(201).body(response);
     }
 
+    @PostMapping("/usuario/{usuario_id}")
+    @Operation(summary = "Criar e associar uma categoria a um usuário",
+            description = "Cria uma nova categoria e a associa ao usuário especificado de forma atômica.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Categoria criada e associada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+    })
+    public ResponseEntity<CategoriaUsuarioResponseDTO> createAndAssociateCategoriaForUser(
+            @Valid @RequestBody CategoriaCreateDTO dto,
+            @PathVariable UUID usuario_id) {
+        Categoria entity = CategoriaMapper.toEntity(dto);
+        CategoriaUsuario result = categoriaService.createCategoriaAndAssociate(entity, usuario_id);
+        CategoriaUsuarioResponseDTO response = CategoriaMapper.toDtoUser(result);
+        return ResponseEntity.status(201).body(response);
+    }
+
     @PostMapping("/{categoria_id}/usuarios/{usuario_id}")
     @Operation(summary = "Associar uma categoria a um usuário",
             description = "Associa a categoria do id passado com o usuário do id passado.")
