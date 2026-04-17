@@ -59,6 +59,14 @@ if (theme === "dark") {
     document.body.classList.add("dark-mode");
 }
 
+/*---------------- User widget ----------------*/
+(function () {
+    const uwNome = document.getElementById("uw_nome");
+    if (!uwNome) return;
+    const user = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
+    if (user && user.nome) uwNome.textContent = user.nome;
+})();
+
 document.getElementById("toggleTheme").addEventListener("click", () => {
     document.body.classList.toggle("dark-mode");
 

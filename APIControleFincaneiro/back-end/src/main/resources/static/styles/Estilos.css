@@ -973,3 +973,115 @@ body.dark-mode .card-formulario .campo label {
     margin: 0;
     padding: 0;
 }
+
+/* -- User Widget (top-right corner) -- */
+.page-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.page-title-row h1 {
+    margin-bottom: 0;
+}
+
+.user-widget {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.user-widget:focus,
+.user-widget:hover,
+.user-widget:active,
+.user-widget:focus-visible {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.uw-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.uw-nome {
+    color: #367373;
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+}
+
+body.dark-mode .uw-nome {
+    color: #7dd3fc;
+}
+
+.uw-xp-track {
+    width: 150px;
+    height: 14px;
+    background: #FAFFFF;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    padding: 0 6px 0 0;
+    box-sizing: border-box;
+}
+
+body.dark-mode .uw-xp-track {
+    background: #0f172a;
+}
+
+.uw-xp-fill {
+    width: 33%;
+    height: 14px;
+    background: #367373;
+    border-radius: 100px;
+    flex-shrink: 0;
+}
+
+.uw-lvl {
+    font-size: 10px;
+    font-weight: 200;
+    color: #0E5454;
+    white-space: nowrap;
+}
+
+body.dark-mode .uw-lvl {
+    color: #7dd3fc;
+}
+
+.uw-avatar {
+    width: 75px;
+    height: 75px;
+    background: #FAFFFF;
+    border-radius: 50%;
+    /* box-shadow used instead of outline so the ring follows border-radius */
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px #367373;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.2s;
+    flex-shrink: 0;
+}
+
+.user-widget:hover .uw-avatar {
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px #004C58;
+}
+
+body.dark-mode .uw-avatar {
+    background: #0f172a;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px #7dd3fc;
+}
