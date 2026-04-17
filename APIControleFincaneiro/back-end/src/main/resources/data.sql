@@ -61,17 +61,18 @@ VALUES('Roupas'),
       ('Transporte'),
       ('Bilhete Unico');
 
-
-INSERT INTO configuracoes (id, usuario_id, inicio_mes_fiscal, final_mes_fiscal, ultima_atualizacao, limite_desejado_mensal)
+INSERT INTO configuracoes (id, usuario_id, inicio_mes_fiscal, ultima_atualizacao, limite_desejado_mensal)
 VALUES
-    ('8f1a2c3d-4b5e-678f-9012-3456789abcde', '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 1, 30, CURRENT_TIMESTAMP, 5000.00),
-    ('9a2b3c4d-5e6f-7890-1234-56789abcdef0', 'b5135981-72fc-46ee-a6c6-4072495f7afd', 1, 30, CURRENT_TIMESTAMP, 4000.00),
-    ('1b2c3d4e-5f6a-789b-0123-456789abcdef', '2f1ed17a-c8b6-425b-adb1-b28126be88de', 1, 30, CURRENT_TIMESTAMP, 3500.00),
-    ('2c3d4e5f-6a7b-890c-1234-56789abcdef1', '8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11', 1, 30, CURRENT_TIMESTAMP, 3000.00),
-    ('3d4e5f6a-7b8c-901d-2345-6789abcdef12', 'd9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22', 1, 30, CURRENT_TIMESTAMP, 6000.00),
-    ('4e5f6a7b-8c9d-012e-3456-789abcdef123', '3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33', 1, 30, CURRENT_TIMESTAMP, 4500.00),
-    ('5f6a7b8c-9d01-23ef-4567-89abcdef1234', 'a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44', 1, 30, CURRENT_TIMESTAMP, 3200.00),
-    ('6a7b8c9d-0123-4f56-789a-bcdef1234567', 'f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55', 1, 30, CURRENT_TIMESTAMP, 3800.00);
+    ('8f1a2c3d-4b5e-678f-9012-3456789abcde', '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 15, CURRENT_TIMESTAMP, 5000.00),
+    ('9a2b3c4d-5e6f-7890-1234-56789abcdef0', 'b5135981-72fc-46ee-a6c6-4072495f7afd', 5,CURRENT_TIMESTAMP, 4000.00),
+    ('1b2c3d4e-5f6a-789b-0123-456789abcdef', '2f1ed17a-c8b6-425b-adb1-b28126be88de', 1,CURRENT_TIMESTAMP, 3500.00),
+    ('2c3d4e5f-6a7b-890c-1234-56789abcdef1', '8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11', 20,CURRENT_TIMESTAMP, 3000.00),
+    ('3d4e5f6a-7b8c-901d-2345-6789abcdef12', 'd9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22', 15,CURRENT_TIMESTAMP, 6000.00),
+    ('4e5f6a7b-8c9d-012e-3456-789abcdef123', '3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33', 5,CURRENT_TIMESTAMP, 4500.00),
+    ('5f6a7b8c-9d01-23ef-4567-89abcdef1234', 'a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44', 10,CURRENT_TIMESTAMP, 3200.00),
+    ('6a7b8c9d-0123-4f56-789a-bcdef1234567', 'f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55', 1,CURRENT_TIMESTAMP, 3800.00);
+
+
 
 INSERT INTO limite_por_instituicao (id, institucao_usuario_id, limite_desejado)
 VALUES
@@ -110,57 +111,57 @@ VALUES
     ('33445567-6789-0389-3453-56789abcdef0', 26, 700.00);
 
 
-INSERT INTO categoria_usuario (id, usuario_id, categoria_id)
+INSERT INTO categoria_usuario ( usuario_id, categoria_id)
 VALUES
-    ('11111111-2222-3333-4444-555555555555', '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 1), -- Marcio - Roupas
-    ('22222222-3333-4444-5555-666666666666', '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 2), -- Marcio - Comida
-    ('33333333-4444-5555-6666-777777777777', '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 6), -- Marcio - Transporte
+    ( '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 1), -- Marcio - Roupas
+    ( '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 2), -- Marcio - Comida
+    ( '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 6), -- Marcio - Transporte
 
-    ('44444444-5555-6666-7777-888888888888', 'b5135981-72fc-46ee-a6c6-4072495f7afd', 3), -- Jonas - Mercado
-    ('55555555-6666-7777-8888-999999999999', 'b5135981-72fc-46ee-a6c6-4072495f7afd', 5), -- Jonas - Conta de Luz
+    ( 'b5135981-72fc-46ee-a6c6-4072495f7afd', 3), -- Jonas - Mercado
+    ( 'b5135981-72fc-46ee-a6c6-4072495f7afd', 5), -- Jonas - Conta de Luz
 
-    ('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', '2f1ed17a-c8b6-425b-adb1-b28126be88de', 2), -- Mariana - Comida
-    ('bbbbbbbb-cccc-dddd-eeee-ffffffffffff', '2f1ed17a-c8b6-425b-adb1-b28126be88de', 4), -- Mariana - Conta de Água
+    ( '2f1ed17a-c8b6-425b-adb1-b28126be88de', 2), -- Mariana - Comida
+    ( '2f1ed17a-c8b6-425b-adb1-b28126be88de', 4), -- Mariana - Conta de Água
 
-    ('cccccccc-dddd-eeee-ffff-000000000000', '8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11', 3), -- Carla - Mercado
-    ('dddddddd-eeee-ffff-0000-111111111111', '8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11', 6), -- Carla - Transporte
+    ( '8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11', 3), -- Carla - Mercado
+    ('8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11', 6), -- Carla - Transporte
 
-    ('eeeeeeee-ffff-0000-1111-222222222222', 'd9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22', 1), -- Felipe - Roupas
-    ('ffffffff-0000-1111-2222-333333333333', 'd9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22', 7), -- Felipe - Bilhete Único
+    ( 'd9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22', 1), -- Felipe - Roupas
+    ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22', 7), -- Felipe - Bilhete Único
 
-    ('12121212-3434-5656-7878-909090909090', '3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33', 2), -- Luciana - Comida
-    ('13131313-3535-5757-7979-919191919191', '3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33', 4), -- Luciana - Conta de Água
+    ( '3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33', 2), -- Luciana - Comida
+    ('3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33', 4), -- Luciana - Conta de Água
 
-    ('14141414-3636-5858-7a7a-929292929292', 'a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44', 6), -- Rafael - Transporte
-    ('15151515-3737-5959-7b7b-939393939393', 'a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44', 5), -- Rafael - Conta de Luz
+    ('a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44', 6), -- Rafael - Transporte
+    ( 'a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44', 5), -- Rafael - Conta de Luz
 
-    ('16161616-3838-5a5a-7c7c-949494949494', 'f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55', 3), -- Patrícia - Mercado
-    ('17171717-3939-5b5b-7d7d-959595959595', 'f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55', 1); -- Patrícia - Roupas
+    ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55', 3), -- Patrícia - Mercado
+    ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55', 1); -- Patrícia - Roupas
 
 
-INSERT INTO limite_por_categoria (id, categoria_usuario_id, limite_desejado)
+INSERT INTO limite_por_categoria (id, categoria_usuario_id, limite_desejado,configuracoes_id)
 VALUES
-    ('aaaa1111-bbbb-2222-cccc-333333333333', '11111111-2222-3333-4444-555555555555', 800.00),
-    ('bbbb2222-cccc-3333-dddd-444444444444', '22222222-3333-4444-5555-666666666666', 1200.00),
-    ('cccc3333-dddd-4444-eeee-555555555555', '33333333-4444-5555-6666-777777777777', 600.00),
+    ('aaaa1111-bbbb-2222-cccc-333333333333', 1, 800.00, '8f1a2c3d-4b5e-678f-9012-3456789abcde'),
+    ('bbbb2222-cccc-3333-dddd-444444444444', 2, 1200.00, '8f1a2c3d-4b5e-678f-9012-3456789abcde'),
+    ('cccc3333-dddd-4444-eeee-555555555555', 3, 600.00, '8f1a2c3d-4b5e-678f-9012-3456789abcde'),
 
-    ('dddd4444-eeee-5555-ffff-666666666666', '44444444-5555-6666-7777-888888888888', 500.00),
-    ('eeee5555-ffff-6666-0000-777777777777', '55555555-6666-7777-8888-999999999999', 400.00),
+    ('dddd4444-eeee-5555-ffff-666666666666', 4, 500.00,'9a2b3c4d-5e6f-7890-1234-56789abcdef0'),
+    ('eeee5555-ffff-6666-0000-777777777777', 5, 400.00,'9a2b3c4d-5e6f-7890-1234-56789abcdef0'),
 
-    ('ffff6666-0000-7777-1111-888888888888', 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 700.00),
-    ('00007777-1111-8888-2222-999999999999', 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff', 600.00),
+    ('ffff6666-0000-7777-1111-888888888888', 6, 700.00, '1b2c3d4e-5f6a-789b-0123-456789abcdef'),
+    ('00007777-1111-8888-2222-999999999999', 7, 600.00, '1b2c3d4e-5f6a-789b-0123-456789abcdef'),
 
-    ('11118888-2222-9999-3333-aaaaaaaaaaaa', 'cccccccc-dddd-eeee-ffff-000000000000', 900.00),
-    ('22229999-3333-aaaa-4444-bbbbbbbbbbbb', 'dddddddd-eeee-ffff-0000-111111111111', 500.00),
+    ('11118888-2222-9999-3333-aaaaaaaaaaaa', 8, 900.00, '2c3d4e5f-6a7b-890c-1234-56789abcdef1'),
+    ('22229999-3333-aaaa-4444-bbbbbbbbbbbb', 9, 500.00, '2c3d4e5f-6a7b-890c-1234-56789abcdef1'),
 
-    ('3333aaaa-4444-bbbb-5555-cccccccccccc', 'eeeeeeee-ffff-0000-1111-222222222222', 1000.00),
-    ('4444bbbb-5555-cccc-6666-dddddddddddd', 'ffffffff-0000-1111-2222-333333333333', 800.00),
+    ('3333aaaa-4444-bbbb-5555-cccccccccccc', 10, 1000.00, '3d4e5f6a-7b8c-901d-2345-6789abcdef12'),
+    ('4444bbbb-5555-cccc-6666-dddddddddddd', 11, 800.00, '3d4e5f6a-7b8c-901d-2345-6789abcdef12'),
 
-    ('5555cccc-6666-dddd-7777-eeeeeeeeeeee', '12121212-3434-5656-7878-909090909090', 700.00),
-    ('6666dddd-7777-eeee-8888-ffffffffffff', '13131313-3535-5757-7979-919191919191', 600.00),
+    ('5555cccc-6666-dddd-7777-eeeeeeeeeeee', 12, 700.00, '4e5f6a7b-8c9d-012e-3456-789abcdef123'),
+    ('6666dddd-7777-eeee-8888-ffffffffffff', 13, 600.00, '4e5f6a7b-8c9d-012e-3456-789abcdef123'),
 
-    ('7777eeee-8888-ffff-9999-000000000000', '14141414-3636-5858-7a7a-929292929292', 500.00),
-    ('8888ffff-9999-0000-aaaa-111111111111', '15151515-3737-5959-7b7b-939393939393', 400.00),
+    ('7777eeee-8888-ffff-9999-000000000000', 14, 500.00, '5f6a7b8c-9d01-23ef-4567-89abcdef1234'),
+    ('8888ffff-9999-0000-aaaa-111111111111', 15, 400.00,'5f6a7b8c-9d01-23ef-4567-89abcdef1234'),
 
-    ('99990000-aaaa-1111-bbbb-222222222222', '16161616-3838-5a5a-7c7c-949494949494', 800.00),
-    ('aaaa1111-bbbb-2222-cccc-333333333334', '17171717-3939-5b5b-7d7d-959595959595', 700.00);
+    ('99990000-aaaa-1111-bbbb-222222222222', 16, 800.00,'6a7b8c9d-0123-4f56-789a-bcdef1234567'),
+    ('aaaa1111-bbbb-2222-cccc-333333333334', 17, 700.00,'6a7b8c9d-0123-4f56-789a-bcdef1234567');

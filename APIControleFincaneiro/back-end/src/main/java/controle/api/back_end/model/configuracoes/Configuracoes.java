@@ -28,8 +28,6 @@ public class Configuracoes {
 
     @Column(columnDefinition = "integer default 1")
     private Integer inicioMesFiscal;
-    @Column(columnDefinition = "integer default 30")
-    private Integer finalMesFiscal;
 
     @PastOrPresent
     @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
@@ -38,17 +36,6 @@ public class Configuracoes {
     @Positive
     private Double limiteDesejadoMensal;
 
-    public Configuracoes() {
-    }
-
-    public Configuracoes(UUID id, Usuario usuario, Integer inicioMesFiscal, Integer finalMesFiscal, LocalDate ultimaAtualizacao, Double limiteDesejadoMensal) {
-        this.id = id;
-        this.usuario = usuario;
-        this.inicioMesFiscal = inicioMesFiscal;
-        this.finalMesFiscal = finalMesFiscal;
-        this.ultimaAtualizacao = ultimaAtualizacao;
-        this.limiteDesejadoMensal = limiteDesejadoMensal;
-    }
 
     public UUID getId() {
         return id;
@@ -72,14 +59,6 @@ public class Configuracoes {
 
     public void setInicioMesFiscal(Integer inicioMesFiscal) {
         this.inicioMesFiscal = inicioMesFiscal;
-    }
-
-    public Integer getFinalMesFiscal() {
-        return finalMesFiscal;
-    }
-
-    public void setFinalMesFiscal(Integer finalMesFiscal) {
-        this.finalMesFiscal = finalMesFiscal;
     }
 
     public LocalDate getUltimaAtualizacao() {
