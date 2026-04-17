@@ -5,54 +5,334 @@
     <link rel="icon" type="image/png" href="assets/glaceonIcon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda de gastos</title>
-    <link rel="stylesheet" href="styles/Estilos.css">
-    <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
+    <title>Calendário Financeiro</title>
     <link href='https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/Estilos.css">
+    <style>
+        /* ── Agenda page ── */
+        .ag-page {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .ag-page h1 {
+            color: #004C58;
+            font-size: 2.8rem;
+            font-weight: 400;
+            margin-bottom: 24px;
+        }
+
+        body.dark-mode .ag-page h1 {
+            color: #7dd3fc;
+        }
+
+        /* Two-column layout */
+        .ag-layout {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        /* ── Calendar panel ── */
+        .ag-cal-panel {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        /* Month navigation */
+        .ag-month-nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .ag-month-name {
+            color: #004C58;
+            font-size: 2.5rem;
+            font-weight: 500;
+            min-width: 220px;
+        }
+
+        body.dark-mode .ag-month-name {
+            color: #7dd3fc;
+        }
+
+        .ag-nav-btn {
+            background: #367373;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            width: 38px;
+            height: 38px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            margin: 0;
+            padding: 0;
+        }
+
+        .ag-nav-btn:hover {
+            background: #004C58;
+        }
+
+        /* Day-of-week header */
+        .ag-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .ag-weekday {
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #367373;
+            padding: 4px 0;
+        }
+
+        body.dark-mode .ag-weekday {
+            color: #7dd3fc;
+        }
+
+        /* Calendar grid */
+        .ag-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+
+        /* Single day cell */
+        .ag-day {
+            background: #367373;
+            border-radius: 10px;
+            box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            padding: 10px 8px 6px;
+            min-height: 80px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: background 0.15s, transform 0.1s;
+            user-select: none;
+        }
+
+        .ag-day:hover {
+            background: #2a5c5c;
+            transform: translateY(-2px);
+        }
+
+        .ag-day.ag-today {
+            outline: 2px solid #004C58;
+            outline-offset: -2px;
+        }
+
+        .ag-day.ag-selected {
+            background: #004C58;
+        }
+
+        .ag-day.ag-empty {
+            background: transparent;
+            box-shadow: none;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .ag-day-num {
+            color: #fff;
+            font-size: 1.4rem;
+            font-weight: 400;
+            line-height: 1;
+        }
+
+        /* Colored dots */
+        .ag-dots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-top: 4px;
+        }
+
+        .ag-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 9999px;
+            flex-shrink: 0;
+        }
+
+        .ag-dot-gasto        { background: #FF9E9E; }
+        .ag-dot-recebimento  { background: #B7FFB6; }
+        .ag-dot-transferencia{ background: #7FFFFF; }
+        .ag-dot-agendamento  { background: #FFFF9E; }
+
+        /* ── Summary panel ── */
+        .ag-resumo {
+            width: 340px;
+            flex-shrink: 0;
+            background: #FAFFFF;
+            border-radius: 30px;
+            box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            position: sticky;
+            top: 20px;
+        }
+
+        body.dark-mode .ag-resumo {
+            background: #0f172a;
+        }
+
+        .ag-resumo-titulo {
+            color: #004C58;
+            font-size: 2rem;
+            font-weight: 400;
+            border-bottom: 2px solid #367373;
+            padding-bottom: 10px;
+        }
+
+        body.dark-mode .ag-resumo-titulo {
+            color: #7dd3fc;
+            border-color: #7dd3fc;
+        }
+
+        .ag-resumo-empty {
+            color: #888;
+            font-size: 1rem;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        /* Event group date header */
+        .ag-resumo-data {
+            color: #1A1A1A;
+            font-size: 1.2rem;
+            font-weight: 400;
+            margin-top: 8px;
+        }
+
+        body.dark-mode .ag-resumo-data {
+            color: #e5f6ff;
+        }
+
+        /* Event chip */
+        .ag-evento {
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ag-evento-titulo {
+            font-size: 1rem;
+            font-weight: 400;
+        }
+
+        .ag-evento-valor {
+            font-size: 0.95rem;
+            font-weight: 400;
+            white-space: nowrap;
+        }
+
+        .ag-evento.gasto {
+            background: #FF9E9E;
+            color: #A00000;
+        }
+
+        .ag-evento.recebimento {
+            background: #B7FFB6;
+            color: #0A6000;
+        }
+
+        .ag-evento.transferencia {
+            background: #7FFFFF;
+            color: #006C9E;
+        }
+
+        .ag-evento.agendamento {
+            background: #FFFF9E;
+            color: #AFA900;
+        }
+    </style>
 </head>
 
 <body>
-
     <div class="containerGeral">
         <nav class="side-bar" id="navbar">
             <ul>
                 <li onclick="sidebarFunction()">
-                    <i class='bx  bx-menu-closer'></i>
+                    <i class='bx bx-menu-closer'></i>
                 </li>
                 <li>
-                    <a href="dashboard.html"> <i class='bx  bx-home'></i> <span id="home">Home</span></a>
+                    <a href="dashboard.html"><i class='bx bx-home'></i> <span id="home">Home</span></a>
                 </li>
                 <li>
-                    <a href="registros.html"> <i class='bx  bx-address-book'></i> <span id="reg"> Registros
-                        </span></a>
+                    <a href="registros.html"><i class='bx bx-address-book'></i> <span id="reg">Registros</span></a>
                 </li>
                 <li>
-                    <a href="adicinarRegistros.html"> <i class='bx  bx-file-plus'></i> <span id="add">Adicionar
-                            Registros</span></a>
+                    <a href="adicinarRegistros.html"><i class='bx bx-file-plus'></i> <span id="add">Adicionar Registros</span></a>
                 </li>
                 <li>
-                    <a href="agendaGastos.html"><i class='bx  bx-calendar-event'></i> <span
-                            id="agenda">Agenda</span></a>
+                    <a href="agendaGastos.html"><i class='bx bx-calendar-event'></i> <span id="agenda">Agenda</span></a>
                 </li>
                 <li>
                     <a id="toggleTheme">
                         <span id="icone"><i class='bx bx-moon'></i></span>
                         <span id="tema">Tema</span>
-                    </a> 
+                    </a>
                 </li>
                 <li>
-                    <a href="configurações.html"><i class='bx  bx-cog'></i><span id="config">Configurações</span></a>
+                    <a href="configurações.html"><i class='bx bx-cog'></i> <span id="config">Configurações</span></a>
                 </li>
             </ul>
         </nav>
 
-         <div id="main" class="main">
-            <h1>Agenda de gastos</h1>
+        <div id="main" class="main ag-page">
+            <h1>Calendário Financeiro</h1>
+
+            <div class="ag-layout">
+                <!-- Calendar -->
+                <div class="ag-cal-panel">
+                    <div class="ag-month-nav">
+                        <button class="ag-nav-btn" id="btnPrevMes"><i class='bx bx-chevron-left'></i></button>
+                        <span class="ag-month-name" id="mesNome"></span>
+                        <button class="ag-nav-btn" id="btnNextMes"><i class='bx bx-chevron-right'></i></button>
+                    </div>
+
+                    <div class="ag-weekdays">
+                        <div class="ag-weekday">D</div>
+                        <div class="ag-weekday">S</div>
+                        <div class="ag-weekday">T</div>
+                        <div class="ag-weekday">Q</div>
+                        <div class="ag-weekday">Q</div>
+                        <div class="ag-weekday">S</div>
+                        <div class="ag-weekday">S</div>
+                    </div>
+
+                    <div class="ag-grid" id="calGrid"></div>
+                </div>
+
+                <!-- Summary -->
+                <div class="ag-resumo" id="resumoPanel">
+                    <div class="ag-resumo-titulo">Resumo:</div>
+                    <p class="ag-resumo-empty" id="resumoEmpty">Selecione um dia para ver os eventos.</p>
+                    <div id="resumoConteudo"></div>
+                </div>
+            </div>
         </div>
-
     </div>
-
 </body>
 
 </html>
+<script src="js/main.js"></script>
 <script src="js/navbar.js"></script>
+<script src="js/agendaGastos.js"></script>
