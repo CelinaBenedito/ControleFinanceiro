@@ -2,7 +2,9 @@ package controle.api.back_end.controller;
 
 import controle.api.back_end.dto.configuracoes.*;
 import controle.api.back_end.dto.configuracoes.mapper.ConfiguracoesMapper;
+import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
+import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.service.ConfiguracoesService;
@@ -94,12 +96,48 @@ public class ConfiguracoesController {
         return ResponseEntity.status(200).body(response);
     }
 
+
+    @PostMapping("{id}/categorias")
+    @Operation(summary = "Adicionar uma lista de limite para categorias.",
+            description = "Adição de uma lista de categorias e seus respectivos limites nas configurações.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Lista de categorias criadas!"),
+            @ApiResponse(responseCode = "409", description = "Limite já cadastrado!"),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+    })
+    public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createLimitePorCategoria(@RequestBody @Valid List<LimitePorCategoriaCreateDTO> createDtos,
+                                                                                     @PathVariable UUID id){
+        List<LimitePorCategoria> limites = new ArrayList<>();
+        for (LimitePorCategoriaCreateDTO dto : createDtos){
+            CategoriaUsuario categoriaUsuario = configuracoesService.findCategoriaUsuario(createDtos.getFirst().getCategoriaUsuario_id());
+            LimitePorCategoria limitePorCategoria = configuracoesService.createLimitePorCategoria(categoriaUsuario, dto.getLimiteDesejado());
+            limites.add(limitePorCategoria);
+        }
+        Configuracoes configuracoes = configuracoesService.updateLimiteCategoria(id, limites);
+        ConfiguracaoUsuarioResponseDTO response = ConfiguracoesMapper.toDtoUser(configuracoes);
+        return ResponseEntity.status(200).body(response);
+    }
+
     @PutMapping("/edit/{id}")
+    @Operation(summary = "Editar as configuranções.",
+            description = "Edita as informações contidas dentro das configurações")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Atualizado com sucesso!"),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+    })
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> editConfiguracao(@Valid @RequestBody ConfiguracaoEditDTO editDTO, @PathVariable UUID id){
         Configuracoes entity = ConfiguracoesMapper.toEntity(editDTO);
         Configuracoes edited = configuracoesService.editConfiguracao(entity, editDTO, id);
         ConfiguracaoUsuarioResponseDTO response = ConfiguracoesMapper.toDtoUser(edited);
         return ResponseEntity.status(200).body(response);
+    }
+
+    @DeleteMapping("{id}/dados/periodo-tempo")
+    //Incompleto
+    public ResponseEntity<Void> deleteDadosByPeriodoDeTempo(@Valid @RequestBody PeriodoTempoRequestDto tempoDto, @PathVariable UUID id){
+        configuracoesService.deleteByPeriodoDeTempo(id,tempoDto);
+
+        return ResponseEntity.status(500).build();
     }
 
 }
