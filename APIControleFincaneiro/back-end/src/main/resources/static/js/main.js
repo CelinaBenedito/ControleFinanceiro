@@ -30,7 +30,13 @@
         request,
         get,
         getTipos(userId) {
-            return get(`/categorias/usuario/${userId}`);
+            return request(`/categorias/usuario/${userId}`, { method: "GET" })
+                .then(res => {
+                    if (res.status === 204) {
+                        return [];
+                    }
+                    return res.json();
+                });
         },
         getInstituicoes() {
             return get("/instituicoes");
