@@ -98,9 +98,9 @@ public class ConfiguracoesService {
                 LimitePorCategoria limite = new LimitePorCategoria();
                 limite.setCategoriaUsuario(categoriaUsuario);
                 limite.setLimiteDesejado(limiteDTO.getValor());
-                limitePorCategoriaRepository.save(limite);
+                LimitePorCategoria save = limitePorCategoriaRepository.save(limite);
 
-                limitesCategoria.add(limite);
+                limitesCategoria.add(save);
             }
             entity.setLimitePorCategoria(limitesCategoria);
         }
@@ -115,9 +115,9 @@ public class ConfiguracoesService {
                 LimitePorInstituicao limite = new LimitePorInstituicao();
                 limite.setInstitucaoUsuario(instituicaoUsuario);
                 limite.setLimiteDesejado(limiteDTO.getValor());
-                limitePorInstiuicaoRepository.save(limite);
+                LimitePorInstituicao save = limitePorInstiuicaoRepository.save(limite);
 
-                limitesInstituicao.add(limite);
+                limitesInstituicao.add(save);
             }
             entity.setLimitePorInstituicao(limitesInstituicao);
         }
@@ -212,5 +212,20 @@ public class ConfiguracoesService {
         UUID idUsuario = config.getUsuario().getId();
 
 
+    }
+
+    public Configuracoes getConfiguracaoByUserId(UUID userId) {
+
+       Configuracoes config = configuracoesRepository.findConfiguracoesByUsuario_Id(userId)
+               .orElseThrow(()->
+                       new EntidadeNaoEncontradaException("Usuario de id %s não encontrado."
+                               .formatted(userId)
+                       )
+               );
+        List<LimitePorCategoria> limitePorCategoriaByConfiguracoesId = limitePorCategoriaRepository.findLimitePorCategoriaByConfiguracoes_Id(config.getId());
+
+        config.setLimitePorCategoria(limitePorCategoriaByConfiguracoesId);
+
+        return config;
     }
 }

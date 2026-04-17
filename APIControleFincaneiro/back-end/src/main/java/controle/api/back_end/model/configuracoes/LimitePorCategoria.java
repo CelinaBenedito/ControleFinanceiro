@@ -7,7 +7,6 @@ import java.util.UUID;
 
 @Entity
 public class LimitePorCategoria {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -17,6 +16,16 @@ public class LimitePorCategoria {
     private CategoriaUsuario categoriaUsuario;
 
     private Double limiteDesejado;
+    @ManyToOne
+    private Configuracoes configuracoes;
+
+    public Configuracoes getConfiguracoes() {
+        return configuracoes;
+    }
+
+    public void setConfiguracoes(Configuracoes configuracoes) {
+        this.configuracoes = configuracoes;
+    }
 
     public CategoriaUsuario getCategoriaUsuario() {
         return categoriaUsuario;

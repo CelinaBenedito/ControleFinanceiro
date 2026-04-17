@@ -21,6 +21,18 @@ public class LimitePorInstituicao {
         return institucaoUsuario;
     }
 
+    @ManyToOne
+    private Configuracoes configuracoes;
+
+    public Configuracoes getConfiguracoes() {
+        return configuracoes;
+    }
+
+    public void setConfiguracoes(Configuracoes configuracoes) {
+        this.configuracoes = configuracoes;
+    }
+
+
     public void setInstitucaoUsuario(InstituicaoUsuario institucaousuario) {
         this.institucaoUsuario = institucaousuario;
     }

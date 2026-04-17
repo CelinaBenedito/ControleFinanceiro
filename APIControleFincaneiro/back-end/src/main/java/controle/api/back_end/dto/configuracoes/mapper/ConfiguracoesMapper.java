@@ -1,9 +1,7 @@
 package controle.api.back_end.dto.configuracoes.mapper;
 
-import controle.api.back_end.dto.configuracoes.ConfiguracaoEditDTO;
-import controle.api.back_end.dto.configuracoes.ConfiguracaoUsuarioResponseDTO;
-import controle.api.back_end.dto.configuracoes.ConfiguracoesCreateDTO;
-import controle.api.back_end.dto.configuracoes.ConfiguracoesResponsesDTO;
+import controle.api.back_end.dto.categoria.CategoriaUsuarioResponseDTO;
+import controle.api.back_end.dto.configuracoes.*;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
@@ -58,33 +56,18 @@ public class ConfiguracoesMapper {
         dto.setUltimaAtualizacao(model.getUltimaAtualizacao());
 
         // LIMITE POR CATEGORIA (lista)
-        List<ConfiguracaoUsuarioResponseDTO.LimiteCategoriaDTO> limitesCategoriaDTO = new ArrayList<>();
+        List<LimitePorCategoriaResponseDto> limitesCategoriaDTO = new ArrayList<>();
         if (model.getLimitePorCategoria() != null) {
             for (LimitePorCategoria limite : model.getLimitePorCategoria()) {
-                ConfiguracaoUsuarioResponseDTO.LimiteCategoriaDTO limiteCategoriaDTO = new ConfiguracaoUsuarioResponseDTO.LimiteCategoriaDTO();
+                LimitePorCategoriaResponseDto limiteCategoriaDTO = new LimitePorCategoriaResponseDto();
 
-                ConfiguracaoUsuarioResponseDTO.LimiteCategoriaDTO.CategoriaUsuarioDTO categoriaUsuarioDTO =
-                        new ConfiguracaoUsuarioResponseDTO.LimiteCategoriaDTO.CategoriaUsuarioDTO();
+                LimitePorCategoriaResponseDto.CategoriaDTO categoriaDTO = new LimitePorCategoriaResponseDto.CategoriaDTO();
 
-                ConfiguracaoUsuarioResponseDTO.LimiteCategoriaDTO.CategoriaUsuarioDTO.CategoriaDTO categoriaDTO =
-                        new ConfiguracaoUsuarioResponseDTO.LimiteCategoriaDTO.CategoriaUsuarioDTO.CategoriaDTO();
-
-                ConfiguracaoUsuarioResponseDTO.LimiteCategoriaDTO.CategoriaUsuarioDTO.UsuarioDTO usuarioDTO =
-                        new ConfiguracaoUsuarioResponseDTO.LimiteCategoriaDTO.CategoriaUsuarioDTO.UsuarioDTO();
-
-                usuarioDTO.setId(limite.getCategoriaUsuario().getUsuario().getId());
-                usuarioDTO.setNome(modelUser.getNome());
-                usuarioDTO.setSobrenome(modelUser.getSobrenome());
-                usuarioDTO.setSexo(modelUser.getSexo());
-                usuarioDTO.setDataNascimento(modelUser.getDataNascimento());
 
                 categoriaDTO.setId(limite.getCategoriaUsuario().getCategoria().getId());
                 categoriaDTO.setTitulo(limite.getCategoriaUsuario().getCategoria().getTitulo());
 
-                categoriaUsuarioDTO.setCategoria(categoriaDTO);
-                categoriaUsuarioDTO.setUsuario(usuarioDTO);
-
-                limiteCategoriaDTO.setCategoriaUsuario(categoriaUsuarioDTO);
+                limiteCategoriaDTO.setCategoria(categoriaDTO);
                 limiteCategoriaDTO.setLimiteDesejado(limite.getLimiteDesejado());
 
                 limitesCategoriaDTO.add(limiteCategoriaDTO);
@@ -93,35 +76,22 @@ public class ConfiguracoesMapper {
         dto.setLimitePorCategoria(limitesCategoriaDTO);
 
         // LIMITE POR INSTITUIÇÃO (lista)
-        List<ConfiguracaoUsuarioResponseDTO.LimiteInstituicaoDTO> limitesInstituicaoDTO = new ArrayList<>();
+        List<LimitePorInstituicaoResponseDto> limitesInstituicaoDTO = new ArrayList<>();
         if (model.getLimitePorInstituicao() != null) {
             for (LimitePorInstituicao limite : model.getLimitePorInstituicao()) {
-                ConfiguracaoUsuarioResponseDTO.LimiteInstituicaoDTO limiteInstituicaoDTO =
-                        new ConfiguracaoUsuarioResponseDTO.LimiteInstituicaoDTO();
+                LimitePorInstituicaoResponseDto limiteInstituicaoDTO =
+                        new LimitePorInstituicaoResponseDto();
 
-                ConfiguracaoUsuarioResponseDTO.LimiteInstituicaoDTO.InstituicaoUsuarioDTO instituicaoUsuarioDTO =
-                        new ConfiguracaoUsuarioResponseDTO.LimiteInstituicaoDTO.InstituicaoUsuarioDTO();
+                LimitePorInstituicaoResponseDto.InstituicaoDTO instituicaoDTO =
+                        new LimitePorInstituicaoResponseDto.InstituicaoDTO();
 
-                ConfiguracaoUsuarioResponseDTO.LimiteInstituicaoDTO.InstituicaoUsuarioDTO.InstituicaoDTO instituicaoDTO =
-                        new ConfiguracaoUsuarioResponseDTO.LimiteInstituicaoDTO.InstituicaoUsuarioDTO.InstituicaoDTO();
-
-                ConfiguracaoUsuarioResponseDTO.LimiteInstituicaoDTO.InstituicaoUsuarioDTO.UsuarioDTO usuarioDTO2 =
-                        new ConfiguracaoUsuarioResponseDTO.LimiteInstituicaoDTO.InstituicaoUsuarioDTO.UsuarioDTO();
-
-                usuarioDTO2.setId(modelUser.getId());
-                usuarioDTO2.setNome(modelUser.getNome());
-                usuarioDTO2.setSobrenome(modelUser.getSobrenome());
-                usuarioDTO2.setSexo(modelUser.getSexo());
-                usuarioDTO2.setDataNascimento(modelUser.getDataNascimento());
 
                 instituicaoDTO.setId(limite.getInstitucaoUsuario().getInstituicao().getId());
                 instituicaoDTO.setNome(limite.getInstitucaoUsuario().getInstituicao().getNome());
 
-                instituicaoUsuarioDTO.setInstituicao(instituicaoDTO);
-                instituicaoUsuarioDTO.setUsuario(usuarioDTO2);
 
                 limiteInstituicaoDTO.setLimiteDesejado(limite.getLimiteDesejado());
-                limiteInstituicaoDTO.setInstituicaoUsuario(instituicaoUsuarioDTO);
+                limiteInstituicaoDTO.setInstituicao(instituicaoDTO);
 
                 limitesInstituicaoDTO.add(limiteInstituicaoDTO);
             }

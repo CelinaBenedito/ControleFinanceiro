@@ -59,6 +59,19 @@ public class ConfiguracoesController {
         return ResponseEntity.status(200).body(response);
     }
 
+    @GetMapping("/usuarios/{user_id}")
+    @Operation(summary = "Buscar a configuração associada ao id do usuário especificado",
+            description = "Busca a configuração correspondente ao id do usuário informado junto.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados!"),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+    })
+    public ResponseEntity<ConfiguracaoUsuarioResponseDTO> getConfiguracaoByUserId(@PathVariable UUID user_id){
+        Configuracoes configByUserId = configuracoesService.getConfiguracaoByUserId(user_id);
+        ConfiguracaoUsuarioResponseDTO response = ConfiguracoesMapper.toDtoUser(configByUserId);
+        return ResponseEntity.status(200).body(response);
+    }
+
     @PostMapping
     @Operation(summary = "Criar uma nova configuração",
             description = "Cria uma nova configuração no banco de dados.")
