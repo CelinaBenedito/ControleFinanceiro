@@ -1,5 +1,4 @@
 div_alerta.style.display = 'none';
-gestaoConta.style.display = "none";
 
 let dataGasto;
 const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
@@ -20,14 +19,17 @@ function gerarInformacoes() {
 
 function gerarTipos() {
     if (!userId) return;
-    select_tipo.innerHTML = "<option value='#'>Escolha um tipo</option>"
+    const multiTipo = document.getElementById("multi_select_tipo");
+    const multiCategoria = document.getElementById("multi_select_categoria");
+    select_tipo.innerHTML = "<option value='#'>Escolha um tipo</option>";
+    if (multiTipo) multiTipo.innerHTML = "<option value='#'>Tipo do Evento</option>";
+    if (multiCategoria) multiCategoria.innerHTML = "<option value='#'>Categoria</option>";
     MainAPI.getTipos(userId).then(json => {
         for (let c = 0; json.length > c; c++) {
-
-            select_tipo.innerHTML +=
-                `
-                            <option value="${json[c].categoria.id}">${json[c].categoria.titulo}</option>
-                        `
+            const opt = `<option value="${json[c].categoria.id}">${json[c].categoria.titulo}</option>`;
+            select_tipo.innerHTML += opt;
+            if (multiTipo) multiTipo.innerHTML += opt;
+            if (multiCategoria) multiCategoria.innerHTML += opt;
         }
     }).catch(function(error) {
         console.error("Erro ao carregar tipos:", error);
@@ -35,21 +37,18 @@ function gerarTipos() {
 }
 
 async function gerarInstituicao() {
-    gestaoInstituicao = document.getElementById("gestaoInstituicao")
-    select_instituicao.innerHTML = "<option value='#'> Escolha uma instituição</option>"
+    const gestaoInstituicao = document.getElementById("gestaoInstituicao");
+    const multiInstituicao = document.getElementById("multi_select_instituicao");
+    select_instituicao.innerHTML = "<option value='#'> Escolha uma institui\u00e7\u00e3o</option>";
+    if (gestaoInstituicao) gestaoInstituicao.innerHTML = "";
+    if (multiInstituicao) multiInstituicao.innerHTML = "<option value='#'>Institui\u00e7\u00e3o</option>";
     MainAPI.getInstituicoes().then(json => {
         for (let c = 0; json.length > c; c++) {
-            select_instituicao.innerHTML +=
-                `
-                        <option value="${json[c].id}">${json[c].nome}</option>
-                    `
-
-            gestaoInstituicao.innerHTML += 
-            `
-                 <option onclick="controleInstituicao()">${json[c].nome}</option>
-                `
+            select_instituicao.innerHTML += `<option value="${json[c].id}">${json[c].nome}</option>`;
+            if (gestaoInstituicao) gestaoInstituicao.innerHTML += `<option onclick="controleInstituicao()">${json[c].nome}</option>`;
+            if (multiInstituicao) multiInstituicao.innerHTML += `<option value="${json[c].id}">${json[c].nome}</option>`;
         }
-    })
+    });
 }
 
 async function controleInstituicao(){
@@ -322,14 +321,128 @@ titulos.forEach(item => {
 });
 
 function trocarFormulario(tela) {
-    if (tela == "gestaoConta") {
-        gestaoConta.style.display = "";
-        addGasto.style.display = "none";
+    const cardUnico = document.getElementById("cardUnico");
+    const cardMultiplo = document.getElementById("multiplosRegistros");
+    document.querySelectorAll(".ar-tab").forEach(t => t.classList.remove("ativo"));
+    if (tela === "multiplosRegistros") {
+        cardUnico.style.display = "none";
+        cardMultiplo.style.display = "flex";
+        document.getElementById("tabMultiplo").classList.add("ativo");
     } else {
-        gestaoConta.style.display = "none";
-        addGasto.style.display = "";
+        cardUnico.style.display = "";
+        cardMultiplo.style.display = "none";
+        document.getElementById("tabUnico").classList.add("ativo");
     }
-
 }
 
+/* ---- Múltiplos Registros ---- */
+let loteRegistros = [];
+
+document.addEventListener("DOMContentLoaded", function () {
+    const multiData = document.getElementById("multi_data");
+    if (multiData) {
+        multiData.addEventListener("input", function () {
+            let v = this.value.replace(/\D/g, "").slice(0, 8);
+            if (v.length >= 5) v = v.slice(0, 2) + "/" + v.slice(2, 4) + "/" + v.slice(4);
+            else if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2);
+            this.value = v;
+            const display = document.getElementById("multi_data_display");
+            if (display) display.textContent = v.length === 10 ? `Dia ${v}` : "";
+        });
+    }
+});
+
+function adicionarAoLote() {
+    const titulo = document.getElementById("ipt_multi_nome").value.trim();
+    const tipoSel = document.getElementById("multi_select_tipo");
+    const tipo = tipoSel.value;
+    const tipoNome = tipoSel.options[tipoSel.selectedIndex].text;
+    const instSel = document.getElementById("multi_select_instituicao");
+    const instId = instSel.value;
+    const instNome = instSel.options[instSel.selectedIndex].text;
+    const movSel = document.getElementById("multi_select_movimento");
+    const movimento = movSel.value;
+    const catSel = document.getElementById("multi_select_categoria");
+    const catId = catSel.value;
+    const catNome = catSel.options[catSel.selectedIndex].text;
+    const valor = parseFloat(document.getElementById("ipt_multi_valor").value);
+    const desc = document.getElementById("ipt_multi_desc").value.trim() || "Nenhuma descrição fornecida";
+    const dataRaw = document.getElementById("multi_data").value;
+    // Converte DD/MM/AAAA → YYYY-MM-DD para a API
+    const dataPartes = dataRaw.split("/");
+    const data = dataPartes.length === 3 ? `${dataPartes[2]}-${dataPartes[1]}-${dataPartes[0]}` : "";
+
+    if (!titulo) return alert("Título inválido");
+    if (tipo === "#") return alert("Escolha um tipo de evento");
+    if (instId === "#") return alert("Escolha uma instituição");
+    if (movimento === "#") return alert("Escolha o movimento");
+    if (!data || dataRaw.length !== 10) return alert("Data inválida. Use o formato DD/MM/AAAA");
+    if (!valor || valor <= 0) return alert("Valor inválido");
+
+    loteRegistros.push({ titulo, tipo, tipoNome, instId, instNome, movimento, catId, catNome, valor, desc, data });
+    renderizarTabelaLote();
+    document.getElementById("ipt_multi_nome").value = "";
+    document.getElementById("ipt_multi_valor").value = "";
+    document.getElementById("ipt_multi_desc").value = "";
+}
+
+function renderizarTabelaLote() {
+    const tbody = document.getElementById("corpoLote");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    if (loteRegistros.length === 0) {
+        tbody.innerHTML = `<tr id="loteVazio"><td colspan="7" style="text-align:center;color:#888;font-style:italic;padding:20px;">Nenhum registro adicionado ainda.</td></tr>`;
+        return;
+    }
+    loteRegistros.forEach((r, i) => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${r.titulo}</td>
+                <td>${r.tipoNome}</td>
+                <td>${r.movimento}</td>
+                <td>${r.instNome}</td>
+                <td>${r.catNome}</td>
+                <td>R$ ${r.valor.toFixed(2).replace(".", ",")}</td>
+                <td><button class="ar-btn" style="height:32px;min-width:0;padding:0 10px;font-size:0.8rem;background:#e53e3e;margin:0;" onclick="removerDoLote(${i})">\u2716</button></td>
+            </tr>
+        `;
+    });
+}
+
+function removerDoLote(index) {
+    loteRegistros.splice(index, 1);
+    renderizarTabelaLote();
+}
+
+async function salvarLote() {
+    if (loteRegistros.length === 0) return alert("Adicione pelo menos um registro");
+    alerta(`Salvando ${loteRegistros.length} registro(s)...
+        <div class="glaceonCorrendoDiv">
+            <img class="glaceon correndo" src="/assets/gif/glaceon-correndo-unscreen.gif" alt="">
+        </div>
+    `);
+    try {
+        for (const r of loteRegistros) {
+            await MainAPI.registrarGasto({
+                valorServer: r.valor,
+                descServer: r.desc,
+                tipoServer: r.tipo,
+                tituloServer: r.titulo,
+                dataServer: r.data,
+                instituicaoServer: r.instId
+            });
+            await atualizarSaldo(r.valor, r.instId);
+        }
+        const total = loteRegistros.length;
+        loteRegistros = [];
+        renderizarTabelaLote();
+        setTimeout(() => alerta(`
+            ${total} registro(s) salvo(s) com sucesso!<br>
+            <div><button onclick='div_alerta.style.display="none"'>OK</button></div>
+        `), 500);
+    } catch (e) {
+        console.error("Erro ao salvar lote:", e);
+        alerta(`Erro ao salvar registros. <button onclick='div_alerta.style.display="none"'>OK</button>`);
+    }
+}
 
