@@ -297,6 +297,53 @@
         body.dark-mode #ValorTotal {
             color: #7dd3fc;
         }
+
+        /* ── Múltiplos Registros table ── */
+        .ar-multi-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 15px;
+            overflow: hidden;
+            outline: 2px solid #367373;
+        }
+
+        body.dark-mode .ar-multi-table {
+            outline-color: #7dd3fc;
+        }
+
+        .ar-multi-table th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #367373;
+            border-bottom: 1px solid #367373;
+            font-family: 'Inter', sans-serif;
+            background: #EBF4F4;
+        }
+
+        body.dark-mode .ar-multi-table th {
+            color: #7dd3fc;
+            border-color: #7dd3fc;
+            background: #0a0f1e;
+        }
+
+        .ar-multi-table td {
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            color: #367373;
+            border-bottom: 1px solid rgba(54, 115, 115, 0.2);
+            font-family: 'Inter', sans-serif;
+        }
+
+        body.dark-mode .ar-multi-table td {
+            color: #7dd3fc;
+            border-color: rgba(125, 211, 252, 0.15);
+        }
+
+        .ar-multi-table tr:last-child td {
+            border-bottom: none;
+        }
     </style>
 </head>
 
@@ -340,12 +387,12 @@
 
             <!-- Tabs -->
             <div class="ar-tabs">
-                <a class="ar-tab ativo" onclick="trocarFormulario('addGasto')">Registro Único</a>
-                <a class="ar-tab" onclick="trocarFormulario('gestaoConta')">Gestão de Contas</a>
+                <a class="ar-tab ativo" id="tabUnico" onclick="trocarFormulario('addGasto')">Registro Único</a>
+                <a class="ar-tab" id="tabMultiplo" onclick="trocarFormulario('multiplosRegistros')">Múltiplos Registros</a>
             </div>
 
-            <!-- Card -->
-            <div class="ar-card">
+            <!-- Card: Registro Único -->
+            <div class="ar-card" id="cardUnico">
 
                 <!-- Mascot -->
                 <div class="ar-mascot">
@@ -415,26 +462,73 @@
                     </dialog>
                 </div>
 
-                <!-- Gestão de Contas form -->
-                <div class="ar-form-col" id="gestaoConta">
-                    <div class="ar-select-wrap">
-                        <select class="ar-select" id="gestaoInstituicao">
-                            <option value="">Selecione a instituição</option>
-                        </select>
-                    </div>
+            </div><!-- /cardUnico -->
 
-                    <div class="ar-gestao-info hidden" id="escondido">
-                        <h3>Saldo total:</h3>
-                        <p id="ValorTotal"></p>
-                        <div class="ar-btns-row">
-                            <button class="ar-btn" onclick="addValor.showModal(), gerarInstituicao()">Adicionar valor</button>
-                            <button class="ar-btn secondary" onclick="removeValor.showModal(), gerarInstituicao()">Remover valor</button>
-                            <button class="ar-btn secondary">Transferência</button>
-                        </div>
-                    </div>
+            <!-- Card: Múltiplos Registros (hidden by default) -->
+            <div class="ar-card" id="multiplosRegistros" style="display:none; flex-direction:column; gap:24px;">
+
+                <!-- Date row -->
+                <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+                    <input class="ar-field" type="text" id="multi_data" placeholder="DD/MM/AAAA" maxlength="10" style="max-width:200px;">
+                    <span id="multi_data_display" style="font-size:1.6rem; font-weight:400; color:#367373; font-family:'Inter',sans-serif;"></span>
                 </div>
 
-            </div><!-- /ar-card -->
+                <!-- Form fields row -->
+                <div style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
+                    <input class="ar-field" type="text" id="ipt_multi_nome" placeholder="Título..." style="flex:1; min-width:160px;">
+                    <div class="ar-select-wrap" style="flex:1; min-width:160px;">
+                        <select class="ar-select" id="multi_select_tipo">
+                            <option value="#">Tipo do Evento</option>
+                        </select>
+                    </div>
+                    <div class="ar-select-wrap" style="flex:1; min-width:160px;">
+                        <select class="ar-select" id="multi_select_instituicao">
+                            <option value="#">Instituição</option>
+                        </select>
+                    </div>
+                    <div class="ar-select-wrap" style="flex:1; min-width:160px;">
+                        <select class="ar-select" id="multi_select_movimento">
+                            <option value="#">Movimento</option>
+                            <option value="Débito">Débito</option>
+                            <option value="Crédito">Crédito</option>
+                            <option value="Transferência">Transferência</option>
+                        </select>
+                    </div>
+                    <div class="ar-select-wrap" style="flex:1; min-width:160px;">
+                        <select class="ar-select" id="multi_select_categoria">
+                            <option value="#">Categoria</option>
+                        </select>
+                    </div>
+                    <input class="ar-field" type="number" id="ipt_multi_valor" placeholder="Valor..." style="flex:1; min-width:140px;">
+                    <input class="ar-field" type="text" id="ipt_multi_desc" placeholder="Descrição..." style="flex:2; min-width:200px;">
+                    <button class="ar-btn" onclick="adicionarAoLote()" style="flex-shrink:0;">Adicionar</button>
+                </div>
+
+                <!-- Preview table -->
+                <div style="overflow-x:auto;">
+                    <table class="ar-multi-table">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Tipo Evento</th>
+                                <th>Movimento</th>
+                                <th>Instituição</th>
+                                <th>Categoria</th>
+                                <th>Valor</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoLote">
+                            <tr id="loteVazio">
+                                <td colspan="7" style="text-align:center; color:#888; font-style:italic; padding:20px;">Nenhum registro adicionado ainda.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="ar-btn" onclick="salvarLote()" style="align-self:flex-start;">Salvar</button>
+
+            </div><!-- /multiplosRegistros -->
 
             <div id="modalAddValor" class="modal">
                 <div class="conteudoModal">
