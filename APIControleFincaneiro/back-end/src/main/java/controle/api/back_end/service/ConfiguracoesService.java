@@ -223,8 +223,10 @@ public class ConfiguracoesService {
                        )
                );
         List<LimitePorCategoria> limitePorCategoriaByConfiguracoesId = limitePorCategoriaRepository.findLimitePorCategoriaByConfiguracoes_Id(config.getId());
+        List<LimitePorInstituicao> limitePorInstituicaoByConfiguracoesId = limitePorInstiuicaoRepository.findLimitePorInstituicaoByConfiguracoes_Id(config.getId());
 
         config.setLimitePorCategoria(limitePorCategoriaByConfiguracoesId);
+        config.setLimitePorInstituicao(limitePorInstituicaoByConfiguracoesId);
 
         return config;
     }
