@@ -1,95 +1,95 @@
-package controle.api.back_end.model.configuracoes;
+    package controle.api.back_end.model.configuracoes;
 
-import controle.api.back_end.model.usuario.Usuario;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
-import jakarta.validation.constraints.Positive;
+    import controle.api.back_end.model.usuario.Usuario;
+    import jakarta.persistence.*;
+    import jakarta.validation.constraints.NotNull;
+    import jakarta.validation.constraints.PastOrPresent;
+    import jakarta.validation.constraints.Positive;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+    import java.time.LocalDate;
+    import java.util.List;
+    import java.util.UUID;
 
-@Entity
-public class Configuracoes {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Entity
+    public class Configuracoes {
+        @Id
+        @GeneratedValue(strategy = GenerationType.UUID)
+        private UUID id;
 
-    @OneToOne
-    @NotNull
-    private Usuario usuario;
+        @OneToOne
+        @NotNull
+        private Usuario usuario;
 
-    @OneToMany
-    private List<LimitePorCategoria> limitePorCategoria;
+        @OneToMany
+        private List<LimitePorCategoria> limitePorCategoria;
 
-    @OneToMany
-    private List<LimitePorInstituicao> limitePorInstituicao;
+        @OneToMany
+        private List<LimitePorInstituicao> limitePorInstituicao;
 
-    @Column(columnDefinition = "integer default 1")
-    private Integer inicioMesFiscal;
+        @Column(columnDefinition = "integer default 1")
+        private Integer inicioMesFiscal;
 
-    @PastOrPresent
-    @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    private LocalDate ultimaAtualizacao;
+        @PastOrPresent
+        @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        private LocalDate ultimaAtualizacao;
 
-    @Positive
-    private Double limiteDesejadoMensal;
+        @Positive
+        private Double limiteDesejadoMensal;
 
 
-    public UUID getId() {
-        return id;
+        public UUID getId() {
+            return id;
+        }
+
+        public void setId(UUID id) {
+            this.id = id;
+        }
+
+        public Usuario getUsuario() {
+            return usuario;
+        }
+
+        public void setUsuario(Usuario fkUsuario) {
+            this.usuario = fkUsuario;
+        }
+
+        public Integer getInicioMesFiscal() {
+            return inicioMesFiscal;
+        }
+
+        public void setInicioMesFiscal(Integer inicioMesFiscal) {
+            this.inicioMesFiscal = inicioMesFiscal;
+        }
+
+        public LocalDate getUltimaAtualizacao() {
+            return ultimaAtualizacao;
+        }
+
+        public void setUltimaAtualizacao(LocalDate ultimaAtualizacao) {
+            this.ultimaAtualizacao = ultimaAtualizacao;
+        }
+
+        public Double getLimiteDesejadoMensal() {
+            return limiteDesejadoMensal;
+        }
+
+        public void setLimiteDesejadoMensal(Double limiteDesejadoMensal) {
+            this.limiteDesejadoMensal = limiteDesejadoMensal;
+        }
+
+        public List<LimitePorCategoria> getLimitePorCategoria() {
+            return limitePorCategoria;
+        }
+
+        public void setLimitePorCategoria(List<LimitePorCategoria> limitePorCategoria) {
+            this.limitePorCategoria = limitePorCategoria;
+        }
+
+        public List<LimitePorInstituicao> getLimitePorInstituicao() {
+            return limitePorInstituicao;
+        }
+
+        public void setLimitePorInstituicao(List<LimitePorInstituicao> limitePorInstituicao) {
+            this.limitePorInstituicao = limitePorInstituicao;
+        }
     }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario fkUsuario) {
-        this.usuario = fkUsuario;
-    }
-
-    public Integer getInicioMesFiscal() {
-        return inicioMesFiscal;
-    }
-
-    public void setInicioMesFiscal(Integer inicioMesFiscal) {
-        this.inicioMesFiscal = inicioMesFiscal;
-    }
-
-    public LocalDate getUltimaAtualizacao() {
-        return ultimaAtualizacao;
-    }
-
-    public void setUltimaAtualizacao(LocalDate ultimaAtualizacao) {
-        this.ultimaAtualizacao = ultimaAtualizacao;
-    }
-
-    public Double getLimiteDesejadoMensal() {
-        return limiteDesejadoMensal;
-    }
-
-    public void setLimiteDesejadoMensal(Double limiteDesejadoMensal) {
-        this.limiteDesejadoMensal = limiteDesejadoMensal;
-    }
-
-    public List<LimitePorCategoria> getLimitePorCategoria() {
-        return limitePorCategoria;
-    }
-
-    public void setLimitePorCategoria(List<LimitePorCategoria> limitePorCategoria) {
-        this.limitePorCategoria = limitePorCategoria;
-    }
-
-    public List<LimitePorInstituicao> getLimitePorInstituicao() {
-        return limitePorInstituicao;
-    }
-
-    public void setLimitePorInstituicao(List<LimitePorInstituicao> limitePorInstituicao) {
-        this.limitePorInstituicao = limitePorInstituicao;
-    }
-}

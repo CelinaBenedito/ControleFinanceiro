@@ -9,4 +9,6 @@ import java.util.UUID;
 
 public interface LimitePorInstituicaoRepository extends JpaRepository<LimitePorInstituicao, UUID> {
     List<LimitePorInstituicao> findLimitePorInstituicaoByInstitucaoUsuario_Id(Integer institucaoUsuarioId);
+
+    List<LimitePorInstituicao> findLimitePorInstituicaoByConfiguracoes_Id(UUID userId);
 }

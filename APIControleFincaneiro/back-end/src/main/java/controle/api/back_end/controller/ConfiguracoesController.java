@@ -146,9 +146,16 @@ public class ConfiguracoesController {
     }
 
     @DeleteMapping("{id}/dados/periodo-tempo")
-    //Incompleto
+    //Incompleto TO-DO
     public ResponseEntity<Void> deleteDadosByPeriodoDeTempo(@Valid @RequestBody PeriodoTempoRequestDto tempoDto, @PathVariable UUID id){
         configuracoesService.deleteByPeriodoDeTempo(id,tempoDto);
+
+        return ResponseEntity.status(500).build();
+    }
+
+    @DeleteMapping("{id}/dados/deletar-tudo")
+    //Incompleto TO-DO
+    public ResponseEntity<Void> deleteAll(@PathVariable UUID id){
 
         return ResponseEntity.status(500).build();
     }

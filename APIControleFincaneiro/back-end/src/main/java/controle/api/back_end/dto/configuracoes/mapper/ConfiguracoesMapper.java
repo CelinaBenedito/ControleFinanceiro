@@ -69,7 +69,7 @@ public class ConfiguracoesMapper {
 
                 limiteCategoriaDTO.setCategoria(categoriaDTO);
                 limiteCategoriaDTO.setLimiteDesejado(limite.getLimiteDesejado());
-
+                limiteCategoriaDTO.setId(limite.getId());
                 limitesCategoriaDTO.add(limiteCategoriaDTO);
             }
         }
@@ -92,7 +92,7 @@ public class ConfiguracoesMapper {
 
                 limiteInstituicaoDTO.setLimiteDesejado(limite.getLimiteDesejado());
                 limiteInstituicaoDTO.setInstituicao(instituicaoDTO);
-
+                limiteInstituicaoDTO.setId(limite.getId());
                 limitesInstituicaoDTO.add(limiteInstituicaoDTO);
             }
         }

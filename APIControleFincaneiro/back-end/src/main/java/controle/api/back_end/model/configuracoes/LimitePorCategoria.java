@@ -42,4 +42,12 @@ public class LimitePorCategoria {
     public void setLimiteDesejado(Double limiteDesejado) {
         this.limiteDesejado = limiteDesejado;
     }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
 }
