@@ -2,6 +2,7 @@ package controle.api.back_end.service;
 
 import controle.api.back_end.dto.configuracoes.ConfiguracaoEditDTO;
 import controle.api.back_end.dto.configuracoes.ConfiguracoesCreateDTO;
+import controle.api.back_end.dto.configuracoes.PeriodoTempoRequestDto;
 import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
@@ -165,6 +166,15 @@ public class ConfiguracoesService {
                         )
                 );
     }
+    public CategoriaUsuario findCategoriaUsuario(Integer categoriaUsuarioId) {
+        return categoriaUsuarioRepository.findById(categoriaUsuarioId)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException(
+                                "Associação de categoria e usuário com o id: %d não encontrada."
+                                        .formatted(categoriaUsuarioId)
+                        )
+                );
+    }
 
     public Configuracoes updateLimiteInstituicao(UUID id, List<LimitePorInstituicao> limites) {
         Configuracoes configuracoes = configuracoesRepository.findById(id)
@@ -175,6 +185,32 @@ public class ConfiguracoesService {
                         )
                 );
         configuracoes.setLimitePorInstituicao(limites);
-        return configuracoes;
+        return configuracoesRepository.save(configuracoes);
+    }
+
+
+    public Configuracoes updateLimiteCategoria(UUID id, List<LimitePorCategoria> limites) {
+        Configuracoes configuracoes = configuracoesRepository.findById(id)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException(
+                                "Configuração de id: %s não encontrado."
+                                        .formatted(id)
+                        )
+                );
+        configuracoes.setLimitePorCategoria(limites);
+        return configuracoesRepository.save(configuracoes);
+    }
+
+    public void deleteByPeriodoDeTempo(UUID id,@Valid PeriodoTempoRequestDto tempoDto) {
+       Configuracoes config = configuracoesRepository.findById(id)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException(
+                                "Configurações de id: %s não encontrada."
+                                        .formatted(id)
+                        )
+                );
+        UUID idUsuario = config.getUsuario().getId();
+
+
     }
 }
