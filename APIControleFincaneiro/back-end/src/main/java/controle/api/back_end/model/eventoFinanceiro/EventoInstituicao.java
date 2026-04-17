@@ -37,6 +37,30 @@ public class EventoInstituicao {
         this.instituicaoUsuario = instituicaoUsuario;
     }
 
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public TipoMovimento getTipoMovimento() {
+        return tipoMovimento;
+    }
+
+    public void setTipoMovimento(TipoMovimento tipoMovimento) {
+        this.tipoMovimento = tipoMovimento;
+    }
+
+    public Double getValor() {
+        return valor;
+    }
+
+    public void setValor(Double valor) {
+        this.valor = valor;
+    }
+
     public EventoFinanceiro getEvento() {
         return evento;
     }

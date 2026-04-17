@@ -1,8 +1,7 @@
 package controle.api.back_end.service;
 
-import controle.api.back_end.dto.configuracoes.ConfiguracaoEditDTO;
-import controle.api.back_end.dto.configuracoes.ConfiguracoesCreateDTO;
-import controle.api.back_end.dto.configuracoes.PeriodoTempoRequestDto;
+import controle.api.back_end.dto.configuracoes.in.ConfiguracaoEditDTO;
+import controle.api.back_end.dto.configuracoes.in.PeriodoTempoRequestDto;
 import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.categoria.CategoriaUsuario;

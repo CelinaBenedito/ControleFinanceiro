@@ -1,8 +1,11 @@
 package controle.api.back_end.dto.configuracoes.mapper;
 
-import controle.api.back_end.dto.categoria.CategoriaUsuarioResponseDTO;
-import controle.api.back_end.dto.configuracoes.*;
-import controle.api.back_end.model.categoria.CategoriaUsuario;
+import controle.api.back_end.dto.configuracoes.in.ConfiguracaoEditDTO;
+import controle.api.back_end.dto.configuracoes.in.ConfiguracoesCreateDTO;
+import controle.api.back_end.dto.configuracoes.out.ConfiguracaoUsuarioResponseDTO;
+import controle.api.back_end.dto.configuracoes.out.ConfiguracoesResponsesDTO;
+import controle.api.back_end.dto.configuracoes.out.LimitePorCategoriaResponseDto;
+import controle.api.back_end.dto.configuracoes.out.LimitePorInstituicaoResponseDto;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.configuracoes.LimitePorInstituicao;

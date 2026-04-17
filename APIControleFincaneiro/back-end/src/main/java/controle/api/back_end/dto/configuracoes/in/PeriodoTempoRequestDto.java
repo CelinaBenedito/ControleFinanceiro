@@ -1,4 +1,4 @@
-package controle.api.back_end.dto.configuracoes;
+package controle.api.back_end.dto.configuracoes.in;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;

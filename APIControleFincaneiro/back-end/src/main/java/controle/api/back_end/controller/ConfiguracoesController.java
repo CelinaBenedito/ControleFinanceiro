@@ -1,7 +1,9 @@
 package controle.api.back_end.controller;
 
-import controle.api.back_end.dto.configuracoes.*;
+import controle.api.back_end.dto.configuracoes.in.*;
 import controle.api.back_end.dto.configuracoes.mapper.ConfiguracoesMapper;
+import controle.api.back_end.dto.configuracoes.out.ConfiguracaoUsuarioResponseDTO;
+import controle.api.back_end.dto.configuracoes.out.ConfiguracoesResponsesDTO;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;

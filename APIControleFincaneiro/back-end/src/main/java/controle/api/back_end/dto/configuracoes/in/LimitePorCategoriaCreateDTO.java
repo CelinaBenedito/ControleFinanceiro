@@ -1,4 +1,4 @@
-package controle.api.back_end.dto.configuracoes;
+package controle.api.back_end.dto.configuracoes.in;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

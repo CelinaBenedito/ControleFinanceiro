@@ -1,6 +1,4 @@
-package controle.api.back_end.dto.configuracoes;
-
-import controle.api.back_end.model.usuario.UsuarioSexo;
+package controle.api.back_end.dto.configuracoes.out;
 
 import java.time.LocalDate;
 import java.util.List;

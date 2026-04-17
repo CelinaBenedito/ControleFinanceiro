@@ -1,4 +1,4 @@
-package controle.api.back_end.dto.configuracoes;
+package controle.api.back_end.dto.configuracoes.out;
 
 import java.time.LocalDate;
 import java.util.UUID;

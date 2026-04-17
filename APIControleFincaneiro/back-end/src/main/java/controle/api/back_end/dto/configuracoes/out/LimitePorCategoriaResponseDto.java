@@ -1,15 +1,15 @@
-package controle.api.back_end.dto.configuracoes;
+package controle.api.back_end.dto.configuracoes.out;
 
 import java.util.UUID;
 
-public class LimitePorInstituicaoResponseDto {
+public class LimitePorCategoriaResponseDto {
     private UUID id;
-    private InstituicaoDTO instituicao;
+    private CategoriaDTO categoria;
     private Double limiteDesejado;
 
-    public static class InstituicaoDTO{
+    public static class CategoriaDTO{
         private Integer id;
-        private String nome;
+        private String titulo;
 
         public Integer getId() {
             return id;
@@ -19,12 +19,12 @@ public class LimitePorInstituicaoResponseDto {
             this.id = id;
         }
 
-        public String getNome() {
-            return nome;
+        public String getTitulo() {
+            return titulo;
         }
 
-        public void setNome(String nome) {
-            this.nome = nome;
+        public void setTitulo(String titulo) {
+            this.titulo = titulo;
         }
     }
 
@@ -36,12 +36,12 @@ public class LimitePorInstituicaoResponseDto {
         this.id = id;
     }
 
-    public InstituicaoDTO getInstituicao() {
-        return instituicao;
+    public CategoriaDTO getCategoria() {
+        return categoria;
     }
 
-    public void setInstituicao(InstituicaoDTO instituicao) {
-        this.instituicao = instituicao;
+    public void setCategoria(CategoriaDTO categoria) {
+        this.categoria = categoria;
     }
 
     public Double getLimiteDesejado() {
