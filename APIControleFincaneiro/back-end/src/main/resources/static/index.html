@@ -30,26 +30,30 @@
         const lista = document.getElementById("listaUsuarios");
         const btnAdd = lista.querySelector(".addUsuario");
 
-        perfis.forEach(function (perfil) {
+        perfis.forEach(function (perfil, index) {
             const card = document.createElement("div");
             card.className = "usuario-card";
+            card.dataset.index = index;
             card.innerHTML = `
-                <a href="dashboard.html" onclick="localStorage.setItem('usuarioLogado', JSON.stringify(${JSON.stringify(perfil)}))">
-                    <div class="usuario">
-                        ${perfil.imagem
-                            ? `<img src="${perfil.imagem}" alt="${perfil.nome}">`
-                            : `<i class="bx bx-user"></i>`
-                        }
-                    </div>
-                    <span>${perfil.nome}</span>
-                </a>
+                <div class="usuario">
+                    ${ perfil.imagem
+                        ? '<img src="' + perfil.imagem + '" alt="' + perfil.nome + '">'
+                        : '<i class="bx bx-user"></i>'
+                    }
+                </div>
+                <span>${perfil.nome}</span>
             `;
+            card.style.cursor = "pointer";
+            card.addEventListener("click", function () {
+                localStorage.setItem("usuarioLogado", JSON.stringify(perfil));
+                window.location.href = "dashboard.html";
+            });
             lista.insertBefore(card, btnAdd);
         });
 
         if (perfis.length === 0) {
             const aviso = document.createElement("p");
-            aviso.textContent = "Nenhum perfil salvo. Faça login ou cadastre-se.";
+            aviso.textContent = "Nenhum perfil salvo. Fa\u00e7a login ou cadastre-se.";
             aviso.style.cssText = "color: var(--text-muted, #888); font-size: 0.9rem; margin-bottom: 1rem;";
             lista.insertBefore(aviso, btnAdd);
         }

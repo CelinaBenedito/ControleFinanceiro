@@ -29,8 +29,14 @@
     window.MainAPI = {
         request,
         get,
-        getTipos() {
-            return get("/categorias");
+        getTipos(userId) {
+            return request(`/categorias/usuario/${userId}`, { method: "GET" })
+                .then(res => {
+                    if (res.status === 204) {
+                        return [];
+                    }
+                    return res.json();
+                });
         },
         getInstituicoes() {
             return get("/instituicoes");
@@ -41,8 +47,8 @@
         atualizarSaldo(payload) {
             return postJson("/registros/atualizarSaldo", payload);
         },
-        adicionarTipo(payload) {
-            return postJson("/categorias", payload);
+        adicionarTipo(payload, userId) {
+            return postJson(`/categorias/usuario/${userId}`, { titulo: payload.titulo });
         },
         buscarRegistrosPorData(dataSelecionada) {
             return get(`/registros/buscarData/${dataSelecionada}`);
