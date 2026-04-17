@@ -1002,13 +1002,18 @@ body.dark-mode .card-formulario .campo label {
 
 .user-widget:focus,
 .user-widget:hover,
-.user-widget:active,
-.user-widget:focus-visible {
+.user-widget:active {
     outline: none !important;
     border: none !important;
     box-shadow: none !important;
 }
 
+.user-widget:focus-visible {
+    outline: 2px solid #367373 !important;
+    outline-offset: 3px;
+    border: none !important;
+    box-shadow: 0 0 0 4px rgba(54, 115, 115, 0.2) !important;
+}
 .uw-info {
     display: flex;
     flex-direction: column;
