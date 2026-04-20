@@ -4,6 +4,7 @@
     const userId = usuarioLogado?.id;
 
     let cfgId = null;
+    let cfgData = null;   // armazena config completa carregada do servidor
     let instituicoes = [];
     let categorias = [];
 
@@ -44,10 +45,16 @@
             if (!res.ok) return;
             const cfg = await res.json();
             cfgId = cfg.id;
+            cfgData = cfg;
 
             const sel = document.getElementById("mesFiscal");
             if (sel && cfg.inicioMesFiscal != null) {
                 sel.value = String(cfg.inicioMesFiscal);
+            }
+
+            const limiteInput = document.getElementById("limiteMensal");
+            if (limiteInput && cfg.limiteDesejadoMensal != null) {
+                limiteInput.value = cfg.limiteDesejadoMensal;
             }
 
             renderLimites(cfg.limiteInstituicao || [], cfg.limitePorCategoria || []);
@@ -87,22 +94,27 @@
             return;
         }
         const mes = parseInt(sel.value, 10);
+        const limiteInput = document.getElementById("limiteMensal");
+        const limiteMensal = limiteInput?.value ? parseFloat(limiteInput.value) : cfgData?.limiteDesejadoMensal;
         try {
             if (cfgId) {
-                await putJson(`${API}/configuracoes/edit/${cfgId}`, { inicioMesFiscal: mes });
+                const payload = { inicioMesFiscal: mes };
+                if (limiteMensal != null && !isNaN(limiteMensal)) payload.limiteDesejadoMensal = limiteMensal;
+                const res = await putJson(`${API}/configuracoes/edit/${cfgId}`, payload);
+                if (!res.ok) { alert(`Erro ao salvar (HTTP ${res.status}).`); return; }
             } else {
-                const res = await postJson(`${API}/configuracoes`, {
-                    fkUsuario: userId,
-                    inicioMesFiscal: mes
-                });
+                const payload = { fkUsuario: userId, inicioMesFiscal: mes };
+                if (limiteMensal != null && !isNaN(limiteMensal)) payload.limiteDesejadoMensal = limiteMensal;
+                const res = await postJson(`${API}/configuracoes`, payload);
                 if (res.ok) {
                     const cfg = await res.json();
                     cfgId = cfg.id;
                 }
             }
-            alert("Mês fiscal salvo!");
+            await carregarConfig();
+            alert("Configurações salvas!");
         } catch (e) {
-            alert("Erro ao salvar mês fiscal.");
+            alert("Erro ao salvar configurações.");
             console.error(e);
         }
     };
@@ -125,17 +137,21 @@
             return;
         }
 
+        // Preserva valores atuais para evitar sobrescrita com null no backend
         const payload = {};
+        if (cfgData?.inicioMesFiscal != null) payload.inicioMesFiscal = cfgData.inicioMesFiscal;
+        if (cfgData?.limiteDesejadoMensal != null) payload.limiteDesejadoMensal = cfgData.limiteDesejadoMensal;
         if (instId) payload.limitesInstituicao = [{ instituicaoId: parseInt(instId), valor }];
         if (catId) payload.limitesCategoria = [{ categoriaId: parseInt(catId), valor }];
 
         try {
             const res = await putJson(`${API}/configuracoes/edit/${cfgId}`, payload);
             if (res.ok) {
-                alert("Limite salvo!");
                 await carregarConfig();
+                alert("Limite salvo!");
             } else {
-                alert("Erro ao salvar limite.");
+                const body = await res.json().catch(() => ({}));
+                alert(`Erro ao salvar limite (HTTP ${res.status}): ${body.message || ""}`);
             }
         } catch (e) {
             alert("Erro ao salvar limite.");
@@ -150,6 +166,7 @@
             instituicoes = res.status === 204 ? [] : (res.ok ? await res.json() : []);
             renderInstituicoes();
             preencherSelectInstituicoes();
+            await preencherSelectNovaInstituicao();
         } catch (e) {
             console.error("Erro ao carregar instituições:", e);
         }
@@ -216,15 +233,13 @@
     }
 
     window.adicionarInstituicao = async function () {
-        const input = document.getElementById("ipt_nova_instituicao");
-        const nome = input?.value?.trim();
-        if (!nome) { alert("Informe o nome da instituição."); return; }
+        const sel = document.getElementById("sel_nova_instituicao");
+        const instId = sel?.value;
+        if (!instId) { alert("Selecione uma instituição."); return; }
         try {
-            const resCreate = await postJson(`${API}/instituicoes`, { nome });
-            if (!resCreate.ok) { alert("Erro ao criar instituição."); return; }
-            const nova = await resCreate.json();
-            await fetch(`${API}/instituicoes/${nova.id}/usuarios/${userId}`, { method: "POST" });
-            input.value = "";
+            const res = await fetch(`${API}/instituicoes/${instId}/usuarios/${userId}`, { method: "POST" });
+            if (!res.ok) { alert(`Erro ao adicionar instituição (HTTP ${res.status}).`); return; }
+            sel.value = "";
             await carregarInstituicoes();
         } catch (e) {
             alert("Erro ao adicionar instituição.");
@@ -232,16 +247,28 @@
         }
     };
 
-    window.removerInstituicao = async function (instId) {
-        if (!confirm("Remover esta instituição do seu perfil?")) return;
+    async function preencherSelectNovaInstituicao() {
+        const sel = document.getElementById("sel_nova_instituicao");
+        if (!sel) return;
         try {
-            await fetch(`${API}/instituicoes/${instId}/usuarios/${userId}`, { method: "PATCH" });
-            await carregarInstituicoes();
+            const res = await fetch(`${API}/instituicoes`);
+            if (!res.ok) return;
+            const todas = await res.json();
+            const vinculadasIds = new Set(instituicoes.map(i => i.id));
+            const disponiveis = todas.filter(i => !vinculadasIds.has(i.id));
+            sel.innerHTML = `<option value="" disabled selected></option>`;
+            disponiveis.forEach(inst => {
+                const opt = document.createElement("option");
+                opt.value = inst.id;
+                opt.textContent = inst.nome;
+                sel.appendChild(opt);
+            });
         } catch (e) {
-            alert("Erro ao remover instituição.");
-            console.error(e);
+            console.error("Erro ao carregar instituições disponíveis:", e);
         }
-    };
+    }
+
+
 
     // ── CATEGORIAS ────────────────────────────────────────────────
     async function carregarCategorias() {

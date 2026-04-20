@@ -415,6 +415,10 @@
                             </select>
                             <label for="mesFiscal">Início do mês fiscal</label>
                         </div>
+                        <div class="cfg-field" style="max-width:380px;">
+                            <input type="number" id="limiteMensal" placeholder=" " step="0.01" min="0">
+                            <label for="limiteMensal">Limite mensal total (R$)</label>
+                        </div>
                     </div>
 
                     <button class="cfg-btn" onclick="salvarMesFiscal()">Salvar</button>
@@ -489,7 +493,9 @@
 
                     <div class="cfg-row" style="align-items:flex-end;">
                         <div class="cfg-field" style="flex:1;max-width:380px;">
-                            <input type="text" id="ipt_nova_instituicao" placeholder=" ">
+                            <select id="sel_nova_instituicao" required>
+                                <option value="" disabled selected></option>
+                            </select>
                             <label>Nova instituição</label>
                         </div>
                         <button class="cfg-btn" onclick="adicionarInstituicao()">Adicionar instituição</button>
