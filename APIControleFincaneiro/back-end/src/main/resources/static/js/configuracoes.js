@@ -160,16 +160,45 @@
         if (!tbody) return;
         tbody.innerHTML = "";
         if (instituicoes.length === 0) {
-            tbody.innerHTML = `<tr class="cfg-table-empty"><td colspan="3" style="padding:20px;">Nenhuma instituição cadastrada.</td></tr>`;
+            const tr = document.createElement("tr");
+            tr.className = "cfg-table-empty";
+            const td = document.createElement("td");
+            td.colSpan = 3;
+            td.style.padding = "20px";
+            td.textContent = "Nenhuma instituição cadastrada.";
+            tr.appendChild(td);
+            tbody.appendChild(tr);
             return;
         }
         instituicoes.forEach(inst => {
             const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>${inst.nome}</td>
-                <td>-</td>
-                <td><button class="cfg-btn danger" onclick="removerInstituicao(${inst.id})">Remover</button></td>
-            `;
+
+            const tdNome = document.createElement("td");
+            tdNome.textContent = inst.nome;
+            tr.appendChild(tdNome);
+
+            const tdMod = document.createElement("td");
+            tdMod.textContent = "-";
+            tr.appendChild(tdMod);
+
+            const tdAcoes = document.createElement("td");
+            const btn = document.createElement("button");
+            btn.className = "cfg-btn danger";
+            btn.textContent = "Remover";
+            btn.addEventListener("click", async () => {
+                if (!confirm("Remover esta instituição do seu perfil?")) return;
+                try {
+                    const res = await fetch(`${API}/instituicoes/${inst.id}/usuarios/${userId}`, { method: "PATCH" });
+                    if (!res.ok) { alert(`Erro ao remover instituição (HTTP ${res.status}).`); return; }
+                    await carregarInstituicoes();
+                } catch (e) {
+                    alert("Erro ao remover instituição.");
+                    console.error(e);
+                }
+            });
+            tdAcoes.appendChild(btn);
+            tr.appendChild(tdAcoes);
+
             tbody.appendChild(tr);
         });
     }
@@ -231,16 +260,45 @@
         if (!tbody) return;
         tbody.innerHTML = "";
         if (categorias.length === 0) {
-            tbody.innerHTML = `<tr class="cfg-table-empty"><td colspan="3" style="padding:20px;">Nenhuma categoria cadastrada.</td></tr>`;
+            const tr = document.createElement("tr");
+            tr.className = "cfg-table-empty";
+            const td = document.createElement("td");
+            td.colSpan = 3;
+            td.style.padding = "20px";
+            td.textContent = "Nenhuma categoria cadastrada.";
+            tr.appendChild(td);
+            tbody.appendChild(tr);
             return;
         }
         categorias.forEach(cat => {
             const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>${cat.categoria.titulo}</td>
-                <td>-</td>
-                <td><button class="cfg-btn danger" onclick="removerCategoria(${cat.categoria.id})">Remover</button></td>
-            `;
+
+            const tdNome = document.createElement("td");
+            tdNome.textContent = cat.categoria.titulo;
+            tr.appendChild(tdNome);
+
+            const tdMod = document.createElement("td");
+            tdMod.textContent = "-";
+            tr.appendChild(tdMod);
+
+            const tdAcoes = document.createElement("td");
+            const btn = document.createElement("button");
+            btn.className = "cfg-btn danger";
+            btn.textContent = "Remover";
+            btn.addEventListener("click", async () => {
+                if (!confirm("Remover esta categoria do seu perfil?")) return;
+                try {
+                    const res = await fetch(`${API}/categorias/${cat.categoria.id}/usuarios/${userId}`, { method: "PATCH" });
+                    if (!res.ok) { alert(`Erro ao remover categoria (HTTP ${res.status}).`); return; }
+                    await carregarCategorias();
+                } catch (e) {
+                    alert("Erro ao remover categoria.");
+                    console.error(e);
+                }
+            });
+            tdAcoes.appendChild(btn);
+            tr.appendChild(tdAcoes);
+
             tbody.appendChild(tr);
         });
     }
@@ -294,5 +352,9 @@
         alert("Importação de dados ainda não disponível.");
     };
 
-    document.addEventListener("DOMContentLoaded", init);
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+    } else {
+        init();
+    }
 })();
