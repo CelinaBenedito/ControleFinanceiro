@@ -53,6 +53,7 @@
 
         .ar-tab.ativo {
             background: #FAFFFF;
+            color: #004C58;
             z-index: 1;
         }
 
@@ -69,6 +70,12 @@
 
         body.dark-mode .ar-tab:not(.ativo) {
             background: #0a0f1e;
+            color: #5bb3c4;
+        }
+
+        body.dark-mode .ar-tab.ativo {
+            background: #0f172a;
+            color: #7dd3fc;
         }
 
         /* ── Main form card ── */
@@ -115,66 +122,97 @@
             gap: 14px;
         }
 
-        /* Input fields (rounded pill style from model) */
-        .ar-field {
+        /* Field wrapper — floating label (espelha .campo do Estilos.css) */
+        .ar-field-wrap {
+            position: relative;
+            margin: 4px 0;
+        }
+
+        /* Label repousa no centro do input (top 21px = (58px - ~16px) / 2) */
+        .ar-field-wrap label {
+            position: absolute;
+            left: 15px;
+            top: 21px;
+            font-size: 15px;
+            color: var(--cor-texto-secundario);
+            background-color: #FAFFFF;
+            padding: 0 4px;
+            pointer-events: none;
+            transition: 0.2s ease-in-out;
+            z-index: 1;
+        }
+
+        body.dark-mode .ar-field-wrap label {
+            background-color: #0f172a;
+        }
+
+        .ar-field-wrap input {
             height: 58px;
-            border-radius: 30px;
-            outline: 2px solid #367373;
-            outline-offset: -2px;
-            padding: 0 20px;
-            font-size: 1rem;
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
-            color: #0E5454;
-            background: transparent;
-            border: none;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .ar-field:focus {
-            outline-color: #004C58;
-            outline-width: 2px;
-        }
-
-        body.dark-mode .ar-field {
-            outline-color: #7dd3fc;
-            color: #7dd3fc;
-        }
-
-        /* Select fields (chevron style from model) */
-        .ar-select {
-            height: 58px;
-            border-radius: 15px;
+            border-radius: 10px;
             border: 2px solid #367373;
-            padding: 0 20px;
+            padding: 0 18px;
             font-size: 1rem;
             font-family: 'Inter', sans-serif;
             font-weight: 600;
             color: #367373;
             background: transparent;
-            appearance: none;
             width: 100%;
             box-sizing: border-box;
-            cursor: pointer;
+            transition: border-color 0.2s ease-in-out;
         }
 
-        .ar-select:focus {
+        .ar-field-wrap select {
+            height: 58px;
+            border-radius: 10px;
+            border: 2px solid #367373;
+            padding: 0 18px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            color: #367373;
+            background: transparent;
+            width: 100%;
+            box-sizing: border-box;
+            appearance: none;
+            cursor: pointer;
+            transition: border-color 0.2s ease-in-out;
+        }
+
+        .ar-field-wrap input:focus,
+        .ar-field-wrap select:focus {
             outline: none;
             border-color: #004C58;
         }
 
-        body.dark-mode .ar-select {
+        body.dark-mode .ar-field-wrap input,
+        body.dark-mode .ar-field-wrap select {
             border-color: #7dd3fc;
             color: #7dd3fc;
         }
 
-        /* Wrapper for select with label above */
-        .ar-select-wrap {
-            position: relative;
+        /* Inputs: label flutua para top:-1px (assenta na borda) ao focar ou ter valor */
+        .ar-field-wrap input:focus + label,
+        .ar-field-wrap input:not(:placeholder-shown) + label {
+            top: -1px;
+            font-size: 12px;
+            color: #367373;
         }
 
-        .ar-select-wrap::after {
+        /* Selects: label sempre flutua — select exibe o valor selecionado */
+        .ar-field-wrap select + label {
+            top: -1px;
+            font-size: 12px;
+            color: #367373;
+        }
+
+        body.dark-mode .ar-field-wrap input:focus + label,
+        body.dark-mode .ar-field-wrap input:not(:placeholder-shown) + label,
+        body.dark-mode .ar-field-wrap select + label {
+            color: #7dd3fc;
+        }
+
+        /* Seta para selects */
+        .ar-field-wrap:has(select)::after {
             content: "▾";
             position: absolute;
             right: 16px;
@@ -183,9 +221,10 @@
             color: #367373;
             pointer-events: none;
             font-size: 0.9rem;
+            z-index: 1;
         }
 
-        body.dark-mode .ar-select-wrap::after {
+        body.dark-mode .ar-field-wrap:has(select)::after {
             color: #7dd3fc;
         }
 
@@ -229,6 +268,14 @@
 
         .ar-btn:hover {
             background: #004C58;
+        }
+
+        /* Fix: .containerGeral button (especificidade 11) sobrescreve .ar-btn (10).
+           Esta regra tem especificidade 21 e restaura padding/margin corretos. */
+        .ar-page button.ar-btn {
+            padding: 0 24px;
+            margin: 0;
+            height: 52px;
         }
 
         .ar-btn.secondary {
@@ -418,19 +465,40 @@
                 <!-- Adicionar Gasto form -->
                 <div class="ar-form-col" id="addGasto">
 
-                    <input class="ar-field" type="text" id="ipt_nome" placeholder="Título..." required>
-
-                    <div class="ar-select-wrap">
-                        <select class="ar-select" id="select_tipo"></select>
+                    <div class="ar-field-wrap">
+                        <input type="text" id="ipt_nome" placeholder=" " required>
+                        <label for="ipt_nome">Título</label>
                     </div>
 
-                    <div class="ar-select-wrap">
-                        <select class="ar-select" id="select_instituicao"></select>
+                    <div class="ar-field-wrap">
+                        <select id="select_tipo"></select>
+                        <label for="select_tipo">Tipo do Evento</label>
                     </div>
 
-                    <input class="ar-field" type="number" id="ipt_valor" placeholder="Valor..." required>
+                    <div class="ar-field-wrap">
+                        <select id="select_instituicao"></select>
+                        <label for="select_instituicao">Instituição</label>
+                    </div>
 
-                    <input class="ar-field" type="text" id="ipt_desc" placeholder="Descrição...">
+                    <div class="ar-field-wrap">
+                        <select id="select_movimento">
+                            <option value="#">Movimento</option>
+                            <option value="Débito">Débito</option>
+                            <option value="Crédito">Crédito</option>
+                            <option value="Transferência">Transferência</option>
+                        </select>
+                        <label for="select_movimento">Movimento</label>
+                    </div>
+
+                    <div class="ar-field-wrap">
+                        <input type="number" id="ipt_valor" placeholder=" " required>
+                        <label for="ipt_valor">Valor</label>
+                    </div>
+
+                    <div class="ar-field-wrap">
+                        <input type="text" id="ipt_desc" placeholder=" ">
+                        <label for="ipt_desc">Descrição</label>
+                    </div>
 
                     <!-- Date picker -->
                     <div>
@@ -440,26 +508,6 @@
                             <button class="ar-btn secondary" id="calendario">
                                 <i class='bx bx-calendar' style="margin-right:6px;"></i> Escolher data
                             </button>
-                        </div>
-
-                        <div class="modal" id="modal">
-                            <div class="conteudoModal">
-                                <span class="fechar" id="fechar">&times;</span>
-                                <div class="topo-calendario">
-                                    <button id="btnAnterior">◀</button>
-                                    <h2 id="mesAno"></h2>
-                                    <button id="btnProximo">▶</button>
-                                </div>
-                                <div class="calendario">
-                                    <div class="diasSemana">
-                                        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span>
-                                        <span>Qui</span><span>Sex</span><span>Sáb</span>
-                                    </div>
-                                    <div class="dias" id="dias"></div>
-                                </div>
-                                <div class="gastos" id="gastosDia"></div>
-                                <button id="confirmar" disabled>Confirmar dia</button>
-                            </div>
                         </div>
                     </div>
 
@@ -483,35 +531,53 @@
             <!-- Card: Múltiplos Registros (hidden by default) -->
             <div class="ar-card" id="multiplosRegistros" style="display:none; flex-direction:column; gap:24px;">
 
-                <!-- Date row -->
-                <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
-                    <input class="ar-field" type="text" id="multi_data" placeholder="DD/MM/AAAA" maxlength="10" style="max-width:200px;">
-                    <span id="multi_data_display" style="font-size:1.6rem; font-weight:400; color:#367373; font-family:'Inter',sans-serif;"></span>
+                <!-- Date picker -->
+                <div>
+                    <p class="label-data">Quando foi?</p>
+                    <div class="ar-date-row" style="margin-top:8px;">
+                        <p class="ar-date-display hidden" id="multi_data_label"></p>
+                        <button class="ar-btn secondary" onclick="document.getElementById('modal').style.display='flex'">
+                            <i class='bx bx-calendar' style="margin-right:6px;"></i> Escolher data
+                        </button>
+                    </div>
+                    <input type="hidden" id="multi_data">
                 </div>
 
                 <!-- Form fields row -->
                 <div style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
-                    <input class="ar-field" type="text" id="ipt_multi_nome" placeholder="Título..." style="flex:1; min-width:160px;">
-                    <div class="ar-select-wrap" style="flex:1; min-width:160px;">
-                        <select class="ar-select" id="multi_select_tipo">
+                    <div class="ar-field-wrap" style="flex:1; min-width:160px;">
+                        <input type="text" id="ipt_multi_nome" placeholder=" ">
+                        <label for="ipt_multi_nome">Título</label>
+                    </div>
+                    <div class="ar-field-wrap" style="flex:1; min-width:160px;">
+                        <select id="multi_select_tipo">
                             <option value="#">Tipo do Evento</option>
                         </select>
+                        <label for="multi_select_tipo">Tipo do Evento</label>
                     </div>
-                    <div class="ar-select-wrap" style="flex:1; min-width:160px;">
-                        <select class="ar-select" id="multi_select_instituicao">
+                    <div class="ar-field-wrap" style="flex:1; min-width:160px;">
+                        <select id="multi_select_instituicao">
                             <option value="#">Instituição</option>
                         </select>
+                        <label for="multi_select_instituicao">Instituição</label>
                     </div>
-                    <div class="ar-select-wrap" style="flex:1; min-width:160px;">
-                        <select class="ar-select" id="multi_select_movimento">
+                    <div class="ar-field-wrap" style="flex:1; min-width:160px;">
+                        <select id="multi_select_movimento">
                             <option value="#">Movimento</option>
                             <option value="Débito">Débito</option>
                             <option value="Crédito">Crédito</option>
                             <option value="Transferência">Transferência</option>
                         </select>
+                        <label for="multi_select_movimento">Movimento</label>
                     </div>
-                    <input class="ar-field" type="number" id="ipt_multi_valor" placeholder="Valor..." style="flex:1; min-width:140px;">
-                    <input class="ar-field" type="text" id="ipt_multi_desc" placeholder="Descrição..." style="flex:2; min-width:200px;">
+                    <div class="ar-field-wrap" style="flex:1; min-width:140px;">
+                        <input type="number" id="ipt_multi_valor" placeholder=" ">
+                        <label for="ipt_multi_valor">Valor</label>
+                    </div>
+                    <div class="ar-field-wrap" style="flex:2; min-width:200px;">
+                        <input type="text" id="ipt_multi_desc" placeholder=" ">
+                        <label for="ipt_multi_desc">Descrição</label>
+                    </div>
                     <button class="ar-btn" onclick="adicionarAoLote()" style="flex-shrink:0;">Adicionar</button>
                 </div>
 
@@ -539,6 +605,27 @@
                 <button class="ar-btn" onclick="salvarLote()" style="align-self:flex-start;">Salvar</button>
 
             </div><!-- /multiplosRegistros -->
+
+            <!-- Calendar modal (shared by both tabs) -->
+            <div class="modal" id="modal">
+                <div class="conteudoModal">
+                    <span class="fechar" id="fechar">&times;</span>
+                    <div class="topo-calendario">
+                        <button id="btnAnterior">◀</button>
+                        <h2 id="mesAno"></h2>
+                        <button id="btnProximo">▶</button>
+                    </div>
+                    <div class="calendario">
+                        <div class="diasSemana">
+                            <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span>
+                            <span>Qui</span><span>Sex</span><span>Sáb</span>
+                        </div>
+                        <div class="dias" id="dias"></div>
+                    </div>
+                    <div class="gastos" id="gastosDia"></div>
+                    <button id="confirmar" disabled>Confirmar dia</button>
+                </div>
+            </div>
 
             <div id="modalAddValor" class="modal">
                 <div class="conteudoModal">
