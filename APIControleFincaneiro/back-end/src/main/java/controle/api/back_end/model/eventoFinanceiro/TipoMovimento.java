@@ -5,5 +5,6 @@ public enum TipoMovimento {
     Credito,
     Dinheiro,
     Pix,
-    Boleto
+    Boleto,
+    Voucher
 }

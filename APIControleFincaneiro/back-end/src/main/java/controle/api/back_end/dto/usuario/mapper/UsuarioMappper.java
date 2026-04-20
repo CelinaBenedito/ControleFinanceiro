@@ -22,6 +22,7 @@ public class UsuarioMappper {
         dto.setSobrenome(usuario.getSobrenome());
         dto.setSexo(usuario.getSexo());
         dto.setImagem(usuario.getImagem());
+        dto.setEmail(usuario.getEmail());
         dto.setDataNascimento(usuario.getDataNascimento());
 
         return dto;

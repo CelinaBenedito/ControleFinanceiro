@@ -68,12 +68,12 @@ public class InstituicaoController {
             @ApiResponse(responseCode = "200", description = "Busca feita com sucesso e a dados para retornar"),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
     })
-    public ResponseEntity<List<InstituicaoResponseDTO>> getInstituicoesByUserId(@PathVariable UUID user_id){
+    public ResponseEntity<List<InstituicaoUsuarioResponseDTO>> getInstituicoesByUserId(@PathVariable UUID user_id){
      List<InstituicaoUsuario> instituicoes = instituicaoService.getInstituicoesByUserId(user_id);
      if (instituicoes.isEmpty()){
          return ResponseEntity.status(204).build();
      }
-     List<InstituicaoResponseDTO> response = InstituicaoMapper.instituicaoUsuarioToDto(instituicoes);
+     List<InstituicaoUsuarioResponseDTO> response = InstituicaoMapper.instituicaoUsuarioResponseDTO(instituicoes);
      return ResponseEntity.status(200).body(response);
     }
 

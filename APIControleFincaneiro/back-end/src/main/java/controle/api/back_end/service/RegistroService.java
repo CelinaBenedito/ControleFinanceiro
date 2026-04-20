@@ -1,19 +1,23 @@
 package controle.api.back_end.service;
 
+import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
+import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
-import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
-import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
-import controle.api.back_end.model.eventoFinanceiro.GastoDetalhe;
+import controle.api.back_end.model.eventoFinanceiro.*;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.*;
+import controle.api.back_end.specifications.EventoFinanceiroSpecifications;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class RegistroService {
@@ -41,16 +45,16 @@ public class RegistroService {
     public EventoFinanceiro createEventoFinanceiro(EventoFinanceiro entity) {
 
         Usuario user = usuarioRepository
-                .findById(entity.getFkUsuario().getId())
+                .findById(entity.getUsuario().getId())
                         .orElseThrow(() ->
                                 new EntidadeNaoEncontradaException(
                                         "Usuário de id: %s não encontrado."
-                                        .formatted(entity.getFkUsuario().getId()
+                                        .formatted(entity.getUsuario().getId()
                                         )
                                 )
                         );
 
-        entity.setFkUsuario(user);
+        entity.setUsuario(user);
         entity.setDataRegistro(LocalDate.now());
         return eventoFinanceiroRepository.save(entity);
     }
@@ -72,7 +76,7 @@ public class RegistroService {
                );
 
        entity.setInstituicaoUsuario(instituicaoUsuario);
-       entity.setEvento(eventoFinanceiro);
+       entity.setEventoFinanceiro(eventoFinanceiro);
        return eventoInstituicaoRepository.save(entity);
     }
 
@@ -103,7 +107,7 @@ public class RegistroService {
             );
         }
 
-        return eventoFinanceiroRepository.getEventoFinanceirosByFkUsuario_Id(userId);
+        return eventoFinanceiroRepository.getEventoFinanceirosByUsuario_id(userId);
     }
 
     public List<EventoInstituicao> getEventosInstituicoesByEventoFinanceiro(
@@ -116,14 +120,12 @@ public class RegistroService {
                   )
           );
         }
-        List<EventoInstituicao> eventoInstituicaoByEventoId = eventoInstituicaoRepository.
-                findEventoInstituicaoByEvento_Id(evento.getId());
-        if (eventoInstituicaoByEventoId.isEmpty()){
-            throw new EntidadeNaoEncontradaException(
-                    "Não foi encontrado evento instituição associada ao evento financeiro."
-            );
-        }
-        instituicoes.add(eventoInstituicaoByEventoId.getFirst());
+        EventoInstituicao eventoInstituicaoByEventoId = eventoInstituicaoRepository.
+                findEventoInstituicaoByEventoFinanceiro_Id(
+                        evento.getId()
+                );
+
+        instituicoes.add(eventoInstituicaoByEventoId);
     }
     return instituicoes;
     }
@@ -138,12 +140,89 @@ public class RegistroService {
                         )
                 );
             }
-            List<GastoDetalhe> gastoDetalheByEventoFinanceiro = gastoDetalheRepository.findGastoDetalheByEventoFinanceiro(evento);
-            if (gastoDetalheByEventoFinanceiro.isEmpty()){
-                throw new EntidadeNaoEncontradaException("Nenhum detalhe de gasto encontrado");
-            }
-            gastoDetalhes.add(gastoDetalheByEventoFinanceiro.getFirst());
+            GastoDetalhe gastoDetalheByEventoFinanceiro = gastoDetalheRepository.findGastoDetalheByEventoFinanceiro(evento);
+
+            gastoDetalhes.add(gastoDetalheByEventoFinanceiro);
         }
         return gastoDetalhes;
+    }
+
+    public List<RegistroResponseDto> getByFilter(Double valor, TipoMovimento tipoMovimento, Tipo tipo,
+                                                 LocalDate dataEvento, InstituicaoUsuario instituicao,
+                                                 CategoriaUsuario categoria, String descricao, String titulo){
+
+        Specification<EventoFinanceiro> spec = EventoFinanceiroSpecifications.porFiltros(
+                valor, tipo, dataEvento, descricao, tipoMovimento, instituicao, categoria, titulo
+        );
+
+        List<EventoFinanceiro> eventos = eventoFinanceiroRepository.findAll(spec);
+
+        return eventos.stream()
+                .map(e -> RegistrosMapper.toResponse(e, e.getEventoInstituicao(), e.getGastoDetalhe()))
+                .collect(Collectors.toList());
+
+    }
+
+    public EventoFinanceiro editEventoFinanceiro(UUID eventoId, EventoFinanceiro entity) {
+        EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException(
+                                "Evento financeiro de id: %s não encontrado"
+                                        .formatted(eventoId))
+                );
+
+        if(entity.getDataEvento() != financeiro.getDataEvento()){
+            financeiro.setDataEvento(entity.getDataEvento());
+        }
+        if (!Objects.equals(entity.getDescricao(), financeiro.getDescricao())){
+            financeiro.setDescricao(entity.getDescricao());
+        }
+        if (entity.getTipo() != financeiro.getTipo()){
+            financeiro.setTipo(entity.getTipo());
+        }
+        return eventoFinanceiroRepository.save(financeiro);
+    }
+
+    public EventoInstituicao editEventoInstituicao(UUID eventoId, EventoInstituicao entity){
+        EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException(
+                                "Evento financeiro de id: %s não encontrado"
+                                        .formatted(eventoId))
+                );
+
+        EventoInstituicao eventoInstituicao = eventoInstituicaoRepository
+                .findEventoInstituicaoByEventoFinanceiro_Id(eventoId);
+
+        if (entity.getInstituicaoUsuario() != eventoInstituicao.getInstituicaoUsuario()){
+            eventoInstituicao.setInstituicaoUsuario(entity.getInstituicaoUsuario());
+        }
+        if (!Objects.equals(entity.getValor(), eventoInstituicao.getValor())){
+            eventoInstituicao.setValor(entity.getValor());
+        }
+        eventoInstituicao.setEventoFinanceiro(financeiro);
+
+        return eventoInstituicaoRepository.save(eventoInstituicao);
+    }
+
+    public GastoDetalhe editGastoDetalhe(UUID eventoId, GastoDetalhe entity){
+        EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException(
+                                "Evento financeiro de id: %s não encontrado"
+                                        .formatted(eventoId))
+                );
+
+        GastoDetalhe gastoDetalhe = gastoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
+
+        if (entity.getCategoriaUsuario() != gastoDetalhe.getCategoriaUsuario()){
+            gastoDetalhe.setCategoriaUsuario(entity.getCategoriaUsuario());
+        }
+        if (!Objects.equals(entity.getTituloGasto(), gastoDetalhe.getTituloGasto())){
+            gastoDetalhe.setTituloGasto(entity.getTituloGasto());
+        }
+        gastoDetalhe.setEventoFinanceiro(financeiro);
+
+        return gastoDetalheRepository.save(gastoDetalhe);
     }
 }
