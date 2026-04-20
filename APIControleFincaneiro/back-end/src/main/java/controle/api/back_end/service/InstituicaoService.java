@@ -20,6 +20,7 @@ public class InstituicaoService {
     private final UsuarioRepository usuarioRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
 
+
     public InstituicaoService(InstituicaoRepository instituicaoRepository,
                               UsuarioRepository usuarioRepository,
                               InstituicaoUsuarioRepository instituicaoUsuarioRepository) {
@@ -96,5 +97,18 @@ public class InstituicaoService {
         InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findByUsuario_IdAndInstituicao_Id(userId,instituicaoId);
         instituicaoUsuario.setAtivo(false);
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
+    }
+
+    public Double getSaldoByInstituicao(Integer instituicaoUsuarioId) {
+        InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findById(instituicaoUsuarioId)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException(
+                                "Associação de instituição e usuário de id: %d não encontrada."
+                                        .formatted(instituicaoUsuarioId)
+                        )
+                );
+
+        return 0.0;
+
     }
 }

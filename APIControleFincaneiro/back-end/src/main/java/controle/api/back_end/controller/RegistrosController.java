@@ -1,8 +1,5 @@
 package controle.api.back_end.controller;
 
-import controle.api.back_end.dto.registros.in.EventoFinanceiroCreateDto;
-import controle.api.back_end.dto.registros.in.EventoInstituicaoCreateDto;
-import controle.api.back_end.dto.registros.in.GastoDetalheCreateDto;
 import controle.api.back_end.dto.registros.in.RegistroCompletoCreateDto;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
@@ -64,6 +61,8 @@ public class RegistrosController {
         }
         return ResponseEntity.status(200).body(response);
     }
+
+
 
     @GetMapping("/filtro")
     public ResponseEntity<List<RegistroResponseDto>> getByFilter(
@@ -172,3 +171,4 @@ public class RegistrosController {
     }
 
 }
+

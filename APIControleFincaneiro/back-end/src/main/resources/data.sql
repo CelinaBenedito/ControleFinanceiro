@@ -24,33 +24,33 @@ VALUES ('itau'),
         ('Vale Refeição'),
         ('Vale Alimentação');
 
-INSERT INTO instituicao_usuario(usuario_id, instituicao_id)
-VALUES ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58', '13'),
-       ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58','1'),
-       ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58','5'),
-       ('b5135981-72fc-46ee-a6c6-4072495f7afd','2'),
-       ('b5135981-72fc-46ee-a6c6-4072495f7afd','4'),
-       ('b5135981-72fc-46ee-a6c6-4072495f7afd','7'),
-       ('2f1ed17a-c8b6-425b-adb1-b28126be88de','3'),
-       ('2f1ed17a-c8b6-425b-adb1-b28126be88de','6'),
-       ('2f1ed17a-c8b6-425b-adb1-b28126be88de','8'),
-       ('2f1ed17a-c8b6-425b-adb1-b28126be88de','12'),
-       ('8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11','9'),
-       ('8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11','14'),
-       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','1'),
-       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','2'),
-       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','3'),
-       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','4'),
-       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','5'),
-       ('3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33','6'),
-       ('3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33','10'),
-       ('3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33','11'),
-       ('a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44','7'),
-       ('a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44','12'),
-       ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','8'),
-       ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','9'),
-       ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','13'),
-       ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','14');
+INSERT INTO instituicao_usuario(usuario_id, instituicao_id, is_ativo)
+VALUES ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58', '13',true),
+       ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58','1',true),
+       ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58','5',true),
+       ('b5135981-72fc-46ee-a6c6-4072495f7afd','2',true),
+       ('b5135981-72fc-46ee-a6c6-4072495f7afd','4',true),
+       ('b5135981-72fc-46ee-a6c6-4072495f7afd','7',true),
+       ('2f1ed17a-c8b6-425b-adb1-b28126be88de','3',true),
+       ('2f1ed17a-c8b6-425b-adb1-b28126be88de','6',true),
+       ('2f1ed17a-c8b6-425b-adb1-b28126be88de','8',true),
+       ('2f1ed17a-c8b6-425b-adb1-b28126be88de','12',true),
+       ('8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11','9',true),
+       ('8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11','14',true),
+       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','1',true),
+       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','2',true),
+       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','3',true),
+       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','4',true),
+       ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22','5',true),
+       ('3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33','6',true),
+       ('3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33','10',true),
+       ('3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33','11',true),
+       ('a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44','7',true),
+       ('a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44','12',true),
+       ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','8',true),
+       ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','9',true),
+       ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','13',true),
+       ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','14',true);
 
 INSERT INTO categoria(titulo)
 VALUES('Roupas'),
@@ -110,32 +110,32 @@ VALUES
     ('33445567-6789-0389-3453-56789abcdef0', 26, 700.00,'6a7b8c9d-0123-4f56-789a-bcdef1234567');
 
 
-INSERT INTO categoria_usuario ( usuario_id, categoria_id)
+INSERT INTO categoria_usuario ( usuario_id, categoria_id, is_ativo)
 VALUES
-    ( '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 1), -- Marcio - Roupas
-    ( '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 2), -- Marcio - Comida
-    ( '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 6), -- Marcio - Transporte
+    ( '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 1,true), -- Marcio - Roupas
+    ( '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 2,true), -- Marcio - Comida
+    ( '21eb5d2f-3fd8-439e-b647-5cc1f753ae58', 6,true), -- Marcio - Transporte
 
-    ( 'b5135981-72fc-46ee-a6c6-4072495f7afd', 3), -- Jonas - Mercado
-    ( 'b5135981-72fc-46ee-a6c6-4072495f7afd', 5), -- Jonas - Conta de Luz
+    ( 'b5135981-72fc-46ee-a6c6-4072495f7afd', 3,true), -- Jonas - Mercado
+    ( 'b5135981-72fc-46ee-a6c6-4072495f7afd', 5,true), -- Jonas - Conta de Luz
 
-    ( '2f1ed17a-c8b6-425b-adb1-b28126be88de', 2), -- Mariana - Comida
-    ( '2f1ed17a-c8b6-425b-adb1-b28126be88de', 4), -- Mariana - Conta de Água
+    ( '2f1ed17a-c8b6-425b-adb1-b28126be88de', 2,true), -- Mariana - Comida
+    ( '2f1ed17a-c8b6-425b-adb1-b28126be88de', 4,true), -- Mariana - Conta de Água
 
-    ( '8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11', 3), -- Carla - Mercado
-    ('8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11', 6), -- Carla - Transporte
+    ( '8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11', 3,true), -- Carla - Mercado
+    ('8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11', 6,true), -- Carla - Transporte
 
-    ( 'd9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22', 1), -- Felipe - Roupas
-    ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22', 7), -- Felipe - Bilhete Único
+    ( 'd9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22', 1,true), -- Felipe - Roupas
+    ('d9b7e2f4-1a33-4c8d-8e77-2f4c9a7b5c22', 7,true), -- Felipe - Bilhete Único
 
-    ( '3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33', 2), -- Luciana - Comida
-    ('3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33', 4), -- Luciana - Conta de Água
+    ( '3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33', 2,true), -- Luciana - Comida
+    ('3c6f9a8b-7d55-4e2a-9f88-4a7c1b9d6e33', 4,true), -- Luciana - Conta de Água
 
-    ('a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44', 6), -- Rafael - Transporte
-    ( 'a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44', 5), -- Rafael - Conta de Luz
+    ('a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44', 6,true), -- Rafael - Transporte
+    ( 'a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44', 5,true), -- Rafael - Conta de Luz
 
-    ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55', 3), -- Patrícia - Mercado
-    ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55', 1); -- Patrícia - Roupas
+    ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55', 3,true), -- Patrícia - Mercado
+    ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55', 1,true); -- Patrícia - Roupas
 
 
 INSERT INTO limite_por_categoria (id, categoria_usuario_id, limite_desejado,configuracoes_id)

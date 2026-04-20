@@ -30,7 +30,6 @@
         private Integer inicioMesFiscal;
 
         @PastOrPresent
-        @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
         private LocalDate ultimaAtualizacao;
 
         @Positive
