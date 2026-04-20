@@ -62,7 +62,7 @@ public class InstituicaoController {
 
     @GetMapping("/usuarios/{user_id}")
     @Operation(summary = "Buscar instituições pelo id do usuário",
-            description = "Deletar uma instituição por seu id.")
+            description = "Busca uma instituição que está associada a um usuário")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Busca feita com sucesso e não a dados para retornar"),
             @ApiResponse(responseCode = "200", description = "Busca feita com sucesso e a dados para retornar"),
@@ -75,6 +75,20 @@ public class InstituicaoController {
      }
      List<InstituicaoUsuarioResponseDTO> response = InstituicaoMapper.instituicaoUsuarioResponseDTO(instituicoes);
      return ResponseEntity.status(200).body(response);
+    }
+
+    @GetMapping("/{instituicaoUsuario_id}")
+    @Operation(summary = "Buscar o saldo pelo id da instituição",
+            description = "Deletar uma instituição por seu id.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Busca feita com sucesso e não a dados para retornar"),
+            @ApiResponse(responseCode = "200", description = "Busca feita com sucesso e a dados para retornar"),
+            @ApiResponse(responseCode = "404", description = "Dados Inválidos")
+    })
+    public ResponseEntity<Double> getSaldoByInstituição(@PathVariable Integer instituicaoUsuario_id){
+        Double instituicaoUsuario = instituicaoService
+                .getSaldoByInstituicao(instituicaoUsuario_id);
+        return ResponseEntity.status(200).build();
     }
 
     @PostMapping

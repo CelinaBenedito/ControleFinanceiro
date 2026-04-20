@@ -47,7 +47,7 @@ public class CategoriaService {
                             .formatted(userId)
             );
         }
-        return categoriaUsuarioRepository.findAllByUsuario_Id(userId);
+        return categoriaUsuarioRepository.findAllByUsuario_IdAndIsAtivoIsTrue(userId);
     }
 
     public Categoria createCategoria(Categoria entity) {

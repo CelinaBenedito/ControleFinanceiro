@@ -76,29 +76,35 @@ public class ConfiguracoesService {
                                           @Valid ConfiguracaoEditDTO editDTO,
                                           UUID id) {
 
-        Configuracoes user = configuracoesRepository.findById(id)
+        Configuracoes configuracao = configuracoesRepository.findById(id)
                 .orElseThrow(() ->
                                 new EntidadeNaoEncontradaException(
-                                        "Configuração de ID: %d não encontrada."
+                                        "Configuração de Id: %s não encontrada."
                                                 .formatted(id)
                                 )
                 );
 
-        entity.setId(id);
-        entity.setUsuario(user.getUsuario());
+        entity.setId(configuracao.getId());
+        entity.setUsuario(configuracao.getUsuario());
 
         // Limites por categoria
         if (editDTO.getLimitesCategoria() != null) {
             List<LimitePorCategoria> limitesCategoria = new ArrayList<>();
             for (ConfiguracaoEditDTO.LimiteCategoriaEditDTO limiteDTO : editDTO.getLimitesCategoria()) {
-                CategoriaUsuario categoriaUsuario = categoriaUsuarioRepository.findByUsuario_idAndCategoria_id(
-                        user.getId(), limiteDTO.getCategoriaId());
+                CategoriaUsuario categoriaUsuario = categoriaUsuarioRepository
+                        .findByUsuario_idAndCategoria_id(configuracao.getUsuario().getId(), limiteDTO.getCategoriaId());
 
-                LimitePorCategoria limite = new LimitePorCategoria();
-                limite.setCategoriaUsuario(categoriaUsuario);
+                LimitePorCategoria limite = limitePorCategoriaRepository
+                        .findByConfiguracoesAndCategoriaUsuario(configuracao, categoriaUsuario);
+
+                if (limite == null) {
+                    limite = new LimitePorCategoria();
+                    limite.setConfiguracoes(configuracao);
+                    limite.setCategoriaUsuario(categoriaUsuario);
+                }
+
                 limite.setLimiteDesejado(limiteDTO.getValor());
                 LimitePorCategoria save = limitePorCategoriaRepository.save(limite);
-
                 limitesCategoria.add(save);
             }
             entity.setLimitePorCategoria(limitesCategoria);
@@ -108,14 +114,20 @@ public class ConfiguracoesService {
         if (editDTO.getLimitesInstituicao() != null) {
             List<LimitePorInstituicao> limitesInstituicao = new ArrayList<>();
             for (ConfiguracaoEditDTO.LimiteInstituicaoEditDTO limiteDTO : editDTO.getLimitesInstituicao()) {
-                InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findByUsuario_IdAndInstituicao_Id(
-                        user.getId(), limiteDTO.getInstituicaoId());
+                InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository
+                        .findByUsuario_IdAndInstituicao_Id(configuracao.getUsuario().getId(), limiteDTO.getInstituicaoId());
 
-                LimitePorInstituicao limite = new LimitePorInstituicao();
-                limite.setInstitucaoUsuario(instituicaoUsuario);
+                LimitePorInstituicao limite = limitePorInstiuicaoRepository
+                        .findByConfiguracoesAndInstitucaoUsuario(configuracao, instituicaoUsuario);
+
+                if (limite == null) {
+                    limite = new LimitePorInstituicao();
+                    limite.setConfiguracoes(configuracao);
+                    limite.setInstitucaoUsuario(instituicaoUsuario);
+                }
+
                 limite.setLimiteDesejado(limiteDTO.getValor());
                 LimitePorInstituicao save = limitePorInstiuicaoRepository.save(limite);
-
                 limitesInstituicao.add(save);
             }
             entity.setLimitePorInstituicao(limitesInstituicao);

@@ -14,4 +14,6 @@ public interface CategoriaUsuarioRepository extends JpaRepository<CategoriaUsuar
     boolean existsByCategoria_IdOrUsuario_Id(Integer categoriaId, UUID usuarioId);
 
     CategoriaUsuario findByUsuario_idAndCategoria_id(UUID usuarioId, Integer categoriaId);
+
+    List<CategoriaUsuario> findAllByUsuario_IdAndIsAtivoIsTrue(UUID userId);
 }

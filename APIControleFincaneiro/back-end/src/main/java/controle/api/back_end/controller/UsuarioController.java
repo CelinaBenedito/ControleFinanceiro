@@ -1,9 +1,9 @@
 package controle.api.back_end.controller;
 
-import controle.api.back_end.dto.usuario.UsuarioCreateDTO;
-import controle.api.back_end.dto.usuario.UsuarioEditDTO;
-import controle.api.back_end.dto.usuario.UsuarioLoginDTO;
-import controle.api.back_end.dto.usuario.UsuarioResponseDTO;
+import controle.api.back_end.dto.usuario.in.UsuarioCreateDTO;
+import controle.api.back_end.dto.usuario.in.UsuarioEditDTO;
+import controle.api.back_end.dto.usuario.in.UsuarioLoginDTO;
+import controle.api.back_end.dto.usuario.out.UsuarioResponseDTO;
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.service.UsuarioService;
