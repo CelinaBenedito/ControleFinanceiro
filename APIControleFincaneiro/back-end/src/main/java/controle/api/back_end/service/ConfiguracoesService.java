@@ -109,7 +109,7 @@ public class ConfiguracoesService {
             List<LimitePorInstituicao> limitesInstituicao = new ArrayList<>();
             for (ConfiguracaoEditDTO.LimiteInstituicaoEditDTO limiteDTO : editDTO.getLimitesInstituicao()) {
                 InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findByUsuario_IdAndInstituicao_Id(
-                        user.getId(), limiteDTO.getInstituicaoId());
+                        user.getUsuario().getId(), limiteDTO.getInstituicaoId());
 
                 LimitePorInstituicao limite = new LimitePorInstituicao();
                 limite.setInstitucaoUsuario(instituicaoUsuario);

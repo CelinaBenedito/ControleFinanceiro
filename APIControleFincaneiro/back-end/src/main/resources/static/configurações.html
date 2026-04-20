@@ -417,7 +417,7 @@
                         </div>
                     </div>
 
-                    <button class="cfg-btn">Salvar</button>
+                    <button class="cfg-btn" onclick="salvarMesFiscal()">Salvar</button>
                 </div>
 
                 <!-- LIMITES DE GASTOS + ALERTAS -->
@@ -428,28 +428,21 @@
                         <div class="cfg-split-main">
                             <div class="cfg-row">
                                 <div class="cfg-field">
-                                    <select required>
+                                    <select id="selInstituicaoLimite" required>
                                         <option value="" disabled selected></option>
-                                        <option>Total Geral</option>
-                                        <option>Itaú</option>
-                                        <option>Nubank</option>
                                     </select>
                                     <label>Instituição</label>
                                 </div>
 
                                 <div class="cfg-field">
-                                    <select required>
+                                    <select id="selCategoriaLimite" required>
                                         <option value="" disabled selected></option>
-                                        <option>Todas</option>
-                                        <option>Mercado</option>
-                                        <option>Roupas</option>
-                                        <option>Luz e Água</option>
                                     </select>
                                     <label>Categoria</label>
                                 </div>
 
                                 <div class="cfg-field">
-                                    <input type="number" placeholder=" " />
+                                    <input type="number" id="ipt_limite_valor" placeholder=" " />
                                     <label>Limite mensal (R$)</label>
                                 </div>
                             </div>
@@ -473,7 +466,7 @@
                                 </table>
                             </div>
 
-                            <button class="cfg-btn">Salvar limite</button>
+                            <button class="cfg-btn" onclick="salvarLimite()">Salvar limite</button>
                         </div>
 
                         <div class="cfg-split-side">
@@ -594,4 +587,6 @@
 </body>
 
 </html>
+<script src="js/main.js"></script>
+<script src="js/configuracoes.js"></script>
 <script src="js/navbar.js"></script>

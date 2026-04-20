@@ -32,38 +32,55 @@
         getTipos(userId) {
             return request(`/categorias/usuario/${userId}`, { method: "GET" })
                 .then(res => {
-                    if (res.status === 204) {
-                        return [];
-                    }
+                    if (res.status === 204) return [];
                     return res.json();
                 });
         },
-        getInstituicoes() {
+        getInstituicoes(userId) {
+            if (userId) {
+                return request(`/instituicoes/usuarios/${userId}`, { method: "GET" })
+                    .then(res => {
+                        if (res.status === 204) return [];
+                        return res.json();
+                    });
+            }
             return get("/instituicoes");
         },
         registrarGasto(payload) {
-            return postJson("/registros/registrar", payload);
+            return postJson("/registros", payload);
         },
-        atualizarSaldo(payload) {
-            return postJson("/registros/atualizarSaldo", payload);
+        carregarRegistros(userId) {
+            return request(`/registros/usuario/${userId}`, { method: "GET" })
+                .then(res => {
+                    if (res.status === 204) return [];
+                    return res.json();
+                });
         },
         adicionarTipo(payload, userId) {
             return postJson(`/categorias/usuario/${userId}`, { titulo: payload.titulo });
         },
-        buscarRegistrosPorData(dataSelecionada) {
-            return get(`/registros/buscarData/${dataSelecionada}`);
+        buscarRegistrosPorData(userId, dataSelecionada) {
+            return request(`/registros/usuario/${userId}`, { method: "GET" })
+                .then(res => {
+                    if (res.status === 204) return [];
+                    return res.json();
+                })
+                .then(registros => registros.filter(r => {
+                    const dataEvento = r.eventoFinanceiro && r.eventoFinanceiro.dataEvento;
+                    return dataEvento === dataSelecionada;
+                }));
         },
-        carregarRegistros() {
-            return get("/registros/carregarRegistros");
+        mostrarSaldoTotal(userId) {
+            return request(`/registros/usuario/${userId}/saldo`, { method: "GET" })
+                .then(res => res.json())
+                .then(data => [{ valorTotal: data.valorTotal }]);
         },
-        adicionarSaldo(payload) {
-            return postJson("/registros/adicionarSaldo", payload);
-        },
-        mostrarSaldoTotal() {
-            return get("/registros/mostrarSaldoTotal");
-        },
-        mostrarTodasInstituicoes() {
-            return get("/registros/mostrarTodasInstituicoes");
+        mostrarTodasInstituicoes(userId) {
+            return request(`/registros/usuario/${userId}/saldo/instituicoes`, { method: "GET" })
+                .then(res => {
+                    if (res.status === 204) return [];
+                    return res.json();
+                });
         },
         cadastrarUsuario(payload) {
             return postJson("/usuarios", payload);
