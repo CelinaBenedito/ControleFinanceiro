@@ -61,7 +61,7 @@ public class RegistroResponseDto {
     }
     public static class EventoInstituicaoDto{
         private Integer id;
-        private RegistroUsuarioResponseDto.EventoInstituicaoDto.InstituicaoDto instituicao;
+        private InstituicaoDto instituicao;
         private TipoMovimento tipoMovimento;
         private Double valor;
 
@@ -94,11 +94,11 @@ public class RegistroResponseDto {
             this.id = id;
         }
 
-        public RegistroUsuarioResponseDto.EventoInstituicaoDto.InstituicaoDto getInstituicao() {
+        public InstituicaoDto getInstituicao() {
             return instituicao;
         }
 
-        public void setInstituicao(RegistroUsuarioResponseDto.EventoInstituicaoDto.InstituicaoDto instituicao) {
+        public void setInstituicao(InstituicaoDto instituicao) {
             this.instituicao = instituicao;
         }
 
@@ -120,7 +120,7 @@ public class RegistroResponseDto {
     }
     public static class GastoDetalheDto{
         private Long id;
-        private RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto categoria;
+        private CategoriaDto categoria;
         private String tituloGasto;
 
         public static class CategoriaDto{
@@ -152,11 +152,11 @@ public class RegistroResponseDto {
             this.id = id;
         }
 
-        public RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto getCategoria() {
+        public CategoriaDto getCategoria() {
             return categoria;
         }
 
-        public void setCategoria(RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto categoria) {
+        public void setCategoria(CategoriaDto categoria) {
             this.categoria = categoria;
         }
 
