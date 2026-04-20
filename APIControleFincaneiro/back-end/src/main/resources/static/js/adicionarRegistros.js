@@ -288,6 +288,15 @@ confirmar.onclick = () => {
     dataP.textContent = dataFormatada
     dataP.classList.remove("hidden");
     dataGasto = dataSelecionada;
+
+    // Atualiza data na aba de Múltiplos Registros também
+    const multiDataHidden = document.getElementById("multi_data");
+    const multiDataLabel = document.getElementById("multi_data_label");
+    if (multiDataHidden) multiDataHidden.value = dataFormatada;
+    if (multiDataLabel) {
+        multiDataLabel.textContent = dataFormatada;
+        multiDataLabel.classList.remove("hidden");
+    }
 };
 
 gerarCalendario();
@@ -335,19 +344,6 @@ function trocarFormulario(tela) {
 /* ---- Múltiplos Registros ---- */
 let loteRegistros = [];
 
-document.addEventListener("DOMContentLoaded", function () {
-    const multiData = document.getElementById("multi_data");
-    if (multiData) {
-        multiData.addEventListener("input", function () {
-            let v = this.value.replace(/\D/g, "").slice(0, 8);
-            if (v.length >= 5) v = v.slice(0, 2) + "/" + v.slice(2, 4) + "/" + v.slice(4);
-            else if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2);
-            this.value = v;
-            const display = document.getElementById("multi_data_display");
-            if (display) display.textContent = v.length === 10 ? `Dia ${v}` : "";
-        });
-    }
-});
 
 function adicionarAoLote() {
     const titulo = document.getElementById("ipt_multi_nome").value.trim();
