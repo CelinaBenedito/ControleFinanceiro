@@ -2,14 +2,15 @@ package controle.api.back_end.service;
 
 import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
+import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.repository.InstituicaoRepository;
-import controle.api.back_end.repository.InstituicaoUsuarioRepository;
-import controle.api.back_end.repository.UsuarioRepository;
+import controle.api.back_end.repository.*;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,14 +20,18 @@ public class InstituicaoService {
     private final InstituicaoRepository instituicaoRepository;
     private final UsuarioRepository usuarioRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
+    private final EventoInstituicaoRepository eventoInstituicaoRepository;
+    private final EventoFinanceiroRepository eventoFinanceiroRepository;
 
 
     public InstituicaoService(InstituicaoRepository instituicaoRepository,
                               UsuarioRepository usuarioRepository,
-                              InstituicaoUsuarioRepository instituicaoUsuarioRepository) {
+                              InstituicaoUsuarioRepository instituicaoUsuarioRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoFinanceiroRepository eventoFinanceiroRepository) {
         this.instituicaoRepository = instituicaoRepository;
         this.usuarioRepository = usuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
+        this.eventoInstituicaoRepository = eventoInstituicaoRepository;
+        this.eventoFinanceiroRepository = eventoFinanceiroRepository;
     }
 
     public List<Instituicao> getInstituicoes() {
@@ -44,26 +49,27 @@ public class InstituicaoService {
 
     public Instituicao createInstituicao(Instituicao entity) {
         Instituicao instituicaoByNomeContainingIgnoreCase = instituicaoRepository.findInstituicaoByNomeContainingIgnoreCase(entity.getNome());
-        if (instituicaoByNomeContainingIgnoreCase != null){
+        if (instituicaoByNomeContainingIgnoreCase != null) {
             throw new EntidadeJaExisteException("Já existe uma instituição com o nome %s no banco de dados".formatted(entity.getNome()));
         }
         return instituicaoRepository.save(entity);
     }
 
     public void deleteInstituicao(Integer id) {
-        if(instituicaoRepository.existsById(id)){
+        if (instituicaoRepository.existsById(id)) {
             instituicaoRepository.deleteInstituicaoById(id);
 
-        }else {
+        } else {
             throw new EntidadeNaoEncontradaException("Instituição de id: %d não encontrada.".formatted(id));
         }
     }
 
     public InstituicaoUsuario createInstituicaoForUsuario(Integer instituicao_id, UUID user_id) {
-        if(!usuarioRepository.existsById(user_id)){
-            throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado".formatted(user_id));
+        if (!usuarioRepository.existsById(user_id)) {
+            throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado"
+                    .formatted(user_id));
         }
-        if(!instituicaoRepository.existsById(instituicao_id)){
+        if (!instituicaoRepository.existsById(instituicao_id)) {
             throw new EntidadeNaoEncontradaException("Instituição de id: %s não encontrado".formatted(instituicao_id));
         }
 
@@ -81,25 +87,25 @@ public class InstituicaoService {
     }
 
     public List<InstituicaoUsuario> getInstituicoesByUserId(UUID idUser) {
-        if(!usuarioRepository.existsById(idUser)){
+        if (!usuarioRepository.existsById(idUser)) {
             throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado".formatted(idUser));
         }
         return instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(idUser);
     }
 
     public InstituicaoUsuario detachUserFromInstituicao(Integer instituicaoId, UUID userId) {
-        if(!usuarioRepository.existsById(userId)){
+        if (!usuarioRepository.existsById(userId)) {
             throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado".formatted(userId));
         }
-        if(!instituicaoRepository.existsById(instituicaoId)){
+        if (!instituicaoRepository.existsById(instituicaoId)) {
             throw new EntidadeNaoEncontradaException("Instituicao de id: %d não encontrado".formatted(instituicaoId));
         }
-        InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findByUsuario_IdAndInstituicao_Id(userId,instituicaoId);
+        InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findByUsuario_IdAndInstituicao_Id(userId, instituicaoId);
         instituicaoUsuario.setAtivo(false);
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
     }
 
-    public Double getSaldoByInstituicao(Integer instituicaoUsuarioId) {
+    public BigDecimal getSaldoByInstituicao(Integer instituicaoUsuarioId) {
         InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findById(instituicaoUsuarioId)
                 .orElseThrow(() ->
                         new EntidadeNaoEncontradaException(
@@ -107,8 +113,41 @@ public class InstituicaoService {
                                         .formatted(instituicaoUsuarioId)
                         )
                 );
+        List<EventoFinanceiro> eventosFinanceiros =
+                eventoFinanceiroRepository.findEventoFinanceiroByEventoInstituicao_InstituicaoUsuario_Id(instituicaoUsuarioId);
+        BigDecimal saldo = BigDecimal.ZERO;
+        for (EventoFinanceiro evento : eventosFinanceiros) {
+            BigDecimal valor = BigDecimal.valueOf(evento.getValor());
 
-        return 0.0;
+            if (evento.getTipo() == Tipo.Gasto || evento.getTipo() == Tipo.Transferencia) {
+                saldo = saldo.subtract(valor);
+            } else if (evento.getTipo() == Tipo.Recebimento) {
+                saldo = saldo.add(valor);
+            }
 
+        }
+        return saldo;
+    }
+
+    public BigDecimal getSaldoByUsuario(UUID userId) {
+        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
+                new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado"
+                        .formatted(userId)
+                )
+        );
+        List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository.findEventoFinanceiroByUsuario(usuario);
+
+        BigDecimal saldo = BigDecimal.ZERO;
+
+        for (EventoFinanceiro evento : eventosFinanceiros) {
+            BigDecimal valor = BigDecimal.valueOf(evento.getValor());
+
+            if (evento.getTipo() == Tipo.Gasto || evento.getTipo() == Tipo.Transferencia) {
+                saldo = saldo.subtract(valor);
+            } else if (evento.getTipo() == Tipo.Recebimento) {
+                saldo = saldo.add(valor);
+            }
+        }
+        return saldo;
     }
 }

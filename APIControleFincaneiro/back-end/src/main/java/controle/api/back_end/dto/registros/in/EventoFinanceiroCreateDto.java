@@ -20,6 +20,7 @@ public class EventoFinanceiroCreateDto {
     @NotNull
     @Positive
     private Double valor;
+
     @Schema(example = "Champagne de Ano novo")
     private String descricao;
     @Schema(example = "2026-01-01")
