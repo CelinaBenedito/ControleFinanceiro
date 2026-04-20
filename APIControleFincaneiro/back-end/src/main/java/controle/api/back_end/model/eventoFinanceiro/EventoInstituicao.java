@@ -12,9 +12,9 @@ public class EventoInstituicao {
     private Integer id;
 
     @NotNull
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "fkEvento")
-    private EventoFinanceiro evento;
+    private EventoFinanceiro eventoFinanceiro;
 
     @NotNull
     @ManyToOne
@@ -61,12 +61,12 @@ public class EventoInstituicao {
         this.valor = valor;
     }
 
-    public EventoFinanceiro getEvento() {
-        return evento;
+    public EventoFinanceiro getEventoFinanceiro() {
+        return eventoFinanceiro;
     }
 
-    public void setEvento(EventoFinanceiro evento) {
-        this.evento = evento;
+    public void setEventoFinanceiro(EventoFinanceiro evento) {
+        this.eventoFinanceiro = evento;
     }
 
 }

@@ -28,7 +28,7 @@ public class RegistrosMapper {
         Usuario user = new Usuario();
         user.setId(dto.getUsuario_id());
 
-        entity.setFkUsuario(user);
+        entity.setUsuario(user);
         entity.setValor(dto.getValor());
         entity.setTipo(dto.getTipo());
         entity.setDescricao(dto.getDescricao());
@@ -120,9 +120,9 @@ public class RegistrosMapper {
         detalheDto.setCategoria(categoriaDto);
         detalheDto.setTituloGasto(gastoDetalhe.getTituloGasto());
 
-        usuarioDto.setId(eventoFinanceiro.getFkUsuario().getId());
-        usuarioDto.setNome(eventoFinanceiro.getFkUsuario().getNome());
-        usuarioDto.setEmail(eventoFinanceiro.getFkUsuario().getEmail());
+        usuarioDto.setId(eventoFinanceiro.getUsuario().getId());
+        usuarioDto.setNome(eventoFinanceiro.getUsuario().getNome());
+        usuarioDto.setEmail(eventoFinanceiro.getUsuario().getEmail());
 
         LocalDate dataRegistro = eventoFinanceiro.getDataRegistro();
 

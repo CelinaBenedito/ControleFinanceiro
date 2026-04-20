@@ -2,8 +2,10 @@ package controle.api.back_end.dto.instituicao.mapper;
 
 import controle.api.back_end.dto.instituicao.InstituicaoCreateDTO;
 import controle.api.back_end.dto.instituicao.InstituicaoResponseDTO;
+import controle.api.back_end.dto.instituicao.InstituicaoUsuarioResponseDTO;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.model.usuario.Usuario;
 import jakarta.validation.Valid;
 
 import java.util.List;
@@ -54,5 +56,43 @@ public class InstituicaoMapper {
         return models.stream()
                 .map(InstituicaoMapper::instituicaoUsuarioToDto)
                 .toList();
+    }
+
+    public static InstituicaoUsuarioResponseDTO instituicaoUsuarioResponseDTO(InstituicaoUsuario model){
+        if (model == null){
+            return null;
+        }
+
+        InstituicaoUsuarioResponseDTO response = new InstituicaoUsuarioResponseDTO();
+
+        Usuario modelUsuario = model.getUsuario();
+        Instituicao modelInstituicao = model.getInstituicao();
+
+        InstituicaoUsuarioResponseDTO.UsuarioInstituicaoDTO usuarioDto = new InstituicaoUsuarioResponseDTO.UsuarioInstituicaoDTO();
+
+        usuarioDto.setId(modelUsuario.getId());
+        usuarioDto.setNome(modelUsuario.getNome());
+        usuarioDto.setSobrenome(modelUsuario.getSobrenome());
+        usuarioDto.setSexo(modelUsuario.getSexo());
+        usuarioDto.setDataNascimento(modelUsuario.getDataNascimento());
+        usuarioDto.setEmail(modelUsuario.getEmail());
+
+        InstituicaoUsuarioResponseDTO.InstituicaoUsuarioDTO instituicaoDto = new InstituicaoUsuarioResponseDTO.InstituicaoUsuarioDTO();
+
+        instituicaoDto.setId(modelInstituicao.getId());
+        instituicaoDto.setNome(modelInstituicao.getNome());
+
+        response.setId(model.getId());
+        response.setUsuario(usuarioDto);
+        response.setIntituicao(instituicaoDto);
+        response.setAtivo(model.getAtivo());
+
+        return response;
+    }
+
+    public static List<InstituicaoUsuarioResponseDTO> instituicaoUsuarioResponseDTO(List<InstituicaoUsuario> models){
+    return models.stream()
+            .map(InstituicaoMapper::instituicaoUsuarioResponseDTO)
+            .toList();
     }
 }

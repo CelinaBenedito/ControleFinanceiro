@@ -8,21 +8,21 @@ VALUES ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58','Marcio', 'Pereira Costa', '1987-
        ('a4d8e9c0-2b66-4f3d-9a99-5b8d2c7f4d44','Rafael','Mendes Oliveira','2001-01-30','Masculino',null,'rafa.mendes01@gmail.com','rafa2001'),
        ('f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55','Patrícia','Costa','1990-08-18','Feminino',null,'patricia.costa90@gmail.com','patyC90');
 
-INSERT INTO instituicao(id,nome)
-VALUES ('1', 'itau'),
-        ('2', 'Nubank'),
-        ('3', 'Santander'),
-        ('4', 'Bradesco'),
-        ('5', 'Banco do Brasil'),
-        ('6', 'Inter'),
-        ('7', 'Safra'),
-        ('8', 'Alelo Alimentação'),
-        ('9', 'Alelo Refeição'),
-        ('10', 'Aelo Multibeneficios'),
-        ('11', 'Pluxee'),
-        ('12', 'Ticket'),
-        ('13', 'Vale Refeição'),
-        ('14', 'Vale Alimentação');
+INSERT INTO instituicao(nome)
+VALUES ('itau'),
+        ('Nubank'),
+        ('Santander'),
+        ('Bradesco'),
+        ('Banco do Brasil'),
+        ('Inter'),
+        ('Safra'),
+        ('Alelo Alimentação'),
+        ('Alelo Refeição'),
+        ('Aelo Multibeneficios'),
+        ('Pluxee'),
+        ('Ticket'),
+        ('Vale Refeição'),
+        ('Vale Alimentação');
 
 INSERT INTO instituicao_usuario(usuario_id, instituicao_id)
 VALUES ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58', '13'),

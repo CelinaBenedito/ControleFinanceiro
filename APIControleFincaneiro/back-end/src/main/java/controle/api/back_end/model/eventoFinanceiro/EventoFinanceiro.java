@@ -14,9 +14,8 @@ public class EventoFinanceiro {
     private UUID id;
 
     @ManyToOne
-    @JoinColumn(name = "fkUsuario")
     @NotNull
-    private Usuario fkUsuario;
+    private Usuario usuario;
 
     @Enumerated(EnumType.STRING)
     @NotNull
@@ -33,15 +32,21 @@ public class EventoFinanceiro {
     @NotNull
     private LocalDate dataEvento;
 
+    @OneToOne(mappedBy = "eventoFinanceiro")
+    private EventoInstituicao eventoInstituicao;
+
+    @OneToOne(mappedBy = "eventoFinanceiro")
+    private GastoDetalhe gastoDetalhe;
+
     @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDate dataRegistro;
 
-    public Usuario getFkUsuario() {
-        return fkUsuario;
+    public Usuario getUsuario() {
+        return usuario;
     }
 
-    public void setFkUsuario(Usuario fkUsuario) {
-        this.fkUsuario = fkUsuario;
+    public void setUsuario(Usuario fkUsuario) {
+        this.usuario = fkUsuario;
     }
 
     public UUID getId() {
@@ -90,5 +95,21 @@ public class EventoFinanceiro {
 
     public void setDataRegistro(LocalDate dataRegistro) {
         this.dataRegistro = dataRegistro;
+    }
+
+    public EventoInstituicao getEventoInstituicao() {
+        return eventoInstituicao;
+    }
+
+    public void setEventoInstituicao(EventoInstituicao eventoInstituicao) {
+        this.eventoInstituicao = eventoInstituicao;
+    }
+
+    public GastoDetalhe getGastoDetalhe() {
+        return gastoDetalhe;
+    }
+
+    public void setGastoDetalhe(GastoDetalhe gastoDetalhe) {
+        this.gastoDetalhe = gastoDetalhe;
     }
 }
