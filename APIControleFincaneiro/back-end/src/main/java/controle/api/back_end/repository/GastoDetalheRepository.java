@@ -10,5 +10,5 @@ import java.util.UUID;
 public interface GastoDetalheRepository extends JpaRepository<GastoDetalhe, Long> {
     GastoDetalhe findGastoDetalheByEventoFinanceiro(EventoFinanceiro eventoFinanceiro);
 
-    List<GastoDetalhe> findGastoDetalheByEventoFinanceiro_Id(UUID eventoFinanceiroId);
+    GastoDetalhe findGastoDetalheByEventoFinanceiro_Id(UUID eventoFinanceiroId);
 }

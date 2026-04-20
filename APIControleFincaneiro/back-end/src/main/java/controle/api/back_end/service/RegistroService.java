@@ -213,7 +213,16 @@ public class RegistroService {
                                         .formatted(eventoId))
                 );
 
-        gastoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
-        return null;
+        GastoDetalhe gastoDetalhe = gastoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
+
+        if (entity.getCategoriaUsuario() != gastoDetalhe.getCategoriaUsuario()){
+            gastoDetalhe.setCategoriaUsuario(entity.getCategoriaUsuario());
+        }
+        if (!Objects.equals(entity.getTituloGasto(), gastoDetalhe.getTituloGasto())){
+            gastoDetalhe.setTituloGasto(entity.getTituloGasto());
+        }
+        gastoDetalhe.setEventoFinanceiro(financeiro);
+
+        return gastoDetalheRepository.save(gastoDetalhe);
     }
 }

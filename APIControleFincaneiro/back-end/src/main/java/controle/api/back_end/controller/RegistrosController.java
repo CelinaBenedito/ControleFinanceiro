@@ -154,11 +154,21 @@ public class RegistrosController {
             @PathVariable UUID evento_id,
             @RequestBody RegistroCompletoCreateDto dto){
 
-        EventoFinanceiro entity = RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro());
+        EventoFinanceiro entityFinanceiro = RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro());
 
-        EventoFinanceiro financeiroEdited =  registroService.editEventoFinanceiro(evento_id,entity);
+        EventoFinanceiro financeiroEdited =  registroService.editEventoFinanceiro(evento_id,entityFinanceiro);
 
-        return ResponseEntity.unprocessableEntity().build();
+        EventoInstituicao entityInstituicao = RegistrosMapper.toEntityEvento(dto.getInstituicao());
+
+        EventoInstituicao instituicaoEdited = registroService.editEventoInstituicao(evento_id, entityInstituicao);
+
+        GastoDetalhe entityGasto = RegistrosMapper.toEntityGasto(dto.getDetalhe());
+
+        GastoDetalhe gastoEdited = registroService.editGastoDetalhe(evento_id, entityGasto);
+
+        RegistroUsuarioResponseDto response = RegistrosMapper.toResponseUser(financeiroEdited, instituicaoEdited, gastoEdited);
+
+        return ResponseEntity.status(200).body(response);
     }
 
 }

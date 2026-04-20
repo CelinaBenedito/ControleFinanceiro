@@ -19,6 +19,7 @@ public class UsuarioResponseDTO {
     private LocalDate dataNascimento;
     @Enumerated(EnumType.STRING)
     private UsuarioSexo sexo;
+    private String email;
     private String imagem;
 
     public UsuarioResponseDTO() {
@@ -71,6 +72,14 @@ public class UsuarioResponseDTO {
 
     public void setSexo(UsuarioSexo sexo) {
         this.sexo = sexo;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getImagem() {
