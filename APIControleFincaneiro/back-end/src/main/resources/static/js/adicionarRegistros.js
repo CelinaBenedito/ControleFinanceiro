@@ -288,6 +288,15 @@ confirmar.onclick = () => {
     dataP.textContent = dataFormatada
     dataP.classList.remove("hidden");
     dataGasto = dataSelecionada;
+
+    // Atualiza data na aba de Múltiplos Registros também
+    const multiDataHidden = document.getElementById("multi_data");
+    const multiDataLabel = document.getElementById("multi_data_label");
+    if (multiDataHidden) multiDataHidden.value = dataFormatada;
+    if (multiDataLabel) {
+        multiDataLabel.textContent = dataFormatada;
+        multiDataLabel.classList.remove("hidden");
+    }
 };
 
 gerarCalendario();

@@ -53,20 +53,63 @@
             color: #7dd3fc;
         }
 
-        /* Field wrapper (label on top) */
+        /* Field wrapper — floating label (espelha exatamente .campo do Estilos.css) */
         .cfg-field {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+            position: relative;
+            margin: 4px 0;
         }
 
+        /* Label começa DENTRO do input no centro vertical, flutua para CIMA ao focar */
         .cfg-field label {
-            font-size: 14px;
+            position: absolute;
+            left: 18px;
+            top: 21px; /* (58px altura - ~16px label) / 2 = centro vertical do input */
+            font-size: 15px;
             font-weight: 600;
-            color: #367373;
+            color: var(--cor-texto-secundario);
+            background-color: #FAFFFF; /* cobre a borda ao flutuar */
+            padding: 0 4px;
+            pointer-events: none;
+            transition: 0.2s ease-in-out;
+            z-index: 1;
         }
 
         body.dark-mode .cfg-field label {
+            color: var(--cor-texto-secundario);
+            background-color: #0f172a;
+        }
+
+        /* Estado flutuante: top -1px = label assenta EM CIMA da borda (igual .campo) */
+        .cfg-field select:focus + label,
+        .cfg-field select:not([value=""]):valid + label,
+        .cfg-field input:focus + label,
+        .cfg-field input:not(:placeholder-shown) + label {
+            top: -1px;
+            font-size: 12px;
+            color: #367373;
+        }
+
+        body.dark-mode .cfg-field select:focus + label,
+        body.dark-mode .cfg-field select:not([value=""]):valid + label,
+        body.dark-mode .cfg-field input:focus + label,
+        body.dark-mode .cfg-field input:not(:placeholder-shown) + label {
+            color: #7dd3fc;
+        }
+
+        /* Seta do select */
+        .cfg-field:has(select)::after {
+            content: "▾";
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #367373;
+            pointer-events: none;
+            font-size: 0.9rem;
+            z-index: 1;
+        }
+
+        body.dark-mode .cfg-field:has(select)::after {
             color: #7dd3fc;
         }
 
@@ -75,7 +118,7 @@
         .cfg-field input[type="number"],
         .cfg-field input[type="date"] {
             height: 58px;
-            border-radius: 15px;
+            border-radius: 10px;
             border: 2px solid #367373;
             padding: 0 18px;
             font-size: 17px;
@@ -85,12 +128,14 @@
             font-weight: 600;
             width: 100%;
             appearance: none;
+            transition: border-color 0.2s ease-in-out;
         }
 
         .cfg-field select:focus,
         .cfg-field input:focus {
             outline: none;
             border-color: #004C58;
+            transition: border-color 0.2s ease-in-out;
         }
 
         body.dark-mode .cfg-field select,
@@ -111,6 +156,10 @@
             flex: 1;
             min-width: 180px;
             max-width: 300px;
+        }
+
+        .cfg-row .cfg-btn {
+            align-self: flex-end;
         }
 
         /* Two-column layout (form + checkboxes) */
@@ -192,6 +241,14 @@
             background: #c53030;
         }
 
+        /* Fix: .containerGeral button (especificidade 11) sobrescreve .cfg-btn (10).
+           Esta regra tem especificidade 21 e restaura padding/margin corretos. */
+        .cfg-page button.cfg-btn {
+            padding: 0 24px;
+            margin: 0;
+            height: 52px;
+        }
+
         /* List container */
         .cfg-list-box {
             border-radius: 15px;
@@ -235,6 +292,59 @@
 
         body.dark-mode .cfg-delete-label {
             color: #e5f6ff;
+        }
+
+        /* Table inside cards */
+        .cfg-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 15px;
+            overflow: hidden;
+            outline: 2px solid #367373;
+        }
+
+        body.dark-mode .cfg-table {
+            outline-color: #7dd3fc;
+        }
+
+        .cfg-table th {
+            text-align: left;
+            padding: 12px 18px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #367373;
+            border-bottom: 1px solid #367373;
+            font-family: 'Inter', sans-serif;
+            background: #EBF4F4;
+        }
+
+        body.dark-mode .cfg-table th {
+            color: #7dd3fc;
+            border-color: #7dd3fc;
+            background: #0a0f1e;
+        }
+
+        .cfg-table td {
+            padding: 12px 18px;
+            font-size: 0.95rem;
+            color: #367373;
+            border-bottom: 1px solid rgba(54, 115, 115, 0.2);
+            font-family: 'Inter', sans-serif;
+        }
+
+        body.dark-mode .cfg-table td {
+            color: #7dd3fc;
+            border-color: rgba(125, 211, 252, 0.15);
+        }
+
+        .cfg-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .cfg-table-empty td {
+            text-align: center;
+            color: #888;
+            font-style: italic;
         }
     </style>
 </head>
@@ -296,7 +406,6 @@
 
                     <div class="cfg-row">
                         <div class="cfg-field" style="max-width:380px;">
-                            <label for="mesFiscal">Início do mês fiscal</label>
                             <select id="mesFiscal" required>
                                 <option value="" disabled selected></option>
                                 <option value="1">Dia 1</option>
@@ -304,6 +413,7 @@
                                 <option value="10">Dia 10</option>
                                 <option value="15">Dia 15</option>
                             </select>
+                            <label for="mesFiscal">Início do mês fiscal</label>
                         </div>
                     </div>
 
@@ -318,17 +428,16 @@
                         <div class="cfg-split-main">
                             <div class="cfg-row">
                                 <div class="cfg-field">
-                                    <label>Instituição</label>
                                     <select required>
                                         <option value="" disabled selected></option>
                                         <option>Total Geral</option>
                                         <option>Itaú</option>
                                         <option>Nubank</option>
                                     </select>
+                                    <label>Instituição</label>
                                 </div>
 
                                 <div class="cfg-field">
-                                    <label>Categoria</label>
                                     <select required>
                                         <option value="" disabled selected></option>
                                         <option>Todas</option>
@@ -336,12 +445,32 @@
                                         <option>Roupas</option>
                                         <option>Luz e Água</option>
                                     </select>
+                                    <label>Categoria</label>
                                 </div>
 
                                 <div class="cfg-field">
-                                    <label>Limite mensal (R$)</label>
                                     <input type="number" placeholder=" " />
+                                    <label>Limite mensal (R$)</label>
                                 </div>
+                            </div>
+
+                            <!-- Tabela de limites existentes -->
+                            <div style="overflow-x:auto;">
+                                <table class="cfg-table" id="tabelaLimites">
+                                    <thead>
+                                        <tr>
+                                            <th>Instituição</th>
+                                            <th>Categoria</th>
+                                            <th>Limite mensal (R$)</th>
+                                            <th>Opções</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="corpoLimites">
+                                        <tr class="cfg-table-empty">
+                                            <td colspan="4" style="padding:20px;">Nenhum limite configurado ainda.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
 
                             <button class="cfg-btn">Salvar limite</button>
@@ -367,21 +496,27 @@
 
                     <div class="cfg-row" style="align-items:flex-end;">
                         <div class="cfg-field" style="flex:1;max-width:380px;">
+                            <input type="text" id="ipt_nova_instituicao" placeholder=" ">
                             <label>Nova instituição</label>
-                            <input type="text" placeholder=" ">
                         </div>
-                        <button class="cfg-btn">Adicionar instituição</button>
+                        <button class="cfg-btn" onclick="adicionarInstituicao()">Adicionar instituição</button>
                     </div>
 
-                    <div class="cfg-list-box">
-                        <div class="cfg-list-item">
-                            <span class="registroTitulo">Itaú</span>
-                            <button class="cfg-btn danger">✖</button>
-                        </div>
-                        <div class="cfg-list-item">
-                            <span class="registroTitulo">Nubank</span>
-                            <button class="cfg-btn danger">✖</button>
-                        </div>
+                    <div style="overflow-x:auto;">
+                        <table class="cfg-table" id="tabelaInstituicoes">
+                            <thead>
+                                <tr>
+                                    <th>Instituição</th>
+                                    <th>Última atualização</th>
+                                    <th>Opções</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoInstituicoes">
+                                <tr class="cfg-table-empty">
+                                    <td colspan="3" style="padding:20px;">Nenhuma instituição cadastrada.</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -391,25 +526,27 @@
 
                     <div class="cfg-row" style="align-items:flex-end;">
                         <div class="cfg-field" style="flex:1;max-width:380px;">
+                            <input type="text" id="ipt_nova_categoria" placeholder=" ">
                             <label>Nova categoria</label>
-                            <input type="text" placeholder=" ">
                         </div>
-                        <button class="cfg-btn">Adicionar categoria</button>
+                        <button class="cfg-btn" onclick="adicionarCategoria()">Adicionar categoria</button>
                     </div>
 
-                    <div class="cfg-list-box">
-                        <div class="cfg-list-item">
-                            <span class="registroTitulo">Mercado</span>
-                            <button class="cfg-btn danger">✖</button>
-                        </div>
-                        <div class="cfg-list-item">
-                            <span class="registroTitulo">Roupas</span>
-                            <button class="cfg-btn danger">✖</button>
-                        </div>
-                        <div class="cfg-list-item">
-                            <span class="registroTitulo">Luz e Água</span>
-                            <button class="cfg-btn danger">✖</button>
-                        </div>
+                    <div style="overflow-x:auto;">
+                        <table class="cfg-table" id="tabelaCategorias">
+                            <thead>
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th>Última atualização</th>
+                                    <th>Opções</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoCategorias">
+                                <tr class="cfg-table-empty">
+                                    <td colspan="3" style="padding:20px;">Nenhuma categoria cadastrada.</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -417,24 +554,37 @@
                 <div class="cfg-card">
                     <h2><i class='bx bx-trash-alt' style="color:#367373;font-size:1.6rem;"></i> Eventos Financeiros</h2>
 
+                    <!-- Importar / Exportar -->
                     <div style="display:flex;flex-direction:column;gap:12px;">
+                        <p class="cfg-delete-label">Importar / Exportar dados:</p>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                            <button class="cfg-btn" onclick="importarDados()">
+                                <i class='bx bx-upload' style="margin-right:6px;"></i> Importar dados
+                            </button>
+                            <button class="cfg-btn" onclick="exportarDados()" style="background:transparent;border:2px solid #367373;color:#367373;">
+                                <i class='bx bx-download' style="margin-right:6px;"></i> Exportar dados
+                            </button>
+                            <input type="file" id="inputImportar" accept=".json,.csv" style="display:none;" onchange="processarImportacao(event)">
+                        </div>
+                    </div>
+
+                    <!-- Exclusão -->
+                    <div style="display:flex;flex-direction:column;gap:16px;">
                         <p class="cfg-delete-label">Excluir eventos por período:</p>
                         <div class="cfg-row">
                             <div class="cfg-field">
-                                <label>Data inicial</label>
                                 <input type="date" placeholder=" ">
+                                <label>Data inicial</label>
                             </div>
                             <div class="cfg-field">
-                                <label>Data final</label>
                                 <input type="date" placeholder=" ">
+                                <label>Data final</label>
                             </div>
                         </div>
-                        <button class="cfg-btn danger">Apagar registros do período</button>
-                    </div>
+                        <button class="cfg-btn danger" style="align-self:flex-start;">Apagar registros do período</button>
 
-                    <div style="display:flex;flex-direction:column;gap:12px;">
-                        <p class="cfg-delete-label" style="font-weight:900;">Excluir TODOS os eventos financeiros armazenados:</p>
-                        <button class="cfg-btn danger">Apagar TODOS os registros</button>
+                        <p class="cfg-delete-label" style="font-weight:900;margin-top:8px;">Excluir TODOS os eventos financeiros armazenados:</p>
+                        <button class="cfg-btn danger" style="align-self:flex-start;">Apagar TODOS os registros</button>
                     </div>
                 </div>
 
