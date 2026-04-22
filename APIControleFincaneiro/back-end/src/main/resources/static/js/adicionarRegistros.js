@@ -206,7 +206,18 @@ let mesAtual = hoje.getMonth();
 let anoAtual = hoje.getFullYear();
 
 
-btnAbrir.onclick = () => modal.style.display = "flex";
+let modalAbertoPor = 'single';
+let lote = [];
+
+btnAbrir.onclick = () => {
+    modalAbertoPor = 'single';
+    modal.style.display = "flex";
+};
+
+function abrirCalendarioMulti() {
+    modalAbertoPor = 'multi';
+    modal.style.display = 'flex';
+}
 fechar.onclick = () => modal.style.display = "none";
 btnAnterior.onclick = () => {
     mesAtual--;
@@ -311,11 +322,17 @@ async function selecionarDia(data, elemento) {
 
 confirmar.onclick = () => {
     modal.style.display = "none";
-    dataP.style.display = ""
-    dataFormatada = formatarDataBR(dataSelecionada)
-    dataP.textContent = dataFormatada
-    dataP.classList.remove("hidden");
-    dataGasto = dataSelecionada;
+    const dataFormatada = formatarDataBR(dataSelecionada);
+    if (modalAbertoPor === 'multi') {
+        const label = document.getElementById('multi_data_label');
+        const hidden = document.getElementById('multi_data');
+        if (label) { label.textContent = dataFormatada; label.classList.remove('hidden'); label.style.display = ''; }
+        if (hidden) hidden.value = dataSelecionada;
+    } else {
+        const dataEl = document.getElementById('data');
+        if (dataEl) { dataEl.style.display = ''; dataEl.textContent = dataFormatada; dataEl.classList.remove('hidden'); }
+        dataGasto = dataSelecionada;
+    }
 };
 
 gerarCalendario();
@@ -344,6 +361,95 @@ titulos.forEach(item => {
         // aqui você pode trocar telas, formularios etc
     });
 });
+
+/*---------------- Múltiplos Registros ----------------*/
+
+function adicionarAoLote() {
+    const titulo = document.getElementById('ipt_multi_nome').value.trim();
+    const tipo = document.getElementById('multi_select_tipo').value;
+    const categoria = document.getElementById('multi_select_categoria').value;
+    const instituicao = document.getElementById('multi_select_instituicao').value;
+    const movimento = document.getElementById('multi_select_movimento').value;
+    const valor = Number(document.getElementById('ipt_multi_valor').value);
+    const desc = document.getElementById('ipt_multi_desc').value.trim() || 'Nenhuma descrição fornecida';
+    const data = document.getElementById('multi_data').value;
+
+    if (!titulo) return alerta('Título inválido');
+    if (tipo === '#') return alerta('Escolha o tipo do evento');
+    if (categoria === '#') return alerta('Escolha uma categoria');
+    if (instituicao === '#') return alerta('Escolha uma instituição');
+    if (movimento === '#') return alerta('Escolha o tipo de movimento');
+    if (valor <= 0 || isNaN(valor)) return alerta('Valor inválido');
+    if (!data) return alerta('Escolha uma data');
+
+    const instSelect = document.getElementById('multi_select_instituicao');
+    const instNome = instSelect.options[instSelect.selectedIndex].text;
+
+    lote.push({
+        financeiro: { usuario_id: userId, tipo, valor, descricao: desc, dataEvento: data },
+        instituicao: { instituicaoUsuario_id: Number(instituicao), tipoMovimento: movimento, valor },
+        detalhe: { categoriaUsuario_id: Number(categoria), tituloGasto: titulo },
+        _display: { titulo, tipo, movimento, instNome, valor }
+    });
+
+    renderizarLote();
+
+    document.getElementById('ipt_multi_nome').value = '';
+    document.getElementById('ipt_multi_valor').value = '';
+    document.getElementById('ipt_multi_desc').value = '';
+    document.getElementById('multi_select_tipo').value = '#';
+    document.getElementById('multi_select_categoria').value = '#';
+    document.getElementById('multi_select_instituicao').value = '#';
+    document.getElementById('multi_select_movimento').value = '#';
+}
+
+function renderizarLote() {
+    const tbody = document.getElementById('corpoLote');
+    if (lote.length === 0) {
+        tbody.innerHTML = `<tr id="loteVazio"><td colspan="6" style="text-align:center; color:#888; font-style:italic; padding:20px;">Nenhum registro adicionado ainda.</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = '';
+    lote.forEach((item, i) => {
+        const d = item._display;
+        tbody.innerHTML += `
+            <tr>
+                <td>${d.titulo}</td>
+                <td>${d.tipo}</td>
+                <td>${d.movimento}</td>
+                <td>${d.instNome}</td>
+                <td>R$ ${d.valor.toFixed(2)}</td>
+                <td><button onclick="removerDoLote(${i})" style="background:none;border:none;cursor:pointer;color:red;font-size:1.1rem;">✕</button></td>
+            </tr>`;
+    });
+}
+
+function removerDoLote(i) {
+    lote.splice(i, 1);
+    renderizarLote();
+}
+
+function salvarLote() {
+    if (lote.length === 0) return alerta('Nenhum registro no lote');
+    alerta(`Salvando ${lote.length} registro(s)...`, 0);
+
+    const promessas = lote.map(item => MainAPI.registrarGasto({
+        financeiro: item.financeiro,
+        instituicao: item.instituicao,
+        detalhe: item.detalhe
+    }));
+
+    Promise.all(promessas).then(respostas => {
+        const erros = respostas.filter(r => !r.ok).length;
+        if (erros === 0) {
+            lote = [];
+            renderizarLote();
+            alerta(`${respostas.length} registro(s) salvos com sucesso!<br><button onclick="document.getElementById('div_alerta').style.display='none'">OK</button>`, 0);
+        } else {
+            alerta(`${erros} erro(s) ao salvar. Verifique e tente novamente.`);
+        }
+    }).catch(() => alerta('Erro ao conectar ao servidor'));
+}
 
 function trocarFormulario(tela) {
     const cardUnico = document.getElementById("cardUnico");
