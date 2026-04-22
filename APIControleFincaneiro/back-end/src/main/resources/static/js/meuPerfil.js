@@ -199,17 +199,7 @@
             btn.className = "pf-icon-btn delete";
             btn.title = "Desvincular";
             btn.innerHTML = "<i class='bx bx-trash'></i>";
-            btn.addEventListener("click", async () => {
-                if (!confirm("Desvincular esta instituição do seu perfil?")) return;
-                try {
-                    const res = await fetch(`${API}/instituicoes/${inst.intituicao.id}/usuarios/${userId}`, { method: "PATCH" });
-                    if (!res.ok) { alert(`Erro ao desvincular (HTTP ${res.status}).`); return; }
-                    await carregarInstituicoes();
-                } catch (e) {
-                    alert("Erro ao desvincular instituição.");
-                    console.error(e);
-                }
-            });
+            btn.addEventListener("click", () => desvincularInstituicao(inst.intituicao.id));
             divAcoes.appendChild(btn);
             tdAcoes.appendChild(divAcoes);
             tr.appendChild(tdAcoes);
@@ -219,7 +209,7 @@
     }
 
     window.desvincularInstituicao = async function (instId) {
-        if (!confirm("Desvincular esta instituição do seu perfil?")) return;
+
         try {
             await fetch(`${API}/instituicoes/${instId}/usuarios/${userId}`, { method: "PATCH" });
             await carregarInstituicoes();
@@ -338,17 +328,7 @@
             btn.className = "pf-icon-btn delete";
             btn.title = "Remover";
             btn.innerHTML = "<i class='bx bx-trash'></i>";
-            btn.addEventListener("click", async () => {
-                if (!confirm("Remover esta categoria do seu perfil?")) return;
-                try {
-                    const res = await fetch(`${API}/categorias/${cat.categoria.id}/usuarios/${userId}`, { method: "PATCH" });
-                    if (!res.ok) { alert(`Erro ao remover categoria (HTTP ${res.status}).`); return; }
-                    await carregarCategorias();
-                } catch (e) {
-                    alert("Erro ao remover categoria.");
-                    console.error(e);
-                }
-            });
+            btn.addEventListener("click", () => removerCategoria(cat.categoria.id));
             divAcoes.appendChild(btn);
             tdAcoes.appendChild(divAcoes);
             tr.appendChild(tdAcoes);
@@ -358,7 +338,7 @@
     }
 
     window.removerCategoria = async function (catId) {
-        if (!confirm("Remover esta categoria do seu perfil?")) return;
+
         try {
             await fetch(`${API}/categorias/${catId}/usuarios/${userId}`, { method: "PATCH" });
             await carregarCategorias();

@@ -71,19 +71,19 @@ function registrar() {
         Desc = "Nenhuma descrição fornecida"
     }
     if (data == false || data == 0) {
-        return alert("Data inválida");
+        return alerta("Data inválida");
     }
     if (valor <= 0 || valor == null || valor == undefined || valor == NaN) {
-        return alert("Valor inválido");
+        return alerta("Valor inválido");
     }
     if (titulo == "") {
-        return alert("Titulo inválido");
+        return alerta("Titulo inválido");
     }
     if (tipo == '#') {
-        return alert("Escolha um tipo");
+        return alerta("Escolha um tipo");
     }
     if (instituicao == '#') {
-        return alert("Escolha uma instituição");
+        return alerta("Escolha uma instituição");
     }
 
     setTimeout(alerta(`Registrando...
@@ -118,7 +118,7 @@ function registrar() {
 
         }
         else {
-            alert("Houve um erro ao registrar", response)
+            alerta("Houve um erro ao registrar")
         }
     });
 

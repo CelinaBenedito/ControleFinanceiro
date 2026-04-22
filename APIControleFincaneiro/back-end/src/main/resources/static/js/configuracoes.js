@@ -201,15 +201,14 @@
             const tdAcoes = document.createElement("td");
             const btn = document.createElement("button");
             btn.className = "cfg-btn danger";
-            btn.textContent = "Remover";
+            btn.textContent = "Desvincular";
             btn.addEventListener("click", async () => {
-                if (!confirm("Remover esta instituição do seu perfil?")) return;
                 try {
                     const res = await fetch(`${API}/instituicoes/${inst.intituicao.id}/usuarios/${userId}`, { method: "PATCH" });
-                    if (!res.ok) { alert(`Erro ao remover instituição (HTTP ${res.status}).`); return; }
+                    if (!res.ok) { alert(`Erro ao desvincular (HTTP ${res.status}).`); return; }
                     await carregarInstituicoes();
                 } catch (e) {
-                    alert("Erro ao remover instituição.");
+                    alert("Erro ao desvincular instituição.");
                     console.error(e);
                 }
             });
@@ -313,10 +312,9 @@
             btn.className = "cfg-btn danger";
             btn.textContent = "Remover";
             btn.addEventListener("click", async () => {
-                if (!confirm("Remover esta categoria do seu perfil?")) return;
                 try {
                     const res = await fetch(`${API}/categorias/${cat.categoria.id}/usuarios/${userId}`, { method: "PATCH" });
-                    if (!res.ok) { alert(`Erro ao remover categoria (HTTP ${res.status}).`); return; }
+                    if (!res.ok) { alert(`Erro ao remover (HTTP ${res.status}).`); return; }
                     await carregarCategorias();
                 } catch (e) {
                     alert("Erro ao remover categoria.");
@@ -358,7 +356,6 @@
     };
 
     window.removerCategoria = async function (catId) {
-        if (!confirm("Remover esta categoria do seu perfil?")) return;
         try {
             await fetch(`${API}/categorias/${catId}/usuarios/${userId}`, { method: "PATCH" });
             await carregarCategorias();
