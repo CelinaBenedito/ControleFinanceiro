@@ -58,7 +58,7 @@ public class UsuarioController {
 
         return ResponseEntity.ok(response);
     }
-    @GetMapping("/saldo/usuarios/{user_id}")
+    @GetMapping("/saldo/{user_id}")
     public ResponseEntity<BigDecimal> getSaldoByUsuario(@PathVariable UUID user_id){
         BigDecimal saldoByUsuario = usuarioService
                 .getSaldoByUsuario(user_id);

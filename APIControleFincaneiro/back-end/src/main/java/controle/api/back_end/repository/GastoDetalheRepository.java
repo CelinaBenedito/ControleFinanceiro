@@ -11,4 +11,8 @@ public interface GastoDetalheRepository extends JpaRepository<GastoDetalhe, Long
     GastoDetalhe findGastoDetalheByEventoFinanceiro(EventoFinanceiro eventoFinanceiro);
 
     GastoDetalhe findGastoDetalheByEventoFinanceiro_Id(UUID eventoFinanceiroId);
+
+    boolean existsGastoDetalheByEventoFinanceiro_Id(UUID eventoFinanceiroId);
+
+    void deleteGastoDetalheByEventoFinanceiro_Id(UUID eventoId);
 }

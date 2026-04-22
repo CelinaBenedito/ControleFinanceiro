@@ -225,4 +225,25 @@ public class RegistroService {
 
         return gastoDetalheRepository.save(gastoDetalhe);
     }
+
+    public void deleteRegistroByEventoFinanceiro_Id(UUID eventoId) {
+        eventoFinanceiroRepository.findById(eventoId)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException(
+                                "Evento Financeiro de id: %s não encontrado"
+                                        .formatted(eventoId)
+                        )
+                );
+        if(!gastoDetalheRepository.existsGastoDetalheByEventoFinanceiro_Id(eventoId)){
+            throw new EntidadeNaoEncontradaException("Detalhe do gasto não encontrado.");
+        }
+        gastoDetalheRepository.deleteGastoDetalheByEventoFinanceiro_Id(eventoId);
+
+        if(!eventoInstituicaoRepository.existsEventoInstituicaoByEventoFinanceiro_Id(eventoId)){
+            throw new EntidadeNaoEncontradaException("Evento Instituição não encontrado.");
+        }
+        eventoInstituicaoRepository.deleteEventoInstituicaoByEventoFinanceiro_Id(eventoId);
+
+        eventoFinanceiroRepository.deleteEventoFinanceiroById(eventoId);
+    }
 }
