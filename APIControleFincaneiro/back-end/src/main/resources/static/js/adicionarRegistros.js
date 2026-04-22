@@ -244,7 +244,7 @@ const gastos = {
 async function buscarGastosDia(dataSelecionada) {
     console.log("Buscando gastos para", dataSelecionada);
 
-    const json = await MainAPI.buscarRegistrosPorData(dataSelecionada);
+    const json = await MainAPI.buscarRegistrosPorData(userId, dataSelecionada);
     console.log("Tamanho de gastos:", json.length);
 
     let listaGastos = [];
