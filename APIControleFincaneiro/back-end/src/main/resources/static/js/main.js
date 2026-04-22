@@ -49,6 +49,12 @@
         registrarGasto(payload) {
             return postJson("/registros", payload);
         },
+        adicionarSaldo(payload) {
+            return this.registrarGasto(payload);
+        },
+        atualizarSaldo(payload) {
+            return this.registrarGasto(payload);
+        },
         carregarRegistros(userId) {
             return request(`/registros/${userId}`, { method: "GET" })
                 .then(res => {
