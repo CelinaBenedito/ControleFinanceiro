@@ -129,25 +129,5 @@ public class InstituicaoService {
         return saldo;
     }
 
-    public BigDecimal getSaldoByUsuario(UUID userId) {
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
-                new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado"
-                        .formatted(userId)
-                )
-        );
-        List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository.findEventoFinanceiroByUsuario(usuario);
 
-        BigDecimal saldo = BigDecimal.ZERO;
-
-        for (EventoFinanceiro evento : eventosFinanceiros) {
-            BigDecimal valor = BigDecimal.valueOf(evento.getValor());
-
-            if (evento.getTipo() == Tipo.Gasto || evento.getTipo() == Tipo.Transferencia) {
-                saldo = saldo.subtract(valor);
-            } else if (evento.getTipo() == Tipo.Recebimento) {
-                saldo = saldo.add(valor);
-            }
-        }
-        return saldo;
-    }
 }
