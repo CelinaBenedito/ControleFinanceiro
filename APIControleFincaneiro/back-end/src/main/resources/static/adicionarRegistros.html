@@ -471,8 +471,18 @@
                     </div>
 
                     <div class="ar-field-wrap">
-                        <select id="select_tipo"></select>
+                        <select id="select_tipo">
+                            <option value="#">Tipo do Evento</option>
+                            <option value="Gasto">Gasto</option>
+                            <option value="Recebimento">Recebimento</option>
+                            <option value="Transferencia">Transferência</option>
+                        </select>
                         <label for="select_tipo">Tipo do Evento</label>
+                    </div>
+
+                    <div class="ar-field-wrap">
+                        <select id="select_categoria"></select>
+                        <label for="select_categoria">Categoria</label>
                     </div>
 
                     <div class="ar-field-wrap">
@@ -483,9 +493,12 @@
                     <div class="ar-field-wrap">
                         <select id="select_movimento">
                             <option value="#">Movimento</option>
-                            <option value="Débito">Débito</option>
-                            <option value="Crédito">Crédito</option>
-                            <option value="Transferência">Transferência</option>
+                            <option value="Debito">Débito</option>
+                            <option value="Credito">Crédito</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Pix">Pix</option>
+                            <option value="Boleto">Boleto</option>
+                            <option value="Voucher">Voucher</option>
                         </select>
                         <label for="select_movimento">Movimento</label>
                     </div>
@@ -552,8 +565,15 @@
                     <div class="ar-field-wrap" style="flex:1; min-width:160px;">
                         <select id="multi_select_tipo">
                             <option value="#">Tipo do Evento</option>
+                            <option value="Gasto">Gasto</option>
+                            <option value="Recebimento">Recebimento</option>
+                            <option value="Transferencia">Transferência</option>
                         </select>
                         <label for="multi_select_tipo">Tipo do Evento</label>
+                    </div>
+                    <div class="ar-field-wrap" style="flex:1; min-width:160px;">
+                        <select id="multi_select_categoria"></select>
+                        <label for="multi_select_categoria">Categoria</label>
                     </div>
                     <div class="ar-field-wrap" style="flex:1; min-width:160px;">
                         <select id="multi_select_instituicao">
@@ -564,9 +584,12 @@
                     <div class="ar-field-wrap" style="flex:1; min-width:160px;">
                         <select id="multi_select_movimento">
                             <option value="#">Movimento</option>
-                            <option value="Débito">Débito</option>
-                            <option value="Crédito">Crédito</option>
-                            <option value="Transferência">Transferência</option>
+                            <option value="Debito">Débito</option>
+                            <option value="Credito">Crédito</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Pix">Pix</option>
+                            <option value="Boleto">Boleto</option>
+                            <option value="Voucher">Voucher</option>
                         </select>
                         <label for="multi_select_movimento">Movimento</label>
                     </div>
