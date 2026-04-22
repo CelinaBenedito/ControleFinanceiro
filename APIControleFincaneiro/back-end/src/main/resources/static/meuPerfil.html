@@ -690,25 +690,25 @@
 
         </div>
     </div>
+    <script src="js/meuPerfil.js"></script>
+    <script src="js/navbar.js"></script>
+    <script>
+        // ── Toggle labels ──
+        document.getElementById("toggleGlaceon").addEventListener("change", function () {
+            document.getElementById("estadoGlaceon").textContent = this.checked ? "ON" : "OFF";
+        });
+        document.getElementById("toggleVidro").addEventListener("change", function () {
+            document.getElementById("estadoVidro").textContent = this.checked ? "ON" : "OFF";
+        });
+
+        // ── Theme swatch selection ──
+        document.querySelectorAll(".pf-tema-item").forEach(item => {
+            item.addEventListener("click", () => {
+                document.querySelectorAll(".pf-tema-item").forEach(i => i.classList.remove("ativo"));
+                item.classList.add("ativo");
+            });
+        });
+    </script>
 </body>
 
 </html>
-<script src="js/meuPerfil.js"></script>
-<script src="js/navbar.js"></script>
-<script>
-    // ── Toggle labels ──
-    document.getElementById("toggleGlaceon").addEventListener("change", function () {
-        document.getElementById("estadoGlaceon").textContent = this.checked ? "ON" : "OFF";
-    });
-    document.getElementById("toggleVidro").addEventListener("change", function () {
-        document.getElementById("estadoVidro").textContent = this.checked ? "ON" : "OFF";
-    });
-
-    // ── Theme swatch selection ──
-    document.querySelectorAll(".pf-tema-item").forEach(item => {
-        item.addEventListener("click", () => {
-            document.querySelectorAll(".pf-tema-item").forEach(i => i.classList.remove("ativo"));
-            item.classList.add("ativo");
-        });
-    });
-</script>
