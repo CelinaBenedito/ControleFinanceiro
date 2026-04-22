@@ -9,6 +9,38 @@
     let categorias = [];
 
     // ── helpers ──────────────────────────────────────────────────
+    function mostrarAlerta(texto) {
+        const div = document.getElementById("div_alerta");
+        const conteudo = document.getElementById("conteudoAlerta");
+        if (!div || !conteudo) return;
+        conteudo.innerHTML = texto;
+        div.style.display = "flex";
+        setTimeout(() => { div.style.display = "none"; }, 3000);
+    }
+
+    function mostrarConfirmacao(texto, onConfirm) {
+        const div = document.getElementById("div_alerta");
+        const conteudo = document.getElementById("conteudoAlerta");
+        if (!div || !conteudo) { onConfirm(); return; }
+        conteudo.innerHTML = "";
+        const msg = document.createElement("span");
+        msg.textContent = texto;
+        const divBtns = document.createElement("div");
+        divBtns.style.cssText = "display:flex;gap:8px;margin-top:10px;";
+        const btnNo = document.createElement("button");
+        btnNo.textContent = "Cancelar";
+        btnNo.style.background = "#888";
+        const btnOk = document.createElement("button");
+        btnOk.textContent = "Confirmar";
+        btnOk.addEventListener("click", () => { div.style.display = "none"; onConfirm(); });
+        btnNo.addEventListener("click", () => { div.style.display = "none"; });
+        divBtns.appendChild(btnNo);
+        divBtns.appendChild(btnOk);
+        conteudo.appendChild(msg);
+        conteudo.appendChild(divBtns);
+        div.style.display = "flex";
+    }
+
     function postJson(url, payload) {
         return fetch(url, {
             method: "POST",
@@ -90,7 +122,7 @@
     window.salvarMesFiscal = async function () {
         const sel = document.getElementById("mesFiscal");
         if (!sel?.value) {
-            alert("Selecione o início do mês fiscal.");
+            mostrarAlerta("Selecione o início do mês fiscal.");
             return;
         }
         const mes = parseInt(sel.value, 10);
@@ -101,7 +133,7 @@
                 const payload = { inicioMesFiscal: mes };
                 if (limiteMensal != null && !isNaN(limiteMensal)) payload.limiteDesejadoMensal = limiteMensal;
                 const res = await putJson(`${API}/configuracoes/edit/${cfgId}`, payload);
-                if (!res.ok) { alert(`Erro ao salvar (HTTP ${res.status}).`); return; }
+                if (!res.ok) { mostrarAlerta(`Erro ao salvar (HTTP ${res.status}).`); return; }
             } else {
                 const payload = { fkUsuario: userId, inicioMesFiscal: mes };
                 if (limiteMensal != null && !isNaN(limiteMensal)) payload.limiteDesejadoMensal = limiteMensal;
@@ -112,16 +144,16 @@
                 }
             }
             await carregarConfig();
-            alert("Configurações salvas!");
+            mostrarAlerta("Configurações salvas!");
         } catch (e) {
-            alert("Erro ao salvar configurações.");
+            mostrarAlerta("Erro ao salvar configurações.");
             console.error(e);
         }
     };
 
     window.salvarLimite = async function () {
         if (!cfgId) {
-            alert("Salve o mês fiscal primeiro para criar as configurações.");
+            mostrarAlerta("Salve o mês fiscal primeiro para criar as configurações.");
             return;
         }
         const instId = document.getElementById("selInstituicaoLimite")?.value;
@@ -129,11 +161,11 @@
         const valor = parseFloat(document.getElementById("ipt_limite_valor")?.value);
 
         if (!instId && !catId) {
-            alert("Selecione uma instituição ou categoria para definir o limite.");
+            mostrarAlerta("Selecione uma instituição ou categoria para definir o limite.");
             return;
         }
         if (!valor || valor <= 0) {
-            alert("Informe um valor de limite válido.");
+            mostrarAlerta("Informe um valor de limite válido.");
             return;
         }
 
@@ -148,13 +180,13 @@
             const res = await putJson(`${API}/configuracoes/edit/${cfgId}`, payload);
             if (res.ok) {
                 await carregarConfig();
-                alert("Limite salvo!");
+                mostrarAlerta("Limite salvo!");
             } else {
                 const body = await res.json().catch(() => ({}));
-                alert(`Erro ao salvar limite (HTTP ${res.status}): ${body.message || ""}`);
+                mostrarAlerta(`Erro ao salvar limite (HTTP ${res.status}): ${body.message || ""}`);
             }
         } catch (e) {
-            alert("Erro ao salvar limite.");
+            mostrarAlerta("Erro ao salvar limite.");
             console.error(e);
         }
     };
@@ -202,16 +234,17 @@
             const btn = document.createElement("button");
             btn.className = "cfg-btn danger";
             btn.textContent = "Desvincular";
-            btn.addEventListener("click", async () => {
+            btn.addEventListener("click", async () => 
+                mostrarConfirmacao("Remover esta instituição do seu perfil?", async () => {
                 try {
                     const res = await fetch(`${API}/instituicoes/${inst.intituicao.id}/usuarios/${userId}`, { method: "PATCH" });
-                    if (!res.ok) { alert(`Erro ao desvincular (HTTP ${res.status}).`); return; }
+                    if (!res.ok) { mostrarAlerta(`Erro ao desvincular (HTTP ${res.status}).`); return; }
                     await carregarInstituicoes();
                 } catch (e) {
-                    alert("Erro ao desvincular instituição.");
+                    mostrarAlerta("Erro ao desvincular instituição.");
                     console.error(e);
                 }
-            });
+            }));
             tdAcoes.appendChild(btn);
             tr.appendChild(tdAcoes);
 
@@ -234,14 +267,14 @@
     window.adicionarInstituicao = async function () {
         const sel = document.getElementById("sel_nova_instituicao");
         const instId = sel?.value;
-        if (!instId) { alert("Selecione uma instituição."); return; }
+        if (!instId) { mostrarAlerta("Selecione uma instituição."); return; }
         try {
             const res = await fetch(`${API}/instituicoes/${instId}/usuarios/${userId}`, { method: "POST" });
-            if (!res.ok) { alert(`Erro ao adicionar instituição (HTTP ${res.status}).`); return; }
+            if (!res.ok) { mostrarAlerta(`Erro ao adicionar instituição (HTTP ${res.status}).`); return; }
             sel.value = "";
             await carregarInstituicoes();
         } catch (e) {
-            alert("Erro ao adicionar instituição.");
+            mostrarAlerta("Erro ao adicionar instituição.");
             console.error(e);
         }
     };
@@ -311,15 +344,17 @@
             const btn = document.createElement("button");
             btn.className = "cfg-btn danger";
             btn.textContent = "Remover";
-            btn.addEventListener("click", async () => {
-                try {
-                    const res = await fetch(`${API}/categorias/${cat.categoria.id}/usuarios/${userId}`, { method: "PATCH" });
-                    if (!res.ok) { alert(`Erro ao remover (HTTP ${res.status}).`); return; }
-                    await carregarCategorias();
-                } catch (e) {
-                    alert("Erro ao remover categoria.");
-                    console.error(e);
-                }
+            btn.addEventListener("click", () => {
+                mostrarConfirmacao("Remover esta categoria do seu perfil?", async () => {
+                    try {
+                        const res = await fetch(`${API}/categorias/${cat.categoria.id}/usuarios/${userId}`, { method: "PATCH" });
+                        if (!res.ok) { mostrarAlerta(`Erro ao remover (HTTP ${res.status}).`); return; }
+                        await carregarCategorias();
+                    } catch (e) {
+                        mostrarAlerta("Erro ao remover categoria.");
+                        console.error(e);
+                    }
+                });
             });
             tdAcoes.appendChild(btn);
             tr.appendChild(tdAcoes);
@@ -343,14 +378,14 @@
     window.adicionarCategoria = async function () {
         const input = document.getElementById("ipt_nova_categoria");
         const titulo = input?.value?.trim();
-        if (!titulo) { alert("Informe o nome da categoria."); return; }
+        if (!titulo) { mostrarAlerta("Informe o nome da categoria."); return; }
         try {
             const res = await postJson(`${API}/categorias/usuario/${userId}`, { titulo });
-            if (!res.ok) { alert("Erro ao criar categoria."); return; }
+            if (!res.ok) { mostrarAlerta("Erro ao criar categoria."); return; }
             input.value = "";
             await carregarCategorias();
         } catch (e) {
-            alert("Erro ao adicionar categoria.");
+            mostrarAlerta("Erro ao adicionar categoria.");
             console.error(e);
         }
     };
@@ -360,7 +395,7 @@
             await fetch(`${API}/categorias/${catId}/usuarios/${userId}`, { method: "PATCH" });
             await carregarCategorias();
         } catch (e) {
-            alert("Erro ao remover categoria.");
+            mostrarAlerta("Erro ao remover categoria.");
             console.error(e);
         }
     };
@@ -370,10 +405,10 @@
         document.getElementById("inputImportar")?.click();
     };
     window.exportarDados = function () {
-        alert("Exportação de dados ainda não disponível.");
+        mostrarAlerta("Exportação de dados ainda não disponível.");
     };
     window.processarImportacao = function () {
-        alert("Importação de dados ainda não disponível.");
+        mostrarAlerta("Importação de dados ainda não disponível.");
     };
 
     if (document.readyState === "loading") {

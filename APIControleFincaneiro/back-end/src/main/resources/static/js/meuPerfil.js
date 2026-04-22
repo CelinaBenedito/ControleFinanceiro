@@ -4,6 +4,38 @@
     const userId = usuarioLogado?.id;
 
     // ── helpers ──────────────────────────────────────────────────
+    function mostrarAlerta(texto) {
+        const div = document.getElementById("div_alerta");
+        const conteudo = document.getElementById("conteudoAlerta");
+        if (!div || !conteudo) return;
+        conteudo.innerHTML = texto;
+        div.style.display = "flex";
+        setTimeout(() => { div.style.display = "none"; }, 3000);
+    }
+
+    function mostrarConfirmacao(texto, onConfirm) {
+        const div = document.getElementById("div_alerta");
+        const conteudo = document.getElementById("conteudoAlerta");
+        if (!div || !conteudo) { onConfirm(); return; }
+        conteudo.innerHTML = "";
+        const msg = document.createElement("span");
+        msg.textContent = texto;
+        const divBtns = document.createElement("div");
+        divBtns.style.cssText = "display:flex;gap:8px;margin-top:10px;";
+        const btnOk = document.createElement("button");
+        btnOk.textContent = "Confirmar";
+        btnOk.addEventListener("click", () => { div.style.display = "none"; onConfirm(); });
+        const btnNo = document.createElement("button");
+        btnNo.textContent = "Cancelar";
+        btnNo.style.background = "#888";
+        btnNo.addEventListener("click", () => { div.style.display = "none"; });
+        divBtns.appendChild(btnOk);
+        divBtns.appendChild(btnNo);
+        conteudo.appendChild(msg);
+        conteudo.appendChild(divBtns);
+        div.style.display = "flex";
+    }
+
     function putJson(url, payload) {
         return fetch(url, {
             method: "PUT",
@@ -110,13 +142,13 @@
         if (emailVal) payload.email = emailVal;
 
         if (!payload.nome || !payload.sobrenome || !payload.email) {
-            alert("Preencha nome, sobrenome e email.");
+            mostrarAlerta("Preencha nome, sobrenome e email.");
             return;
         }
 
         try {
             const res = await putJson(`${API}/usuarios/${userId}`, payload);
-            if (!res.ok) { alert("Erro ao salvar perfil."); return; }
+            if (!res.ok) { mostrarAlerta("Erro ao salvar perfil."); return; }
             const atualizado = await res.json();
             // Atualiza localStorage
             const novoUsuario = { ...usuarioLogado, ...atualizado };
@@ -124,7 +156,7 @@
             popularHero(novoUsuario);
             document.getElementById("modalEdicao").style.display = "none";
         } catch (e) {
-            alert("Erro ao salvar perfil.");
+            mostrarAlerta("Erro ao salvar perfil.");
             console.error(e);
         }
     };
@@ -208,15 +240,16 @@
         });
     }
 
-    window.desvincularInstituicao = async function (instId) {
-
-        try {
-            await fetch(`${API}/instituicoes/${instId}/usuarios/${userId}`, { method: "PATCH" });
-            await carregarInstituicoes();
-        } catch (e) {
-            alert("Erro ao desvincular instituição.");
-            console.error(e);
-        }
+    window.desvincularInstituicao = function (instId) {
+        mostrarConfirmacao("Desvincular esta instituição do seu perfil?", async () => {
+            try {
+                await fetch(`${API}/instituicoes/${instId}/usuarios/${userId}`, { method: "PATCH" });
+                await carregarInstituicoes();
+            } catch (e) {
+                mostrarAlerta("Erro ao desvincular instituição.");
+                console.error(e);
+            }
+        });
     };
 
     window.adicionarInstituicaoModal = async function () {
@@ -265,18 +298,18 @@
 
     window.confirmarAdicionarInst = async function () {
         const instId = document.getElementById("selNovaInst")?.value;
-        if (!instId) { alert("Selecione uma instituição."); return; }
+        if (!instId) { mostrarAlerta("Selecione uma instituição."); return; }
         try {
             const res = await fetch(`${API}/instituicoes/${instId}/usuarios/${userId}`, { method: "POST" });
             if (!res.ok) {
                 const body = await res.json().catch(() => ({}));
-                alert(body.message || "Erro ao vincular instituição.");
+                mostrarAlerta(body.message || "Erro ao vincular instituição.");
                 return;
             }
             document.getElementById("modalInstituicao")?.remove();
             await carregarInstituicoes();
         } catch (e) {
-            alert("Erro ao vincular instituição.");
+            mostrarAlerta("Erro ao vincular instituição.");
             console.error(e);
         }
     };
@@ -337,15 +370,16 @@
         });
     }
 
-    window.removerCategoria = async function (catId) {
-
-        try {
-            await fetch(`${API}/categorias/${catId}/usuarios/${userId}`, { method: "PATCH" });
-            await carregarCategorias();
-        } catch (e) {
-            alert("Erro ao remover categoria.");
-            console.error(e);
-        }
+    window.removerCategoria = function (catId) {
+        mostrarConfirmacao("Remover esta categoria do seu perfil?", async () => {
+            try {
+                await fetch(`${API}/categorias/${catId}/usuarios/${userId}`, { method: "PATCH" });
+                await carregarCategorias();
+            } catch (e) {
+                mostrarAlerta("Erro ao remover categoria.");
+                console.error(e);
+            }
+        });
     };
 
     window.adicionarCategoriaModal = function () {
@@ -381,19 +415,19 @@
 
     window.confirmarAdicionarCategoria = async function () {
         const titulo = document.getElementById("edTituloCategoria")?.value?.trim();
-        if (!titulo) { alert("Informe o nome da categoria."); return; }
+        if (!titulo) { mostrarAlerta("Informe o nome da categoria."); return; }
         try {
             const res = await fetch(`${API}/categorias/usuario/${userId}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ titulo })
             });
-            if (!res.ok) { alert("Erro ao criar categoria."); return; }
+            if (!res.ok) { mostrarAlerta("Erro ao criar categoria."); return; }
             document.getElementById("modalCategoria").style.display = "none";
             document.getElementById("edTituloCategoria").value = "";
             await carregarCategorias();
         } catch (e) {
-            alert("Erro ao criar categoria.");
+            mostrarAlerta("Erro ao criar categoria.");
             console.error(e);
         }
     };
