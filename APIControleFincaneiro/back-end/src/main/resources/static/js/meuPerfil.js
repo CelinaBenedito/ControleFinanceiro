@@ -56,7 +56,20 @@
             window.location.href = "login.html";
             return;
         }
-        popularHero(usuarioLogado);
+        // Busca dados frescos da API para garantir sobrenome, sexo, dataNascimento e email
+        try {
+            const res = await fetch(`${API}/usuarios/${userId}`);
+            if (res.ok) {
+                const usuarioAtualizado = await res.json();
+                const merged = { ...usuarioLogado, ...usuarioAtualizado };
+                localStorage.setItem("usuarioLogado", JSON.stringify(merged));
+                popularHero(merged);
+            } else {
+                popularHero(usuarioLogado);
+            }
+        } catch (e) {
+            popularHero(usuarioLogado);
+        }
         await Promise.all([
             carregarConfig(),
             carregarInstituicoes(),
