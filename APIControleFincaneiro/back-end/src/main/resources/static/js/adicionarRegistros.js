@@ -1,51 +1,72 @@
-div_alerta.style.display = 'none';
+const _divAlerta = document.getElementById('div_alerta');
+if (_divAlerta) _divAlerta.style.display = 'none';
 
 let dataGasto;
 const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
 const userId = usuarioLogado ? usuarioLogado.id : null;
 
-function alerta(texto) {
-    div_alerta.style.display = "flex"
-    conteudoAlerta.innerHTML =
-        `
-        ${texto}
-        `
+let _alertaTimer = null;
+
+function alerta(texto, duracaoMs = 4000) {
+    const divAl = document.getElementById("div_alerta");
+    const contAl = document.getElementById("conteudoAlerta");
+    if (divAl) divAl.style.display = "flex";
+    if (contAl) contAl.innerHTML = texto;
+
+    if (_alertaTimer) clearTimeout(_alertaTimer);
+    if (duracaoMs > 0) {
+        _alertaTimer = setTimeout(() => {
+            if (divAl) divAl.style.display = "none";
+            _alertaTimer = null;
+        }, duracaoMs);
+    }
 }
 
 function gerarInformacoes() {
-    gerarTipos();
+    gerarCategorias();
     gerarInstituicao();
 }
 
-function gerarTipos() {
+function gerarCategorias() {
     if (!userId) return;
-    const multiTipo = document.getElementById("multi_select_tipo");
-    select_tipo.innerHTML = "<option value='#'>Escolha um tipo</option>";
-    if (multiTipo) multiTipo.innerHTML = "<option value='#'>Tipo do Evento</option>";
-    MainAPI.getTipos(userId).then(json => {
-        for (let c = 0; json.length > c; c++) {
-            const opt = `<option value="${json[c].categoria.id}">${json[c].categoria.titulo}</option>`;
-            select_tipo.innerHTML += opt;
-            if (multiTipo) multiTipo.innerHTML += opt;
-        }
-    }).catch(function(error) {
-        console.error("Erro ao carregar tipos:", error);
-    });
+    const selectCat = document.getElementById("select_categoria");
+    const multiSelectCat = document.getElementById("multi_select_categoria");
+    if (selectCat) selectCat.innerHTML = "<option value='#'>Escolha uma categoria</option>";
+    if (multiSelectCat) multiSelectCat.innerHTML = "<option value='#'>Categoria</option>";
+    MainAPI.getTipos(userId)
+        .then(json => {
+            for (let c = 0; json.length > c; c++) {
+                const opt = `<option value="${json[c].id}">${json[c].categoria.titulo}</option>`;
+                if (selectCat) selectCat.innerHTML += opt;
+                if (multiSelectCat) multiSelectCat.innerHTML += opt;
+            }
+        })
+        .catch(error => {
+            console.error("Erro ao carregar categorias:", error);
+            alerta("Não foi possível carregar as categorias. Tente novamente.");
+        });
 }
 
+const gerarTipos = gerarCategorias;
+
 async function gerarInstituicao() {
-    const gestaoInstituicao = document.getElementById("gestaoInstituicao");
-    const multiInstituicao = document.getElementById("multi_select_instituicao");
-    select_instituicao.innerHTML = "<option value='#'> Escolha uma institui\u00e7\u00e3o</option>";
-    if (gestaoInstituicao) gestaoInstituicao.innerHTML = "";
-    if (multiInstituicao) multiInstituicao.innerHTML = "<option value='#'>Institui\u00e7\u00e3o</option>";
-    MainAPI.getInstituicoes().then(json => {
-        for (let c = 0; json.length > c; c++) {
-            select_instituicao.innerHTML += `<option value="${json[c].id}">${json[c].nome}</option>`;
-            if (gestaoInstituicao) gestaoInstituicao.innerHTML += `<option onclick="controleInstituicao()">${json[c].nome}</option>`;
-            if (multiInstituicao) multiInstituicao.innerHTML += `<option value="${json[c].id}">${json[c].nome}</option>`;
-        }
-    });
+    if (!userId) return;
+    const selectInst = document.getElementById("select_instituicao");
+    const multiSelectInst = document.getElementById("multi_select_instituicao");
+    if (selectInst) selectInst.innerHTML = "<option value='#'> Escolha uma instituição</option>";
+    if (multiSelectInst) multiSelectInst.innerHTML = "<option value='#'>Instituição</option>";
+    MainAPI.getInstituicoes(userId)
+        .then(json => {
+            for (let c = 0; json.length > c; c++) {
+                const opt = `<option value="${json[c].id}">${json[c].intituicao.nome}</option>`;
+                if (selectInst) selectInst.innerHTML += opt;
+                if (multiSelectInst) multiSelectInst.innerHTML += opt;
+            }
+        })
+        .catch(error => {
+            console.error("Erro ao carregar instituições:", error);
+            alerta("Não foi possível carregar as instituições. Tente novamente.");
+        });
 }
 
 async function controleInstituicao(){
@@ -57,50 +78,66 @@ async function controleInstituicao(){
 }
 
 function registrar() {
-    ("Iniciando registro!")
     var data = dataGasto;
     var valor = Number(document.getElementById('ipt_valor').value);
-    var titulo = ipt_nome.value;
-    var tipo = select_tipo.value;
-    var Desc = ipt_desc.value;
-    var instituicao = select_instituicao.value
+    var titulo = document.getElementById('ipt_nome').value;
+    var tipo = document.getElementById('select_tipo').value;
+    var categoria = document.getElementById('select_categoria').value;
+    var Desc = document.getElementById('ipt_desc').value;
+    var instituicao = document.getElementById('select_instituicao').value;
+    var movimento = document.getElementById('select_movimento').value;
 
     if (Desc == "" || Desc == false) {
         Desc = "Nenhuma descrição fornecida"
     }
     if (data == false || data == 0) {
-        return alert("Data inválida");
+        return alerta("Data inválida");
     }
-    if (valor <= 0 || valor == null || valor == undefined || valor == NaN) {
-        return alert("Valor inválido");
+    if (valor <= 0 || valor == null || valor == undefined) {
+        return alerta("Valor inválido");
     }
     if (titulo == "") {
-        return alert("Titulo inválido");
+        return alerta("Titulo inválido");
     }
     if (tipo == '#') {
-        return alert("Escolha um tipo");
+        return alerta("Escolha o tipo do evento");
+    }
+    if (categoria == '#') {
+        return alerta("Escolha uma categoria");
     }
     if (instituicao == '#') {
-        return alert("Escolha uma instituição");
+        return alerta("Escolha uma instituição");
+    }
+    if (movimento == '#') {
+        return alerta("Escolha o tipo de movimento");
     }
 
-    setTimeout(alerta(`Registrando...
+    alerta(`Registrando...
         <div class="glaceonCorrendoDiv">
     <img class="glaceon correndo" src="/assets/gif/glaceon-correndo-unscreen.gif" alt="">
     </div>
-        `), 2000)
+        `, 0);
 
     MainAPI.registrarGasto({
-        valorServer: valor,
-        descServer: Desc,
-        tipoServer: tipo,
-        tituloServer: titulo,
-        dataServer: data,
-        instituicaoServer: instituicao
+        financeiro: {
+            usuario_id: userId,
+            tipo: tipo,
+            valor: valor,
+            descricao: Desc,
+            dataEvento: data
+        },
+        instituicao: {
+            instituicaoUsuario_id: Number(instituicao),
+            tipoMovimento: movimento,
+            valor: valor
+        },
+        detalhe: {
+            categoriaUsuario_id: Number(categoria),
+            tituloGasto: titulo
+        }
     }).then((response) => {
         console.log("Resposta:", response);
         if (response.ok) {
-            atualizarSaldo(valor, instituicao);
             return setTimeout(() => alerta(
                 `  
                         Registro realizado com sucesso!<br>
@@ -111,12 +148,12 @@ function registrar() {
                         </button>
 
                         </div>
-                `
-            ), 3000);
+                `, 0
+            ), 1500);
 
         }
         else {
-            alert("Houve um erro ao registrar", response)
+            alerta("Houve um erro ao registrar")
         }
     });
 
@@ -182,7 +219,18 @@ let mesAtual = hoje.getMonth();
 let anoAtual = hoje.getFullYear();
 
 
-btnAbrir.onclick = () => modal.style.display = "flex";
+let modalAbertoPor = 'single';
+let lote = [];
+
+btnAbrir.onclick = () => {
+    modalAbertoPor = 'single';
+    modal.style.display = "flex";
+};
+
+function abrirCalendarioMulti() {
+    modalAbertoPor = 'multi';
+    modal.style.display = 'flex';
+}
 fechar.onclick = () => modal.style.display = "none";
 btnAnterior.onclick = () => {
     mesAtual--;
@@ -209,7 +257,7 @@ const gastos = {
 async function buscarGastosDia(dataSelecionada) {
     console.log("Buscando gastos para", dataSelecionada);
 
-    const json = await MainAPI.buscarRegistrosPorData(dataSelecionada);
+    const json = await MainAPI.buscarRegistrosPorData(userId, dataSelecionada);
     console.log("Tamanho de gastos:", json.length);
 
     let listaGastos = [];
@@ -258,44 +306,51 @@ async function selecionarDia(data, elemento) {
         .forEach(e => e.classList.remove("diaSelecionado"));
 
     elemento.classList.add("diaSelecionado");
-
-    const listaGastos = await buscarGastosDia(data);
-
-    console.log("tamanho lista gastos: ",listaGastos.length)
-    if (listaGastos.length > 0) {
-        console.log("Lista de gastos > 0")
-        novaData = new Date(listaGastos[0].dataGasto);
-        const dataFormatada = novaData.toLocaleDateString("pt-BR");
-        gastosDia.innerHTML = `
-            <b>Gastos de ${dataFormatada}:</b><br>
-        `;
-        for (let c = 0; c < listaGastos.length; c++) {
-            gastosDia.innerHTML += `
-            <b>${listaGastos[c].tituloGasto} - R$${listaGastos[c].valor}</b><br>
-        `;
-        }
-    } else {
-        gastosDia.innerHTML = "<i>Nenhum gasto neste dia.</i>";
-    }
-
     confirmar.disabled = false;
+
+    try {
+        const listaGastos = await buscarGastosDia(data);
+
+        console.log("tamanho lista gastos: ", listaGastos.length)
+        if (listaGastos.length > 0) {
+            console.log("Lista de gastos > 0")
+            const dataRegistro = listaGastos[0].eventoFinanceiro?.dataEvento ?? listaGastos[0].dataGasto;
+            const novaData = new Date(dataRegistro);
+            const dataFormatada = isNaN(novaData.getTime())
+                ? formatarDataBR(data)
+                : novaData.toLocaleDateString("pt-BR");
+            gastosDia.innerHTML = `
+                <b>Gastos de ${dataFormatada}:</b><br>
+            `;
+            for (let c = 0; c < listaGastos.length; c++) {
+                const gasto = listaGastos[c];
+                const tituloGasto = gasto.gastoDetalhe?.tituloGasto ?? gasto.tituloGasto;
+                const valorGasto = gasto.eventoFinanceiro?.valor ?? gasto.valor;
+                gastosDia.innerHTML += `
+                <b>${tituloGasto} - R$${valorGasto}</b><br>
+            `;
+            }
+        } else {
+            gastosDia.innerHTML = "<i>Nenhum gasto neste dia.</i>";
+        }
+    } catch (e) {
+        console.warn("Erro ao buscar gastos do dia:", e);
+        gastosDia.innerHTML = "";
+    }
 }
 
 confirmar.onclick = () => {
     modal.style.display = "none";
-    dataP.style.display = ""
-    dataFormatada = formatarDataBR(dataSelecionada)
-    dataP.textContent = dataFormatada
-    dataP.classList.remove("hidden");
-    dataGasto = dataSelecionada;
-
-    // Atualiza data na aba de Múltiplos Registros também
-    const multiDataHidden = document.getElementById("multi_data");
-    const multiDataLabel = document.getElementById("multi_data_label");
-    if (multiDataHidden) multiDataHidden.value = dataFormatada;
-    if (multiDataLabel) {
-        multiDataLabel.textContent = dataFormatada;
-        multiDataLabel.classList.remove("hidden");
+    const dataFormatada = formatarDataBR(dataSelecionada);
+    if (modalAbertoPor === 'multi') {
+        const label = document.getElementById('multi_data_label');
+        const hidden = document.getElementById('multi_data');
+        if (label) { label.textContent = dataFormatada; label.classList.remove('hidden'); label.style.display = ''; }
+        if (hidden) hidden.value = dataSelecionada;
+    } else {
+        const dataEl = document.getElementById('data');
+        if (dataEl) { dataEl.style.display = ''; dataEl.textContent = dataFormatada; dataEl.classList.remove('hidden'); }
+        dataGasto = dataSelecionada;
     }
 };
 
@@ -326,151 +381,109 @@ titulos.forEach(item => {
     });
 });
 
-function trocarFormulario(tela) {
-    const cardUnico = document.getElementById("cardUnico");
-    const cardMultiplo = document.getElementById("multiplosRegistros");
-    document.querySelectorAll(".ar-tab").forEach(t => t.classList.remove("ativo"));
-    if (tela === "multiplosRegistros") {
-        cardUnico.style.display = "none";
-        cardMultiplo.style.display = "flex";
-        document.getElementById("tabMultiplo").classList.add("ativo");
-    } else {
-        cardUnico.style.display = "";
-        cardMultiplo.style.display = "none";
-        document.getElementById("tabUnico").classList.add("ativo");
-    }
-}
-
-/* ---- Múltiplos Registros ---- */
-let loteRegistros = [];
-
+/*---------------- Múltiplos Registros ----------------*/
 
 function adicionarAoLote() {
-    const titulo = document.getElementById("ipt_multi_nome").value.trim();
-    const tipoSel = document.getElementById("multi_select_tipo");
-    const tipo = tipoSel.value;
-    const tipoNome = tipoSel.options[tipoSel.selectedIndex].text;
-    const instSel = document.getElementById("multi_select_instituicao");
-    const instId = instSel.value;
-    const instNome = instSel.options[instSel.selectedIndex].text;
-    const movSel = document.getElementById("multi_select_movimento");
-    const movimento = movSel.value;
-    const valor = parseFloat(document.getElementById("ipt_multi_valor").value);
-    const desc = document.getElementById("ipt_multi_desc").value.trim() || "Nenhuma descrição fornecida";
-    const dataRaw = document.getElementById("multi_data").value;
-    // Converte DD/MM/AAAA → YYYY-MM-DD para a API
-    const dataPartes = dataRaw.split("/");
-    const data = dataPartes.length === 3 ? `${dataPartes[2]}-${dataPartes[1]}-${dataPartes[0]}` : "";
+    const titulo = document.getElementById('ipt_multi_nome').value.trim();
+    const tipo = document.getElementById('multi_select_tipo').value;
+    const categoria = document.getElementById('multi_select_categoria').value;
+    const instituicao = document.getElementById('multi_select_instituicao').value;
+    const movimento = document.getElementById('multi_select_movimento').value;
+    const valor = Number(document.getElementById('ipt_multi_valor').value);
+    const desc = document.getElementById('ipt_multi_desc').value.trim() || 'Nenhuma descrição fornecida';
+    const data = document.getElementById('multi_data').value;
 
-    if (!titulo) return alert("Título inválido");
-    if (tipo === "#") return alert("Escolha um tipo de evento");
-    if (instId === "#") return alert("Escolha uma instituição");
-    if (movimento === "#") return alert("Escolha o movimento");
-    if (!data || dataRaw.length !== 10) return alert("Data inválida. Use o formato DD/MM/AAAA");
-    if (!valor || valor <= 0) return alert("Valor inválido");
+    if (!titulo) return alerta('Título inválido');
+    if (tipo === '#') return alerta('Escolha o tipo do evento');
+    if (categoria === '#') return alerta('Escolha uma categoria');
+    if (instituicao === '#') return alerta('Escolha uma instituição');
+    if (movimento === '#') return alerta('Escolha o tipo de movimento');
+    if (valor <= 0 || isNaN(valor)) return alerta('Valor inválido');
+    if (!data) return alerta('Escolha uma data');
 
-    loteRegistros.push({ titulo, tipo, tipoNome, instId, instNome, movimento, valor, desc, data });
-    renderizarTabelaLote();
-    document.getElementById("ipt_multi_nome").value = "";
-    document.getElementById("ipt_multi_valor").value = "";
-    document.getElementById("ipt_multi_desc").value = "";
+    const instSelect = document.getElementById('multi_select_instituicao');
+    const instNome = instSelect.options[instSelect.selectedIndex].text;
+
+    lote.push({
+        financeiro: { usuario_id: userId, tipo, valor, descricao: desc, dataEvento: data },
+        instituicao: { instituicaoUsuario_id: Number(instituicao), tipoMovimento: movimento, valor },
+        detalhe: { categoriaUsuario_id: Number(categoria), tituloGasto: titulo },
+        _display: { titulo, tipo, movimento, instNome, valor }
+    });
+
+    renderizarLote();
+
+    document.getElementById('ipt_multi_nome').value = '';
+    document.getElementById('ipt_multi_valor').value = '';
+    document.getElementById('ipt_multi_desc').value = '';
+    document.getElementById('multi_select_tipo').value = '#';
+    document.getElementById('multi_select_categoria').value = '#';
+    document.getElementById('multi_select_instituicao').value = '#';
+    document.getElementById('multi_select_movimento').value = '#';
 }
 
-function renderizarTabelaLote() {
-    const tbody = document.getElementById("corpoLote");
-    if (!tbody) return;
-    tbody.innerHTML = "";
-    if (loteRegistros.length === 0) {
-        const trVazio = document.createElement("tr");
-        trVazio.id = "loteVazio";
-
-        const tdVazio = document.createElement("td");
-        tdVazio.colSpan = 6;
-        tdVazio.style.textAlign = "center";
-        tdVazio.style.color = "#888";
-        tdVazio.style.fontStyle = "italic";
-        tdVazio.style.padding = "20px";
-        tdVazio.textContent = "Nenhum registro adicionado ainda.";
-
-        trVazio.appendChild(tdVazio);
-        tbody.appendChild(trVazio);
+function renderizarLote() {
+    const tbody = document.getElementById('corpoLote');
+    if (lote.length === 0) {
+        tbody.innerHTML = `<tr id="loteVazio"><td colspan="6" style="text-align:center; color:#888; font-style:italic; padding:20px;">Nenhum registro adicionado ainda.</td></tr>`;
         return;
     }
-    loteRegistros.forEach((r, i) => {
-        const tr = document.createElement("tr");
-
-        const tdTitulo = document.createElement("td");
-        tdTitulo.textContent = r.titulo;
-        tr.appendChild(tdTitulo);
-
-        const tdTipoNome = document.createElement("td");
-        tdTipoNome.textContent = r.tipoNome;
-        tr.appendChild(tdTipoNome);
-
-        const tdMovimento = document.createElement("td");
-        tdMovimento.textContent = r.movimento;
-        tr.appendChild(tdMovimento);
-
-        const tdInstNome = document.createElement("td");
-        tdInstNome.textContent = r.instNome;
-        tr.appendChild(tdInstNome);
-
-        const tdValor = document.createElement("td");
-        tdValor.textContent = `R$ ${r.valor.toFixed(2).replace(".", ",")}`;
-        tr.appendChild(tdValor);
-
-        const tdAcao = document.createElement("td");
-        const botaoRemover = document.createElement("button");
-        botaoRemover.className = "ar-btn";
-        botaoRemover.style.height = "32px";
-        botaoRemover.style.minWidth = "0";
-        botaoRemover.style.padding = "0 10px";
-        botaoRemover.style.fontSize = "0.8rem";
-        botaoRemover.style.background = "#e53e3e";
-        botaoRemover.style.margin = "0";
-        botaoRemover.textContent = "\u2716";
-        botaoRemover.addEventListener("click", () => removerDoLote(i));
-        tdAcao.appendChild(botaoRemover);
-        tr.appendChild(tdAcao);
-
-        tbody.appendChild(tr);
+    tbody.innerHTML = '';
+    lote.forEach((item, i) => {
+        const d = item._display;
+        tbody.innerHTML += `
+            <tr>
+                <td>${d.titulo}</td>
+                <td>${d.tipo}</td>
+                <td>${d.movimento}</td>
+                <td>${d.instNome}</td>
+                <td>R$ ${d.valor.toFixed(2)}</td>
+                <td><button onclick="removerDoLote(${i})" style="background:none;border:none;cursor:pointer;color:red;font-size:1.1rem;">✕</button></td>
+            </tr>`;
     });
 }
 
-function removerDoLote(index) {
-    loteRegistros.splice(index, 1);
-    renderizarTabelaLote();
+function removerDoLote(i) {
+    lote.splice(i, 1);
+    renderizarLote();
 }
 
-async function salvarLote() {
-    if (loteRegistros.length === 0) return alert("Adicione pelo menos um registro");
-    alerta(`Salvando ${loteRegistros.length} registro(s)...
-        <div class="glaceonCorrendoDiv">
-            <img class="glaceon correndo" src="/assets/gif/glaceon-correndo-unscreen.gif" alt="">
-        </div>
-    `);
-    try {
-        for (const r of loteRegistros) {
-            await MainAPI.registrarGasto({
-                valorServer: r.valor,
-                descServer: r.desc,
-                tipoServer: r.tipo,
-                tituloServer: r.titulo,
-                dataServer: r.data,
-                instituicaoServer: r.instId
-            });
-            await MainAPI.atualizarSaldo(r.valor, r.instId);
+function salvarLote() {
+    if (lote.length === 0) return alerta('Nenhum registro no lote');
+    alerta(`Salvando ${lote.length} registro(s)...`, 0);
+
+    const promessas = lote.map(item => MainAPI.registrarGasto({
+        financeiro: item.financeiro,
+        instituicao: item.instituicao,
+        detalhe: item.detalhe
+    }));
+
+    Promise.all(promessas).then(respostas => {
+        const erros = respostas.filter(r => !r.ok).length;
+        if (erros === 0) {
+            lote = [];
+            renderizarLote();
+            alerta(`${respostas.length} registro(s) salvos com sucesso!<br><button onclick="document.getElementById('div_alerta').style.display='none'">OK</button>`, 0);
+        } else {
+            alerta(`${erros} erro(s) ao salvar. Verifique e tente novamente.`);
         }
-        const total = loteRegistros.length;
-        loteRegistros = [];
-        renderizarTabelaLote();
-        setTimeout(() => alerta(`
-            ${total} registro(s) salvo(s) com sucesso!<br>
-            <div><button onclick='div_alerta.style.display="none"'>OK</button></div>
-        `), 500);
-    } catch (e) {
-        console.error("Erro ao salvar lote:", e);
-        alerta(`Erro ao salvar registros. <button onclick='div_alerta.style.display="none"'>OK</button>`);
+    }).catch(() => alerta('Erro ao conectar ao servidor'));
+}
+
+function trocarFormulario(tela) {
+    const cardUnico = document.getElementById("cardUnico");
+    const cardMultiplo = document.getElementById("multiplosRegistros");
+    const tabUnico = document.getElementById("tabUnico");
+    const tabMultiplo = document.getElementById("tabMultiplo");
+    if (tela === "multiplosRegistros") {
+        if (cardUnico) cardUnico.style.display = "none";
+        if (cardMultiplo) cardMultiplo.style.display = "flex";
+        if (tabUnico) tabUnico.classList.remove("ativo");
+        if (tabMultiplo) tabMultiplo.classList.add("ativo");
+    } else {
+        if (cardUnico) cardUnico.style.display = "";
+        if (cardMultiplo) cardMultiplo.style.display = "none";
+        if (tabUnico) tabUnico.classList.add("ativo");
+        if (tabMultiplo) tabMultiplo.classList.remove("ativo");
     }
 }
-

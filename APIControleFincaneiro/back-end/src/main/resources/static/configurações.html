@@ -350,6 +350,9 @@
 </head>
 
 <body>
+    <div class="alerta" id="div_alerta" style="display:none;">
+        <div class="conteudoAlerta" id="conteudoAlerta"></div>
+    </div>
     <div class="containerGeral">
         <nav class="side-bar" id="navbar">
             <ul>
@@ -415,9 +418,13 @@
                             </select>
                             <label for="mesFiscal">Início do mês fiscal</label>
                         </div>
+                        <div class="cfg-field" style="max-width:380px;">
+                            <input type="number" id="limiteMensal" placeholder=" " step="0.01" min="0">
+                            <label for="limiteMensal">Limite mensal total (R$)</label>
+                        </div>
                     </div>
 
-                    <button class="cfg-btn">Salvar</button>
+                    <button class="cfg-btn" onclick="salvarMesFiscal()">Salvar</button>
                 </div>
 
                 <!-- LIMITES DE GASTOS + ALERTAS -->
@@ -428,28 +435,21 @@
                         <div class="cfg-split-main">
                             <div class="cfg-row">
                                 <div class="cfg-field">
-                                    <select required>
+                                    <select id="selInstituicaoLimite" required>
                                         <option value="" disabled selected></option>
-                                        <option>Total Geral</option>
-                                        <option>Itaú</option>
-                                        <option>Nubank</option>
                                     </select>
                                     <label>Instituição</label>
                                 </div>
 
                                 <div class="cfg-field">
-                                    <select required>
+                                    <select id="selCategoriaLimite" required>
                                         <option value="" disabled selected></option>
-                                        <option>Todas</option>
-                                        <option>Mercado</option>
-                                        <option>Roupas</option>
-                                        <option>Luz e Água</option>
                                     </select>
                                     <label>Categoria</label>
                                 </div>
 
                                 <div class="cfg-field">
-                                    <input type="number" placeholder=" " />
+                                    <input type="number" id="ipt_limite_valor" placeholder=" " />
                                     <label>Limite mensal (R$)</label>
                                 </div>
                             </div>
@@ -473,7 +473,7 @@
                                 </table>
                             </div>
 
-                            <button class="cfg-btn">Salvar limite</button>
+                            <button class="cfg-btn" onclick="salvarLimite()">Salvar limite</button>
                         </div>
 
                         <div class="cfg-split-side">
@@ -496,7 +496,9 @@
 
                     <div class="cfg-row" style="align-items:flex-end;">
                         <div class="cfg-field" style="flex:1;max-width:380px;">
-                            <input type="text" id="ipt_nova_instituicao" placeholder=" ">
+                            <select id="sel_nova_instituicao" required>
+                                <option value="" disabled selected></option>
+                            </select>
                             <label>Nova instituição</label>
                         </div>
                         <button class="cfg-btn" onclick="adicionarInstituicao()">Adicionar instituição</button>
@@ -594,4 +596,6 @@
 </body>
 
 </html>
+<script src="js/main.js"></script>
+<script src="js/configuracoes.js"></script>
 <script src="js/navbar.js"></script>

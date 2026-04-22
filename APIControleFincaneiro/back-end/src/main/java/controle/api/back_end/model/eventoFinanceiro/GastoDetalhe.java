@@ -57,4 +57,3 @@ public class GastoDetalhe {
         this.tituloGasto = tituloGasto;
     }
 }
-
