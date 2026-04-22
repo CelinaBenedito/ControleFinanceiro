@@ -164,3 +164,151 @@ VALUES
 
     ('99990000-aaaa-1111-bbbb-222222222222', 16, 800.00,'6a7b8c9d-0123-4f56-789a-bcdef1234567'),
     ('aaaa1111-bbbb-2222-cccc-333333333334', 17, 700.00,'6a7b8c9d-0123-4f56-789a-bcdef1234567');
+
+-- Márcio recebendo salário
+INSERT INTO evento_financeiro (id, usuario_id, tipo, valor, descricao, data_evento, data_registro)
+VALUES ('9b2e1f4c-8a7d-4c3b-9f12-7d8e5a6b7c90',
+        '21eb5d2f-3fd8-439e-b647-5cc1f753ae58',
+        'Recebimento',
+        5000.00,
+        'Recebimento de salário mensal',
+        '2026-04-01',
+        CURRENT_TIMESTAMP);
+
+INSERT INTO evento_instituicao (fk_evento, fk_instituicao_usuario, tipo_movimento, valor)
+VALUES ('9b2e1f4c-8a7d-4c3b-9f12-7d8e5a6b7c90',
+        2,
+        'Debito',
+        5000.00);
+
+
+-- Márcio comprando roupas de inverno
+INSERT INTO evento_financeiro (id, usuario_id, tipo, valor, descricao, data_evento, data_registro)
+VALUES ('44444444-dddd-eeee-ffff-000000000004',
+        '21eb5d2f-3fd8-439e-b647-5cc1f753ae58',
+        'Gasto',
+        350.00,
+        'Compra de roupas de inverno',
+        '2026-02-15',
+        CURRENT_TIMESTAMP);
+
+INSERT INTO evento_instituicao (fk_evento, fk_instituicao_usuario, tipo_movimento, valor)
+VALUES ('44444444-dddd-eeee-ffff-000000000004',
+        2,
+        'Credito',
+        350.00);
+
+INSERT INTO gasto_detalhe (fk_evento, fk_categoria, titulo_gasto)
+VALUES ('44444444-dddd-eeee-ffff-000000000004',
+        1,
+        'Casaco de lã');
+
+
+-- Márcio - Recarga de bilhete único
+INSERT INTO evento_financeiro (id, usuario_id, tipo, valor, descricao, data_evento, data_registro)
+VALUES ('550e8400-e29b-41d4-a716-446655440000',
+        '21eb5d2f-3fd8-439e-b647-5cc1f753ae58',
+        'Gasto',
+        80.00,
+        'Recarga de bilhete único',
+        '2026-03-01',
+        CURRENT_TIMESTAMP);
+
+INSERT INTO evento_instituicao (fk_evento, fk_instituicao_usuario, tipo_movimento, valor)
+VALUES ('550e8400-e29b-41d4-a716-446655440000',
+        1,
+        'Pix',
+        80.00);
+
+INSERT INTO gasto_detalhe (fk_evento, fk_categoria, titulo_gasto)
+VALUES ('550e8400-e29b-41d4-a716-446655440000',
+        6,
+        'Transporte público');
+
+
+-- Márcio - Jantar em restaurante italiano
+INSERT INTO evento_financeiro (id, usuario_id, tipo, valor, descricao, data_evento, data_registro)
+VALUES ('123e4567-e89b-12d3-a456-426614174000',
+        '21eb5d2f-3fd8-439e-b647-5cc1f753ae58',
+        'Gasto',
+        120.00,
+        'Jantar em restaurante italiano',
+        '2026-03-20',
+        CURRENT_TIMESTAMP);
+
+INSERT INTO evento_instituicao (fk_evento, fk_instituicao_usuario, tipo_movimento, valor)
+VALUES ('123e4567-e89b-12d3-a456-426614174000',
+        5,
+        'Debito',
+        120.00);
+
+INSERT INTO gasto_detalhe (fk_evento, fk_categoria, titulo_gasto)
+VALUES ('123e4567-e89b-12d3-a456-426614174000',
+        2,
+        'Restaurante');
+
+
+-- Jonas comprando carne no mercado
+INSERT INTO evento_financeiro (id, usuario_id, tipo, valor, descricao, data_evento, data_registro)
+VALUES ('11111111-aaaa-bbbb-cccc-000000000001',
+        'b5135981-72fc-46ee-a6c6-4072495f7afd',
+        'Gasto',
+        250.00,
+        'Compra de carne no mercado',
+        '2026-02-10',
+        CURRENT_TIMESTAMP);
+
+INSERT INTO evento_instituicao (fk_evento, fk_instituicao_usuario, tipo_movimento, valor)
+VALUES ('11111111-aaaa-bbbb-cccc-000000000001',
+        4,
+        'Debito',
+        250.00);
+
+INSERT INTO gasto_detalhe (fk_evento, fk_categoria, titulo_gasto)
+VALUES ('11111111-aaaa-bbbb-cccc-000000000001',
+        3,
+        'Carne bovina');
+
+-- Mariana pagando conta de água
+INSERT INTO evento_financeiro (id, usuario_id, tipo, valor, descricao, data_evento, data_registro)
+VALUES ('22222222-bbbb-cccc-dddd-000000000002',
+        '2f1ed17a-c8b6-425b-adb1-b28126be88de',
+        'Gasto',
+        120.00,
+        'Conta de água mensal',
+        '2026-03-05',
+        CURRENT_TIMESTAMP);
+
+INSERT INTO evento_instituicao (fk_evento, fk_instituicao_usuario, tipo_movimento, valor)
+VALUES ('22222222-bbbb-cccc-dddd-000000000002',
+        7,
+        'Boleto',
+        120.00);
+
+INSERT INTO gasto_detalhe (fk_evento, fk_categoria, titulo_gasto)
+VALUES ('22222222-bbbb-cccc-dddd-000000000002',
+        4,
+        'Conta de Água');
+
+-- Carla comprando passagem de ônibus
+INSERT INTO evento_financeiro (id, usuario_id, tipo, valor, descricao, data_evento, data_registro)
+VALUES ('33333333-cccc-dddd-eeee-000000000003',
+        '8a2f1c3d-5b44-4f9a-9d2a-1c8f7a9e6b11',
+        'Gasto',
+        50.00,
+        'Passagem de ônibus',
+        '2026-04-01',
+        CURRENT_TIMESTAMP);
+
+INSERT INTO evento_instituicao (fk_evento, fk_instituicao_usuario, tipo_movimento, valor)
+VALUES ('33333333-cccc-dddd-eeee-000000000003',
+        11,
+        'Pix',
+        50.00);
+
+INSERT INTO gasto_detalhe (fk_evento, fk_categoria, titulo_gasto)
+VALUES ('33333333-cccc-dddd-eeee-000000000003',
+        6,
+        'Transporte público');
+
+

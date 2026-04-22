@@ -3,20 +3,20 @@ package controle.api.back_end.service;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
+import controle.api.back_end.factory.MovimentoFactory;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.eventoFinanceiro.*;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.*;
 import controle.api.back_end.specifications.EventoFinanceiroSpecifications;
+import controle.api.back_end.strategy.movimento.MovimentoResultado;
+import controle.api.back_end.strategy.movimento.MovimentoStrategy;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,19 +27,22 @@ public class RegistroService {
     private final CategoriaUsuarioRepository categoriaUsuarioRepository;
     private final UsuarioRepository usuarioRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
+    private final MovimentoFactory movimentoFactory;
 
     public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository,
                            EventoInstituicaoRepository eventoInstituicaoRepository,
                            GastoDetalheRepository gastoDetalheRepository,
                            CategoriaUsuarioRepository categoriaUsuarioRepository,
                            UsuarioRepository usuarioRepository,
-                           InstituicaoUsuarioRepository instituicaoUsuarioRepository) {
+                           InstituicaoUsuarioRepository instituicaoUsuarioRepository,
+                           MovimentoFactory movimentoFactory) {
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.gastoDetalheRepository = gastoDetalheRepository;
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
         this.usuarioRepository = usuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
+        this.movimentoFactory = movimentoFactory;
     }
 
     public EventoFinanceiro createEventoFinanceiro(EventoFinanceiro entity) {
@@ -75,7 +78,18 @@ public class RegistroService {
                        )
                );
 
-       entity.setInstituicaoUsuario(instituicaoUsuario);
+        MovimentoStrategy strategy = movimentoFactory.getStrategy(entity.getTipoMovimento(), params);
+        strategy.validar(entity.getInstituicaoUsuario());
+        MovimentoResultado resultado = strategy.processar(entity);
+
+        if (resultado.getParcelas() > 1) {
+            // lógica de salvar parcelas
+        } else {
+            eventoInstituicaoRepository.save(resultado.getEvento());
+        }
+
+
+        entity.setInstituicaoUsuario(instituicaoUsuario);
        entity.setEventoFinanceiro(eventoFinanceiro);
        return eventoInstituicaoRepository.save(entity);
     }

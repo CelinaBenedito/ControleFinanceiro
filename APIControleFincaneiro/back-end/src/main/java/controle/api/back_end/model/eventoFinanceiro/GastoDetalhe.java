@@ -7,7 +7,23 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+@Entity
+public class GastoDetalhe {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
+    @OneToOne(optional = false)
+    @JoinColumn(name = "fkEvento", nullable = false)
+    private EventoFinanceiro eventoFinanceiro;
+
+    @ManyToOne
+    @JoinColumn(name = "fkCategoria")
+    private CategoriaUsuario categoriaUsuario;
+
+    @Size(max = 50)
+    @NotBlank
+    private String tituloGasto;
 
     public Long getId() {
         return id;

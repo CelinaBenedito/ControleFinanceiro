@@ -20,6 +20,8 @@ public class EventoInstituicaoCreateDto {
     @Positive
     @Schema(example = "100.0", description = "Representa o valor da movimentação.")
     private Double valor;
+    @NotNull
+    private Integer parcelas;
 
     public Integer getInstituicaoUsuario_id() {
         return instituicaoUsuario_id;
@@ -43,6 +45,14 @@ public class EventoInstituicaoCreateDto {
 
     public void setValor(Double valor) {
         this.valor = valor;
+    }
+
+    public Integer getParcelas() {
+        return parcelas;
+    }
+
+    public void setParcelas(Integer parcelas) {
+        this.parcelas = parcelas;
     }
 }
 

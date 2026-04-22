@@ -1,0 +1,21 @@
+package controle.api.back_end.strategy.movimento;
+
+import controle.api.back_end.exception.InstituicaoInativaException;
+import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+
+public class DebitoMovimento implements MovimentoStrategy {
+    @Override
+    public void validar(InstituicaoUsuario instituicao) {
+        if (!instituicao.getAtivo()) {
+            throw new InstituicaoInativaException("Instituição %s inativa não pode realizar débito."
+                    .formatted(instituicao.getInstituicao().getNome()));
+        }
+    }
+
+    @Override
+    public MovimentoResultado processar(EventoInstituicao evento) {
+        return new MovimentoResultado(evento);
+    }
+}
+
