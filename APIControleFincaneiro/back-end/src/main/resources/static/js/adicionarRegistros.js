@@ -312,14 +312,20 @@ async function selecionarDia(data, elemento) {
         console.log("tamanho lista gastos: ", listaGastos.length)
         if (listaGastos.length > 0) {
             console.log("Lista de gastos > 0")
-            novaData = new Date(listaGastos[0].dataGasto);
-            const dataFormatada = novaData.toLocaleDateString("pt-BR");
+            const dataRegistro = listaGastos[0].eventoFinanceiro?.dataEvento ?? listaGastos[0].dataGasto;
+            const novaData = new Date(dataRegistro);
+            const dataFormatada = isNaN(novaData.getTime())
+                ? formatarDataBR(data)
+                : novaData.toLocaleDateString("pt-BR");
             gastosDia.innerHTML = `
                 <b>Gastos de ${dataFormatada}:</b><br>
             `;
             for (let c = 0; c < listaGastos.length; c++) {
+                const gasto = listaGastos[c];
+                const tituloGasto = gasto.gastoDetalhe?.tituloGasto ?? gasto.tituloGasto;
+                const valorGasto = gasto.eventoFinanceiro?.valor ?? gasto.valor;
                 gastosDia.innerHTML += `
-                <b>${listaGastos[c].tituloGasto} - R$${listaGastos[c].valor}</b><br>
+                <b>${tituloGasto} - R$${valorGasto}</b><br>
             `;
             }
         } else {
