@@ -29,8 +29,8 @@
         btnNo.textContent = "Cancelar";
         btnNo.style.background = "#888";
         btnNo.addEventListener("click", () => { div.style.display = "none"; });
-        divBtns.appendChild(btnOk);
         divBtns.appendChild(btnNo);
+        divBtns.appendChild(btnOk);
         conteudo.appendChild(msg);
         conteudo.appendChild(divBtns);
         div.style.display = "flex";
