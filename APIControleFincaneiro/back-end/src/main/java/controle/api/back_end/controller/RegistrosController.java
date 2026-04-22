@@ -170,5 +170,13 @@ public class RegistrosController {
         return ResponseEntity.status(200).body(response);
     }
 
+    @DeleteMapping("/{evento_id}")
+    public ResponseEntity<Void> deleteRegistroByEventoFinanceiro_Id(
+            @PathVariable UUID evento_id
+    ){
+        registroService.deleteRegistroByEventoFinanceiro_Id(evento_id);
+        return ResponseEntity.status(200).build();
+    }
+
 }
 

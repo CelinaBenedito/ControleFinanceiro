@@ -9,4 +9,8 @@ import java.util.UUID;
 
 public interface EventoInstituicaoRepository extends JpaRepository<EventoInstituicao, Integer> {
     EventoInstituicao findEventoInstituicaoByEventoFinanceiro_Id(UUID eventoId);
+
+    boolean existsEventoInstituicaoByEventoFinanceiro_Id(UUID eventoId);
+
+    void deleteEventoInstituicaoByEventoFinanceiro_Id(UUID eventoFinanceiroId);
 }
