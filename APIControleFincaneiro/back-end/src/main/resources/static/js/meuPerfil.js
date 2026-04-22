@@ -181,7 +181,7 @@
             const tr = document.createElement("tr");
 
             const tdNome = document.createElement("td");
-            tdNome.textContent = inst.nome;
+            tdNome.textContent = inst.intituicao.nome;
             tr.appendChild(tdNome);
 
             const tdLimite = document.createElement("td");
@@ -202,7 +202,7 @@
             btn.addEventListener("click", async () => {
                 if (!confirm("Desvincular esta instituição do seu perfil?")) return;
                 try {
-                    const res = await fetch(`${API}/instituicoes/${inst.id}/usuarios/${userId}`, { method: "PATCH" });
+                    const res = await fetch(`${API}/instituicoes/${inst.intituicao.id}/usuarios/${userId}`, { method: "PATCH" });
                     if (!res.ok) { alert(`Erro ao desvincular (HTTP ${res.status}).`); return; }
                     await carregarInstituicoes();
                 } catch (e) {

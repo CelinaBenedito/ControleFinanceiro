@@ -26,7 +26,7 @@ function gerarTipos() {
 
             select_tipo.innerHTML +=
                 `
-                            <option value="${json[c].categoria.id}">${json[c].categoria.titulo}</option>
+                            <option value="${json[c].id}">${json[c].categoria.titulo}</option>
                         `
         }
     })
@@ -35,16 +35,16 @@ function gerarTipos() {
 async function gerarInstituicao() {
     gestaoInstituicao = document.getElementById("gestaoInstituicao")
     select_instituicao.innerHTML = "<option value='#'> Escolha uma instituição</option>"
-    MainAPI.getInstituicoes().then(json => {
+    MainAPI.getInstituicoes(userId).then(json => {
         for (let c = 0; json.length > c; c++) {
             select_instituicao.innerHTML +=
                 `
-                        <option value="${json[c].id}">${json[c].nome}</option>
+                        <option value="${json[c].id}">${json[c].intituicao.nome}</option>
                     `
 
             gestaoInstituicao.innerHTML += 
             `
-                 <option onclick="controleInstituicao()">${json[c].nome}</option>
+                 <option onclick="controleInstituicao()">${json[c].intituicao.nome}</option>
                 `
         }
     })

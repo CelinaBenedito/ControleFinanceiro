@@ -191,7 +191,7 @@
             const tr = document.createElement("tr");
 
             const tdNome = document.createElement("td");
-            tdNome.textContent = inst.nome;
+            tdNome.textContent = inst.intituicao.nome;
             tr.appendChild(tdNome);
 
             const tdMod = document.createElement("td");
@@ -205,7 +205,7 @@
             btn.addEventListener("click", async () => {
                 if (!confirm("Remover esta instituição do seu perfil?")) return;
                 try {
-                    const res = await fetch(`${API}/instituicoes/${inst.id}/usuarios/${userId}`, { method: "PATCH" });
+                    const res = await fetch(`${API}/instituicoes/${inst.intituicao.id}/usuarios/${userId}`, { method: "PATCH" });
                     if (!res.ok) { alert(`Erro ao remover instituição (HTTP ${res.status}).`); return; }
                     await carregarInstituicoes();
                 } catch (e) {
@@ -226,8 +226,8 @@
         sel.innerHTML = `<option value="" disabled selected></option>`;
         instituicoes.forEach(inst => {
             const opt = document.createElement("option");
-            opt.value = inst.id;
-            opt.textContent = inst.nome;
+            opt.value = inst.intituicao.id;
+            opt.textContent = inst.intituicao.nome;
             sel.appendChild(opt);
         });
     }
@@ -254,7 +254,7 @@
             const res = await fetch(`${API}/instituicoes`);
             if (!res.ok) return;
             const todas = await res.json();
-            const vinculadasIds = new Set(instituicoes.map(i => i.id));
+            const vinculadasIds = new Set(instituicoes.map(i => i.intituicao.id));
             const disponiveis = todas.filter(i => !vinculadasIds.has(i.id));
             sel.innerHTML = `<option value="" disabled selected></option>`;
             disponiveis.forEach(inst => {
