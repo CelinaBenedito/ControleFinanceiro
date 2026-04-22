@@ -50,7 +50,7 @@
             return postJson("/registros", payload);
         },
         carregarRegistros(userId) {
-            return request(`/registros/usuario/${userId}`, { method: "GET" })
+            return request(`/registros/${userId}`, { method: "GET" })
                 .then(res => {
                     if (res.status === 204) return [];
                     return res.json();
@@ -60,7 +60,7 @@
             return postJson(`/categorias/usuario/${userId}`, { titulo: payload.titulo });
         },
         buscarRegistrosPorData(userId, dataSelecionada) {
-            return request(`/registros/usuario/${userId}`, { method: "GET" })
+            return request(`/registros/${userId}`, { method: "GET" })
                 .then(res => {
                     if (res.status === 204) return [];
                     return res.json();
