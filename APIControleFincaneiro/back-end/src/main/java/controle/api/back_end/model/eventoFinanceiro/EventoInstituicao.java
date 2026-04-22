@@ -29,7 +29,7 @@ public class EventoInstituicao {
     @NotNull
     private Double valor;
 
-    private Integer parcelas
+    private Integer parcelas;
 
     public InstituicaoUsuario getInstituicaoUsuario() {
         return instituicaoUsuario;
