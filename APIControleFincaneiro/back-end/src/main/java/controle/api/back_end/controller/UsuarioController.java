@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -56,6 +57,12 @@ public class UsuarioController {
         UsuarioResponseDTO response = UsuarioMappper.toDto(usuario);
 
         return ResponseEntity.ok(response);
+    }
+    @GetMapping("/saldo/usuarios/{user_id}")
+    public ResponseEntity<BigDecimal> getSaldoByUsuario(@PathVariable UUID user_id){
+        BigDecimal saldoByUsuario = usuarioService
+                .getSaldoByUsuario(user_id);
+        return ResponseEntity.status(200).body(saldoByUsuario);
     }
 
     @PostMapping

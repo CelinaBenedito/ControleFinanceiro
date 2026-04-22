@@ -4,10 +4,14 @@ import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.exception.MenorDeIdadeException;
 import controle.api.back_end.model.configuracoes.Configuracoes;
+import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.usuario.Usuario;
+import controle.api.back_end.repository.EventoFinanceiroRepository;
 import controle.api.back_end.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -17,10 +21,14 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final ConfiguracoesService configuracoesService;
+    private final EventoFinanceiroRepository eventoFinanceiroRepository;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, ConfiguracoesService configuracoesService) {
+    public UsuarioService(UsuarioRepository usuarioRepository,
+                          ConfiguracoesService configuracoesService,
+                          EventoFinanceiroRepository eventoFinanceiroRepository) {
         this.usuarioRepository = usuarioRepository;
         this.configuracoesService = configuracoesService;
+        this.eventoFinanceiroRepository = eventoFinanceiroRepository;
     }
 
     public List<Usuario> getUsuarios(){
@@ -34,6 +42,28 @@ public class UsuarioService {
                                 formatted(id)
                         )
                 );
+    }
+
+    public BigDecimal getSaldoByUsuario(UUID userId) {
+        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
+                new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado"
+                        .formatted(userId)
+                )
+        );
+        List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository.findEventoFinanceiroByUsuario(usuario);
+
+        BigDecimal saldo = BigDecimal.ZERO;
+
+        for (EventoFinanceiro evento : eventosFinanceiros) {
+            BigDecimal valor = BigDecimal.valueOf(evento.getValor());
+
+            if (evento.getTipo() == Tipo.Gasto || evento.getTipo() == Tipo.Transferencia) {
+                saldo = saldo.subtract(valor);
+            } else if (evento.getTipo() == Tipo.Recebimento) {
+                saldo = saldo.add(valor);
+            }
+        }
+        return saldo;
     }
 
     public Usuario createUsuario(Usuario entity) {

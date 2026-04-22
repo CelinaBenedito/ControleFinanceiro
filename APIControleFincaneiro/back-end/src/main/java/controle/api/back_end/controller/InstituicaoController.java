@@ -91,14 +91,6 @@ public class InstituicaoController {
         return ResponseEntity.status(200).body(saldoByInstituicao);
     }
 
-    @GetMapping("/saldo/usuarios/{user_id}")
-    public ResponseEntity<BigDecimal> getSaldoByUsuario(@PathVariable UUID user_id){
-        BigDecimal saldoByUsuario = instituicaoService
-                .getSaldoByUsuario(user_id);
-        return ResponseEntity.status(200).body(saldoByUsuario);
-    }
-
-
     @PostMapping
     @Operation(summary = "Adicionar uma instituição.",
             description = "Cria uma nova instituição no banco de dados.")
