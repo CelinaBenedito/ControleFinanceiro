@@ -47,6 +47,8 @@ function gerarCategorias() {
         });
 }
 
+const gerarTipos = gerarCategorias;
+
 async function gerarInstituicao() {
     if (!userId) return;
     const selectInst = document.getElementById("select_instituicao");
