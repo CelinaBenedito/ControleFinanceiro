@@ -459,6 +459,9 @@
 </head>
 
 <body>
+    <div class="alerta" id="div_alerta" style="display:none;">
+        <div class="conteudoAlerta" id="conteudoAlerta"></div>
+    </div>
     <div class="containerGeral">
         <nav class="side-bar" id="navbar">
             <ul>
@@ -509,7 +512,7 @@
                     <!-- Name + edit -->
                     <div class="pf-nome-row">
                         <div class="pf-nome" id="pfNome">Usuário<br>da Silva Santos</div>
-                        <button class="pf-edit-btn" title="Editar nome"><i class='bx bx-edit'></i></button>
+                        <button class="pf-edit-btn" title="Editar nome" onclick="abrirEdicaoPerfil()"><i class='bx bx-edit'></i></button>
                     </div>
 
                     <!-- Sex / birthdate / email -->
@@ -640,7 +643,7 @@
                     </tbody>
                 </table>
 
-                <button class="pf-btn">Adicionar Instituição</button>
+                <button class="pf-btn" onclick="adicionarInstituicaoModal()">Adicionar Instituição</button>
             </div>
 
             <!-- ── CATEGORIAS REGISTRADAS ── -->
@@ -682,29 +685,30 @@
                     </tbody>
                 </table>
 
-                <button class="pf-btn">Adicionar Categoria</button>
+                <button class="pf-btn" onclick="adicionarCategoriaModal()">Adicionar Categoria</button>
             </div>
 
         </div>
     </div>
+    <script src="js/meuPerfil.js"></script>
+    <script src="js/navbar.js"></script>
+    <script>
+        // ── Toggle labels ──
+        document.getElementById("toggleGlaceon").addEventListener("change", function () {
+            document.getElementById("estadoGlaceon").textContent = this.checked ? "ON" : "OFF";
+        });
+        document.getElementById("toggleVidro").addEventListener("change", function () {
+            document.getElementById("estadoVidro").textContent = this.checked ? "ON" : "OFF";
+        });
+
+        // ── Theme swatch selection ──
+        document.querySelectorAll(".pf-tema-item").forEach(item => {
+            item.addEventListener("click", () => {
+                document.querySelectorAll(".pf-tema-item").forEach(i => i.classList.remove("ativo"));
+                item.classList.add("ativo");
+            });
+        });
+    </script>
 </body>
 
 </html>
-<script src="js/navbar.js"></script>
-<script>
-    // ── Toggle labels ──
-    document.getElementById("toggleGlaceon").addEventListener("change", function () {
-        document.getElementById("estadoGlaceon").textContent = this.checked ? "ON" : "OFF";
-    });
-    document.getElementById("toggleVidro").addEventListener("change", function () {
-        document.getElementById("estadoVidro").textContent = this.checked ? "ON" : "OFF";
-    });
-
-    // ── Theme swatch selection ──
-    document.querySelectorAll(".pf-tema-item").forEach(item => {
-        item.addEventListener("click", () => {
-            document.querySelectorAll(".pf-tema-item").forEach(i => i.classList.remove("ativo"));
-            item.classList.add("ativo");
-        });
-    });
-</script>

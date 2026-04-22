@@ -1,5 +1,9 @@
 function carregarRegistros() {
-    MainAPI.carregarRegistros()
+    const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
+    const userId = usuarioLogado ? usuarioLogado.id : null;
+    if (!userId) return;
+
+    MainAPI.carregarRegistros(userId)
         .then(json => {
 
             registros.innerHTML = "";
@@ -12,7 +16,9 @@ function carregarRegistros() {
             const agrupado = {};
 
             json.forEach(registro => {
-                const data = new Date(registro.dataGasto);
+                const dataISO = registro.eventoFinanceiro && registro.eventoFinanceiro.dataEvento;
+                if (!dataISO) return;
+                const data = new Date(dataISO + 'T00:00:00');
                 const ano = data.getFullYear();
                 const mes = data.getMonth();
 
@@ -54,27 +60,34 @@ function carregarRegistros() {
                             const cardsDiv = mesDiv.querySelector(".cards");
 
                             agrupado[ano][mes]
-                                .sort((a, b) => new Date(a.dataGasto) - new Date(b.dataGasto))
+                                .sort((a, b) => new Date(a.eventoFinanceiro.dataEvento) - new Date(b.eventoFinanceiro.dataEvento))
                                 .forEach(registro => {
 
-                                    const data = new Date(registro.dataGasto);
+                                    const dataISO = registro.eventoFinanceiro.dataEvento;
+                                    const data = new Date(dataISO + 'T00:00:00');
                                     const dia = String(data.getDate()).padStart(2, "0");
+                                    const titulo = registro.gastoDetalhe ? registro.gastoDetalhe.tituloGasto : '-';
+                                    const descricao = registro.eventoFinanceiro.descricao || '';
+                                    const valor = registro.eventoFinanceiro.valor || 0;
+                                    const tipo = registro.eventoFinanceiro.tipo || '';
+                                    const instNome = registro.eventoInstituicao && registro.eventoInstituicao.instituicao
+                                        ? registro.eventoInstituicao.instituicao.nome : '-';
 
                                     cardsDiv.innerHTML += `
                                         <div class="cardRegistro">
                                             <div class="dataRegistro">${dia}</div>
 
                                             <div class="registroInfo">
-                                                <div class="registroTitulo">${registro.tituloGasto}</div>
-                                                <div class="registroDescricao">${registro.descricao}</div>
+                                                <div class="registroTitulo">${titulo}</div>
+                                                <div class="registroDescricao">${descricao}</div>
                                             </div>
 
                                             <div class="registroDetalhes">
                                                 <div class="registroValor">
-                                                    ${formatadorMoeda.format(registro.valor)}
+                                                    ${formatadorMoeda.format(valor)}
                                                 </div>
-                                                <div class="registroTipo">${registro.tituloTipo}</div>
-                                                <div class="registroInstituicao">${registro.nomeInstituicao}</div>
+                                                <div class="registroTipo">${tipo}</div>
+                                                <div class="registroInstituicao">${instNome}</div>
                                             </div>
                                         </div>
                                     `;
