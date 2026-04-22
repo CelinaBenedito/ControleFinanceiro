@@ -25,7 +25,6 @@ public class EventoFinanceiro {
     @PositiveOrZero
     private Double valor;
 
-    @NotEmpty
     @Size(max = 500)
     private String descricao;
 

@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -77,19 +78,26 @@ public class InstituicaoController {
      return ResponseEntity.status(200).body(response);
     }
 
-    @GetMapping("/{instituicaoUsuario_id}")
+    @GetMapping("/saldo/{instituicaoUsuario_id}")
     @Operation(summary = "Buscar o saldo pelo id da instituição",
-            description = "Deletar uma instituição por seu id.")
+            description = "Busca o saldo de uma instituição pela assosiação do usuário e da instituição.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Busca feita com sucesso e não a dados para retornar"),
             @ApiResponse(responseCode = "200", description = "Busca feita com sucesso e a dados para retornar"),
             @ApiResponse(responseCode = "404", description = "Dados Inválidos")
     })
-    public ResponseEntity<Double> getSaldoByInstituição(@PathVariable Integer instituicaoUsuario_id){
-        Double instituicaoUsuario = instituicaoService
+    public ResponseEntity<BigDecimal> getSaldoByInstituição(@PathVariable Integer instituicaoUsuario_id){
+        BigDecimal saldoByInstituicao = instituicaoService
                 .getSaldoByInstituicao(instituicaoUsuario_id);
-        return ResponseEntity.status(200).build();
+        return ResponseEntity.status(200).body(saldoByInstituicao);
     }
+
+    @GetMapping("/saldo/usuarios/{user_id}")
+    public ResponseEntity<BigDecimal> getSaldoByUsuario(@PathVariable UUID user_id){
+        BigDecimal saldoByUsuario = instituicaoService
+                .getSaldoByUsuario(user_id);
+        return ResponseEntity.status(200).body(saldoByUsuario);
+    }
+
 
     @PostMapping
     @Operation(summary = "Adicionar uma instituição.",
