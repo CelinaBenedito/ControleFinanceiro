@@ -33,27 +33,38 @@ function gerarCategorias() {
     const multiSelectCat = document.getElementById("multi_select_categoria");
     if (selectCat) selectCat.innerHTML = "<option value='#'>Escolha uma categoria</option>";
     if (multiSelectCat) multiSelectCat.innerHTML = "<option value='#'>Categoria</option>";
-    MainAPI.getTipos(userId).then(json => {
-        for (let c = 0; json.length > c; c++) {
-            const opt = `<option value="${json[c].id}">${json[c].categoria.titulo}</option>`;
-            if (selectCat) selectCat.innerHTML += opt;
-            if (multiSelectCat) multiSelectCat.innerHTML += opt;
-        }
-    })
+    MainAPI.getTipos(userId)
+        .then(json => {
+            for (let c = 0; json.length > c; c++) {
+                const opt = `<option value="${json[c].id}">${json[c].categoria.titulo}</option>`;
+                if (selectCat) selectCat.innerHTML += opt;
+                if (multiSelectCat) multiSelectCat.innerHTML += opt;
+            }
+        })
+        .catch(error => {
+            console.error("Erro ao carregar categorias:", error);
+            alerta("Não foi possível carregar as categorias. Tente novamente.");
+        });
 }
 
 async function gerarInstituicao() {
+    if (!userId) return;
     const selectInst = document.getElementById("select_instituicao");
     const multiSelectInst = document.getElementById("multi_select_instituicao");
     if (selectInst) selectInst.innerHTML = "<option value='#'> Escolha uma instituição</option>";
     if (multiSelectInst) multiSelectInst.innerHTML = "<option value='#'>Instituição</option>";
-    MainAPI.getInstituicoes(userId).then(json => {
-        for (let c = 0; json.length > c; c++) {
-            const opt = `<option value="${json[c].id}">${json[c].intituicao.nome}</option>`;
-            if (selectInst) selectInst.innerHTML += opt;
-            if (multiSelectInst) multiSelectInst.innerHTML += opt;
-        }
-    })
+    MainAPI.getInstituicoes(userId)
+        .then(json => {
+            for (let c = 0; json.length > c; c++) {
+                const opt = `<option value="${json[c].id}">${json[c].intituicao.nome}</option>`;
+                if (selectInst) selectInst.innerHTML += opt;
+                if (multiSelectInst) multiSelectInst.innerHTML += opt;
+            }
+        })
+        .catch(error => {
+            console.error("Erro ao carregar instituições:", error);
+            alerta("Não foi possível carregar as instituições. Tente novamente.");
+        });
 }
 
 async function controleInstituicao(){
