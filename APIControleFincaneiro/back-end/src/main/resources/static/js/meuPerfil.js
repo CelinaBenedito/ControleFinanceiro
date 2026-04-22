@@ -8,7 +8,7 @@
         const div = document.getElementById("div_alerta");
         const conteudo = document.getElementById("conteudoAlerta");
         if (!div || !conteudo) return;
-        conteudo.innerHTML = texto;
+        conteudo.textContent = texto;
         div.style.display = "flex";
         setTimeout(() => { div.style.display = "none"; }, 3000);
     }
