@@ -353,6 +353,21 @@
     <div class="alerta" id="div_alerta" style="display:none;">
         <div class="conteudoAlerta" id="conteudoAlerta"></div>
     </div>
+
+    <!-- Modal personalizada -->
+    <div id="modalPersonalizada" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
+        <div class="cfg-card" style="max-width:440px; width:90%; gap:20px;">
+            <h2 id="modalPersonalizadaTitulo" style="font-size:1.4rem;"></h2>
+            <div class="cfg-field">
+                <input type="text" id="ipt_personalizada" placeholder=" ">
+                <label id="modalPersonalizadaLabel">Nome</label>
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button class="cfg-btn" onclick="salvarPersonalizada()">Salvar</button>
+                <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="fecharPersonalizada()">Cancelar</button>
+            </div>
+        </div>
+    </div>
     <div class="containerGeral">
         <nav class="side-bar" id="navbar">
             <ul>
@@ -501,6 +516,7 @@
                             </select>
                             <label>Nova instituição</label>
                         </div>
+                        <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="abrirPersonalizada('instituicao')">Personalizada</button>
                         <button class="cfg-btn" onclick="adicionarInstituicao()">Adicionar instituição</button>
                     </div>
 
@@ -528,9 +544,12 @@
 
                     <div class="cfg-row" style="align-items:flex-end;">
                         <div class="cfg-field" style="flex:1;max-width:380px;">
-                            <input type="text" id="ipt_nova_categoria" placeholder=" ">
-                            <label>Nova categoria</label>
+                            <select id="sel_nova_categoria" required>
+                                <option value="" disabled selected></option>
+                            </select>
+                            <label>Selecionar categoria</label>
                         </div>
+                        <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="abrirPersonalizada('categoria')">Personalizada</button>
                         <button class="cfg-btn" onclick="adicionarCategoria()">Adicionar categoria</button>
                     </div>
 
