@@ -23,5 +23,6 @@ import controle.api.back_end.model.instituicao.InstituicaoUsuario;
         public MovimentoResultado processar(EventoInstituicao evento) {
             double valorParcela = evento.getValor() / parcelas;
             System.out.println("Processando crédito em " + parcelas + " parcelas de R$ " + valorParcela);
+            return new MovimentoResultado(evento);
         }
     }

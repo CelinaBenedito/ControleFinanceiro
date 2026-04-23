@@ -77,6 +77,7 @@ public class RegistroService {
                                "Instituição associada ao Usuário não encontrada."
                        )
                );
+        Map<String, Object> params = new HashMap<>();
 
         MovimentoStrategy strategy = movimentoFactory.getStrategy(entity.getTipoMovimento(), params);
         strategy.validar(entity.getInstituicaoUsuario());
