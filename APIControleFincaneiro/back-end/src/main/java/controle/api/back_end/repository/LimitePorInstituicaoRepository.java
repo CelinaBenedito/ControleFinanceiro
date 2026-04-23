@@ -5,7 +5,6 @@ import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.lang.ScopedValue;
 import java.util.List;
 import java.util.UUID;
 

@@ -4,6 +4,7 @@ import controle.api.back_end.exception.InstituicaoInativaException;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 
+
 public class BoletoMovimento implements MovimentoStrategy{
     private int parcelas;
 
@@ -22,6 +23,7 @@ public class BoletoMovimento implements MovimentoStrategy{
     @Override
     public MovimentoResultado processar(EventoInstituicao evento) {
         double valorParcela = evento.getValor() / parcelas;
-        System.out.println(STR."Processando boleto em \{parcelas} parcelas de R$ \{valorParcela}");
+        System.out.println("Processando boleto em " +parcelas+ " de R$"+valorParcela);
+        return new MovimentoResultado(evento);
     }
 }
