@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -31,8 +32,8 @@ public class EventoFinanceiro {
     @NotNull
     private LocalDate dataEvento;
 
-    @OneToOne(mappedBy = "eventoFinanceiro")
-    private EventoInstituicao eventoInstituicao;
+    @OneToMany
+    private List<EventoInstituicao> eventoInstituicao;
 
     @OneToOne(mappedBy = "eventoFinanceiro")
     private GastoDetalhe gastoDetalhe;
@@ -96,11 +97,11 @@ public class EventoFinanceiro {
         this.dataRegistro = dataRegistro;
     }
 
-    public EventoInstituicao getEventoInstituicao() {
+    public List<EventoInstituicao> getEventoInstituicao() {
         return eventoInstituicao;
     }
 
-    public void setEventoInstituicao(EventoInstituicao eventoInstituicao) {
+    public void setEventoInstituicao(List<EventoInstituicao> eventoInstituicao) {
         this.eventoInstituicao = eventoInstituicao;
     }
 

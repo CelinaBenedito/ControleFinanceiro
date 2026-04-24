@@ -13,14 +13,13 @@ public class EventoFinanceiroCreateDto {
     @Schema(example = "21eb5d2f-3fd8-439e-b647-5cc1f753ae58", description = "Representa o id do usuário responsável por criar o evento")
     @NotNull
     private UUID usuario_id;
-    @Schema(example = "1", description = "Respresenta o tipo do evento financeiro")
+    @Schema(example = "1", description = "Representa o tipo do evento financeiro")
     @NotNull
     private Tipo tipo;
     @Schema(example = "100.0", description = "Representa o valor do evento financeiro.")
     @NotNull
     @Positive
     private Double valor;
-
     @Schema(example = "Champagne de Ano novo")
     private String descricao;
     @Schema(example = "2026-01-01")

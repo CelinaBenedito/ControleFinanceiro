@@ -82,7 +82,7 @@ public class InstituicaoService {
         InstituicaoUsuario instituicaoUsuario = new InstituicaoUsuario();
         instituicaoUsuario.setInstituicao(instituicao.get());
         instituicaoUsuario.setUsuario(user.get());
-        instituicaoUsuario.setAtivo(true);
+        instituicaoUsuario.setIsAtivo(true);
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
     }
 
@@ -101,7 +101,7 @@ public class InstituicaoService {
             throw new EntidadeNaoEncontradaException("Instituicao de id: %d não encontrado".formatted(instituicaoId));
         }
         InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findByUsuario_IdAndInstituicao_Id(userId, instituicaoId);
-        instituicaoUsuario.setAtivo(false);
+        instituicaoUsuario.setIsAtivo(false);
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
     }
 

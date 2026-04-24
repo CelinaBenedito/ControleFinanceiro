@@ -1,4 +1,4 @@
-package controle.api.back_end.model;
+package controle.api.back_end.model.recorrenciaFinanceira;
 
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.usuario.Usuario;
@@ -21,7 +21,7 @@ public class RecorrenciaFinanceira {
     private Double valor;
     private String descricao;
     private LocalDate diaRecorrencia;
-    private String periodicidade; // MENSAL, SEMANAL, ANUAL
+    private Periodicidade periodicidade;
 
     public UUID getId() {
         return id;
@@ -71,11 +71,11 @@ public class RecorrenciaFinanceira {
         this.diaRecorrencia = diaRecorrencia;
     }
 
-    public String getPeriodicidade() {
+    public Periodicidade getPeriodicidade() {
         return periodicidade;
     }
 
-    public void setPeriodicidade(String periodicidade) {
+    public void setPeriodicidade(Periodicidade periodicidade) {
         this.periodicidade = periodicidade;
     }
 }

@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+
 @Entity
 public class GastoDetalhe {
     @Id
@@ -17,9 +19,13 @@ public class GastoDetalhe {
     @JoinColumn(name = "fkEvento", nullable = false)
     private EventoFinanceiro eventoFinanceiro;
 
-    @ManyToOne
-    @JoinColumn(name = "fkCategoria")
-    private CategoriaUsuario categoriaUsuario;
+    @ManyToMany
+    @JoinTable(
+            name = "gasto_detalhe_categoria",
+            joinColumns = @JoinColumn(name = "gasto_detalhe_id"),
+            inverseJoinColumns = @JoinColumn(name = "categoria_usuario_id")
+    )
+    private List<CategoriaUsuario> categoriaUsuario;
 
     @Size(max = 50)
     @NotBlank
@@ -41,11 +47,11 @@ public class GastoDetalhe {
         this.eventoFinanceiro = eventoFinanceiro;
     }
 
-    public CategoriaUsuario getCategoriaUsuario() {
+    public List<CategoriaUsuario> getCategoriaUsuario() {
         return categoriaUsuario;
     }
 
-    public void setCategoriaUsuario(CategoriaUsuario categoriaUsuario) {
+    public void setCategoriaUsuario(List<CategoriaUsuario> categoriaUsuario) {
         this.categoriaUsuario = categoriaUsuario;
     }
 

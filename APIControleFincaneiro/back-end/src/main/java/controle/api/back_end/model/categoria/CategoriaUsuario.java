@@ -1,8 +1,11 @@
 package controle.api.back_end.model.categoria;
 
+import controle.api.back_end.model.eventoFinanceiro.GastoDetalhe;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
+
+import java.util.List;
 
 @Entity
 public class CategoriaUsuario {
@@ -18,6 +21,9 @@ public class CategoriaUsuario {
 
     @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean isAtivo;
+
+    @ManyToMany
+    private List<GastoDetalhe> gastoDetalhe;
 
     public Integer getId() {
         return id;

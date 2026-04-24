@@ -6,7 +6,7 @@ import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 
     public class CreditoMovimento implements MovimentoStrategy {
 
-        private int parcelas;
+        private final int parcelas;
 
         public CreditoMovimento(int parcelas) {
             this.parcelas = parcelas;
@@ -14,15 +14,27 @@ import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 
         @Override
         public void validar(InstituicaoUsuario instituicao) {
-            if (!instituicao.getAtivo()) {
-                throw new InstituicaoInativaException("Instituição %s inativa não pode realizar crédito.".formatted(instituicao.getInstituicao().getNome()));
+            if (!instituicao.getIsAtivo()) {
+                throw new InstituicaoInativaException(
+                        "Instituição %s inativa, não é possível utiliza-lá."
+                                .formatted(
+                                        instituicao
+                                                .getInstituicao()
+                                                .getNome()
+                                )
+                );
             }
         }
 
         @Override
         public MovimentoResultado processar(EventoInstituicao evento) {
             double valorParcela = evento.getValor() / parcelas;
-            System.out.println("Processando crédito em " + parcelas + " parcelas de R$ " + valorParcela);
-            return new MovimentoResultado(evento);
+            MovimentoResultado movimentoResultado = new MovimentoResultado();
+
+            movimentoResultado.setParcelas(parcelas);
+            movimentoResultado.setValorParcela(valorParcela);
+            movimentoResultado.setEvento(evento);
+
+            return movimentoResultado;
         }
     }

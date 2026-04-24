@@ -7,9 +7,15 @@ import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 public class DebitoMovimento implements MovimentoStrategy {
     @Override
     public void validar(InstituicaoUsuario instituicao) {
-        if (!instituicao.getAtivo()) {
-            throw new InstituicaoInativaException("Instituição %s inativa não pode realizar débito."
-                    .formatted(instituicao.getInstituicao().getNome()));
+        if (!instituicao.getIsAtivo()) {
+            throw new InstituicaoInativaException(
+                    "Instituição %s inativa, não é possível utiliza-lá."
+                            .formatted(
+                                    instituicao
+                                            .getInstituicao()
+                                            .getNome()
+                            )
+            );
         }
     }
 

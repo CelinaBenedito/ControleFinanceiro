@@ -7,21 +7,23 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+import java.util.List;
 import java.util.UUID;
 
 public class EventoInstituicaoCreateDto {
-    @Schema(example = "1", description = "Representa a instituição a qual pertence a movimentação.")
+    @Schema(example = "2", description = "Representa a instituição a qual pertence a movimentação.")
     @NotNull
     private Integer instituicaoUsuario_id;
-    @Schema(example = "4", description = "Representa qual foi o tipo de movimento.")
+    @Schema(example = "Credito", description = "Representa qual foi o tipo de movimento.")
     @NotNull
     private TipoMovimento tipoMovimento;
     @NotNull
     @Positive
-    @Schema(example = "100.0", description = "Representa o valor da movimentação.")
+    @Schema(example = "125.50", description = "Representa o valor da movimentação.")
     private Double valor;
     @NotNull
-    private Integer parcelas;
+    @Schema(example = "2", description = "Representa a quantidade de parcelas da movimentação")
+    private Integer parcelas = 1;
 
     public Integer getInstituicaoUsuario_id() {
         return instituicaoUsuario_id;

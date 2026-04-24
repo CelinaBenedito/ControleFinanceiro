@@ -86,7 +86,7 @@ public class InstituicaoMapper {
         //falta de necessidade de respota do usuário
         //response.setUsuario(usuarioDto);
         response.setIntituicao(instituicaoDto);
-        response.setAtivo(model.getAtivo());
+        response.setAtivo(model.getIsAtivo());
 
         return response;
     }

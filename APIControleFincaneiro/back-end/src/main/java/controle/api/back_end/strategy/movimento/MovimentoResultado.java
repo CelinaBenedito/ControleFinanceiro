@@ -7,6 +7,9 @@ public class MovimentoResultado {
     private int parcelas;
     private double valorParcela;
 
+    public MovimentoResultado() {
+    }
+
     public MovimentoResultado(EventoInstituicao evento) {
         this(evento, 1, evento.getValor());
     }

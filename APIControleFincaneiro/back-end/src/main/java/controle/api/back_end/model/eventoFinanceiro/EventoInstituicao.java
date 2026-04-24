@@ -3,7 +3,10 @@ package controle.api.back_end.model.eventoFinanceiro;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+
+import java.util.List;
 
 @Entity
 public class EventoInstituicao {
@@ -12,13 +15,12 @@ public class EventoInstituicao {
     private Integer id;
 
     @NotNull
-    @OneToOne
-    @JoinColumn(name = "fkEvento")
+    @ManyToOne
+    @JoinColumn(name = "fkEvento", nullable = false)
     private EventoFinanceiro eventoFinanceiro;
 
     @NotNull
     @ManyToOne
-    @JoinColumn(name = "fkInstituicaoUsuario")
     private InstituicaoUsuario instituicaoUsuario;
 
     @NotNull
@@ -29,7 +31,9 @@ public class EventoInstituicao {
     @NotNull
     private Double valor;
 
-    private Integer parcelas;
+    @Positive
+    @NotNull
+    private Integer parcelas = 1;
 
     public InstituicaoUsuario getInstituicaoUsuario() {
         return instituicaoUsuario;
@@ -71,4 +75,11 @@ public class EventoInstituicao {
         this.eventoFinanceiro = evento;
     }
 
+    public Integer getParcelas() {
+        return parcelas;
+    }
+
+    public void setParcelas(Integer parcelas) {
+        this.parcelas = parcelas;
+    }
 }

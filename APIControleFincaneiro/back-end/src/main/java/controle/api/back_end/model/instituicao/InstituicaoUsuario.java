@@ -15,8 +15,8 @@ public class InstituicaoUsuario {
     @ManyToOne
     private Instituicao instituicao;
 
-    @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
-    private Boolean isAtivo;
+    @Column(name = "is_ativo", nullable = false)
+    private Boolean isAtivo = Boolean.TRUE;
 
     public Usuario getUsuario() {
         return usuario;
@@ -42,11 +42,11 @@ public class InstituicaoUsuario {
         this.instituicao = fkInstituicao;
     }
 
-    public Boolean getAtivo() {
+    public Boolean getIsAtivo() {
         return isAtivo;
     }
 
-    public void setAtivo(Boolean ativo) {
+    public void setIsAtivo(Boolean ativo) {
         isAtivo = ativo;
     }
 }
