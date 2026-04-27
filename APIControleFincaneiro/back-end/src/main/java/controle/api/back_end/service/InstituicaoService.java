@@ -3,6 +3,7 @@ package controle.api.back_end.service;
 import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
@@ -11,6 +12,7 @@ import controle.api.back_end.repository.*;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,7 +43,7 @@ public class InstituicaoService {
     public Instituicao getInstituicaoById(Integer id) {
         return instituicaoRepository.findById(id)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException(
-                                "Instituicao de id: d% não encontrada".formatted(id)
+                                "Instituicao de id: %d não encontrada".formatted(id)
                         )
                 );
     }
@@ -106,25 +108,38 @@ public class InstituicaoService {
     }
 
     public BigDecimal getSaldoByInstituicao(Integer instituicaoUsuarioId) {
-        InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findById(instituicaoUsuarioId)
+        instituicaoUsuarioRepository.findById(instituicaoUsuarioId)
                 .orElseThrow(() ->
                         new EntidadeNaoEncontradaException(
                                 "Associação de instituição e usuário de id: %d não encontrada."
                                         .formatted(instituicaoUsuarioId)
                         )
                 );
-        List<EventoFinanceiro> eventosFinanceiros =
-                eventoFinanceiroRepository.findEventoFinanceiroByEventoInstituicao_InstituicaoUsuario_Id(instituicaoUsuarioId);
-        BigDecimal saldo = BigDecimal.ZERO;
-        for (EventoFinanceiro evento : eventosFinanceiros) {
-            BigDecimal valor = BigDecimal.valueOf(evento.getValor());
+        List<EventoInstituicao> eventosInstituicao =
+                eventoInstituicaoRepository.findByInstituicaoUsuario_Id(instituicaoUsuarioId);
 
-            if (evento.getTipo() == Tipo.Gasto || evento.getTipo() == Tipo.Transferencia) {
-                saldo = saldo.subtract(valor);
-            } else if (evento.getTipo() == Tipo.Recebimento) {
-                saldo = saldo.add(valor);
+        BigDecimal saldo = BigDecimal.ZERO;
+
+        for (EventoInstituicao eventoInstituicao : eventosInstituicao) {
+            EventoFinanceiro eventoFinanceiro = eventoInstituicao.getEventoFinanceiro();
+
+            if (eventoFinanceiro == null) {
+                continue;
             }
 
+            saldo = getSaldo(saldo, eventoFinanceiro);
+        }
+
+        return saldo;
+    }
+
+    static BigDecimal getSaldo(BigDecimal saldo, EventoFinanceiro eventoFinanceiro) {
+        BigDecimal valor = BigDecimal.valueOf(eventoFinanceiro.getValor());
+
+        if (eventoFinanceiro.getTipo() == Tipo.Gasto || eventoFinanceiro.getTipo() == Tipo.Transferencia) {
+            saldo = saldo.subtract(valor);
+        } else if (eventoFinanceiro.getTipo() == Tipo.Recebimento) {
+            saldo = saldo.add(valor);
         }
         return saldo;
     }

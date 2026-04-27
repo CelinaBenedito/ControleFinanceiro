@@ -82,7 +82,7 @@ public class InstituicaoController {
             @ApiResponse(responseCode = "404", description = "Dados Inválidos",
                     content = @Content)
     })
-    public ResponseEntity<BigDecimal> getSaldoByInstituição(@PathVariable Integer instituicaoUsuario_id){
+    public ResponseEntity<BigDecimal> getSaldoByInstituicao(@PathVariable Integer instituicaoUsuario_id){
         BigDecimal saldoByInstituicao = instituicaoService
                 .getSaldoByInstituicao(instituicaoUsuario_id);
         return ResponseEntity.status(200).body(saldoByInstituicao);
@@ -125,7 +125,7 @@ public class InstituicaoController {
 
 
     @PatchMapping("/{instituicao_id}/usuarios/{user_id}")
-    @Operation(summary = "Desvincular uma instituição de um usuario",
+    @Operation(summary = "Desvincular uma instituição de um usuário",
             description = "Desativa o vinculo do usuario com a instituição.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Instituição desasociado do usuario com sucesso",

@@ -17,4 +17,6 @@ public interface EventoFinanceiroRepository extends JpaRepository<EventoFinancei
     List<EventoFinanceiro> findEventoFinanceiroByUsuario(Usuario usuario);
 
     void deleteEventoFinanceiroById(UUID id);
+
+    EventoFinanceiro findEventoFinanceiroByEventoInstituicao_Id(Integer id);
 }
