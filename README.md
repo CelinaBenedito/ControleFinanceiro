@@ -1,4 +1,5 @@
-# Controle Financeiro - API e Aplicação
+# MyFinance - organize, visualize, cresça
+
 
 ## 📖 Descrição
 Aplicativo de controle financeiro desenvolvido em Java, com front-end em HTML, CSS e JS servido via JavaFX. Criado inicialmente em 2025 para substituir planilhas Excel, evoluiu até a versão atual (2.6), oferecendo dashboards, relatórios e integração com dados bancários.
@@ -71,8 +72,8 @@ Aplicativo de controle financeiro desenvolvido em Java, com front-end em HTML, C
 ```
 **Resposta esperada:**
 
-201 Created em caso de sucesso
-400 Bad Request se o corpo da requisição estiver inválido
+- 201 Created em caso de sucesso
+- 400 Bad Request se o corpo da requisição estiver inválido
 
 ---
 
@@ -84,7 +85,7 @@ Aplicativo de controle financeiro desenvolvido em Java, com front-end em HTML, C
 ---
 
 ## 🛠️ Instalação
-###Pré-requisitos:
+### Pré-requisitos:
 - Java 21 instalado
 - Maven configurado
   
