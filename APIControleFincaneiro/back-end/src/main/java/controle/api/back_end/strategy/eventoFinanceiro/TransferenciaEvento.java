@@ -20,8 +20,8 @@ public class TransferenciaEvento implements EventoFinanceiroStrategy {
             recebimento.setUsuario(destino.getUsuario());
             recebimento.setTipo(Tipo.Recebimento);
             recebimento.setValor(evento.getValor());
-            recebimento.setDescricao("Transferência recebida da instituição "
-                    + evento.getEventoInstituicao().getInstituicaoUsuario().getInstituicao().getNome());
+//            recebimento.setDescricao("Transferência recebida da instituição "
+//                    + evento.getEventoInstituicao().getInstituicaoUsuario().getInstituicao().getNome());
             System.out.println("Transferência interna registrada como recebimento.");
         } else {
             System.out.println("Transferência externa para outro usuário.");

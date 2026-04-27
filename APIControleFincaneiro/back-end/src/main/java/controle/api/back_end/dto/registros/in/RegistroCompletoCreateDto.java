@@ -2,19 +2,21 @@ package controle.api.back_end.dto.registros.in;
 
 import jakarta.validation.Valid;
 
+import java.util.List;
+
 public class RegistroCompletoCreateDto {
-    @Valid
-    private EventoInstituicaoCreateDto instituicao;
     @Valid
     private EventoFinanceiroCreateDto financeiro;
     @Valid
+    private List<EventoInstituicaoCreateDto> instituicao;
+    @Valid
     private GastoDetalheCreateDto detalhe;
 
-    public EventoInstituicaoCreateDto getInstituicao() {
+    public List<EventoInstituicaoCreateDto> getInstituicao() {
         return instituicao;
     }
 
-    public void setInstituicao(EventoInstituicaoCreateDto instituicao) {
+    public void setInstituicao(List<EventoInstituicaoCreateDto> instituicao) {
         this.instituicao = instituicao;
     }
 

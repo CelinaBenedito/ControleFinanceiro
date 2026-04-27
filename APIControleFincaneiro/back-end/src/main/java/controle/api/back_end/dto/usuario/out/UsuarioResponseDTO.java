@@ -1,6 +1,7 @@
 package controle.api.back_end.dto.usuario.out;
 
 import controle.api.back_end.model.usuario.UsuarioSexo;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.NotBlank;
@@ -12,13 +13,18 @@ import java.util.UUID;
 public class UsuarioResponseDTO {
     private UUID id;
     @NotBlank
+    @Schema(example = "Jhonas")
     private String nome;
     @NotBlank
+    @Schema(example = "Junior da Silva")
     private String sobrenome;
     @Past
+    @Schema(example = "1985-10-05")
     private LocalDate dataNascimento;
     @Enumerated(EnumType.STRING)
+    @Schema(example = "Masculino")
     private UsuarioSexo sexo;
+    @Schema(example = "jhonas.silva@email.com")
     private String email;
     private String imagem;
 

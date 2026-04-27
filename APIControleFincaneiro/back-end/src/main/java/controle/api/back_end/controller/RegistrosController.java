@@ -43,26 +43,26 @@ public class RegistrosController {
                     "Dados inválidos!")
     })
     public ResponseEntity<List<RegistroResponseDto>> getRegistrosByUser(@PathVariable UUID user_id){
-        List<EventoFinanceiro> eventoFinanceiros = registroService.
-                getEventosFinanceirosByUser(user_id);
+        List<EventoFinanceiro> eventoFinanceiros = registroService
+                .getEventosFinanceirosByUser(user_id);
 
-        List<EventoInstituicao> eventoInstituicoes = registroService
+        List<List<EventoInstituicao>> eventosInstituicoes = registroService
                 .getEventosInstituicoesByEventoFinanceiro(eventoFinanceiros);
 
         List<GastoDetalhe> gastosDetalhes = registroService
                 .getGastosDetalhesByEventoFinanceiro(eventoFinanceiros);
+
         List<RegistroResponseDto> response = RegistrosMapper
                 .toResponse(
                         eventoFinanceiros,
-                        eventoInstituicoes,
+                        eventosInstituicoes,
                         gastosDetalhes);
+
         if (response.isEmpty()){
             return ResponseEntity.status(204).body(response);
         }
         return ResponseEntity.status(200).body(response);
     }
-
-
 
     @GetMapping("/filtro")
     public ResponseEntity<List<RegistroResponseDto>> getByFilter(
@@ -102,7 +102,7 @@ public class RegistrosController {
         EventoFinanceiro eventoCreated = registroService.createEventoFinanceiro(
                 RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro()));
 
-        EventoInstituicao instituicaoCreated = registroService.createEventoInstituicao(
+        List<EventoInstituicao> instituicaoCreated = registroService.createEventoInstituicao(
                 RegistrosMapper.toEntityEvento(dto.getInstituicao()), eventoCreated);
 
         GastoDetalhe gastoCreated = registroService.createGastoDetalhe(
@@ -130,7 +130,7 @@ public class RegistrosController {
                     EventoFinanceiro eventoCreated = registroService.createEventoFinanceiro(
                             RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro()));
 
-                    EventoInstituicao instituicaoCreated = registroService.createEventoInstituicao(
+                    List<EventoInstituicao> instituicoesCreated = registroService.createEventoInstituicao(
                             RegistrosMapper.toEntityEvento(dto.getInstituicao()), eventoCreated);
 
                     GastoDetalhe gastoCreated = registroService.createGastoDetalhe(
@@ -139,7 +139,7 @@ public class RegistrosController {
                     return RegistrosMapper
                             .toResponse(
                                     eventoCreated,
-                                    instituicaoCreated,
+                                    instituicoesCreated,
                                     gastoCreated
                             );
                 })
@@ -148,35 +148,35 @@ public class RegistrosController {
         return ResponseEntity.status(201).body(responses);
     }
 
+
     @PutMapping("/{evento_id}")
     public ResponseEntity<RegistroUsuarioResponseDto> editRegistroByEventoFinanceiro_Id(
             @PathVariable UUID evento_id,
             @RequestBody RegistroCompletoCreateDto dto){
 
         EventoFinanceiro entityFinanceiro = RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro());
+        EventoFinanceiro financeiroEdited = registroService.editEventoFinanceiro(evento_id, entityFinanceiro);
 
-        EventoFinanceiro financeiroEdited =  registroService.editEventoFinanceiro(evento_id,entityFinanceiro);
-
-        EventoInstituicao entityInstituicao = RegistrosMapper.toEntityEvento(dto.getInstituicao());
-
-        EventoInstituicao instituicaoEdited = registroService.editEventoInstituicao(evento_id, entityInstituicao);
+        List<EventoInstituicao> entityInstituicoes = RegistrosMapper.toEntityEvento(dto.getInstituicao());
+        List<EventoInstituicao> instituicoesEdited = registroService.editEventoInstituicao(evento_id, entityInstituicoes);
 
         GastoDetalhe entityGasto = RegistrosMapper.toEntityGasto(dto.getDetalhe());
-
         GastoDetalhe gastoEdited = registroService.editGastoDetalhe(evento_id, entityGasto);
 
-        RegistroUsuarioResponseDto response = RegistrosMapper.toResponseUser(financeiroEdited, instituicaoEdited, gastoEdited);
+        RegistroUsuarioResponseDto response = RegistrosMapper.toResponseUser(financeiroEdited, instituicoesEdited, gastoEdited);
 
         return ResponseEntity.status(200).body(response);
     }
+
 
     @DeleteMapping("/{evento_id}")
     public ResponseEntity<Void> deleteRegistroByEventoFinanceiro_Id(
             @PathVariable UUID evento_id
     ){
         registroService.deleteRegistroByEventoFinanceiro_Id(evento_id);
-        return ResponseEntity.status(200).build();
+        return ResponseEntity.status(204).build();
     }
+
 
 }
 

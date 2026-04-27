@@ -4,12 +4,13 @@ import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public class RegistroResponseDto {
     private GastoDetalheDto gastoDetalhe;
     private EventoFinanceiroDto eventoFinanceiro;
-    private EventoInstituicaoDto eventoInstituicao;
+    private List<EventoInstituicaoDto> eventoInstituicao;
     private LocalDate dataRegistro;
 
     public static class EventoFinanceiroDto{
@@ -64,6 +65,7 @@ public class RegistroResponseDto {
         private InstituicaoDto instituicao;
         private TipoMovimento tipoMovimento;
         private Double valor;
+        private Integer parcelas;
 
         public static class InstituicaoDto{
             private Integer id;
@@ -117,10 +119,18 @@ public class RegistroResponseDto {
         public void setValor(Double valor) {
             this.valor = valor;
         }
+
+        public Integer getParcelas() {
+            return parcelas;
+        }
+
+        public void setParcelas(Integer parcelas) {
+            this.parcelas = parcelas;
+        }
     }
     public static class GastoDetalheDto{
         private Long id;
-        private CategoriaDto categoria;
+        private List<CategoriaDto> categoria;
         private String tituloGasto;
 
         public static class CategoriaDto{
@@ -152,11 +162,11 @@ public class RegistroResponseDto {
             this.id = id;
         }
 
-        public CategoriaDto getCategoria() {
+        public List<CategoriaDto> getCategoria() {
             return categoria;
         }
 
-        public void setCategoria(CategoriaDto categoria) {
+        public void setCategoria(List<CategoriaDto> categoria) {
             this.categoria = categoria;
         }
 
@@ -185,11 +195,11 @@ public class RegistroResponseDto {
         this.eventoFinanceiro = eventoFinanceiro;
     }
 
-    public EventoInstituicaoDto getEventoInstituicao() {
+    public List<EventoInstituicaoDto> getEventoInstituicao() {
         return eventoInstituicao;
     }
 
-    public void setEventoInstituicao(EventoInstituicaoDto eventoInstituicao) {
+    public void setEventoInstituicao(List<EventoInstituicaoDto> eventoInstituicao) {
         this.eventoInstituicao = eventoInstituicao;
     }
 

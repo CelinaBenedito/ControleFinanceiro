@@ -3,6 +3,8 @@ package controle.api.back_end.service;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
+import controle.api.back_end.exception.InstituicaoInativaException;
+import controle.api.back_end.exception.SaldoInsuficienteException;
 import controle.api.back_end.factory.MovimentoFactory;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.eventoFinanceiro.*;
@@ -15,6 +17,7 @@ import controle.api.back_end.strategy.movimento.MovimentoStrategy;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,6 +31,7 @@ public class RegistroService {
     private final UsuarioRepository usuarioRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final MovimentoFactory movimentoFactory;
+    private final InstituicaoService instituicaoService;
 
     public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository,
                            EventoInstituicaoRepository eventoInstituicaoRepository,
@@ -35,7 +39,8 @@ public class RegistroService {
                            CategoriaUsuarioRepository categoriaUsuarioRepository,
                            UsuarioRepository usuarioRepository,
                            InstituicaoUsuarioRepository instituicaoUsuarioRepository,
-                           MovimentoFactory movimentoFactory) {
+                           MovimentoFactory movimentoFactory,
+                           InstituicaoService instituicaoService) {
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.gastoDetalheRepository = gastoDetalheRepository;
@@ -43,6 +48,7 @@ public class RegistroService {
         this.usuarioRepository = usuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
         this.movimentoFactory = movimentoFactory;
+        this.instituicaoService = instituicaoService;
     }
 
     public EventoFinanceiro createEventoFinanceiro(EventoFinanceiro entity) {
@@ -62,58 +68,92 @@ public class RegistroService {
         return eventoFinanceiroRepository.save(entity);
     }
 
-    public EventoInstituicao createEventoInstituicao(EventoInstituicao entity,
-                                                     EventoFinanceiro eventoFinanceiro){
-        if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())){
+    public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> entities,
+                                                           EventoFinanceiro eventoFinanceiro) {
+        if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())) {
             throw new EntidadeNaoEncontradaException(
                     "Evento Financeiro de id: %s não encontrado"
                             .formatted(eventoFinanceiro.getId())
             );
         }
-       InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository
-               .findById(entity.getInstituicaoUsuario().getId())
-               .orElseThrow(()->
-                       new EntidadeNaoEncontradaException(
-                               "Instituição associada ao Usuário não encontrada."
-                       )
-               );
-        Map<String, Object> params = new HashMap<>();
 
-        MovimentoStrategy strategy = movimentoFactory.getStrategy(entity.getTipoMovimento(), params);
-        strategy.validar(entity.getInstituicaoUsuario());
-        MovimentoResultado resultado = strategy.processar(entity);
+        List<EventoInstituicao> savedInstituicoes = new ArrayList<>();
 
-        if (resultado.getParcelas() > 1) {
-            // lógica de salvar parcelas
-        } else {
-            eventoInstituicaoRepository.save(resultado.getEvento());
+        for (EventoInstituicao entity : entities) {
+            InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository
+                    .findById(entity.getInstituicaoUsuario().getId())
+                    .orElseThrow(() ->
+                            new EntidadeNaoEncontradaException(
+                                    "Instituição associada ao Usuário não encontrada."
+                            )
+                    );
+
+            if (!instituicaoUsuario.getIsAtivo()) {
+                throw new InstituicaoInativaException("Instituição %s está inativa"
+                        .formatted(instituicaoUsuario.getInstituicao().getNome()));
+            }
+
+            Map<String, Object> params = new HashMap<>();
+            params.put("parcelas", entity.getParcelas());
+
+            MovimentoStrategy strategy = movimentoFactory.getStrategy(entity.getTipoMovimento(), params);
+            strategy.validar(entity.getInstituicaoUsuario());
+            MovimentoResultado resultado = strategy.processar(entity);
+
+            BigDecimal saldoByInstituicao = instituicaoService.getSaldoByInstituicao(entity.getInstituicaoUsuario().getId());
+
+            if ((eventoFinanceiro.getTipo() == Tipo.Gasto
+                    || eventoFinanceiro.getTipo() == Tipo.Transferencia)
+                    && BigDecimal.valueOf(resultado.getValorParcela()).compareTo(saldoByInstituicao) > 0) {
+                throw new SaldoInsuficienteException("Saldo insuficiente para realizar a operação.");
+            }
+
+            if (resultado.getParcelas() > 1) {
+                for (int i = 1; i <= resultado.getParcelas(); i++) {
+                    EventoInstituicao parcelaEvento = new EventoInstituicao();
+                    parcelaEvento.setParcelas(i);
+                    parcelaEvento.setEventoFinanceiro(eventoFinanceiro);
+                    parcelaEvento.setInstituicaoUsuario(instituicaoUsuario);
+                    parcelaEvento.setTipoMovimento(entity.getTipoMovimento());
+                    parcelaEvento.setValor(resultado.getValorParcela());
+
+                    savedInstituicoes.add(eventoInstituicaoRepository.save(parcelaEvento));
+                }
+            } else {
+                entity.setParcelas(resultado.getParcelas());
+                entity.setInstituicaoUsuario(instituicaoUsuario);
+                entity.setEventoFinanceiro(eventoFinanceiro);
+                savedInstituicoes.add(eventoInstituicaoRepository.save(entity));
+            }
         }
 
-
-        entity.setInstituicaoUsuario(instituicaoUsuario);
-       entity.setEventoFinanceiro(eventoFinanceiro);
-       return eventoInstituicaoRepository.save(entity);
+        return savedInstituicoes;
     }
+
 
     public GastoDetalhe createGastoDetalhe(GastoDetalhe entity,
-                                           EventoFinanceiro eventoFinanceiro){
-       if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())){
-           throw new EntidadeNaoEncontradaException(
-                   "Evento Financeiro de id: %s não encontrado"
-                           .formatted(eventoFinanceiro.getId())
-           );
-       }
-        CategoriaUsuario categoriaUsuario = categoriaUsuarioRepository
-                .findById(entity.getCategoriaUsuario().getId())
-                .orElseThrow(() ->
-                        new EntidadeNaoEncontradaException("Categoria Usuário de id: %d não encontrada."
-                                .formatted(entity.getCategoriaUsuario().getId()))
-                );
-       entity.setEventoFinanceiro(eventoFinanceiro);
-       entity.setCategoriaUsuario(categoriaUsuario);
+                                           EventoFinanceiro eventoFinanceiro) {
+        if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())) {
+            throw new EntidadeNaoEncontradaException(
+                    "Evento Financeiro de id: %s não encontrado"
+                            .formatted(eventoFinanceiro.getId())
+            );
+        }
 
-       return gastoDetalheRepository.save(entity);
+        List<CategoriaUsuario> categorias = entity.getCategoriaUsuario().stream()
+                .map(cu -> categoriaUsuarioRepository.findById(cu.getId())
+                        .orElseThrow(() ->
+                                new EntidadeNaoEncontradaException("Categoria Usuário de id: %d não encontrada."
+                                        .formatted(cu.getId()))
+                        ))
+                .toList();
+
+        entity.setEventoFinanceiro(eventoFinanceiro);
+        entity.setCategoriaUsuario(categorias);
+
+        return gastoDetalheRepository.save(entity);
     }
+
 
     public List<EventoFinanceiro> getEventosFinanceirosByUser(UUID userId) {
         if(!usuarioRepository.existsById(userId)){
@@ -125,24 +165,10 @@ public class RegistroService {
         return eventoFinanceiroRepository.getEventoFinanceirosByUsuario_id(userId);
     }
 
-    public List<EventoInstituicao> getEventosInstituicoesByEventoFinanceiro(
-            List<EventoFinanceiro> eventosFinanceiros) {
-        List<EventoInstituicao> instituicoes = new ArrayList<>();
-    for (EventoFinanceiro evento : eventosFinanceiros){
-       if(!eventoFinanceiroRepository.existsById(evento.getId())){
-          throw new EntidadeNaoEncontradaException("Evento financeiro de id: %s não encontrado."
-                  .formatted(evento.getId()
-                  )
-          );
-        }
-        EventoInstituicao eventoInstituicaoByEventoId = eventoInstituicaoRepository.
-                findEventoInstituicaoByEventoFinanceiro_Id(
-                        evento.getId()
-                );
-
-        instituicoes.add(eventoInstituicaoByEventoId);
-    }
-    return instituicoes;
+    public List<List<EventoInstituicao>> getEventosInstituicoesByEventoFinanceiro(List<EventoFinanceiro> eventos) {
+        return eventos.stream()
+                .map(evento -> eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(evento.getId()))
+                .toList();
     }
 
     public List<GastoDetalhe> getGastosDetalhesByEventoFinanceiro(
@@ -198,7 +224,7 @@ public class RegistroService {
         return eventoFinanceiroRepository.save(financeiro);
     }
 
-    public EventoInstituicao editEventoInstituicao(UUID eventoId, EventoInstituicao entity){
+    public List<EventoInstituicao> editEventoInstituicao(UUID eventoId, List<EventoInstituicao> novasInstituicoes) {
         EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
                 .orElseThrow(() ->
                         new EntidadeNaoEncontradaException(
@@ -206,21 +232,45 @@ public class RegistroService {
                                         .formatted(eventoId))
                 );
 
-        EventoInstituicao eventoInstituicao = eventoInstituicaoRepository
+        // Busca todas as instituições já associadas ao evento
+        List<EventoInstituicao> existentes = eventoInstituicaoRepository
                 .findEventoInstituicaoByEventoFinanceiro_Id(eventoId);
 
-        if (entity.getInstituicaoUsuario() != eventoInstituicao.getInstituicaoUsuario()){
-            eventoInstituicao.setInstituicaoUsuario(entity.getInstituicaoUsuario());
-        }
-        if (!Objects.equals(entity.getValor(), eventoInstituicao.getValor())){
-            eventoInstituicao.setValor(entity.getValor());
-        }
-        eventoInstituicao.setEventoFinanceiro(financeiro);
+        // IDs das novas instituições enviadas pelo usuário
+        Set<Integer> novosIds = novasInstituicoes.stream()
+                .map(e -> e.getInstituicaoUsuario().getId())
+                .collect(Collectors.toSet());
 
-        return eventoInstituicaoRepository.save(eventoInstituicao);
+        // Remove instituições que não estão mais na lista enviada
+        for (EventoInstituicao existente : existentes) {
+            if (!novosIds.contains(existente.getInstituicaoUsuario().getId())) {
+                eventoInstituicaoRepository.delete(existente);
+            }
+        }
+
+        List<EventoInstituicao> atualizados = new ArrayList<>();
+
+        // Atualiza ou cria instituições conforme necessário
+        for (EventoInstituicao nova : novasInstituicoes) {
+            EventoInstituicao existente = existentes.stream()
+                    .filter(e -> Objects.equals(e.getInstituicaoUsuario().getId(), nova.getInstituicaoUsuario().getId()))
+                    .findFirst()
+                    .orElse(new EventoInstituicao());
+
+            existente.setInstituicaoUsuario(nova.getInstituicaoUsuario());
+            existente.setValor(nova.getValor());
+            existente.setParcelas(nova.getParcelas());
+            existente.setTipoMovimento(nova.getTipoMovimento());
+            existente.setEventoFinanceiro(financeiro);
+
+            atualizados.add(eventoInstituicaoRepository.save(existente));
+        }
+
+        return atualizados;
     }
 
-    public GastoDetalhe editGastoDetalhe(UUID eventoId, GastoDetalhe entity){
+
+    public GastoDetalhe editGastoDetalhe(UUID eventoId, GastoDetalhe entity) {
         EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
                 .orElseThrow(() ->
                         new EntidadeNaoEncontradaException(
@@ -230,35 +280,66 @@ public class RegistroService {
 
         GastoDetalhe gastoDetalhe = gastoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
 
-        if (entity.getCategoriaUsuario() != gastoDetalhe.getCategoriaUsuario()){
-            gastoDetalhe.setCategoriaUsuario(entity.getCategoriaUsuario());
-        }
-        if (!Objects.equals(entity.getTituloGasto(), gastoDetalhe.getTituloGasto())){
+        // Atualiza título se mudou
+        if (!Objects.equals(entity.getTituloGasto(), gastoDetalhe.getTituloGasto())) {
             gastoDetalhe.setTituloGasto(entity.getTituloGasto());
         }
+
+        // Atualiza categorias (adiciona novas e remove as que não estão mais)
+        List<CategoriaUsuario> categoriasExistentes = gastoDetalhe.getCategoriaUsuario();
+        List<CategoriaUsuario> categoriasNovas = entity.getCategoriaUsuario();
+
+        // IDs das novas categorias
+        Set<Integer> novosIds = categoriasNovas.stream()
+                .map(CategoriaUsuario::getId)
+                .collect(Collectors.toSet());
+
+        // Remove categorias que não estão mais na lista enviada
+        categoriasExistentes.removeIf(c -> !novosIds.contains(c.getId()));
+
+        // Adiciona ou atualiza categorias novas
+        for (CategoriaUsuario nova : categoriasNovas) {
+            boolean jaExiste = categoriasExistentes.stream()
+                    .anyMatch(c -> Objects.equals(c.getId(), nova.getId()));
+            if (!jaExiste) {
+                CategoriaUsuario categoria = categoriaUsuarioRepository.findById(nova.getId())
+                        .orElseThrow(() ->
+                                new EntidadeNaoEncontradaException(
+                                        "Categoria Usuário de id: %d não encontrada."
+                                                .formatted(nova.getId()))
+                        );
+                categoriasExistentes.add(categoria);
+            }
+        }
+
+        gastoDetalhe.setCategoriaUsuario(categoriasExistentes);
         gastoDetalhe.setEventoFinanceiro(financeiro);
 
         return gastoDetalheRepository.save(gastoDetalhe);
     }
 
+
     public void deleteRegistroByEventoFinanceiro_Id(UUID eventoId) {
-        eventoFinanceiroRepository.findById(eventoId)
+        EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
                 .orElseThrow(() ->
                         new EntidadeNaoEncontradaException(
                                 "Evento Financeiro de id: %s não encontrado"
                                         .formatted(eventoId)
                         )
                 );
-        if(!gastoDetalheRepository.existsGastoDetalheByEventoFinanceiro_Id(eventoId)){
-            throw new EntidadeNaoEncontradaException("Detalhe do gasto não encontrado.");
-        }
-        gastoDetalheRepository.deleteGastoDetalheByEventoFinanceiro_Id(eventoId);
 
-        if(!eventoInstituicaoRepository.existsEventoInstituicaoByEventoFinanceiro_Id(eventoId)){
+        GastoDetalhe gastos = gastoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
+        gastoDetalheRepository.delete(gastos);
+
+        // Deleta todas as instituições associadas ao evento
+        List<EventoInstituicao> instituicoes = eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(eventoId);
+        if (instituicoes.isEmpty()) {
             throw new EntidadeNaoEncontradaException("Evento Instituição não encontrado.");
         }
-        eventoInstituicaoRepository.deleteEventoInstituicaoByEventoFinanceiro_Id(eventoId);
+        instituicoes.forEach(instituicao -> eventoInstituicaoRepository.delete(instituicao));
 
-        eventoFinanceiroRepository.deleteEventoFinanceiroById(eventoId);
+        // Finalmente, deleta o evento financeiro
+        eventoFinanceiroRepository.delete(financeiro);
     }
+
 }

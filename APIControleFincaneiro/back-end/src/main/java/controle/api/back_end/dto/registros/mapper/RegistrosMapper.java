@@ -48,12 +48,14 @@ public class RegistrosMapper {
             return null;
         }
         EventoInstituicao entity = new EventoInstituicao();
-        InstituicaoUsuario instituicaoUsuario = new InstituicaoUsuario();
-        instituicaoUsuario.setId(dto.getInstituicaoUsuario_id());
 
+        InstituicaoUsuario instituicoes = new InstituicaoUsuario();
+        instituicoes.setId(dto.getInstituicaoUsuario_id());
+
+        entity.setParcelas(dto.getParcelas());
         entity.setValor(dto.getValor());
         entity.setTipoMovimento(dto.getTipoMovimento());
-        entity.setInstituicaoUsuario(instituicaoUsuario);
+        entity.setInstituicaoUsuario(instituicoes);
 
         return entity;
     }
@@ -70,118 +72,164 @@ public class RegistrosMapper {
         }
 
         GastoDetalhe entity = new GastoDetalhe();
-        CategoriaUsuario categoriaUsuario = new CategoriaUsuario();
+        List<CategoriaUsuario> categorias = dto.getCategoriaUsuario_id().stream()
+                .map(id -> {
+                    CategoriaUsuario categoria = new CategoriaUsuario();
+                    categoria.setId(id);
+                    return categoria;
+                })
+                .toList();
 
-        categoriaUsuario.setId(dto.getCategoriaUsuario_id());
-
-        entity.setCategoriaUsuario(categoriaUsuario);
+        entity.setCategoriaUsuario(categorias);
         entity.setTituloGasto(dto.getTituloGasto());
 
         return entity;
     }
 
-    public static List<GastoDetalhe> toEntity(@Valid List<GastoDetalheCreateDto> dtos){
+    public static List<GastoDetalhe> toEntityGasto(@Valid List<GastoDetalheCreateDto> dtos){
         return dtos.stream()
                 .map(RegistrosMapper::toEntityGasto)
                 .toList();
     }
 
-    public static RegistroUsuarioResponseDto toResponseUser(EventoFinanceiro eventoFinanceiro, EventoInstituicao eventoInstituicao, GastoDetalhe gastoDetalhe){
-        if(eventoInstituicao == null || eventoFinanceiro == null || gastoDetalhe == null){
+    public static RegistroUsuarioResponseDto toResponseUser(EventoFinanceiro eventoFinanceiro,
+                                                            List<EventoInstituicao> eventoInstituicoes,
+                                                            GastoDetalhe gastoDetalhe) {
+        if (eventoInstituicoes == null || eventoFinanceiro == null || gastoDetalhe == null) {
             return null;
         }
 
         RegistroUsuarioResponseDto response = new RegistroUsuarioResponseDto();
-        RegistroUsuarioResponseDto.EventoInstituicaoDto eventoInstituicaoDto = new RegistroUsuarioResponseDto.EventoInstituicaoDto();
-        RegistroUsuarioResponseDto.EventoInstituicaoDto.InstituicaoDto instituicaoDto = new RegistroUsuarioResponseDto.EventoInstituicaoDto.InstituicaoDto();
+
+        // Mapeando lista de EventoInstituicao
+        List<RegistroUsuarioResponseDto.EventoInstituicaoDto> eventoInstituicaoDtos = eventoInstituicoes.stream()
+                .map(ei -> {
+                    RegistroUsuarioResponseDto.EventoInstituicaoDto.InstituicaoDto instituicaoDto =
+                            new RegistroUsuarioResponseDto.EventoInstituicaoDto.InstituicaoDto();
+                    instituicaoDto.setId(ei.getInstituicaoUsuario().getInstituicao().getId());
+                    instituicaoDto.setNome(ei.getInstituicaoUsuario().getInstituicao().getNome());
+
+                    RegistroUsuarioResponseDto.EventoInstituicaoDto eventoInstituicaoDto =
+                            new RegistroUsuarioResponseDto.EventoInstituicaoDto();
+                    eventoInstituicaoDto.setId(ei.getId());
+                    eventoInstituicaoDto.setParcelas(ei.getParcelas());
+                    eventoInstituicaoDto.setInstituicao(instituicaoDto);
+                    eventoInstituicaoDto.setTipoMovimento(ei.getTipoMovimento());
+                    eventoInstituicaoDto.setValor(ei.getValor());
+
+                    return eventoInstituicaoDto;
+                })
+                .toList();
+
+        // Mapeando EventoFinanceiro
         RegistroUsuarioResponseDto.EventoFinanceiroDto financeiroDto = new RegistroUsuarioResponseDto.EventoFinanceiroDto();
-        RegistroUsuarioResponseDto.GastoDetalheDto detalheDto = new RegistroUsuarioResponseDto.GastoDetalheDto();
-        RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto categoriaDto = new RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto();
-        RegistroUsuarioResponseDto.UsuarioDto usuarioDto = new RegistroUsuarioResponseDto.UsuarioDto();
-
-        instituicaoDto.setId(eventoInstituicao.getInstituicaoUsuario().getInstituicao().getId());
-        instituicaoDto.setNome(eventoInstituicao.getInstituicaoUsuario().getInstituicao().getNome());
-
-        eventoInstituicaoDto.setId(eventoInstituicao.getId());
-        eventoInstituicaoDto.setInstituicao(instituicaoDto);
-        eventoInstituicaoDto.setTipoMovimento(eventoInstituicao.getTipoMovimento());
-        eventoInstituicaoDto.setValor(eventoInstituicao.getValor());
-
         financeiroDto.setId(eventoFinanceiro.getId());
         financeiroDto.setDescricao(eventoFinanceiro.getDescricao());
         financeiroDto.setTipo(eventoFinanceiro.getTipo());
         financeiroDto.setDataEvento(eventoFinanceiro.getDataEvento());
         financeiroDto.setValor(eventoFinanceiro.getValor());
 
-        categoriaDto.setId(gastoDetalhe.getCategoriaUsuario().getCategoria().getId());
-        categoriaDto.setTitulo(gastoDetalhe.getCategoriaUsuario().getCategoria().getTitulo());
+        // Mapeando categorias do GastoDetalhe
+        List<RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto> categoriasDto = gastoDetalhe.getCategoriaUsuario().stream()
+                .map(cu -> {
+                    RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto categoriaDto =
+                            new RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto();
+                    categoriaDto.setId(cu.getCategoria().getId());
+                    categoriaDto.setTitulo(cu.getCategoria().getTitulo());
+                    return categoriaDto;
+                })
+                .toList();
 
+        RegistroUsuarioResponseDto.GastoDetalheDto detalheDto = new RegistroUsuarioResponseDto.GastoDetalheDto();
         detalheDto.setId(gastoDetalhe.getId());
-        detalheDto.setCategoria(categoriaDto);
+        detalheDto.setCategoria(categoriasDto);
         detalheDto.setTituloGasto(gastoDetalhe.getTituloGasto());
 
+        // Mapeando usuário
+        RegistroUsuarioResponseDto.UsuarioDto usuarioDto = new RegistroUsuarioResponseDto.UsuarioDto();
         usuarioDto.setId(eventoFinanceiro.getUsuario().getId());
         usuarioDto.setNome(eventoFinanceiro.getUsuario().getNome());
         usuarioDto.setEmail(eventoFinanceiro.getUsuario().getEmail());
 
-        LocalDate dataRegistro = eventoFinanceiro.getDataRegistro();
-
+        // Montando resposta final
         response.setUsuario(usuarioDto);
         response.setGastoDetalhe(detalheDto);
         response.setEventoFinanceiro(financeiroDto);
-        response.setEventoInstituicao(eventoInstituicaoDto);
-        response.setDataRegistro(dataRegistro);
+        response.setEventoInstituicao(eventoInstituicaoDtos);
+        response.setDataRegistro(eventoFinanceiro.getDataRegistro());
 
         return response;
     }
 
-    public static RegistroResponseDto toResponse(EventoFinanceiro eventoFinanceiro, EventoInstituicao eventoInstituicao, GastoDetalhe gastoDetalhe){
-        if(eventoInstituicao == null || eventoFinanceiro == null || gastoDetalhe == null){
+    public static RegistroResponseDto toResponse(EventoFinanceiro eventoFinanceiro,
+                                                 List<EventoInstituicao> eventoInstituicoes,
+                                                 GastoDetalhe gastoDetalhe) {
+        if (eventoInstituicoes == null || eventoFinanceiro == null || gastoDetalhe == null) {
             return null;
         }
+
         RegistroResponseDto response = new RegistroResponseDto();
-        RegistroResponseDto.EventoInstituicaoDto.InstituicaoDto instituicaoDto = new RegistroResponseDto.EventoInstituicaoDto.InstituicaoDto();
-        RegistroResponseDto.EventoInstituicaoDto eventoInstituicaoDto = new RegistroResponseDto.EventoInstituicaoDto();
+
+        // Mapeando lista de EventoInstituicao
+        List<RegistroResponseDto.EventoInstituicaoDto> eventoInstituicaoDtos = eventoInstituicoes.stream()
+                .map(ei -> {
+                    RegistroResponseDto.EventoInstituicaoDto.InstituicaoDto instituicaoDto =
+                            new RegistroResponseDto.EventoInstituicaoDto.InstituicaoDto();
+                    instituicaoDto.setId(ei.getInstituicaoUsuario().getInstituicao().getId());
+                    instituicaoDto.setNome(ei.getInstituicaoUsuario().getInstituicao().getNome());
+
+                    RegistroResponseDto.EventoInstituicaoDto eventoInstituicaoDto =
+                            new RegistroResponseDto.EventoInstituicaoDto();
+                    eventoInstituicaoDto.setId(ei.getId());
+                    eventoInstituicaoDto.setParcelas(ei.getParcelas());
+                    eventoInstituicaoDto.setInstituicao(instituicaoDto);
+                    eventoInstituicaoDto.setTipoMovimento(ei.getTipoMovimento());
+                    eventoInstituicaoDto.setValor(ei.getValor());
+
+                    return eventoInstituicaoDto;
+                })
+                .toList();
+
+        // Mapeando EventoFinanceiro
         RegistroResponseDto.EventoFinanceiroDto financeiroDto = new RegistroResponseDto.EventoFinanceiroDto();
-        RegistroResponseDto.GastoDetalheDto.CategoriaDto categoriaDto = new RegistroResponseDto.GastoDetalheDto.CategoriaDto();
-        RegistroResponseDto.GastoDetalheDto detalheDto = new RegistroResponseDto.GastoDetalheDto();
-
-        instituicaoDto.setId(eventoInstituicao.getInstituicaoUsuario().getInstituicao().getId());
-        instituicaoDto.setNome(eventoInstituicao.getInstituicaoUsuario().getInstituicao().getNome());
-
-        eventoInstituicaoDto.setId(eventoInstituicao.getId());
-        eventoInstituicaoDto.setInstituicao(instituicaoDto);
-        eventoInstituicaoDto.setTipoMovimento(eventoInstituicao.getTipoMovimento());
-        eventoInstituicaoDto.setValor(eventoInstituicao.getValor());
-
         financeiroDto.setId(eventoFinanceiro.getId());
         financeiroDto.setDescricao(eventoFinanceiro.getDescricao());
         financeiroDto.setTipo(eventoFinanceiro.getTipo());
         financeiroDto.setDataEvento(eventoFinanceiro.getDataEvento());
         financeiroDto.setValor(eventoFinanceiro.getValor());
 
-        categoriaDto.setId(gastoDetalhe.getCategoriaUsuario().getCategoria().getId());
-        categoriaDto.setTitulo(gastoDetalhe.getCategoriaUsuario().getCategoria().getTitulo());
+        // Mapeando categorias do GastoDetalhe
+        List<RegistroResponseDto.GastoDetalheDto.CategoriaDto> categoriasDto = gastoDetalhe.getCategoriaUsuario().stream()
+                .map(cu -> {
+                    RegistroResponseDto.GastoDetalheDto.CategoriaDto categoriaDto =
+                            new RegistroResponseDto.GastoDetalheDto.CategoriaDto();
+                    categoriaDto.setId(cu.getCategoria().getId());
+                    categoriaDto.setTitulo(cu.getCategoria().getTitulo());
+                    return categoriaDto;
+                })
+                .toList();
 
+        RegistroResponseDto.GastoDetalheDto detalheDto = new RegistroResponseDto.GastoDetalheDto();
         detalheDto.setId(gastoDetalhe.getId());
-        detalheDto.setCategoria(categoriaDto);
+        detalheDto.setCategoria(categoriasDto); // agora é lista
         detalheDto.setTituloGasto(gastoDetalhe.getTituloGasto());
-        LocalDate dataRegistro = eventoFinanceiro.getDataRegistro();
 
-        response.setDataRegistro(dataRegistro);
+        // Montando resposta final
+        response.setDataRegistro(eventoFinanceiro.getDataRegistro());
         response.setEventoFinanceiro(financeiroDto);
-        response.setEventoInstituicao(eventoInstituicaoDto);
+        response.setEventoInstituicao(eventoInstituicaoDtos);
         response.setGastoDetalhe(detalheDto);
 
         return response;
     }
 
+
     public static List<RegistroResponseDto> toResponse(
             List<EventoFinanceiro> eventosFinanceiros,
-            List<EventoInstituicao> eventosInstituicao,
+            List<List<EventoInstituicao>> eventosInstituicoes,
             List<GastoDetalhe> gastoDetalhes) {
 
-        if (eventosFinanceiros.size() != eventosInstituicao.size()
+        if (eventosFinanceiros.size() != eventosInstituicoes.size()
                 || eventosFinanceiros.size() != gastoDetalhes.size()) {
             throw new IllegalArgumentException("As listas devem ter o mesmo tamanho");
         }
@@ -190,10 +238,10 @@ public class RegistrosMapper {
 
         for (int i = 0; i < eventosFinanceiros.size(); i++) {
             EventoFinanceiro eventoFinanceiro = eventosFinanceiros.get(i);
-            EventoInstituicao eventoInstituicao = eventosInstituicao.get(i);
+            List<EventoInstituicao> instituicoes = eventosInstituicoes.get(i);
             GastoDetalhe gastoDetalhe = gastoDetalhes.get(i);
 
-            RegistroResponseDto response = toResponse(eventoFinanceiro, eventoInstituicao, gastoDetalhe);
+            RegistroResponseDto response = toResponse(eventoFinanceiro, instituicoes, gastoDetalhe);
             if (response != null) {
                 responses.add(response);
             }
@@ -201,5 +249,6 @@ public class RegistrosMapper {
 
         return responses;
     }
+
 
 }

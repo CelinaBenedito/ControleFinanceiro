@@ -6,7 +6,7 @@ import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 
 
 public class BoletoMovimento implements MovimentoStrategy{
-    private int parcelas;
+    private final int parcelas;
 
     public BoletoMovimento(int parcelas) {
         this.parcelas = parcelas;
@@ -14,16 +14,23 @@ public class BoletoMovimento implements MovimentoStrategy{
 
     @Override
     public void validar(InstituicaoUsuario instituicao) {
-        if (!instituicao.getAtivo()) {
-            throw new InstituicaoInativaException("Instituição %s inativa não pode realizar pagamento de boleto."
-                    .formatted(instituicao.getInstituicao().getNome()));
+        if (Boolean.FALSE.equals(instituicao.getIsAtivo())) {
+            throw new InstituicaoInativaException(
+                    "Instituição %s inativa, não é possível utilizá-la."
+                            .formatted(instituicao.getInstituicao().getNome())
+            );
         }
     }
 
     @Override
     public MovimentoResultado processar(EventoInstituicao evento) {
         double valorParcela = evento.getValor() / parcelas;
-        System.out.println("Processando boleto em " +parcelas+ " de R$"+valorParcela);
-        return new MovimentoResultado(evento);
+        MovimentoResultado movimentoResultado = new MovimentoResultado();
+
+        movimentoResultado.setParcelas(parcelas);
+        movimentoResultado.setValorParcela(valorParcela);
+        movimentoResultado.setEvento(evento);
+
+        return movimentoResultado;
     }
 }

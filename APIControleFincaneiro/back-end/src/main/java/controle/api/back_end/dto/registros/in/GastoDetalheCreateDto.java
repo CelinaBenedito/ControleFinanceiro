@@ -5,19 +5,21 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.websocket.OnOpen;
 
+import java.util.List;
+
 public class GastoDetalheCreateDto {
-    @Schema(example = "2", description = "Representa a categoria da movimentação")
+    @Schema(example = "[1, 2]", description = "Representa as categorias da movimentação")
     @NotNull
-    private Integer categoriaUsuario_id;
+    private List<Integer> categoriaUsuario_id;
     @Schema(example = "Champagne", description = "Titulo que aparecera em conjunto ao valor da movimentação")
     @NotBlank
     private String tituloGasto;
 
-    public Integer getCategoriaUsuario_id() {
+    public List<Integer> getCategoriaUsuario_id() {
         return categoriaUsuario_id;
     }
 
-    public void setCategoriaUsuario_id(Integer categoriaUsuario_id) {
+    public void setCategoriaUsuario_id(List<Integer> categoriaUsuario_id) {
         this.categoriaUsuario_id = categoriaUsuario_id;
     }
 
