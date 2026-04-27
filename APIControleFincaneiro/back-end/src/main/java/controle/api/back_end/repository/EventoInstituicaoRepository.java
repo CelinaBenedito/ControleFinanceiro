@@ -13,4 +13,6 @@ public interface EventoInstituicaoRepository extends JpaRepository<EventoInstitu
     boolean existsEventoInstituicaoByEventoFinanceiro_Id(UUID eventoId);
 
     void deleteEventoInstituicaoByEventoFinanceiro_Id(UUID eventoFinanceiroId);
+
+    List<EventoInstituicao> findByInstituicaoUsuario_Id(Integer instituicaoUsuarioId);
 }

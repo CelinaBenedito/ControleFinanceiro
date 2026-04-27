@@ -55,13 +55,7 @@ public class UsuarioService {
         BigDecimal saldo = BigDecimal.ZERO;
 
         for (EventoFinanceiro evento : eventosFinanceiros) {
-            BigDecimal valor = BigDecimal.valueOf(evento.getValor());
-
-            if (evento.getTipo() == Tipo.Gasto || evento.getTipo() == Tipo.Transferencia) {
-                saldo = saldo.subtract(valor);
-            } else if (evento.getTipo() == Tipo.Recebimento) {
-                saldo = saldo.add(valor);
-            }
+            saldo = InstituicaoService.getSaldo(saldo, evento);
         }
         return saldo;
     }
