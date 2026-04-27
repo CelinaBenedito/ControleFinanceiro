@@ -4,6 +4,7 @@ import controle.api.back_end.dto.configuracoes.in.*;
 import controle.api.back_end.dto.configuracoes.mapper.ConfiguracoesMapper;
 import controle.api.back_end.dto.configuracoes.out.ConfiguracaoUsuarioResponseDTO;
 import controle.api.back_end.dto.configuracoes.out.ConfiguracoesResponsesDTO;
+import controle.api.back_end.dto.usuario.out.UsuarioResponseDTO;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
@@ -11,8 +12,11 @@ import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.service.ConfiguracoesService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +28,7 @@ import java.util.UUID;
 @CrossOrigin
 @RestController
 @RequestMapping("/configuracoes")
+@Tag(name = "Configurações", description = "Endpoints referentes as configurações dos usuários.")
 public class ConfiguracoesController {
 
     private final ConfiguracoesService configuracoesService;
@@ -36,8 +41,11 @@ public class ConfiguracoesController {
     @Operation(summary = "Buscar todas as configurações",
             description = "Busca todos as configurações registradas no banco de dados.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados!"),
-            @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e não retornou dados!")
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ConfiguracoesResponsesDTO.class))),
+            @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e não retornou dados!",
+                    content = @Content)
     })
     public ResponseEntity<List<ConfiguracoesResponsesDTO>> getConfiguracoes(){
         List<Configuracoes> all = configuracoesService.getConfiguracoes();
@@ -52,8 +60,11 @@ public class ConfiguracoesController {
     @Operation(summary = "Buscar a configuração com o id especificado",
             description = "Busca a configuração correspondente ao id informado junto do usuario que a possui.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados!"),
-            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ConfiguracaoUsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
+                    content = @Content)
     })
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> getConfiguracaoById(@PathVariable UUID id){
         Configuracoes configById = configuracoesService.getConfiguracoesById(id);
@@ -65,8 +76,11 @@ public class ConfiguracoesController {
     @Operation(summary = "Buscar a configuração associada ao id do usuário especificado",
             description = "Busca a configuração correspondente ao id do usuário informado junto.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados!"),
-            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ConfiguracaoUsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
+                    content = @Content)
     })
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> getConfiguracaoByUserId(@PathVariable UUID user_id){
         Configuracoes configByUserId = configuracoesService.getConfiguracaoByUserId(user_id);
@@ -78,9 +92,13 @@ public class ConfiguracoesController {
     @Operation(summary = "Criar uma nova configuração",
             description = "Cria uma nova configuração no banco de dados.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "configuracao criada com sucesso!"),
-            @ApiResponse(responseCode = "409", description = "Usuario já tem uma configuração cadastrada"),
-            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+            @ApiResponse(responseCode = "201", description = "configuracao criada com sucesso!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ConfiguracaoUsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "409", description = "Usuario já tem uma configuração cadastrada",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
+                    content = @Content)
     })
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createConfiguracao(@Valid @RequestBody ConfiguracoesCreateDTO createDto){
         Configuracoes entity = ConfiguracoesMapper.toEntity(createDto);
@@ -94,9 +112,13 @@ public class ConfiguracoesController {
     @Operation(summary = "Adicionar uma lista de limite para instituições.",
             description = "Adição de uma lista de instituições e seus respectivos limites nas configurações.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Lista de instituições criadas!"),
-            @ApiResponse(responseCode = "409", description = "Limite já cadastrado!"),
-            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+            @ApiResponse(responseCode = "201", description = "Lista de instituições criadas!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ConfiguracaoUsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "409", description = "Limite já cadastrado!",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
+                    content = @Content)
     })
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createLimitePorInstituicao(@RequestBody @Valid List<LimitePorInstitucaoCreateDTO> createDtos,
                                                                                      @PathVariable UUID id){
@@ -116,9 +138,13 @@ public class ConfiguracoesController {
     @Operation(summary = "Adicionar uma lista de limite para categorias.",
             description = "Adição de uma lista de categorias e seus respectivos limites nas configurações.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Lista de categorias criadas!"),
-            @ApiResponse(responseCode = "409", description = "Limite já cadastrado!"),
-            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+            @ApiResponse(responseCode = "201", description = "Lista de categorias criadas!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ConfiguracaoUsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "409", description = "Limite já cadastrado!",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
+                    content = @Content)
     })
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> createLimitePorCategoria(@RequestBody @Valid List<LimitePorCategoriaCreateDTO> createDtos,
                                                                                      @PathVariable UUID id){
@@ -137,8 +163,11 @@ public class ConfiguracoesController {
     @Operation(summary = "Editar as configuranções.",
             description = "Edita as informações contidas dentro das configurações")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Atualizado com sucesso!"),
-            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+            @ApiResponse(responseCode = "200", description = "Atualizado com sucesso!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ConfiguracaoUsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
+                    content = @Content)
     })
     public ResponseEntity<ConfiguracaoUsuarioResponseDTO> editConfiguracao(@Valid @RequestBody ConfiguracaoEditDTO editDTO, @PathVariable UUID id){
         Configuracoes entity = ConfiguracoesMapper.toEntity(editDTO);
@@ -148,7 +177,15 @@ public class ConfiguracoesController {
     }
 
     @DeleteMapping("{id}/dados/periodo-tempo")
-    //Incompleto TO-DO
+    //Incompleto TODO
+    @Operation(summary = "Deleta os dados do usuário por periodo de tempo",
+            description = "Deleta os registros cadastros por periodo de temp, de determinada data até determinada data.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Deleção ocorreu com sucesso.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos",
+                    content = @Content)
+    })
     public ResponseEntity<Void> deleteDadosByPeriodoDeTempo(@Valid @RequestBody PeriodoTempoRequestDto tempoDto, @PathVariable UUID id){
         configuracoesService.deleteByPeriodoDeTempo(id,tempoDto);
 
@@ -156,7 +193,15 @@ public class ConfiguracoesController {
     }
 
     @DeleteMapping("{id}/dados/deletar-tudo")
-    //Incompleto TO-DO
+    //Incompleto TODO
+    @Operation(summary = "Deleta todo os dados do usuário",
+            description = "Deleta todos os registros do usuário.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Deleção ocorreu com sucesso.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos",
+                    content = @Content)
+    })
     public ResponseEntity<Void> deleteAll(@PathVariable UUID id){
 
         return ResponseEntity.status(500).build();

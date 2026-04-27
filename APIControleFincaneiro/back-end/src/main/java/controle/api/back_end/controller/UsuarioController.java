@@ -24,7 +24,7 @@ import java.util.UUID;
 @CrossOrigin
 @RestController
 @RequestMapping("/usuarios")
-@Tag(name = "Usuário", description = "Endpoints referentes aos usuários da aplicação.")
+@Tag(name = "Usuários", description = "Endpoints referentes aos usuários da aplicação.")
 public class UsuarioController {
 
     public final UsuarioService usuarioService;
@@ -82,6 +82,13 @@ public class UsuarioController {
         BigDecimal saldoByUsuario = usuarioService
                 .getSaldoByUsuario(user_id);
         return ResponseEntity.status(200).body(saldoByUsuario);
+    }
+
+    //TODO
+    @GetMapping("/calculo-xp/{user_id}")
+    public ResponseEntity<Double> getXpByUserId(UUID user_id){
+
+        return ResponseEntity.unprocessableEntity().build();
     }
 
     @PostMapping
