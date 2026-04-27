@@ -486,9 +486,10 @@
                     </div>
 
                     <div class="ar-field-wrap">
-                        <select id="select_instituicao"></select>
+                        <select id="select_instituicao" onchange="atualizarSaldoDisplay(this.value)"></select>
                         <label for="select_instituicao">Instituição</label>
                     </div>
+                    <p id="saldo_display" style="display:none; font-size:0.92rem; font-weight:600; color:#367373; margin:-8px 0 4px 4px;"></p>
 
                     <div class="ar-field-wrap">
                         <select id="select_movimento" onchange="toggleParcelas('ipt_parcelas', this.value)">

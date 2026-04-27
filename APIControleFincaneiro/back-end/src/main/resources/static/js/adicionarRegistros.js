@@ -27,6 +27,26 @@ function gerarInformacoes() {
     gerarInstituicao();
 }
 
+async function atualizarSaldoDisplay(instituicaoUsuarioId) {
+    const el = document.getElementById('saldo_display');
+    if (!el) return;
+    if (!instituicaoUsuarioId || instituicaoUsuarioId === '#') {
+        el.style.display = 'none';
+        return;
+    }
+    try {
+        const res = await fetch(`http://localhost:8080/instituicoes/saldo/${Number(instituicaoUsuarioId)}`);
+        if (!res.ok) { el.style.display = 'none'; return; }
+        const saldo = await res.json();
+        const valor = Number(saldo);
+        el.textContent = `Saldo disponível: R$ ${valor.toFixed(2)}`;
+        el.style.color = valor <= 0 ? '#e53e3e' : '#367373';
+        el.style.display = '';
+    } catch (e) {
+        el.style.display = 'none';
+    }
+}
+
 function toggleParcelas(inputId, movimento) {
     const requer = movimento === 'Credito' || movimento === 'Boleto';
     const wrapId = inputId === 'ipt_parcelas' ? 'wrap_parcelas' : 'wrap_multi_parcelas';
@@ -86,7 +106,7 @@ async function controleInstituicao(){
 
 }
 
-function registrar() {
+async function registrar() {
     var data = dataGasto;
     var valor = Number(document.getElementById('ipt_valor').value);
     var titulo = document.getElementById('ipt_nome').value;
@@ -125,6 +145,21 @@ function registrar() {
         return alerta("Informe a quantidade de parcelas (mínimo 1)");
     }
 
+    // Verificar saldo quando o tipo exige débito da conta
+    if (tipo === 'Gasto' || tipo === 'Transferencia') {
+        try {
+            const resSaldo = await fetch(`http://localhost:8080/instituicoes/saldo/${Number(instituicao)}`);
+            if (resSaldo.ok) {
+                const saldo = await resSaldo.json();
+                if (Number(saldo) < valor) {
+                    return alerta(`Saldo insuficiente. Saldo disponível: R$ ${Number(saldo).toFixed(2)}`);
+                }
+            }
+        } catch (e) {
+            console.warn("Não foi possível verificar o saldo:", e);
+        }
+    }
+
     alerta(`Registrando...
         <div class="glaceonCorrendoDiv">
     <img class="glaceon correndo" src="/assets/gif/glaceon-correndo-unscreen.gif" alt="">
@@ -152,6 +187,7 @@ function registrar() {
     }).then(async (response) => {
         console.log("Resposta status:", response.status);
         if (response.ok) {
+            atualizarSaldoDisplay(instituicao);
             return setTimeout(() => alerta(
                 `Registro realizado com sucesso!<br>
                 <div>
