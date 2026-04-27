@@ -8,7 +8,9 @@ import controle.api.back_end.dto.registros.out.RegistroUsuarioResponseDto;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.eventoFinanceiro.*;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.service.RegistroService;
+import controle.api.back_end.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,9 +18,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -29,9 +35,11 @@ import java.util.UUID;
 @Tag(name = "Registros", description = "Endpoints referentes aos registros, onde se é feito o registro de todos os eventos financeiros do usuário.")
 public class RegistrosController {
     private final RegistroService registroService;
+    private final UsuarioService usuarioService;
 
-    public RegistrosController(RegistroService registroService) {
+    public RegistrosController(RegistroService registroService, UsuarioService usuarioService) {
         this.registroService = registroService;
+        this.usuarioService = usuarioService;
     }
 
     @GetMapping("/{user_id}")
@@ -111,6 +119,47 @@ public class RegistrosController {
             return ResponseEntity.status(204).build();
         }
         return ResponseEntity.status(200).body(responses);
+    }
+
+    @GetMapping("/download/{user_id}")
+    public ResponseEntity<byte[]> downloadFile(@PathVariable UUID user_id,
+                                               @RequestParam String tipo)  throws IOException {
+        byte[] conteudo;
+        String nomeArquivo;
+        String contentType;
+        Usuario usuario = usuarioService.getUsuarioById(user_id);
+        switch(tipo.toLowerCase()){
+            case "json":
+                conteudo = registroService.createJson(user_id).getBytes(StandardCharsets.UTF_8);
+                nomeArquivo = "registros_"+usuario.getNome()+"_"+LocalDate.now() +".json";
+                contentType = "application/json";
+                break;
+
+            case "sql":
+                conteudo = registroService.createSql(user_id).getBytes(StandardCharsets.UTF_8);
+                nomeArquivo = "registros_"+usuario.getNome()+"_"+LocalDate.now() +".sql";
+                contentType = "application/sql";
+                break;
+
+            case "excel":
+                conteudo = registroService.createExcel(user_id);
+                nomeArquivo = "registros_"+usuario.getNome()+"_"+LocalDate.now() +".xlsx";
+                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                break;
+
+            case "pdf":
+                conteudo = registroService.createPdf(user_id);
+                nomeArquivo = "registros_"+usuario.getNome()+"_"+LocalDate.now() +".pdf";
+                contentType = "application/pdf";
+                break;
+
+            default:
+                return ResponseEntity.badRequest().body("Formato não suportado".getBytes());
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + nomeArquivo)
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(conteudo);
     }
 
     @PostMapping
