@@ -18,8 +18,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -157,6 +159,19 @@ public class ConfiguracoesController {
         Configuracoes configuracoes = configuracoesService.updateLimiteCategoria(id, limites);
         ConfiguracaoUsuarioResponseDTO response = ConfiguracoesMapper.toDtoUser(configuracoes);
         return ResponseEntity.status(200).body(response);
+    }
+
+    @PostMapping(value ="/upload-arquivo/usuarios/{user_id}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> postArquivo(@PathVariable UUID user_id,
+                                            @RequestParam MultipartFile arquivo){
+        if (arquivo.isEmpty()){
+            return ResponseEntity.badRequest().body("Nenhum arquivo enviado.");
+        }
+        String nomeArquivo = arquivo.getOriginalFilename();
+        String tipoArquivo = arquivo.getContentType();
+
+        return ResponseEntity.status(200).build();
     }
 
     @PutMapping("/edit/{id}")

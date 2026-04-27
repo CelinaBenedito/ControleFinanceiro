@@ -97,10 +97,10 @@ public class RegistroService {
             params.put("parcelas", entity.getParcelas());
 
             MovimentoStrategy strategy = movimentoFactory.getStrategy(entity.getTipoMovimento(), params);
-            strategy.validar(entity.getInstituicaoUsuario());
+            strategy.validar(instituicaoUsuario);
             MovimentoResultado resultado = strategy.processar(entity);
 
-            BigDecimal saldoByInstituicao = instituicaoService.getSaldoByInstituicao(entity.getInstituicaoUsuario().getId());
+            BigDecimal saldoByInstituicao = instituicaoService.getSaldoByInstituicao(instituicaoUsuario.getId());
 
             if ((eventoFinanceiro.getTipo() == Tipo.Gasto
                     || eventoFinanceiro.getTipo() == Tipo.Transferencia)

@@ -9,10 +9,12 @@ public class InstituicaoUsuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "instituicao_id", nullable = false)
     private Instituicao instituicao;
 
     @Column(name = "is_ativo", nullable = false)
