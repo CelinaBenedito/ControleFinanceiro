@@ -3,24 +3,32 @@
 ## 📖 Descrição
 Aplicativo de controle financeiro desenvolvido em Java, com front-end em HTML, CSS e JS servido via JavaFX. Criado inicialmente em 2025 para substituir planilhas Excel, evoluiu até a versão atual (2.6), oferecendo dashboards, relatórios e integração com dados bancários.
 
+---
+
 ## 🚀 Tecnologias
 - Java (backend)
 - JavaFX (frontend)
 - HTML, CSS, JS
 - Banco H2 (desenvolvimento) / Arquivo local (produção)
 - Python (web scraping)
-- Figma (design do front-end)[Link do Figma](https://www.figma.com/design/v8ZtkZ3IXgQetlbq0TfgfZ/ControleFInanceiro?node-id=0-1&t=HpyyFlr4rp0FdPh4-1)
+- Figma (design do front-end) [Link do Figma](https://www.figma.com/design/v8ZtkZ3IXgQetlbq0TfgfZ/ControleFInanceiro?node-id=0-1&t=HpyyFlr4rp0FdPh4-1)
+
+---
 
 ## 🧩 Estrutura da API
 ### Controllers Principais
 - Usuário
 - Registros
 
+---
+
 ### Controllers Auxiliares
 - Instituições
 - Categorias
 - Configurações
 - Dashboard
+
+---
 
 ## 📊 Funcionalidades
 - Dashboard com KPIs e gráficos
@@ -29,6 +37,8 @@ Aplicativo de controle financeiro desenvolvido em Java, com front-end em HTML, C
 - Visualização em calendário (dia a dia com resumo mensal)
 - Suporte a múltiplas contas para controle pessoal do usuário
 - Exportação/importação de dados locais
+  
+  ---
 
 ## 🔌 Endpoints
 
@@ -71,19 +81,21 @@ Aplicativo de controle financeiro desenvolvido em Java, com front-end em HTML, C
 - Expansão da integração com instituições financeiras
 - Melhorias na interface e usabilidade
 
+---
+
 ## 🛠️ Instalação
 ###Pré-requisitos:
 - Java 21 instalado
 - Maven configurado
   
-###Passos para rodar:
+### Passos para rodar:
 1. Clone o repositório
 2. Abra o projeto em sua IDE favorita
 3. Execute a aplicação com o comando:
-> mvn spring-boot:run
-ou simplesmente dar play na IDE.
+***mvn spring-boot:run***
+>ou simplesmente dar play na IDE.
 
-###Dependências principais:
+### Dependências principais:
 | Depêndencia                                | Função                                |
 |:-------------------------------------------|:--------------------------------------|
 | spring-boot-starter-data-jpa               | persistência com JPA                  |
@@ -93,7 +105,9 @@ ou simplesmente dar play na IDE.
 | mysql-connector-j                          | suporte a MySQL em runtime            |
 | javafx-controls e javafx-web               | front-end com JavaFX                  |
 
-##🤝 Contribuição
+---
+
+## 🤝 Contribuição
 Este projeto é aberto para colaboração.
 
 - Crie um fork do repositório
@@ -103,6 +117,8 @@ Este projeto é aberto para colaboração.
 - Envie um pull request
 
 > Todos os contribuidores terão seus créditos destacados.
+
+---
 
 ## 📜 Licença
 Este projeto é livre para uso e modificação.
