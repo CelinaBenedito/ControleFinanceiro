@@ -1,5 +1,6 @@
 package controle.api.back_end.controller;
 
+import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
 import controle.api.back_end.dto.registros.in.RegistroCompletoCreateDto;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
@@ -9,8 +10,11 @@ import controle.api.back_end.model.eventoFinanceiro.*;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.service.RegistroService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +26,7 @@ import java.util.UUID;
 @CrossOrigin
 @RestController
 @RequestMapping("/registros")
+@Tag(name = "Registros", description = "Endpoints referentes aos registros, onde se é feito o registro de todos os eventos financeiros do usuário.")
 public class RegistrosController {
     private final RegistroService registroService;
 
@@ -31,16 +36,19 @@ public class RegistrosController {
 
     @GetMapping("/{user_id}")
     @Operation(summary =
-            "Bucar registros associados ao ID de um usuário",
+            "Buscar registros associados ao ID de um usuário",
             description =
-                    "Busca todos os eventos financeiros associados ao usuário com o id especificadp.")
+                    "Busca todos os eventos financeiros associados ao usuário com o id especificado.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description =
-                    "Busca de dados feita com sucesso e retornou dados!"),
+                    "Busca de dados feita com sucesso e retornou dados!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = RegistroResponseDto.class))),
             @ApiResponse(responseCode = "204", description =
                     "Busca de dados feita com sucesso e não retornou dados!"),
             @ApiResponse(responseCode = "404", description =
-                    "Dados inválidos!")
+                    "Dados inválidos!",
+            content = @Content)
     })
     public ResponseEntity<List<RegistroResponseDto>> getRegistrosByUser(@PathVariable UUID user_id){
         List<EventoFinanceiro> eventoFinanceiros = registroService
@@ -65,6 +73,21 @@ public class RegistrosController {
     }
 
     @GetMapping("/filtro")
+    @Operation(summary =
+            "Buscar os registros com um filtro",
+            description =
+                    "Busca os registros se baseando no filtro passado.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description =
+                    "Busca de dados feita com sucesso e retornou dados!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = RegistroResponseDto.class))),
+            @ApiResponse(responseCode = "204", description =
+                    "Busca de dados feita com sucesso e não retornou dados!"),
+            @ApiResponse(responseCode = "404", description =
+                    "Dados inválidos!",
+                    content = @Content)
+    })
     public ResponseEntity<List<RegistroResponseDto>> getByFilter(
             @RequestParam(required = false) Double valor,
             @RequestParam(required = false)TipoMovimento tipoMovimento,
@@ -94,7 +117,9 @@ public class RegistrosController {
     @Operation(summary = "Criar um novo registro",
             description = "Cria um novo evento financeiro adicionando o ao banco de dados.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Registro criado com sucesso"),
+            @ApiResponse(responseCode = "201", description = "Registro criado com sucesso",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = RegistroUsuarioResponseDto.class))),
             @ApiResponse(responseCode = "404", description = "Dados inválidos!")
     })
     public ResponseEntity<RegistroUsuarioResponseDto> createRegistroCompleto(
@@ -119,8 +144,11 @@ public class RegistrosController {
     @Operation(summary = "Criar uma lista de novos registros.",
             description = "Cria uma lista de novos registros do mesmo dia.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Registros criados com sucesso!"),
-            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+            @ApiResponse(responseCode = "201", description = "Registros criados com sucesso!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = RegistroResponseDto.class))),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
+            content = @Content)
     })
     public ResponseEntity<List<RegistroResponseDto>> createListaRegistrosCompletos(
             @RequestBody @Valid List<RegistroCompletoCreateDto> dtos) {
@@ -150,6 +178,19 @@ public class RegistrosController {
 
 
     @PutMapping("/{evento_id}")
+    @Operation(summary =
+            "Edita um registro buscando o id do evento financeiro associado ao registro",
+            description =
+                    "Edita os dados de um registro, para achar este registro usa o ID do evento financeiro que é unico, após isso edita os dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description =
+                    "Registro editado com sucesso!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = RegistroUsuarioResponseDto.class))),
+            @ApiResponse(responseCode = "404", description =
+                    "Dados inválidos!",
+                    content = @Content)
+    })
     public ResponseEntity<RegistroUsuarioResponseDto> editRegistroByEventoFinanceiro_Id(
             @PathVariable UUID evento_id,
             @RequestBody RegistroCompletoCreateDto dto){
@@ -170,6 +211,18 @@ public class RegistrosController {
 
 
     @DeleteMapping("/{evento_id}")
+    @Operation(summary =
+            "deleta um registro buscando o id do evento financeiro associado ao registro",
+            description =
+                    "Deleta os dados de um registro, para achar este registro usa o ID do evento financeiro que é unico, após isso deleta os dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description =
+                    "Registro deletado com sucesso!",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description =
+                    "Dados inválidos!",
+                    content = @Content)
+    })
     public ResponseEntity<Void> deleteRegistroByEventoFinanceiro_Id(
             @PathVariable UUID evento_id
     ){

@@ -4,12 +4,16 @@ import controle.api.back_end.dto.categoria.CategoriaCreateDTO;
 import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
 import controle.api.back_end.dto.categoria.CategoriaUsuarioResponseDTO;
 import controle.api.back_end.dto.categoria.mapper.CategoriaMapper;
+import controle.api.back_end.dto.instituicao.InstituicaoResponseDTO;
 import controle.api.back_end.model.categoria.Categoria;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import controle.api.back_end.service.CategoriaService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +24,8 @@ import java.util.UUID;
 @CrossOrigin
 @RestController
 @RequestMapping("/categorias")
+@Tag(name = "Categorias", description = "Endpoints referentes as categorias de eventos financeiros, por exemplo: roupas, transporte etc...")
+
 public class CategoriaController {
     private final CategoriaService categoriaService;
 
@@ -31,8 +37,11 @@ public class CategoriaController {
     @Operation(summary = "Listar categorias",
             description = "Busca todas as categorias no banco de dados.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados."),
-            @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e retornou sem dados.")
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CategoriaResponseDTO.class))),
+            @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e retornou sem dados.",
+            content = @Content)
     })
     public ResponseEntity<List<CategoriaResponseDTO>> getCategorias(){
         List<Categoria> all = categoriaService.getCategorias();
@@ -47,8 +56,11 @@ public class CategoriaController {
     @Operation(summary = "Busca a categoria desejada por id",
             description = "Busca a categoria no banco de dados com base no id que possue.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados."),
-            @ApiResponse(responseCode = "404", description = "Categoria não encontrada.")
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CategoriaResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Categoria não encontrada.",
+            content = @Content)
     })
     public ResponseEntity<CategoriaResponseDTO> getById(@PathVariable Integer id){
         Categoria byId = categoriaService.getById(id);
@@ -60,9 +72,13 @@ public class CategoriaController {
     @Operation(summary = "Listar categorias por usuario",
             description = "Busca as categorias no banco de dados baseado no id do usuário que as possue.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados."),
-            @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e retornou sem dados."),
-            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.")
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CategoriaUsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e retornou sem dados.",
+            content = @Content),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
+            content = @Content)
     })
     public ResponseEntity<List<CategoriaUsuarioResponseDTO>> getByUserId(@PathVariable UUID user_id){
         List<CategoriaUsuario> byUserId = categoriaService.getByUserId(user_id);
@@ -77,8 +93,11 @@ public class CategoriaController {
     @Operation(summary = "Adicionar uma categoria",
             description = "Cria uma nova categoria no banco de dados.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Categoria criada com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+            @ApiResponse(responseCode = "201", description = "Categoria criada com sucesso",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CategoriaResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+            content = @Content)
     })
     public ResponseEntity<CategoriaResponseDTO> createCategoria(
             @Valid @RequestBody CategoriaCreateDTO dto){
@@ -92,8 +111,11 @@ public class CategoriaController {
     @Operation(summary = "Adicionar várias categorias",
             description = "Cria múltiplas categorias de uma vez no banco de dados.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Categorias criadas com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+            @ApiResponse(responseCode = "201", description = "Categorias criadas com sucesso",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CategoriaResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+            content = @Content)
     })
     public ResponseEntity<List<CategoriaResponseDTO>> createCategoria(
             @Valid @RequestBody List<CategoriaCreateDTO> dtos){
@@ -107,9 +129,13 @@ public class CategoriaController {
     @Operation(summary = "Criar e associar uma categoria a um usuário",
             description = "Cria uma nova categoria e a associa ao usuário especificado de forma atômica.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Categoria criada e associada com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
-            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+            @ApiResponse(responseCode = "201", description = "Categoria criada e associada com sucesso",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CategoriaUsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+            content = @Content),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado",
+            content = @Content)
     })
     public ResponseEntity<CategoriaUsuarioResponseDTO> createAndAssociateCategoriaForUser(
             @Valid @RequestBody CategoriaCreateDTO dto,
@@ -124,8 +150,11 @@ public class CategoriaController {
     @Operation(summary = "Associar uma categoria a um usuário",
             description = "Associa a categoria do id passado com o usuário do id passado.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Associação criada com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Entidade não encontrada")
+            @ApiResponse(responseCode = "201", description = "Associação criada com sucesso",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CategoriaUsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Entidade não encontrada",
+            content = @Content)
     })
     public ResponseEntity<CategoriaUsuarioResponseDTO> createCategoriaForUser(@PathVariable Integer categoria_id, @PathVariable UUID usuario_id){
         CategoriaUsuario entity = categoriaService.createCategoriaForUser(categoria_id,usuario_id);
@@ -137,8 +166,10 @@ public class CategoriaController {
     @Operation(summary = "Desassociar uma categoria de um usuário",
             description = "Desassocia a categoria referente ao id passado com o usuário referente ao id passado.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Desassociação feita com sucesso!"),
-            @ApiResponse(responseCode = "404", description = "Entidade não encontrada.")
+            @ApiResponse(responseCode = "204", description = "Desassociação feita com sucesso!",
+            content = @Content),
+            @ApiResponse(responseCode = "404", description = "Entidade não encontrada.",
+            content = @Content)
     })
     public ResponseEntity<CategoriaUsuarioResponseDTO> detachUserFromCategoria(@PathVariable Integer categoria_id, @PathVariable UUID usuario_id){
         CategoriaUsuario entity = categoriaService.detachUserFromCategoria(categoria_id, usuario_id);
@@ -149,12 +180,13 @@ public class CategoriaController {
     @Operation(summary = "Deletar uma categoria",
             description = "Deletar uma categoria por seu id.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Categorias deletada com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Categoria não encontrada")
+            @ApiResponse(responseCode = "204", description = "Categorias deletada com sucesso",
+            content = @Content),
+            @ApiResponse(responseCode = "404", description = "Categoria não encontrada",
+            content = @Content)
     })
     public ResponseEntity<CategoriaResponseDTO> deleteCategoria(@PathVariable Integer id){
         categoriaService.deleteCategoria(id);
         return ResponseEntity.status(204).build();
     }
-
 }
