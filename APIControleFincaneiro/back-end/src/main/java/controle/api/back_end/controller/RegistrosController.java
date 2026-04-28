@@ -80,7 +80,7 @@ public class RegistrosController {
         return ResponseEntity.status(200).body(response);
     }
 
-    @GetMapping("/filtro")
+    @GetMapping("/filtro/usuarios/{user_id}")
     @Operation(summary =
             "Buscar os registros com um filtro",
             description =
@@ -97,17 +97,18 @@ public class RegistrosController {
                     content = @Content)
     })
     public ResponseEntity<List<RegistroResponseDto>> getByFilter(
-            @RequestParam(required = false) Double valor,
-            @RequestParam(required = false)TipoMovimento tipoMovimento,
-            @RequestParam(required = false)Tipo tipo,
+            @PathVariable UUID user_id,
+            @RequestParam(required = false)Double valor,
+            @RequestParam(required = false)List<TipoMovimento> tipoMovimento,
+            @RequestParam(required = false)List<Tipo> tipo,
             @RequestParam(required = false)LocalDate dataEvento,
-            @RequestParam(required = false)InstituicaoUsuario instituicaoUsuario,
-            @RequestParam(required = false)CategoriaUsuario categoriaUsuario,
+            @RequestParam(required = false)List<InstituicaoUsuario> instituicaoUsuario,
+            @RequestParam(required = false)List<CategoriaUsuario> categoriaUsuario,
             @RequestParam(required = false) String descricao,
             @RequestParam(required = false) String titulo
             ){
 
-        List<RegistroResponseDto> responses = registroService.getByFilter(valor,
+        List<RegistroResponseDto> responses = registroService.getByFilter(user_id,valor,
                 tipoMovimento,
                 tipo,
                 dataEvento,
