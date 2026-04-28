@@ -2,6 +2,7 @@ package controle.api.back_end.repository;
 
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.usuario.Usuario;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -19,4 +20,9 @@ public interface EventoFinanceiroRepository extends JpaRepository<EventoFinancei
     void deleteEventoFinanceiroById(UUID id);
 
     EventoFinanceiro findEventoFinanceiroByEventoInstituicao_Id(Integer id);
+
+    List<EventoFinanceiro> findEventoFinanceiroByUsuarioOrderByDataEventoDesc(Usuario usuario);
+
+    List<EventoFinanceiro> findAllByUsuario(Usuario usuario);
+
 }

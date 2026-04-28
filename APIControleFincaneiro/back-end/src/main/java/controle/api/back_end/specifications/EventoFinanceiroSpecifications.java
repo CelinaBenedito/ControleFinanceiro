@@ -15,28 +15,33 @@ import java.util.List;
 public class EventoFinanceiroSpecifications {
 
     public static Specification<EventoFinanceiro> porFiltros(
-            Double valor, Tipo tipo, LocalDate dataEvento, String descricao,
-            TipoMovimento tipoMovimento, InstituicaoUsuario instituicao,
-            CategoriaUsuario categoria, String titulo) {
+            Double valor, List<Tipo> tipo, LocalDate dataEvento, String descricao,
+            List<TipoMovimento> tipoMovimento, List<InstituicaoUsuario> instituicao,
+            List<CategoriaUsuario> categoria, String titulo) {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             if (valor != null) predicates.add(cb.equal(root.get("valor"), valor));
-            if (tipo != null) predicates.add(cb.equal(root.get("tipo"), tipo));
+            if (tipo != null && !tipo.isEmpty()) {
+                predicates.add(root.get("tipo").in(tipo));
+            }
             if (dataEvento != null) predicates.add(cb.equal(root.get("dataEvento"), dataEvento));
             if (descricao != null) predicates.add(cb.like(cb.lower(root.get("descricao")), "%" + descricao.toLowerCase() + "%"));
 
-            if (tipoMovimento != null || instituicao != null) {
+            if (tipoMovimento != null && !tipoMovimento.isEmpty()) {
                 Join<EventoFinanceiro, EventoInstituicao> joinInstituicao = root.join("eventoInstituicao", JoinType.LEFT);
-                if (tipoMovimento != null) predicates.add(cb.equal(joinInstituicao.get("tipoMovimento"), tipoMovimento));
-                if (instituicao != null) predicates.add(cb.equal(joinInstituicao.get("instituicaoUsuario"), instituicao));
+                predicates.add(joinInstituicao.get("tipoMovimento").in(tipoMovimento));
+            }
+            if (instituicao != null && !instituicao.isEmpty()) {
+                Join<EventoFinanceiro, EventoInstituicao> joinInstituicao = root.join("eventoInstituicao", JoinType.LEFT);
+                predicates.add(joinInstituicao.get("instituicaoUsuario").in(instituicao));
             }
 
-            if (categoria != null || titulo != null) {
+
+            if (categoria != null && !categoria.isEmpty()) {
                 Join<EventoFinanceiro, GastoDetalhe> joinGasto = root.join("gastoDetalhe", JoinType.LEFT);
-                if (categoria != null) predicates.add(cb.equal(joinGasto.get("categoriaUsuario"), categoria));
-                if (titulo != null) predicates.add(cb.like(cb.lower(joinGasto.get("tituloGasto")), "%" + titulo.toLowerCase() + "%"));
+                predicates.add(joinGasto.get("categoriaUsuario").in(categoria));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
