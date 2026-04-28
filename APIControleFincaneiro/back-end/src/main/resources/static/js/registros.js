@@ -70,8 +70,8 @@ function carregarRegistros() {
                                     const descricao = registro.eventoFinanceiro.descricao || '';
                                     const valor = registro.eventoFinanceiro.valor || 0;
                                     const tipo = registro.eventoFinanceiro.tipo || '';
-                                    const instNome = registro.eventoInstituicao && registro.eventoInstituicao.instituicao
-                                        ? registro.eventoInstituicao.instituicao.nome : '-';
+                                    const instNome = registro.eventoInstituicao && registro.eventoInstituicao[0] && registro.eventoInstituicao[0].instituicao
+                                        ? registro.eventoInstituicao[0].instituicao.nome : '-';
 
                                     cardsDiv.innerHTML += `
                                         <div class="cardRegistro">

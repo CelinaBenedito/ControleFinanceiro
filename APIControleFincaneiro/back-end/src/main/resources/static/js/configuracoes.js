@@ -7,6 +7,7 @@
     let cfgData = null;   // armazena config completa carregada do servidor
     let instituicoes = [];
     let categorias = [];
+    let tipoPersonalizada = null; // 'instituicao' | 'categoria'
 
     // ── helpers ──────────────────────────────────────────────────
     function mostrarAlerta(texto) {
@@ -309,8 +310,30 @@
             categorias = res.status === 204 ? [] : (res.ok ? await res.json() : []);
             renderCategorias();
             preencherSelectCategorias();
+            await preencherSelectNovaCategoria();
         } catch (e) {
             console.error("Erro ao carregar categorias:", e);
+        }
+    }
+
+    async function preencherSelectNovaCategoria() {
+        const sel = document.getElementById("sel_nova_categoria");
+        if (!sel) return;
+        try {
+            const res = await fetch(`${API}/categorias`);
+            if (!res.ok) return;
+            const todas = await res.json();
+            const vinculadasIds = new Set(categorias.map(c => c.categoria.id));
+            const disponiveis = todas.filter(c => !vinculadasIds.has(c.id));
+            sel.innerHTML = `<option value="" disabled selected></option>`;
+            disponiveis.forEach(cat => {
+                const opt = document.createElement("option");
+                opt.value = cat.id;
+                opt.textContent = cat.titulo;
+                sel.appendChild(opt);
+            });
+        } catch (e) {
+            console.error("Erro ao carregar categorias disponíveis:", e);
         }
     }
 
@@ -376,16 +399,67 @@
     }
 
     window.adicionarCategoria = async function () {
-        const input = document.getElementById("ipt_nova_categoria");
-        const titulo = input?.value?.trim();
-        if (!titulo) { mostrarAlerta("Informe o nome da categoria."); return; }
+        const sel = document.getElementById("sel_nova_categoria");
+        const catId = sel?.value;
+        if (!catId) { mostrarAlerta("Selecione uma categoria."); return; }
         try {
-            const res = await postJson(`${API}/categorias/usuario/${userId}`, { titulo });
-            if (!res.ok) { mostrarAlerta("Erro ao criar categoria."); return; }
-            input.value = "";
+            const res = await fetch(`${API}/categorias/${catId}/usuarios/${userId}`, { method: "POST" });
+            if (!res.ok) { mostrarAlerta(`Erro ao adicionar categoria (HTTP ${res.status}).`); return; }
+            sel.value = "";
             await carregarCategorias();
+            mostrarAlerta("Categoria adicionada com sucesso!");
         } catch (e) {
             mostrarAlerta("Erro ao adicionar categoria.");
+            console.error(e);
+        }
+    };
+
+    window.abrirPersonalizada = function (tipo) {
+        tipoPersonalizada = tipo;
+        const modal  = document.getElementById("modalPersonalizada");
+        const titulo = document.getElementById("modalPersonalizadaTitulo");
+        const label  = document.getElementById("modalPersonalizadaLabel");
+        const input  = document.getElementById("ipt_personalizada");
+        if (tipo === "instituicao") {
+            if (titulo) titulo.textContent = "Nova Instituição Personalizada";
+            if (label)  label.textContent  = "Nome da instituição";
+        } else {
+            if (titulo) titulo.textContent = "Nova Categoria Personalizada";
+            if (label)  label.textContent  = "Nome da categoria";
+        }
+        if (input) input.value = "";
+        if (modal) modal.style.display = "flex";
+    };
+
+    window.fecharPersonalizada = function () {
+        const modal = document.getElementById("modalPersonalizada");
+        if (modal) modal.style.display = "none";
+        tipoPersonalizada = null;
+    };
+
+    window.salvarPersonalizada = async function () {
+        const input = document.getElementById("ipt_personalizada");
+        const nome = input?.value?.trim();
+        if (!nome) { mostrarAlerta("Informe o nome."); return; }
+        try {
+            if (tipoPersonalizada === "instituicao") {
+                const resCreate = await postJson(`${API}/instituicoes`, { nome });
+                if (!resCreate.ok) { mostrarAlerta("Erro ao criar instituição."); return; }
+                const nova = await resCreate.json();
+                const resLink = await fetch(`${API}/instituicoes/${nova.id}/usuarios/${userId}`, { method: "POST" });
+                if (!resLink.ok) { mostrarAlerta("Erro ao vincular instituição."); return; }
+                fecharPersonalizada();
+                await carregarInstituicoes();
+                mostrarAlerta("Instituição criada e vinculada com sucesso!");
+            } else {
+                const res = await postJson(`${API}/categorias/usuario/${userId}`, { titulo: nome });
+                if (!res.ok) { mostrarAlerta("Erro ao criar categoria."); return; }
+                fecharPersonalizada();
+                await carregarCategorias();
+                mostrarAlerta("Categoria personalizada criada com sucesso!");
+            }
+        } catch (e) {
+            mostrarAlerta("Erro ao salvar.");
             console.error(e);
         }
     };

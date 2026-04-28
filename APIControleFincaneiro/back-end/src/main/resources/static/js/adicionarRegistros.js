@@ -27,6 +27,35 @@ function gerarInformacoes() {
     gerarInstituicao();
 }
 
+async function atualizarSaldoDisplay(instituicaoUsuarioId) {
+    const el = document.getElementById('saldo_display');
+    if (!el) return;
+    if (!instituicaoUsuarioId || instituicaoUsuarioId === '#') {
+        el.style.display = 'none';
+        return;
+    }
+    try {
+        const res = await fetch(`http://localhost:8080/instituicoes/saldo/${Number(instituicaoUsuarioId)}`);
+        if (!res.ok) { el.style.display = 'none'; return; }
+        const saldo = await res.json();
+        const valor = Number(saldo);
+        el.textContent = `Saldo disponível: R$ ${valor.toFixed(2)}`;
+        el.style.color = valor <= 0 ? '#e53e3e' : '#367373';
+        el.style.display = '';
+    } catch (e) {
+        el.style.display = 'none';
+    }
+}
+
+function toggleParcelas(inputId, movimento) {
+    const requer = movimento === 'Credito' || movimento === 'Boleto';
+    const wrapId = inputId === 'ipt_parcelas' ? 'wrap_parcelas' : 'wrap_multi_parcelas';
+    const wrap = document.getElementById(wrapId);
+    const input = document.getElementById(inputId);
+    if (wrap) wrap.style.display = requer ? '' : 'none';
+    if (input && !requer) input.value = '1';
+}
+
 function gerarCategorias() {
     if (!userId) return;
     const selectCat = document.getElementById("select_categoria");
@@ -77,7 +106,7 @@ async function controleInstituicao(){
 
 }
 
-function registrar() {
+async function registrar() {
     var data = dataGasto;
     var valor = Number(document.getElementById('ipt_valor').value);
     var titulo = document.getElementById('ipt_nome').value;
@@ -86,6 +115,7 @@ function registrar() {
     var Desc = document.getElementById('ipt_desc').value;
     var instituicao = document.getElementById('select_instituicao').value;
     var movimento = document.getElementById('select_movimento').value;
+    var parcelas = Number(document.getElementById('ipt_parcelas').value) || 1;
 
     if (Desc == "" || Desc == false) {
         Desc = "Nenhuma descrição fornecida"
@@ -111,6 +141,24 @@ function registrar() {
     if (movimento == '#') {
         return alerta("Escolha o tipo de movimento");
     }
+    if ((movimento === 'Credito' || movimento === 'Boleto') && (parcelas < 1 || isNaN(parcelas))) {
+        return alerta("Informe a quantidade de parcelas (mínimo 1)");
+    }
+
+    // Verificar saldo quando o tipo exige débito da conta
+    if (tipo === 'Gasto' || tipo === 'Transferencia') {
+        try {
+            const resSaldo = await fetch(`http://localhost:8080/instituicoes/saldo/${Number(instituicao)}`);
+            if (resSaldo.ok) {
+                const saldo = await resSaldo.json();
+                if (Number(saldo) < valor) {
+                    return alerta(`Saldo insuficiente. Saldo disponível: R$ ${Number(saldo).toFixed(2)}`);
+                }
+            }
+        } catch (e) {
+            console.warn("Não foi possível verificar o saldo:", e);
+        }
+    }
 
     alerta(`Registrando...
         <div class="glaceonCorrendoDiv">
@@ -126,35 +174,40 @@ function registrar() {
             descricao: Desc,
             dataEvento: data
         },
-        instituicao: {
+        instituicao: [{
             instituicaoUsuario_id: Number(instituicao),
             tipoMovimento: movimento,
-            valor: valor
-        },
+            valor: valor,
+            parcelas: parcelas
+        }],
         detalhe: {
-            categoriaUsuario_id: Number(categoria),
+            categoriaUsuario_id: [Number(categoria)],
             tituloGasto: titulo
         }
-    }).then((response) => {
-        console.log("Resposta:", response);
+    }).then(async (response) => {
+        console.log("Resposta status:", response.status);
         if (response.ok) {
+            atualizarSaldoDisplay(instituicao);
             return setTimeout(() => alerta(
-                `  
-                        Registro realizado com sucesso!<br>
-                        <div>
-
-                        <button onclick='window.location.reload()'>
-                            Continuar a registrar
-                        </button>
-
-                        </div>
-                `, 0
+                `Registro realizado com sucesso!<br>
+                <div>
+                    <button onclick='window.location.reload()'>Continuar a registrar</button>
+                </div>`, 0
             ), 1500);
-
+        } else {
+            let detalhe = "";
+            try {
+                const corpo = await response.json();
+                detalhe = corpo.message || corpo.error || JSON.stringify(corpo);
+            } catch (_) {
+                detalhe = `HTTP ${response.status}`;
+            }
+            console.error("Erro ao registrar:", detalhe);
+            alerta(`Erro ao registrar (${response.status}): ${detalhe}`);
         }
-        else {
-            alerta("Houve um erro ao registrar")
-        }
+    }).catch((err) => {
+        console.error("Erro de rede:", err);
+        alerta("Erro de conexão ao registrar.");
     });
 
 }
@@ -389,6 +442,7 @@ function adicionarAoLote() {
     const categoria = document.getElementById('multi_select_categoria').value;
     const instituicao = document.getElementById('multi_select_instituicao').value;
     const movimento = document.getElementById('multi_select_movimento').value;
+    const parcelas = Number(document.getElementById('ipt_multi_parcelas').value) || 1;
     const valor = Number(document.getElementById('ipt_multi_valor').value);
     const desc = document.getElementById('ipt_multi_desc').value.trim() || 'Nenhuma descrição fornecida';
     const data = document.getElementById('multi_data').value;
@@ -398,6 +452,7 @@ function adicionarAoLote() {
     if (categoria === '#') return alerta('Escolha uma categoria');
     if (instituicao === '#') return alerta('Escolha uma instituição');
     if (movimento === '#') return alerta('Escolha o tipo de movimento');
+    if ((movimento === 'Credito' || movimento === 'Boleto') && (parcelas < 1 || isNaN(parcelas))) return alerta('Informe a quantidade de parcelas (mínimo 1)');
     if (valor <= 0 || isNaN(valor)) return alerta('Valor inválido');
     if (!data) return alerta('Escolha uma data');
 
@@ -406,8 +461,8 @@ function adicionarAoLote() {
 
     lote.push({
         financeiro: { usuario_id: userId, tipo, valor, descricao: desc, dataEvento: data },
-        instituicao: { instituicaoUsuario_id: Number(instituicao), tipoMovimento: movimento, valor },
-        detalhe: { categoriaUsuario_id: Number(categoria), tituloGasto: titulo },
+        instituicao: [{ instituicaoUsuario_id: Number(instituicao), tipoMovimento: movimento, valor, parcelas }],
+        detalhe: { categoriaUsuario_id: [Number(categoria)], tituloGasto: titulo },
         _display: { titulo, tipo, movimento, instNome, valor }
     });
 
@@ -420,6 +475,8 @@ function adicionarAoLote() {
     document.getElementById('multi_select_categoria').value = '#';
     document.getElementById('multi_select_instituicao').value = '#';
     document.getElementById('multi_select_movimento').value = '#';
+    document.getElementById('ipt_multi_parcelas').value = '1';
+    toggleParcelas('ipt_multi_parcelas', '#');
 }
 
 function renderizarLote() {
