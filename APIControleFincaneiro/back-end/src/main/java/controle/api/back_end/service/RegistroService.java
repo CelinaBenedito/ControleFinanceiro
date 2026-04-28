@@ -14,11 +14,18 @@ import controle.api.back_end.repository.*;
 import controle.api.back_end.specifications.EventoFinanceiroSpecifications;
 import controle.api.back_end.strategy.movimento.MovimentoResultado;
 import controle.api.back_end.strategy.movimento.MovimentoStrategy;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.time.LocalDate;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -130,7 +137,6 @@ public class RegistroService {
         return savedInstituicoes;
     }
 
-
     public GastoDetalhe createGastoDetalhe(GastoDetalhe entity,
                                            EventoFinanceiro eventoFinanceiro) {
         if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())) {
@@ -153,7 +159,6 @@ public class RegistroService {
 
         return gastoDetalheRepository.save(entity);
     }
-
 
     public List<EventoFinanceiro> getEventosFinanceirosByUser(UUID userId) {
         if(!usuarioRepository.existsById(userId)){
@@ -269,7 +274,6 @@ public class RegistroService {
         return atualizados;
     }
 
-
     public GastoDetalhe editGastoDetalhe(UUID eventoId, GastoDetalhe entity) {
         EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
                 .orElseThrow(() ->
@@ -318,7 +322,6 @@ public class RegistroService {
         return gastoDetalheRepository.save(gastoDetalhe);
     }
 
-
     public void deleteRegistroByEventoFinanceiro_Id(UUID eventoId) {
         EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
                 .orElseThrow(() ->
@@ -342,4 +345,73 @@ public class RegistroService {
         eventoFinanceiroRepository.delete(financeiro);
     }
 
+    public String createJson(UUID userId) {
+        return null;
+    }
+
+    public String createSql(UUID userId) {
+        return null;
+    }
+
+    public byte[] createExcel(UUID userId) {
+        return null;
+    }
+
+    public byte[] createPdf(UUID userId) {
+        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
+                new EntidadeNaoEncontradaException(
+                        "Usuário de id: %s não encontrado."
+                                .formatted(userId)
+                )
+        );
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PDDocument documento = null;
+
+        try{
+            documento = new PDDocument();
+            PDPage pagina = new PDPage();
+            documento.addPage(pagina);
+
+            PDPageContentStream conteudo = new PDPageContentStream(documento,pagina);
+            conteudo.beginText();
+
+            //TÍTULO
+            conteudo.setFont(PDType1Font.HELVETICA_BOLD, 20);
+            conteudo.newLineAtOffset(100, 700);
+            conteudo.showText("MyFinance - Registros");
+            conteudo.endText();
+
+            conteudo.beginText();
+            conteudo.setFont(PDType1Font.HELVETICA, 12);
+            conteudo.newLineAtOffset(100, 650);
+            conteudo.showText("Nome: " + usuario.getNome() + " Sobrenome: "+ usuario.getSobrenome());
+            conteudo.endText();
+
+            conteudo.beginText();
+            conteudo.setFont(PDType1Font.HELVETICA, 12);
+            conteudo.newLineAtOffset(100, 630);
+            conteudo.showText("Data de Nascimento: " + usuario.getDataNascimento() + " Sexo: "+ usuario.getSexo().toString());
+            conteudo.endText();
+
+            conteudo.beginText();
+            conteudo.setFont(PDType1Font.HELVETICA, 12);
+            conteudo.newLineAtOffset(100, 610);
+            conteudo.showText("Email: "+ usuario.getEmail());
+
+            conteudo.close();
+            documento.save(out);
+        }catch (IOException e){
+            e.printStackTrace();
+        } finally {
+            if (documento != null) {
+                try {
+                    documento.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return out.toByteArray();
+    }
 }
