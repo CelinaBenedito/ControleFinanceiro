@@ -4,6 +4,7 @@ import controle.api.back_end.dto.MaiorGastoDoMes;
 import controle.api.back_end.dto.dashboard.GastoTotalDoMes;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.repository.ConfiguracoesRepository;
 import controle.api.back_end.repository.EventoFinanceiroRepository;
 import controle.api.back_end.repository.UsuarioRepository;
@@ -86,19 +87,28 @@ public class DashboardService {
         BigDecimal saldo = BigDecimal.ZERO;
 
         for (EventoFinanceiro evento: eventosFinanceiros){
-            if (maiorValor.compareTo(BigDecimal.valueOf(evento.getValor()))<1){
-                maiorValor = (BigDecimal.valueOf(evento.getValor()));
-                maiorEvento = evento;
-            }
             if (evento.getDataEvento().getMonth().equals(data.getMonth())){
-                saldo = InstituicaoService.getSaldo(saldo, evento);
+                if (evento.getTipo().equals(Tipo.Recebimento)){
+                    saldo = saldo.add(BigDecimal.valueOf(evento.getValor()));
+
+                }
+                if (maiorValor.compareTo(BigDecimal.valueOf(evento.getValor()))<0){
+                    maiorValor = (BigDecimal.valueOf(evento.getValor()));
+                    maiorEvento = evento;
+                }
             }
         }
+        if (saldo.compareTo(BigDecimal.ZERO) == 0) {
+            return new MaiorGastoDoMes(
+                    maiorEvento != null ? maiorEvento.getGastoDetalhe().getCategoriaUsuario().getFirst().getCategoria().getTitulo() : "Sem evento",
+                    0
+            );
+        }
 
-        BigDecimal diferenca = saldo.subtract(maiorValor);
-        BigDecimal percentual = diferenca
+        BigDecimal percentual = maiorValor
                 .divide(saldo, 2, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
+
 
         return new MaiorGastoDoMes(maiorEvento.getGastoDetalhe().getCategoriaUsuario().getFirst().getCategoria().getTitulo(), percentual.intValue());
 
