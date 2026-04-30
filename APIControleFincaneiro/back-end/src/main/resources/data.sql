@@ -85,7 +85,7 @@ VALUES
     ('6a7b8c9d-0123-4f56-789a-bcdef1234567', 'f5e9d0a1-3c77-4a4e-8b00-6c9e3d8f5e55', 1,CURRENT_TIMESTAMP, 3800.00);
 
 
-INSERT INTO limite_por_instituicao (id, institucao_usuario_id, limite_desejado, configuracoes_id)
+INSERT INTO limite_por_instituicao (id, instituicao_usuario_id, limite_desejado, configuracoes_id)
 VALUES
     ('7b8c9d0e-1234-567f-890a-bcdef1234567', 1, 2000.00,'8f1a2c3d-4b5e-678f-9012-3456789abcde' ),
     ('8c9d0e1f-2345-6780-901b-cdef12345678', 2, 1500.00, '8f1a2c3d-4b5e-678f-9012-3456789abcde'),

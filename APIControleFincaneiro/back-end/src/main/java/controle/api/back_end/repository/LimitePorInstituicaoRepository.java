@@ -9,9 +9,11 @@ import java.util.List;
 import java.util.UUID;
 
 public interface LimitePorInstituicaoRepository extends JpaRepository<LimitePorInstituicao, UUID> {
-    List<LimitePorInstituicao> findLimitePorInstituicaoByInstitucaoUsuario_Id(Integer institucaoUsuarioId);
+    List<LimitePorInstituicao> findLimitePorInstituicaoByInstituicaoUsuario_Id(Integer institucaoUsuarioId);
 
     List<LimitePorInstituicao> findLimitePorInstituicaoByConfiguracoes_Id(UUID userId);
 
-    LimitePorInstituicao findByConfiguracoesAndInstitucaoUsuario(Configuracoes configuracao, InstituicaoUsuario instituicaoUsuario);
+    LimitePorInstituicao findByConfiguracoesAndInstituicaoUsuario(Configuracoes configuracao, InstituicaoUsuario instituicaoUsuario);
+
+    List<LimitePorInstituicao> findByInstituicaoUsuario_Usuario_Id(UUID userId);
 }

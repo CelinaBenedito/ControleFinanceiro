@@ -13,4 +13,5 @@ public interface LimitePorCategoriaRepository extends JpaRepository<LimitePorCat
 
     LimitePorCategoria findByConfiguracoesAndCategoriaUsuario(Configuracoes configuracao, CategoriaUsuario categoriaUsuario);
 
+    List<LimitePorCategoria> findByCategoriaUsuario_Usuario_Id(UUID userId);
 }

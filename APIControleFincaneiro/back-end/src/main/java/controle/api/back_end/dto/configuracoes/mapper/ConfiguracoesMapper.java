@@ -89,8 +89,8 @@ public class ConfiguracoesMapper {
                         new LimitePorInstituicaoResponseDto.InstituicaoDTO();
 
 
-                instituicaoDTO.setId(limite.getInstitucaoUsuario().getInstituicao().getId());
-                instituicaoDTO.setNome(limite.getInstitucaoUsuario().getInstituicao().getNome());
+                instituicaoDTO.setId(limite.getInstituicaoUsuario().getInstituicao().getId());
+                instituicaoDTO.setNome(limite.getInstituicaoUsuario().getInstituicao().getNome());
 
 
                 limiteInstituicaoDTO.setLimiteDesejado(limite.getLimiteDesejado());

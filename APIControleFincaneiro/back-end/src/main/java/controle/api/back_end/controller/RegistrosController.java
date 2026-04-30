@@ -18,6 +18,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -124,11 +126,20 @@ public class RegistrosController {
     }
 
     @GetMapping("/download/{user_id}")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable UUID user_id,
-                                               @RequestParam String tipo)  throws IOException {
+    @Operation(summary = "Download de registros do usuário")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Arquivo gerado com sucesso",
+            content = @Content(mediaType = "application/octet-stream",
+                    schema = @Schema(type = "string", format = "binary"))),
+                    @ApiResponse(responseCode = "404", description = "Dados inválidos!",
+                            content = @Content)
+    })
+    public ResponseEntity<Resource> downloadFile(@PathVariable UUID user_id,
+                                                 @RequestParam String tipo)  throws IOException {
         byte[] conteudo;
         String nomeArquivo;
         String contentType;
+
         Usuario usuario = usuarioService.getUsuarioById(user_id);
         switch(tipo.toLowerCase()){
             case "json":
@@ -156,12 +167,14 @@ public class RegistrosController {
                 break;
 
             default:
-                return ResponseEntity.badRequest().body("Formato não suportado".getBytes());
+                return ResponseEntity.badRequest().body(new ByteArrayResource("Formato não suportado".getBytes()));
         }
+        ByteArrayResource resource = new ByteArrayResource(conteudo);
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + nomeArquivo)
                 .contentType(MediaType.parseMediaType(contentType))
-                .body(conteudo);
+                .body(resource);
     }
 
     @PostMapping
