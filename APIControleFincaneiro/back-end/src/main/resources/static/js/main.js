@@ -93,6 +93,16 @@
         },
         loginUsuario(payload) {
             return postJson("/usuarios/login", payload);
+        },
+        editarRegistro(eventoId, payload) {
+            return request(`/registros/${eventoId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        },
+        deletarRegistro(eventoId) {
+            return request(`/registros/${eventoId}`, { method: "DELETE" });
         }
     };
 })();

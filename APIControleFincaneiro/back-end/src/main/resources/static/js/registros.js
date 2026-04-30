@@ -108,7 +108,7 @@ function carregarRegistros() {
                                         </div>
                                     `;
 
-                                    card.querySelector('.reg-icon-btn.edit').addEventListener('click', () => abrirEdicaoRegistro(registroData));
+                                    card.querySelector('.reg-icon-btn.edit').addEventListener('click', () => abrirEdicaoRegistro(registro));
                                     card.querySelector('.reg-icon-btn.delete').addEventListener('click', () => confirmarRemocaoRegistro(registroData));
 
                                     cardsDiv.appendChild(card);
@@ -213,101 +213,183 @@ function Consulta() {
 }
 
 // ── EDITAR REGISTRO ──────────────────────────────────────────────────────────
-function abrirEdicaoRegistro(registro) {
-    let modal = document.getElementById('modalEdicaoRegistro');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'modalEdicaoRegistro';
-        modal.style.cssText = `
-            position:fixed;inset:0;background:rgba(0,0,0,0.5);
-            display:flex;align-items:center;justify-content:center;z-index:9999;
-        `;
-        modal.innerHTML = `
-            <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(480px,92vw);
-                        display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,0.25);">
-                <h2 style="color:#004C58;margin:0;font-size:1.4rem;font-family:'Inter',sans-serif;">Editar Registro</h2>
+async function abrirEdicaoRegistro(registro) {
+    const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
+    const userId = usuarioLogado ? usuarioLogado.id : null;
+    if (!userId) return;
 
-                <div class="er-field-wrap">
-                    <input id="erTitulo" type="text" placeholder=" ">
-                    <label for="erTitulo">Título</label>
-                </div>
+    const ef = registro.eventoFinanceiro || {};
+    const ei = (registro.eventoInstituicao && registro.eventoInstituicao[0]) || {};
+    const gd = registro.gastoDetalhe || {};
 
-                <div class="er-field-wrap">
-                    <input id="erDescricao" type="text" placeholder=" ">
-                    <label for="erDescricao">Descrição</label>
-                </div>
-
-                <div class="er-field-wrap">
-                    <input id="erValor" type="number" placeholder=" ">
-                    <label for="erValor">Valor</label>
-                </div>
-
-                <div class="er-field-wrap" style="position:relative;">
-                    <select id="erMovimento">
-                        <option value="Débito">Débito</option>
-                        <option value="Crédito">Crédito</option>
-                        <option value="Transferência">Transferência</option>
-                    </select>
-                    <label for="erMovimento">Movimento</label>
-                    <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#367373;pointer-events:none;">▾</span>
-                </div>
-
-                <div class="er-field-wrap">
-                    <input id="erData" type="date" placeholder=" ">
-                    <label for="erData">Data</label>
-                </div>
-
-                <div style="display:flex;gap:12px;margin-top:4px;">
-                    <button onclick="document.getElementById('modalEdicaoRegistro').style.display='none'"
-                        style="flex:1;height:52px;background:transparent;color:#367373;border:2px solid #367373;
-                               border-radius:10px;font-size:1rem;font-family:'Inter',sans-serif;cursor:pointer;transition:background 0.2s;">
-                        Cancelar
-                    </button>
-                    <button id="erBtnSalvar"
-                        style="flex:1;height:52px;background:#367373;color:#fff;border:none;border-radius:10px;
-                               font-size:1rem;font-family:'Inter',sans-serif;cursor:pointer;transition:background 0.2s;">
-                        Salvar
-                    </button>
-                </div>
-            </div>
-        `;
-
-        // Fecha ao clicar fora do card
-        modal.addEventListener('click', e => {
-            if (e.target === modal) modal.style.display = 'none';
-        });
-
-        // Hover nos botões
-        modal.querySelector('#erBtnSalvar').addEventListener('mouseover', e => e.target.style.background = '#004C58');
-        modal.querySelector('#erBtnSalvar').addEventListener('mouseout', e => e.target.style.background = '#367373');
-
-        document.body.appendChild(modal);
+    // Carregar instituições e categorias do usuário em paralelo
+    let instList = [], catList = [];
+    try {
+        const [instRes, catRes] = await Promise.all([
+            fetch(`http://localhost:8080/instituicoes/usuarios/${userId}`),
+            fetch(`http://localhost:8080/categorias/usuario/${userId}`)
+        ]);
+        instList = (instRes.ok && instRes.status !== 204) ? await instRes.json() : [];
+        catList  = (catRes.ok  && catRes.status  !== 204) ? await catRes.json()  : [];
+    } catch (e) {
+        console.error('Erro ao carregar dados para edição:', e);
     }
 
-    // Preenche com dados do registro
-    modal.querySelector('#erTitulo').value = registro.titulo || '';
-    modal.querySelector('#erDescricao').value = registro.descricao || '';
-    modal.querySelector('#erValor').value = registro.valor || '';
-    modal.querySelector('#erMovimento').value = registro.tipo || 'Débito';
-    modal.querySelector('#erData').value = registro.data || '';
+    const instAtualId = ei.instituicao ? ei.instituicao.id : null;
+    const catAtualId  = (gd.categoria && gd.categoria[0]) ? gd.categoria[0].id : null;
 
-    // Guarda o id para uso futuro na integração
-    modal.dataset.registroId = registro.id;
+    const instOpts = instList.map(i =>
+        `<option value="${i.id}"${i.intituicao.id === instAtualId ? ' selected' : ''}>${i.intituicao.nome}</option>`
+    ).join('');
 
-    // Botão Salvar — preparado para integração: substituir TODO pelo call de API
-    modal.querySelector('#erBtnSalvar').onclick = () => {
-        // TODO: integrar com MainAPI.editarRegistro(...)
-        console.log('Salvar edição do registro id:', modal.dataset.registroId, {
-            titulo: modal.querySelector('#erTitulo').value,
-            descricao: modal.querySelector('#erDescricao').value,
-            valor: modal.querySelector('#erValor').value,
-            movimento: modal.querySelector('#erMovimento').value,
-            data: modal.querySelector('#erData').value,
-        });
-        modal.style.display = 'none';
-    };
+    const catOpts = catList.map(c =>
+        `<option value="${c.id}"${c.categoria.id === catAtualId ? ' selected' : ''}>${c.categoria.titulo}</option>`
+    ).join('');
 
-    modal.style.display = 'flex';
+    const mostrarParcelas = ei.tipoMovimento === 'Credito' || ei.tipoMovimento === 'Boleto';
+
+    // Remove modal anterior se existir (para sempre refletir dados atualizados)
+    const anterior = document.getElementById('modalEdicaoRegistro');
+    if (anterior) anterior.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalEdicaoRegistro';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+    modal.innerHTML = `
+        <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(520px,92vw);
+                    display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,0.25);
+                    max-height:90vh;overflow-y:auto;font-family:'Inter',sans-serif;">
+            <h2 style="color:#004C58;margin:0;font-size:1.4rem;">Editar Registro</h2>
+
+            <div class="er-field-wrap">
+                <input id="erTitulo" type="text" placeholder=" " value="${(gd.tituloGasto || '').replace(/"/g, '&quot;')}">
+                <label for="erTitulo">Título</label>
+            </div>
+
+            <div class="er-field-wrap">
+                <input id="erDescricao" type="text" placeholder=" " value="${(ef.descricao || '').replace(/"/g, '&quot;')}">
+                <label for="erDescricao">Descrição</label>
+            </div>
+
+            <div class="er-field-wrap" style="position:relative;">
+                <select id="erTipo">
+                    <option value="Gasto"${ef.tipo === 'Gasto' ? ' selected' : ''}>Gasto</option>
+                    <option value="Recebimento"${ef.tipo === 'Recebimento' ? ' selected' : ''}>Recebimento</option>
+                    <option value="Transferencia"${ef.tipo === 'Transferencia' ? ' selected' : ''}>Transferência</option>
+                </select>
+                <label for="erTipo">Tipo do Evento</label>
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#367373;pointer-events:none;">▾</span>
+            </div>
+
+            <div class="er-field-wrap">
+                <input id="erValor" type="number" placeholder=" " value="${ef.valor || ''}">
+                <label for="erValor">Valor</label>
+            </div>
+
+            <div class="er-field-wrap" style="position:relative;">
+                <select id="erMovimento" onchange="var p=document.getElementById('erWrapParcelas');if(this.value==='Credito'||this.value==='Boleto'){p.style.display='';}else{p.style.display='none';document.getElementById('erParcelas').value=1;}">
+                    <option value="Debito"${ei.tipoMovimento === 'Debito' ? ' selected' : ''}>Débito</option>
+                    <option value="Credito"${ei.tipoMovimento === 'Credito' ? ' selected' : ''}>Crédito</option>
+                    <option value="Dinheiro"${ei.tipoMovimento === 'Dinheiro' ? ' selected' : ''}>Dinheiro</option>
+                    <option value="Pix"${ei.tipoMovimento === 'Pix' ? ' selected' : ''}>Pix</option>
+                    <option value="Boleto"${ei.tipoMovimento === 'Boleto' ? ' selected' : ''}>Boleto</option>
+                    <option value="Voucher"${ei.tipoMovimento === 'Voucher' ? ' selected' : ''}>Voucher</option>
+                </select>
+                <label for="erMovimento">Movimento</label>
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#367373;pointer-events:none;">▾</span>
+            </div>
+
+            <div id="erWrapParcelas" class="er-field-wrap" style="${mostrarParcelas ? '' : 'display:none;'}">
+                <input id="erParcelas" type="number" min="1" placeholder=" " value="${ei.parcelas || 1}">
+                <label for="erParcelas">Parcelas</label>
+            </div>
+
+            <div class="er-field-wrap" style="position:relative;">
+                <select id="erInstituicao">${instOpts}</select>
+                <label for="erInstituicao">Instituição</label>
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#367373;pointer-events:none;">▾</span>
+            </div>
+
+            <div class="er-field-wrap" style="position:relative;">
+                <select id="erCategoria">${catOpts}</select>
+                <label for="erCategoria">Categoria</label>
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#367373;pointer-events:none;">▾</span>
+            </div>
+
+            <div class="er-field-wrap">
+                <input id="erData" type="date" placeholder=" " value="${ef.dataEvento || ''}">
+                <label for="erData">Data</label>
+            </div>
+
+            <p id="erMsgErro" style="color:#e53e3e;font-size:0.9rem;margin:0;display:none;"></p>
+
+            <div style="display:flex;gap:12px;">
+                <button id="erBtnCancelar"
+                    style="flex:1;height:52px;background:transparent;color:#367373;border:2px solid #367373;
+                           border-radius:10px;font-size:1rem;cursor:pointer;">
+                    Cancelar
+                </button>
+                <button id="erBtnSalvar"
+                    style="flex:1;height:52px;background:#367373;color:#fff;border:none;
+                           border-radius:10px;font-size:1rem;cursor:pointer;">
+                    Salvar
+                </button>
+            </div>
+        </div>
+    `;
+
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    modal.querySelector('#erBtnCancelar').addEventListener('click', () => modal.remove());
+
+    modal.querySelector('#erBtnSalvar').addEventListener('click', async () => {
+        const titulo    = modal.querySelector('#erTitulo').value.trim();
+        const descricao = modal.querySelector('#erDescricao').value.trim() || 'Nenhuma descrição fornecida';
+        const tipo      = modal.querySelector('#erTipo').value;
+        const valor     = Number(modal.querySelector('#erValor').value);
+        const movimento = modal.querySelector('#erMovimento').value;
+        const parcelas  = Number(modal.querySelector('#erParcelas').value) || 1;
+        const instId    = Number(modal.querySelector('#erInstituicao').value);
+        const catId     = Number(modal.querySelector('#erCategoria').value);
+        const data      = modal.querySelector('#erData').value;
+        const msgErro   = modal.querySelector('#erMsgErro');
+        const btn       = modal.querySelector('#erBtnSalvar');
+
+        if (!titulo)                 { msgErro.textContent = 'Título obrigatório.'; msgErro.style.display = ''; return; }
+        if (valor <= 0 || isNaN(valor)) { msgErro.textContent = 'Valor inválido.';  msgErro.style.display = ''; return; }
+        if (!data)                   { msgErro.textContent = 'Data obrigatória.';  msgErro.style.display = ''; return; }
+        msgErro.style.display = 'none';
+
+        btn.disabled = true;
+        btn.textContent = 'Salvando...';
+
+        const payload = {
+            financeiro:  { usuario_id: userId, tipo, valor, descricao, dataEvento: data },
+            instituicao: [{ instituicaoUsuario_id: instId, tipoMovimento: movimento, valor, parcelas }],
+            detalhe:     { categoriaUsuario_id: [catId], tituloGasto: titulo }
+        };
+
+        try {
+            const res = await MainAPI.editarRegistro(ef.id, payload);
+            if (res.ok) {
+                modal.remove();
+                carregarRegistros();
+            } else {
+                let detalhe = `HTTP ${res.status}`;
+                try { const corpo = await res.json(); detalhe = corpo.message || JSON.stringify(corpo); } catch (_) {}
+                msgErro.textContent = `Erro ao salvar: ${detalhe}`;
+                msgErro.style.display = '';
+                btn.disabled = false;
+                btn.textContent = 'Salvar';
+            }
+        } catch (e) {
+            msgErro.textContent = 'Erro de conexão.';
+            msgErro.style.display = '';
+            btn.disabled = false;
+            btn.textContent = 'Salvar';
+        }
+    });
+
+    document.body.appendChild(modal);
 }
 
 // ── CONFIRMAR REMOÇÃO ────────────────────────────────────────────────────────
@@ -360,10 +442,24 @@ function confirmarRemocaoRegistro(registro) {
     popup.dataset.registroId = registro.id;
 
     // Botão Confirmar — preparado para integração
-    popup.querySelector('#popupBtnConfirmar').onclick = () => {
-        // TODO: integrar com MainAPI.removerRegistro(popup.dataset.registroId)
-        console.log('Remover registro id:', popup.dataset.registroId);
-        popup.style.display = 'none';
+    popup.querySelector('#popupBtnConfirmar').onclick = async () => {
+        const btn = popup.querySelector('#popupBtnConfirmar');
+        btn.disabled = true;
+        btn.textContent = 'Removendo...';
+        try {
+            const res = await MainAPI.deletarRegistro(popup.dataset.registroId);
+            if (res.ok) {
+                popup.style.display = 'none';
+                carregarRegistros();
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Remover';
+            }
+        } catch (e) {
+            console.error('Erro ao remover registro:', e);
+            btn.disabled = false;
+            btn.textContent = 'Remover';
+        }
     };
 
     popup.style.display = 'flex';
