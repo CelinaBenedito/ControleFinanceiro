@@ -622,6 +622,163 @@
         mostrarAlerta("Importação de dados ainda não disponível.");
     };
 
+    // ── CALENDÁRIO – SELEÇÃO DE PERÍODO PARA EXCLUSÃO ────────────
+    let cfgCalCampo = null;        // 'inicio' | 'fim'
+    let cfgCalDataSelecionada = null;
+    let cfgDeleteInicio = null;    // YYYY-MM-DD
+    let cfgDeleteFim    = null;    // YYYY-MM-DD
+
+    let cfgCalMesAtual  = new Date().getMonth();
+    let cfgCalAnoAtual  = new Date().getFullYear();
+
+    function cfgCalFormatar(iso) {
+        const [a, m, d] = iso.split("-");
+        return `${d}/${m}/${a}`;
+    }
+
+    function cfgCalGerar() {
+        const dias    = document.getElementById("cfgCalDias");
+        const mesAno  = document.getElementById("cfgCalMesAno");
+        const confirmar = document.getElementById("cfgCalConfirmar");
+        if (!dias) return;
+
+        dias.innerHTML = "";
+        cfgCalDataSelecionada = null;
+        if (confirmar) confirmar.disabled = true;
+
+        mesAno.innerText = new Date(cfgCalAnoAtual, cfgCalMesAtual)
+            .toLocaleString("pt-BR", { month: "long", year: "numeric" });
+
+        const primeiroDia = new Date(cfgCalAnoAtual, cfgCalMesAtual, 1).getDay();
+        const totalDias   = new Date(cfgCalAnoAtual, cfgCalMesAtual + 1, 0).getDate();
+
+        for (let i = 0; i < primeiroDia; i++) dias.innerHTML += `<span></span>`;
+
+        for (let dia = 1; dia <= totalDias; dia++) {
+            const iso = `${cfgCalAnoAtual}-${String(cfgCalMesAtual + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+            const span = document.createElement("span");
+            span.innerText = dia;
+            span.onclick = () => {
+                dias.querySelectorAll(".diaSelecionado").forEach(e => e.classList.remove("diaSelecionado"));
+                span.classList.add("diaSelecionado");
+                cfgCalDataSelecionada = iso;
+                if (confirmar) confirmar.disabled = false;
+            };
+            dias.appendChild(span);
+        }
+    }
+
+    window.abrirCalendarioDelete = function (campo) {
+        cfgCalCampo = campo;
+        cfgCalMesAtual = new Date().getMonth();
+        cfgCalAnoAtual = new Date().getFullYear();
+        const modal = document.getElementById("cfgCalModal");
+        if (modal) { modal.style.display = "flex"; cfgCalGerar(); }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const fechar    = document.getElementById("cfgCalFechar");
+        const anterior  = document.getElementById("cfgCalAnterior");
+        const proximo   = document.getElementById("cfgCalProximo");
+        const confirmar = document.getElementById("cfgCalConfirmar");
+        const modal     = document.getElementById("cfgCalModal");
+
+        if (fechar)    fechar.onclick   = () => { if (modal) modal.style.display = "none"; };
+        if (anterior)  anterior.onclick = () => {
+            cfgCalMesAtual--;
+            if (cfgCalMesAtual < 0) { cfgCalMesAtual = 11; cfgCalAnoAtual--; }
+            cfgCalGerar();
+        };
+        if (proximo)   proximo.onclick  = () => {
+            cfgCalMesAtual++;
+            if (cfgCalMesAtual > 11) { cfgCalMesAtual = 0; cfgCalAnoAtual++; }
+            cfgCalGerar();
+        };
+        if (confirmar) confirmar.onclick = () => {
+            if (!cfgCalDataSelecionada) return;
+            if (cfgCalCampo === "inicio") {
+                cfgDeleteInicio = cfgCalDataSelecionada;
+                const lbl = document.getElementById("cfgDeleteInicioLabel");
+                if (lbl) lbl.textContent = cfgCalFormatar(cfgDeleteInicio);
+            } else {
+                cfgDeleteFim = cfgCalDataSelecionada;
+                const lbl = document.getElementById("cfgDeleteFimLabel");
+                if (lbl) lbl.textContent = cfgCalFormatar(cfgDeleteFim);
+            }
+            if (modal) modal.style.display = "none";
+        };
+    });
+
+    // ── APAGAR REGISTROS ─────────────────────────────────────────
+    window.apagarRegistrosPeriodo = function () {
+        if (!cfgDeleteInicio || !cfgDeleteFim) {
+            mostrarAlerta("Escolha a data inicial e a data final do período.");
+            return;
+        }
+        if (cfgDeleteInicio > cfgDeleteFim) {
+            mostrarAlerta("A data inicial não pode ser maior que a data final.");
+            return;
+        }
+        if (!cfgId) {
+            mostrarAlerta("Configuração do usuário não carregada.");
+            return;
+        }
+
+        mostrarConfirmacao(
+            `Apagar todos os registros de ${cfgCalFormatar(cfgDeleteInicio)} até ${cfgCalFormatar(cfgDeleteFim)}? Esta ação é irreversível.`,
+            async () => {
+                try {
+                    const res = await fetch(`${API}/configuracoes/${cfgId}/dados/periodo-tempo`, {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ dataInical: cfgDeleteInicio, dataFinal: cfgDeleteFim })
+                    });
+                    if (res.status === 204) {
+                        mostrarAlerta("Registros do período apagados com sucesso!");
+                        cfgDeleteInicio = cfgDeleteFim = null;
+                        const lI = document.getElementById("cfgDeleteInicioLabel");
+                        const lF = document.getElementById("cfgDeleteFimLabel");
+                        if (lI) lI.textContent = "";
+                        if (lF) lF.textContent = "";
+                    } else {
+                        const txt = await res.text();
+                        mostrarAlerta(`Erro ao apagar registros (HTTP ${res.status}): ${txt}`);
+                    }
+                } catch (e) {
+                    console.error("Erro ao apagar registros por período:", e);
+                    mostrarAlerta("Erro ao apagar registros do período.");
+                }
+            }
+        );
+    };
+
+    window.apagarTodosRegistros = function () {
+        if (!userId) {
+            mostrarAlerta("Usuário não identificado.");
+            return;
+        }
+
+        mostrarConfirmacao(
+            "Apagar TODOS os registros do usuário? Esta ação é irreversível.",
+            async () => {
+                try {
+                    const res = await fetch(`${API}/configuracoes/usuarios/${userId}/dados/deletar-tudo`, {
+                        method: "DELETE"
+                    });
+                    if (res.status === 204) {
+                        mostrarAlerta("Todos os registros foram apagados com sucesso!");
+                    } else {
+                        const txt = await res.text();
+                        mostrarAlerta(`Erro ao apagar registros (HTTP ${res.status}): ${txt}`);
+                    }
+                } catch (e) {
+                    console.error("Erro ao apagar todos os registros:", e);
+                    mostrarAlerta("Erro ao apagar todos os registros.");
+                }
+            }
+        );
+    };
+
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", init);
     } else {

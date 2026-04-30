@@ -674,20 +674,24 @@
                     <!-- Exclusão -->
                     <div style="display:flex;flex-direction:column;gap:16px;">
                         <p class="cfg-delete-label">Excluir eventos por período:</p>
-                        <div class="cfg-row">
-                            <div class="cfg-field">
-                                <input type="date" placeholder=" ">
-                                <label>Data inicial</label>
+                        <div class="cfg-row" style="align-items:flex-end;">
+                            <div style="display:flex;flex-direction:column;gap:4px;">
+                                <span id="cfgDeleteInicioLabel" style="font-size:0.82rem;color:var(--teal-escuro);min-height:1.1em;font-weight:600;"></span>
+                                <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="abrirCalendarioDelete('inicio')">
+                                    <i class='bx bx-calendar' style="margin-right:6px;"></i> Data inicial
+                                </button>
                             </div>
-                            <div class="cfg-field">
-                                <input type="date" placeholder=" ">
-                                <label>Data final</label>
+                            <div style="display:flex;flex-direction:column;gap:4px;">
+                                <span id="cfgDeleteFimLabel" style="font-size:0.82rem;color:var(--teal-escuro);min-height:1.1em;font-weight:600;"></span>
+                                <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="abrirCalendarioDelete('fim')">
+                                    <i class='bx bx-calendar' style="margin-right:6px;"></i> Data final
+                                </button>
                             </div>
                         </div>
-                        <button class="cfg-btn danger" style="align-self:flex-start;">Apagar registros do período</button>
+                        <button class="cfg-btn danger" style="align-self:flex-start;" onclick="apagarRegistrosPeriodo()">Apagar registros do período</button>
 
                         <p class="cfg-delete-label" style="font-weight:900;margin-top:8px;">Excluir TODOS os eventos financeiros armazenados:</p>
-                        <button class="cfg-btn danger" style="align-self:flex-start;">Apagar TODOS os registros</button>
+                        <button class="cfg-btn danger" style="align-self:flex-start;" onclick="apagarTodosRegistros()">Apagar TODOS os registros</button>
                     </div>
                 </div>
 
@@ -695,6 +699,26 @@
         </div>
     </div>
 </body>
+
+<!-- Calendar modal – seleção de período para exclusão -->
+<div class="modal" id="cfgCalModal" style="display:none;">
+    <div class="conteudoModal">
+        <span class="fechar" id="cfgCalFechar" style="cursor:pointer;">&times;</span>
+        <div class="topo-calendario">
+            <button id="cfgCalAnterior">◀</button>
+            <h2 id="cfgCalMesAno"></h2>
+            <button id="cfgCalProximo">▶</button>
+        </div>
+        <div class="calendario">
+            <div class="diasSemana">
+                <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span>
+                <span>Qui</span><span>Sex</span><span>Sáb</span>
+            </div>
+            <div class="dias" id="cfgCalDias"></div>
+        </div>
+        <button id="cfgCalConfirmar" disabled>Confirmar data</button>
+    </div>
+</div>
 
 </html>
 <script src="js/main.js"></script>
