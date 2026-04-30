@@ -62,6 +62,30 @@
                     return res.json();
                 });
         },
+        filtrarRegistros(userId, filtros) {
+            const params = new URLSearchParams();
+
+            if (filtros.valor) params.append("valor", filtros.valor);
+            if (filtros.dataEvento) params.append("dataEvento", filtros.dataEvento);
+            if (filtros.descricao) params.append("descricao", filtros.descricao);
+            if (filtros.titulo) params.append("titulo", filtros.titulo);
+
+            (filtros.tipo || []).forEach(v => params.append("tipo", v));
+            (filtros.tipoMovimento || []).forEach(v => params.append("tipoMovimento", v));
+            (filtros.instituicaoUsuario || []).forEach(v => params.append("instituicaoUsuario", v));
+            (filtros.categoriaUsuario || []).forEach(v => params.append("categoriaUsuario", v));
+
+            const query = params.toString();
+            const path = query
+                ? `/registros/filtro/usuarios/${userId}?${query}`
+                : `/registros/filtro/usuarios/${userId}`;
+
+            return request(path, { method: "GET" })
+                .then(res => {
+                    if (res.status === 204) return [];
+                    return res.json();
+                });
+        },
         adicionarTipo(payload, userId) {
             return postJson(`/categorias/usuario/${userId}`, { titulo: payload.titulo });
         },
