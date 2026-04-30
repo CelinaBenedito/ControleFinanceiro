@@ -581,8 +581,42 @@
     window.importarDados = function () {
         document.getElementById("inputImportar")?.click();
     };
-    window.exportarDados = function () {
-        mostrarAlerta("Exportação de dados ainda não disponível.");
+    window.exportarDados = async function () {
+        if (!userId) {
+            mostrarAlerta("Usuário não identificado para exportação.");
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API}/registros/download/${userId}?tipo=pdf`);
+            if (!res.ok) {
+                mostrarAlerta(`Erro ao exportar PDF (HTTP ${res.status}).`);
+                return;
+            }
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+
+            const contentDisposition = res.headers.get("content-disposition") || "";
+            let nomeArquivo = "registros.pdf";
+            const match = contentDisposition.match(/filename=([^;]+)/i);
+            if (match && match[1]) {
+                nomeArquivo = match[1].replace(/"/g, "").trim();
+            }
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = nomeArquivo;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+
+            mostrarAlerta("PDF exportado com sucesso!");
+        } catch (e) {
+            console.error("Erro ao exportar PDF:", e);
+            mostrarAlerta("Erro ao exportar PDF.");
+        }
     };
     window.processarImportacao = function () {
         mostrarAlerta("Importação de dados ainda não disponível.");
