@@ -8,6 +8,7 @@
     let instituicoes = [];
     let categorias = [];
     let tipoPersonalizada = null; // 'instituicao' | 'categoria'
+    let limiteModalTipo = null; // 'instituicao' | 'categoria'
 
     // ── helpers ──────────────────────────────────────────────────
     function mostrarAlerta(texto) {
@@ -58,12 +59,42 @@
         });
     }
 
+    function chaveAlertas() {
+        return `cfg_alertas_${userId}`;
+    }
+
+    function salvarPreferenciasAlertas() {
+        const swWhatsapp = document.getElementById("sw_alerta_whatsapp");
+        const swEmail = document.getElementById("sw_alerta_email");
+        if (!swWhatsapp || !swEmail) return;
+
+        const preferencias = {
+            whatsapp: !!swWhatsapp.checked,
+            email: !!swEmail.checked
+        };
+        localStorage.setItem(chaveAlertas(), JSON.stringify(preferencias));
+    }
+
+    function inicializarSwitchesAlerta() {
+        const swWhatsapp = document.getElementById("sw_alerta_whatsapp");
+        const swEmail = document.getElementById("sw_alerta_email");
+        if (!swWhatsapp || !swEmail) return;
+
+        const salvas = JSON.parse(localStorage.getItem(chaveAlertas()) || "null");
+        swWhatsapp.checked = !!salvas?.whatsapp;
+        swEmail.checked = !!salvas?.email;
+
+        swWhatsapp.addEventListener("change", salvarPreferenciasAlertas);
+        swEmail.addEventListener("change", salvarPreferenciasAlertas);
+    }
+
     // ── INIT ─────────────────────────────────────────────────────
     async function init() {
         if (!userId) {
             window.location.href = "login.html";
             return;
         }
+        inicializarSwitchesAlerta();
         await Promise.all([
             carregarConfig(),
             carregarInstituicoes(),
@@ -103,10 +134,10 @@
 
         const linhas = [];
         limitesInst.forEach(l => {
-            linhas.push({ inst: l.instituicao?.nome || "-", cat: "-", limite: l.limiteDesejado });
+            linhas.push({ tipo: "Instituição", item: l.instituicao?.nome || "-", limite: l.limiteDesejado });
         });
         limitesCateg.forEach(l => {
-            linhas.push({ inst: "-", cat: l.categoria?.titulo || "-", limite: l.limiteDesejado });
+            linhas.push({ tipo: "Categoria", item: l.categoria?.titulo || "-", limite: l.limiteDesejado });
         });
 
         if (linhas.length === 0) {
@@ -115,7 +146,7 @@
         }
         linhas.forEach(l => {
             const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${l.inst}</td><td>${l.cat}</td><td>R$ ${Number(l.limite).toFixed(2)}</td><td>-</td>`;
+            tr.innerHTML = `<td>${l.tipo}</td><td>${l.item}</td><td>R$ ${Number(l.limite).toFixed(2)}</td><td>-</td>`;
             tbody.appendChild(tr);
         });
     }
@@ -152,44 +183,116 @@
         }
     };
 
-    window.salvarLimite = async function () {
+    window.salvarLimite = async function ({ instId = null, catId = null, valor = null } = {}) {
         if (!cfgId) {
             mostrarAlerta("Salve o mês fiscal primeiro para criar as configurações.");
-            return;
+            return false;
         }
-        const instId = document.getElementById("selInstituicaoLimite")?.value;
-        const catId = document.getElementById("selCategoriaLimite")?.value;
-        const valor = parseFloat(document.getElementById("ipt_limite_valor")?.value);
 
-        if (!instId && !catId) {
+        const idInst = instId || document.getElementById("selInstituicaoLimite")?.value;
+        const idCat = catId || document.getElementById("selCategoriaLimite")?.value;
+        const valorNum = valor != null
+            ? parseFloat(valor)
+            : parseFloat(document.getElementById("ipt_limite_valor")?.value);
+
+        if (!idInst && !idCat) {
             mostrarAlerta("Selecione uma instituição ou categoria para definir o limite.");
-            return;
+            return false;
         }
-        if (!valor || valor <= 0) {
+        if (!valorNum || valorNum <= 0) {
             mostrarAlerta("Informe um valor de limite válido.");
-            return;
+            return false;
         }
 
         // Preserva valores atuais para evitar sobrescrita com null no backend
         const payload = {};
         if (cfgData?.inicioMesFiscal != null) payload.inicioMesFiscal = cfgData.inicioMesFiscal;
         if (cfgData?.limiteDesejadoMensal != null) payload.limiteDesejadoMensal = cfgData.limiteDesejadoMensal;
-        if (instId) payload.limitesInstituicao = [{ instituicaoId: parseInt(instId), valor }];
-        if (catId) payload.limitesCategoria = [{ categoriaId: parseInt(catId), valor }];
+        if (idInst) payload.limitesInstituicao = [{ instituicaoId: parseInt(idInst), valor: valorNum }];
+        if (idCat) payload.limitesCategoria = [{ categoriaId: parseInt(idCat), valor: valorNum }];
 
         try {
             const res = await putJson(`${API}/configuracoes/edit/${cfgId}`, payload);
             if (res.ok) {
                 await carregarConfig();
                 mostrarAlerta("Limite salvo!");
+                return true;
             } else {
                 const body = await res.json().catch(() => ({}));
                 mostrarAlerta(`Erro ao salvar limite (HTTP ${res.status}): ${body.message || ""}`);
+                return false;
             }
         } catch (e) {
             mostrarAlerta("Erro ao salvar limite.");
             console.error(e);
+            return false;
         }
+    };
+
+    window.abrirModalLimite = function (tipo) {
+        limiteModalTipo = tipo;
+        const modal = document.getElementById("modalLimite");
+        const titulo = document.getElementById("modalLimiteTitulo");
+        const label = document.getElementById("lblLimiteItem");
+        const sel = document.getElementById("selLimiteItem");
+        const inputValor = document.getElementById("ipt_limite_modal_valor");
+        if (!modal || !titulo || !label || !sel || !inputValor) return;
+
+        sel.innerHTML = `<option value="" disabled selected></option>`;
+
+        if (tipo === "instituicao") {
+            titulo.textContent = "Definir limite por instituição";
+            label.textContent = "Selecionar instituição";
+            instituicoes.forEach(inst => {
+                const opt = document.createElement("option");
+                opt.value = inst.intituicao.id;
+                opt.textContent = inst.intituicao.nome;
+                sel.appendChild(opt);
+            });
+        } else {
+            titulo.textContent = "Definir limite por categoria";
+            label.textContent = "Selecionar categoria";
+            categorias.forEach(cat => {
+                const opt = document.createElement("option");
+                opt.value = cat.categoria.id;
+                opt.textContent = cat.categoria.titulo;
+                sel.appendChild(opt);
+            });
+        }
+
+        inputValor.value = "";
+        modal.style.display = "flex";
+    };
+
+    window.fecharModalLimite = function () {
+        const modal = document.getElementById("modalLimite");
+        if (modal) modal.style.display = "none";
+        limiteModalTipo = null;
+    };
+
+    window.salvarLimiteModal = async function () {
+        const sel = document.getElementById("selLimiteItem");
+        const valor = document.getElementById("ipt_limite_modal_valor");
+        const idSelecionado = sel?.value;
+        const valorSelecionado = valor?.value;
+
+        if (!limiteModalTipo) {
+            mostrarAlerta("Tipo de limite inválido.");
+            return;
+        }
+
+        if (!idSelecionado) {
+            mostrarAlerta("Selecione um item para limitar.");
+            return;
+        }
+
+        const ok = await window.salvarLimite({
+            instId: limiteModalTipo === "instituicao" ? idSelecionado : null,
+            catId: limiteModalTipo === "categoria" ? idSelecionado : null,
+            valor: valorSelecionado
+        });
+
+        if (ok) window.fecharModalLimite();
     };
 
     // ── INSTITUIÇÕES ──────────────────────────────────────────────

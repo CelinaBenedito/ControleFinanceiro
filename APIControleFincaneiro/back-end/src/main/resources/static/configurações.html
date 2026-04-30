@@ -208,6 +208,75 @@
             flex-shrink: 0;
         }
 
+        .cfg-switch-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 0;
+        }
+
+        .cfg-switch-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1A1A1A;
+        }
+
+        body.dark-mode .cfg-switch-text {
+            color: #e5f6ff;
+        }
+
+        .cfg-switch {
+            position: relative;
+            width: 54px;
+            height: 30px;
+            flex-shrink: 0;
+        }
+
+        .cfg-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .cfg-switch-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #c8d5d5;
+            border-radius: 999px;
+            transition: .2s;
+        }
+
+        .cfg-switch-slider:before {
+            content: "";
+            position: absolute;
+            height: 24px;
+            width: 24px;
+            left: 3px;
+            top: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: .2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .cfg-switch input:checked + .cfg-switch-slider {
+            background: #367373;
+        }
+
+        .cfg-switch input:checked + .cfg-switch-slider:before {
+            transform: translateX(24px);
+        }
+
+        body.dark-mode .cfg-switch-slider {
+            background: #314a5a;
+        }
+
+        body.dark-mode .cfg-switch input:checked + .cfg-switch-slider {
+            background: #5cc9d8;
+        }
+
         /* Buttons */
         .cfg-btn {
             display: inline-flex;
@@ -357,14 +426,38 @@
     <!-- Modal personalizada -->
     <div id="modalPersonalizada" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
         <div class="cfg-card" style="max-width:440px; width:90%; gap:20px;">
-            <h2 id="modalPersonalizadaTitulo" style="font-size:1.4rem;"></h2>
+            <h2 id="modalPersonalizadaTitulo" style="font-size:1.4rem;">Novo item personalizado</h2>
             <div class="cfg-field">
                 <input type="text" id="ipt_personalizada" placeholder=" ">
-                <label id="modalPersonalizadaLabel">Nome</label>
+                <label id="modalPersonalizadaLabel" for="ipt_personalizada">Nome</label>
             </div>
             <div style="display:flex; gap:12px; flex-wrap:wrap;">
                 <button class="cfg-btn" onclick="salvarPersonalizada()">Salvar</button>
                 <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="fecharPersonalizada()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal limite por instituição/categoria -->
+    <div id="modalLimite" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
+        <div class="cfg-card" style="max-width:500px; width:92%; gap:20px;">
+            <h2 id="modalLimiteTitulo" style="font-size:1.4rem; margin:0;">Definir limite</h2>
+
+            <div class="cfg-field">
+                <select id="selLimiteItem" required>
+                    <option value="" disabled selected></option>
+                </select>
+                <label id="lblLimiteItem" for="selLimiteItem">Selecionar item</label>
+            </div>
+
+            <div class="cfg-field">
+                <input type="number" id="ipt_limite_modal_valor" placeholder=" " step="0.01" min="0">
+                <label for="ipt_limite_modal_valor">Limite mensal (R$)</label>
+            </div>
+
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button class="cfg-btn" onclick="salvarLimiteModal()">Salvar limite</button>
+                <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="fecharModalLimite()">Cancelar</button>
             </div>
         </div>
     </div>
@@ -448,25 +541,9 @@
 
                     <div class="cfg-split">
                         <div class="cfg-split-main">
-                            <div class="cfg-row">
-                                <div class="cfg-field">
-                                    <select id="selInstituicaoLimite" required>
-                                        <option value="" disabled selected></option>
-                                    </select>
-                                    <label>Instituição</label>
-                                </div>
-
-                                <div class="cfg-field">
-                                    <select id="selCategoriaLimite" required>
-                                        <option value="" disabled selected></option>
-                                    </select>
-                                    <label>Categoria</label>
-                                </div>
-
-                                <div class="cfg-field">
-                                    <input type="number" id="ipt_limite_valor" placeholder=" " />
-                                    <label>Limite mensal (R$)</label>
-                                </div>
+                            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                                <button class="cfg-btn" onclick="abrirModalLimite('instituicao')">Definir limite por instituição</button>
+                                <button class="cfg-btn" onclick="abrirModalLimite('categoria')" style="background:transparent;border:2px solid #367373;color:#367373;">Definir limite por categoria</button>
                             </div>
 
                             <!-- Tabela de limites existentes -->
@@ -474,8 +551,8 @@
                                 <table class="cfg-table" id="tabelaLimites">
                                     <thead>
                                         <tr>
-                                            <th>Instituição</th>
-                                            <th>Categoria</th>
+                                            <th>Tipo</th>
+                                            <th>Item limitado</th>
                                             <th>Limite mensal (R$)</th>
                                             <th>Opções</th>
                                         </tr>
@@ -487,20 +564,25 @@
                                     </tbody>
                                 </table>
                             </div>
-
-                            <button class="cfg-btn" onclick="salvarLimite()">Salvar limite</button>
                         </div>
 
                         <div class="cfg-split-side">
-                            <label class="cfg-check-label">
-                                <input type="checkbox">
-                                Receber alerta por WhatsApp
-                            </label>
-                            <label class="cfg-check-label">
-                                <input type="checkbox">
-                                Receber alerta por Email
-                            </label>
-                            <button class="cfg-btn">Salvar alertas</button>
+                            <div class="cfg-switch-row">
+                                <span class="cfg-switch-text">Receber alerta por WhatsApp</span>
+                                <div class="cfg-switch">
+                                    <input type="checkbox" id="sw_alerta_whatsapp" aria-label="Receber alerta por WhatsApp">
+                                    <label class="cfg-switch-slider" for="sw_alerta_whatsapp"></label>
+                                </div>
+                            </div>
+
+                            <div class="cfg-switch-row">
+                                <span class="cfg-switch-text">Receber alerta por Email</span>
+                                <div class="cfg-switch">
+                                    <input type="checkbox" id="sw_alerta_email" aria-label="Receber alerta por Email">
+                                    <label class="cfg-switch-slider" for="sw_alerta_email"></label>
+                                </div>
+                            </div>
+                            <small style="color:#6b7a7a; font-weight:600;">As preferências são salvas automaticamente.</small>
                         </div>
                     </div>
                 </div>
