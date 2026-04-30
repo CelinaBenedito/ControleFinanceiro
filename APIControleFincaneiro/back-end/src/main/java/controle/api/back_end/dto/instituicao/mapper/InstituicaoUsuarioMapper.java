@@ -29,6 +29,7 @@ public class InstituicaoUsuarioMapper {
         entityInstituicao.setId(dtoInstituicao.getId());
         entityInstituicao.setNome(dtoInstituicao.getNome());
 
+        dto.setUltimaAtualizacao(entity.getUltimaModificacao());
         dto.setId(entity.getId());
         dto.setUsuario(entityUsuario);
         dto.setIntituicao(entityInstituicao);

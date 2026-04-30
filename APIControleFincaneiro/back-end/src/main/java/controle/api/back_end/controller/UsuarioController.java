@@ -84,11 +84,10 @@ public class UsuarioController {
         return ResponseEntity.status(200).body(saldoByUsuario);
     }
 
-    //TODO
     @GetMapping("/calculo-xp/{user_id}")
     public ResponseEntity<Double> getXpByUserId(UUID user_id){
-
-        return ResponseEntity.unprocessableEntity().build();
+           Double xp = usuarioService.getXpByUserId(user_id);
+        return ResponseEntity.status(200).body(xp);
     }
 
     @PostMapping

@@ -53,7 +53,8 @@ public class RegistrosController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = RegistroResponseDto.class))),
             @ApiResponse(responseCode = "204", description =
-                    "Busca de dados feita com sucesso e não retornou dados!"),
+                    "Busca de dados feita com sucesso e não retornou dados!",
+            content = @Content),
             @ApiResponse(responseCode = "404", description =
                     "Dados inválidos!",
             content = @Content)
@@ -170,7 +171,8 @@ public class RegistrosController {
             @ApiResponse(responseCode = "201", description = "Registro criado com sucesso",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = RegistroUsuarioResponseDto.class))),
-            @ApiResponse(responseCode = "404", description = "Dados inválidos!")
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
+            content = @Content)
     })
     public ResponseEntity<RegistroUsuarioResponseDto> createRegistroCompleto(
             @RequestBody @Valid RegistroCompletoCreateDto dto){

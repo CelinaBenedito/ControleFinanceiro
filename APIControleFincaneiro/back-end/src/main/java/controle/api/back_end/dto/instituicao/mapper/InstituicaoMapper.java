@@ -83,7 +83,9 @@ public class InstituicaoMapper {
         instituicaoDto.setNome(modelInstituicao.getNome());
 
         response.setId(model.getId());
-        //falta de necessidade de respota do usuário
+        response.setUltimaAtualizacao(model.getUltimaModificacao());
+
+        //falta de necessidade de resposta do usuário
         //response.setUsuario(usuarioDto);
         response.setIntituicao(instituicaoDto);
         response.setAtivo(model.getIsAtivo());

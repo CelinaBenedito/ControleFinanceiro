@@ -4,6 +4,7 @@ package controle.api.back_end.dto.categoria;
 import controle.api.back_end.model.usuario.UsuarioSexo;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class CategoriaUsuarioResponseDTO {
@@ -11,6 +12,7 @@ public class CategoriaUsuarioResponseDTO {
     private UsuarioDTO usuario;
     private CategoriaDTO categoria;
     private Boolean isAtivo;
+    private LocalDateTime ultimaAtualizacao;
 
     public static class UsuarioDTO{
         private UUID id;
@@ -110,5 +112,13 @@ public class CategoriaUsuarioResponseDTO {
 
     public void setAtivo(Boolean ativo) {
         isAtivo = ativo;
+    }
+
+    public LocalDateTime getUltimaAtualizacao() {
+        return ultimaAtualizacao;
+    }
+
+    public void setUltimaAtualizacao(LocalDateTime ultimaAtualizacao) {
+        this.ultimaAtualizacao = ultimaAtualizacao;
     }
 }

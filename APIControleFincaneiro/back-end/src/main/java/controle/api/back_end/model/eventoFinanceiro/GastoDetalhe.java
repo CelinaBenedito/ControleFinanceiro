@@ -19,7 +19,7 @@ public class GastoDetalhe {
     @JoinColumn(name = "fkEvento", nullable = false)
     private EventoFinanceiro eventoFinanceiro;
 
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "gasto_detalhe_categoria",
             joinColumns = @JoinColumn(name = "gasto_detalhe_id"),

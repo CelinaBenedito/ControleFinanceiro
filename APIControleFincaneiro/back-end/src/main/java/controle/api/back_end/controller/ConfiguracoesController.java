@@ -192,7 +192,6 @@ public class ConfiguracoesController {
     }
 
     @DeleteMapping("{id}/dados/periodo-tempo")
-    //Incompleto TODO
     @Operation(summary = "Deleta os dados do usuário por periodo de tempo",
             description = "Deleta os registros cadastros por periodo de temp, de determinada data até determinada data.")
     @ApiResponses(value = {
@@ -204,12 +203,11 @@ public class ConfiguracoesController {
     public ResponseEntity<Void> deleteDadosByPeriodoDeTempo(@Valid @RequestBody PeriodoTempoRequestDto tempoDto, @PathVariable UUID id){
         configuracoesService.deleteByPeriodoDeTempo(id,tempoDto);
 
-        return ResponseEntity.status(500).build();
+        return ResponseEntity.status(204).build();
     }
 
-    @DeleteMapping("{id}/dados/deletar-tudo")
-    //Incompleto TODO
-    @Operation(summary = "Deleta todo os dados do usuário",
+    @DeleteMapping("/usuarios/{user_id}/dados/deletar-tudo")
+    @Operation(summary = "Deleta todo os registros do usuário",
             description = "Deleta todos os registros do usuário.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Deleção ocorreu com sucesso.",
@@ -217,9 +215,9 @@ public class ConfiguracoesController {
             @ApiResponse(responseCode = "404", description = "Dados inválidos",
                     content = @Content)
     })
-    public ResponseEntity<Void> deleteAll(@PathVariable UUID id){
-
-        return ResponseEntity.status(500).build();
+    public ResponseEntity<Void> deleteAll(@PathVariable UUID user_id){
+        configuracoesService.deleteAllByUsuario(user_id);
+        return ResponseEntity.status(204).build();
     }
 
 }

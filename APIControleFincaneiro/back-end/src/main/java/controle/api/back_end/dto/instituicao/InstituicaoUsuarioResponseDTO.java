@@ -3,6 +3,7 @@ package controle.api.back_end.dto.instituicao;
 import controle.api.back_end.model.usuario.UsuarioSexo;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class InstituicaoUsuarioResponseDTO {
@@ -11,6 +12,7 @@ public class InstituicaoUsuarioResponseDTO {
     private UsuarioInstituicaoDTO usuario;
     private InstituicaoUsuarioDTO intituicao;
     private Boolean isAtivo;
+    private LocalDateTime ultimaAtualizacao;
 
     public static class UsuarioInstituicaoDTO{
         private UUID id;
@@ -130,5 +132,13 @@ public class InstituicaoUsuarioResponseDTO {
 
     public void setAtivo(Boolean ativo) {
         isAtivo = ativo;
+    }
+
+    public LocalDateTime getUltimaAtualizacao() {
+        return ultimaAtualizacao;
+    }
+
+    public void setUltimaAtualizacao(LocalDateTime ultimaAtualizacao) {
+        this.ultimaAtualizacao = ultimaAtualizacao;
     }
 }
