@@ -3,12 +3,15 @@ package controle.api.back_end.service;
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.exception.MenorDeIdadeException;
+import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.model.eventoFinanceiro.GastoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
+import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.repository.EventoFinanceiroRepository;
-import controle.api.back_end.repository.UsuarioRepository;
+import controle.api.back_end.repository.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,13 +25,19 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final ConfiguracoesService configuracoesService;
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
+    private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
+    private final CategoriaUsuarioRepository categoriaUsuarioRepository;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
                           ConfiguracoesService configuracoesService,
-                          EventoFinanceiroRepository eventoFinanceiroRepository) {
+                          EventoFinanceiroRepository eventoFinanceiroRepository,
+                          InstituicaoUsuarioRepository instituicaoUsuarioRepository,
+                          CategoriaUsuarioRepository categoriaUsuarioRepository) {
         this.usuarioRepository = usuarioRepository;
         this.configuracoesService = configuracoesService;
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
+        this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
+        this.categoriaUsuarioRepository = categoriaUsuarioRepository;
     }
 
     public List<Usuario> getUsuarios(){
@@ -123,5 +132,29 @@ public class UsuarioService {
         configuracoes.setInicioMesFiscal(1);
         configuracoes.setUltimaAtualizacao(LocalDate.now());
         configuracoesService.createConfiguracao(configuracoes,usuario.getId());
+    }
+
+    public Double getXpByUserId(UUID user_id) {
+        if (!usuarioRepository.existsById(user_id)) {
+            throw new EntidadeNaoEncontradaException("Usuário de id: %s não encontrado"
+                    .formatted(user_id));
+        }
+        // Buscar registros do usuário
+        List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository.findEventoFinanceiroByUsuario_Id(user_id);
+        int qtdRegistros = eventosFinanceiros.size();
+
+        // Buscar instituições do usuário
+        List<InstituicaoUsuario> instituicoes = instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(user_id);
+        int qtdInstituicoes = instituicoes.size();
+
+        List<CategoriaUsuario> categorias = categoriaUsuarioRepository.findAllByUsuario_IdAndIsAtivoIsTrue(user_id);
+        int qtdCategorias = categorias.size();
+
+        double xp = 0.0;
+        xp += ((double) qtdRegistros / 10) * 100;
+        xp += qtdInstituicoes * 100;
+        xp += qtdCategorias * 50;
+
+        return xp;
     }
 }

@@ -5,6 +5,7 @@ import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -24,6 +25,8 @@ public class CategoriaUsuario {
 
     @ManyToMany
     private List<GastoDetalhe> gastoDetalhe;
+
+    private LocalDateTime ultimaAtualizacao;
 
     public Integer getId() {
         return id;
@@ -55,5 +58,21 @@ public class CategoriaUsuario {
 
     public void setAtivo(Boolean ativo) {
         isAtivo = ativo;
+    }
+
+    public List<GastoDetalhe> getGastoDetalhe() {
+        return gastoDetalhe;
+    }
+
+    public void setGastoDetalhe(List<GastoDetalhe> gastoDetalhe) {
+        this.gastoDetalhe = gastoDetalhe;
+    }
+
+    public LocalDateTime getUltimaAtualizacao() {
+        return ultimaAtualizacao;
+    }
+
+    public void setUltimaAtualizacao(LocalDateTime ultimaAtualizacao) {
+        this.ultimaAtualizacao = ultimaAtualizacao;
     }
 }

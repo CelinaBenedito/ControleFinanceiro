@@ -10,6 +10,7 @@ import controle.api.back_end.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -88,6 +89,7 @@ public class CategoriaService {
         CategoriaUsuario categoriaUsuario = new CategoriaUsuario();
         categoriaUsuario.setUsuario(usuario);
         categoriaUsuario.setCategoria(savedCategoria);
+        categoriaUsuario.setUltimaAtualizacao(LocalDateTime.now());
         categoriaUsuario.setAtivo(true);
 
         return categoriaUsuarioRepository.save(categoriaUsuario);
@@ -112,6 +114,7 @@ public class CategoriaService {
 
         categoriaUsuario.setUsuario(usuario);
         categoriaUsuario.setCategoria(categoria);
+        categoriaUsuario.setUltimaAtualizacao(LocalDateTime.now());
         categoriaUsuario.setAtivo(true);
 
         return categoriaUsuarioRepository.save(categoriaUsuario);
@@ -122,6 +125,7 @@ public class CategoriaService {
             throw new EntidadeNaoEncontradaException("Entidade não foi encontrada!");
         }
         CategoriaUsuario byUsuarioIdAndCategoriaId = categoriaUsuarioRepository.findByUsuario_idAndCategoria_id(usuarioId, categoriad);
+        byUsuarioIdAndCategoriaId.setUltimaAtualizacao(LocalDateTime.now());
         byUsuarioIdAndCategoriaId.setAtivo(false);
         return categoriaUsuarioRepository.save(byUsuarioIdAndCategoriaId);
     }

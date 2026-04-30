@@ -52,6 +52,7 @@ public class CategoriaMapper {
         dto.setId(entity.getId());
         dto.setCategoria(dtoCategoria);
         dto.setUsuario(dtoUser);
+        dto.setUltimaAtualizacao(entity.getUltimaAtualizacao());
         dto.setAtivo(entity.getAtivo());
 
         return dto;

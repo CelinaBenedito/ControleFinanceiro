@@ -3,6 +3,8 @@ package controle.api.back_end.model.instituicao;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 public class InstituicaoUsuario {
     @Id
@@ -19,6 +21,8 @@ public class InstituicaoUsuario {
 
     @Column(name = "is_ativo", nullable = false)
     private Boolean isAtivo = Boolean.TRUE;
+
+    private LocalDateTime ultimaModificacao;
 
     public Usuario getUsuario() {
         return usuario;
@@ -50,5 +54,13 @@ public class InstituicaoUsuario {
 
     public void setIsAtivo(Boolean ativo) {
         isAtivo = ativo;
+    }
+
+    public LocalDateTime getUltimaModificacao() {
+        return ultimaModificacao;
+    }
+
+    public void setUltimaModificacao(LocalDateTime ultimaModificacao) {
+        this.ultimaModificacao = ultimaModificacao;
     }
 }

@@ -12,7 +12,7 @@ import controle.api.back_end.repository.*;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -84,6 +84,7 @@ public class InstituicaoService {
         InstituicaoUsuario instituicaoUsuario = new InstituicaoUsuario();
         instituicaoUsuario.setInstituicao(instituicao.get());
         instituicaoUsuario.setUsuario(user.get());
+        instituicaoUsuario.setUltimaModificacao(LocalDateTime.now());
         instituicaoUsuario.setIsAtivo(true);
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
     }
@@ -104,6 +105,7 @@ public class InstituicaoService {
         }
         InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findByUsuario_IdAndInstituicao_Id(userId, instituicaoId);
         instituicaoUsuario.setIsAtivo(false);
+        instituicaoUsuario.setUltimaModificacao(LocalDateTime.now());
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
     }
 

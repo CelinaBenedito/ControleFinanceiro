@@ -32,10 +32,10 @@ public class EventoFinanceiro {
     @NotNull
     private LocalDate dataEvento;
 
-    @OneToMany
+    @OneToMany(mappedBy = "eventoFinanceiro", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EventoInstituicao> eventoInstituicao;
 
-    @OneToOne(mappedBy = "eventoFinanceiro")
+    @OneToOne(mappedBy = "eventoFinanceiro", cascade = CascadeType.ALL, orphanRemoval = true)
     private GastoDetalhe gastoDetalhe;
 
     @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")

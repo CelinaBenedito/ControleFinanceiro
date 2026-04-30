@@ -283,8 +283,10 @@ public class RegistroService {
                     .filter(e -> Objects.equals(e.getInstituicaoUsuario().getId(), nova.getInstituicaoUsuario().getId()))
                     .findFirst()
                     .orElse(new EventoInstituicao());
+            InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findById(nova.getInstituicaoUsuario().getId())
+                    .orElseThrow(() -> new EntidadeNaoEncontradaException("Instituição Usuário não encontrada"));
 
-            existente.setInstituicaoUsuario(nova.getInstituicaoUsuario());
+            existente.setInstituicaoUsuario(instituicaoUsuario);
             existente.setValor(nova.getValor());
             existente.setParcelas(nova.getParcelas());
             existente.setTipoMovimento(nova.getTipoMovimento());

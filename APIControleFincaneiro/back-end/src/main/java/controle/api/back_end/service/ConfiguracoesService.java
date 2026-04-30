@@ -8,15 +8,20 @@ import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
+import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.model.eventoFinanceiro.GastoDetalhe;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.*;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -28,34 +33,35 @@ public class ConfiguracoesService {
     private final LimitePorCategoriaRepository limitePorCategoriaRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final LimitePorInstituicaoRepository limitePorInstiuicaoRepository;
+    private final EventoFinanceiroRepository eventoFinanceiroRepository;
+    private final EventoInstituicaoRepository eventoInstituicaoRepository;
+    private final GastoDetalheRepository gastoDetalheRepository;
 
     public ConfiguracoesService(ConfiguracoesRepository configuracoesRepository,
                                 UsuarioRepository usuarioRepository,
                                 CategoriaUsuarioRepository categoriaUsuarioRepository,
                                 LimitePorCategoriaRepository limitePorCategoriaRepository,
                                 InstituicaoUsuarioRepository instituicaoUsuarioRepository,
-                                LimitePorInstituicaoRepository limitePorInstiuicaoRepository) {
+                                LimitePorInstituicaoRepository limitePorInstiuicaoRepository,
+                                EventoFinanceiroRepository eventoFinanceiroRepository,
+                                EventoInstituicaoRepository eventoInstituicaoRepository,
+                                GastoDetalheRepository gastoDetalheRepository) {
         this.configuracoesRepository = configuracoesRepository;
         this.usuarioRepository = usuarioRepository;
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
         this.limitePorCategoriaRepository = limitePorCategoriaRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
         this.limitePorInstiuicaoRepository = limitePorInstiuicaoRepository;
+        this.eventoFinanceiroRepository = eventoFinanceiroRepository;
+        this.eventoInstituicaoRepository = eventoInstituicaoRepository;
+        this.gastoDetalheRepository = gastoDetalheRepository;
     }
 
     public List<Configuracoes> getConfiguracoes() {
         return configuracoesRepository.findAll();
     }
 
-    public Configuracoes getConfiguracoesById(UUID id) {
-        return configuracoesRepository.findById(id)
-                .orElseThrow(()->
-                        new EntidadeNaoEncontradaException(
-                                "Configuração de id: %s não encontrada"
-                                        .formatted(id)
-                        )
-                );
-    }
+
 
     public Configuracoes createConfiguracao(Configuracoes entity, UUID idUsuario) {
         Usuario user = usuarioRepository.findById(idUsuario)
@@ -87,6 +93,7 @@ public class ConfiguracoesService {
         entity.setId(configuracao.getId());
         entity.setUsuario(configuracao.getUsuario());
 
+        entity.setUltimaAtualizacao(LocalDate.now());
         // Limites por categoria
         if (editDTO.getLimitesCategoria() != null) {
             List<LimitePorCategoria> limitesCategoria = new ArrayList<>();
@@ -212,24 +219,60 @@ public class ConfiguracoesService {
         return configuracoesRepository.save(configuracoes);
     }
 
+    @Transactional
     public void deleteByPeriodoDeTempo(UUID id,@Valid PeriodoTempoRequestDto tempoDto) {
-       Configuracoes config = configuracoesRepository.findById(id)
-                .orElseThrow(() ->
-                        new EntidadeNaoEncontradaException(
-                                "Configurações de id: %s não encontrada."
-                                        .formatted(id)
-                        )
-                );
+       Configuracoes config = getConfiguracoesById(id);
+
         UUID idUsuario = config.getUsuario().getId();
 
+        List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository
+                .findEventoFinanceiroByUsuario_Id(idUsuario)
+                .stream()
+                .filter(evento -> !evento.getDataEvento().isBefore(tempoDto.getDataInical())
+                        && !evento.getDataEvento().isAfter(tempoDto.getDataFinal()))
+                .toList();
 
+        if (eventosFinanceiros.isEmpty()) {
+            throw new EntidadeNaoEncontradaException("Nenhum evento encontrado no período informado.");
+        }
+
+        for (EventoFinanceiro evento : eventosFinanceiros) {
+            if (evento.getGastoDetalhe() != null) {
+                evento.getGastoDetalhe().getCategoriaUsuario().clear(); // limpa vínculos
+                evento.setGastoDetalhe(null);
+            }
+            if (evento.getEventoInstituicao() != null) {
+                evento.getEventoInstituicao().clear();
+            }
+        }
+        eventoFinanceiroRepository.deleteAll(eventosFinanceiros);
+
+    }
+
+    @Transactional
+    public void deleteAllByUsuario(UUID usuarioId) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException(
+                                "Usuário de id: %s não encontrado.".formatted(usuarioId)
+                        )
+                );
+
+        List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository.findAllByUsuario(usuario);
+
+        if (eventosFinanceiros.isEmpty()) {
+            throw new EntidadeNaoEncontradaException("Nenhum evento encontrado para o usuário informado.");
+        }
+
+        eventoFinanceiroRepository.deleteAll(eventosFinanceiros);
     }
 
     public Configuracoes getConfiguracaoByUserId(UUID userId) {
 
        Configuracoes config = configuracoesRepository.findConfiguracoesByUsuario_Id(userId)
                .orElseThrow(()->
-                       new EntidadeNaoEncontradaException("Usuario de id %s não encontrado."
+                       new EntidadeNaoEncontradaException("Não foi possível encontrar a configuração correspondente" +
+                               " ao usuário de id: %s"
                                .formatted(userId)
                        )
                );
@@ -239,6 +282,22 @@ public class ConfiguracoesService {
         config.setLimitePorCategoria(limitePorCategoriaByConfiguracoesId);
         config.setLimitePorInstituicao(limitePorInstituicaoByConfiguracoesId);
 
+        return config;
+    }
+
+    public Configuracoes getConfiguracoesById(UUID configId){
+        Configuracoes config = configuracoesRepository.findById(configId)
+                .orElseThrow(() ->
+                    new EntidadeNaoEncontradaException(
+                            "Configurações de id: %s não encontrada."
+                                    .formatted(configId)
+                    )
+                );
+        List<LimitePorCategoria> limitePorCategoriaByConfiguracoesId = limitePorCategoriaRepository.findLimitePorCategoriaByConfiguracoes_Id(config.getId());
+        List<LimitePorInstituicao> limitePorInstituicaoByConfiguracoesId = limitePorInstiuicaoRepository.findLimitePorInstituicaoByConfiguracoes_Id(config.getId());
+
+        config.setLimitePorCategoria(limitePorCategoriaByConfiguracoesId);
+        config.setLimitePorInstituicao(limitePorInstituicaoByConfiguracoesId);
         return config;
     }
 }
