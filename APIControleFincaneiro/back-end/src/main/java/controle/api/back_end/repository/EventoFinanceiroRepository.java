@@ -26,4 +26,6 @@ public interface EventoFinanceiroRepository extends JpaRepository<EventoFinancei
     List<EventoFinanceiro> findAllByUsuario(Usuario usuario);
 
     List<EventoFinanceiro> findEventoFinanceiroByUsuario_Id(UUID usuarioId);
+
+    List<EventoFinanceiro> findAllByUsuario_Id(UUID usuarioId);
 }

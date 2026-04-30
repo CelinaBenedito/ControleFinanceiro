@@ -13,12 +13,12 @@ public class LimitePorInstituicao {
 
     @ManyToOne(optional = false)
     @JoinColumn(nullable = false)
-    private InstituicaoUsuario institucaoUsuario;
+    private InstituicaoUsuario instituicaoUsuario;
 
     @Column(nullable = false)
     private Double limiteDesejado;
-    public InstituicaoUsuario getInstitucaoUsuario() {
-        return institucaoUsuario;
+    public InstituicaoUsuario getInstituicaoUsuario() {
+        return instituicaoUsuario;
     }
 
     @ManyToOne
@@ -33,8 +33,8 @@ public class LimitePorInstituicao {
     }
 
 
-    public void setInstitucaoUsuario(InstituicaoUsuario institucaousuario) {
-        this.institucaoUsuario = institucaousuario;
+    public void setInstituicaoUsuario(InstituicaoUsuario institucaousuario) {
+        this.instituicaoUsuario = institucaousuario;
     }
 
     public Double getLimiteDesejado() {

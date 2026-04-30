@@ -9,8 +9,6 @@ import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
-import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
-import controle.api.back_end.model.eventoFinanceiro.GastoDetalhe;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.*;
@@ -21,7 +19,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -125,12 +122,12 @@ public class ConfiguracoesService {
                         .findByUsuario_IdAndInstituicao_Id(configuracao.getUsuario().getId(), limiteDTO.getInstituicaoId());
 
                 LimitePorInstituicao limite = limitePorInstiuicaoRepository
-                        .findByConfiguracoesAndInstitucaoUsuario(configuracao, instituicaoUsuario);
+                        .findByConfiguracoesAndInstituicaoUsuario(configuracao, instituicaoUsuario);
 
                 if (limite == null) {
                     limite = new LimitePorInstituicao();
                     limite.setConfiguracoes(configuracao);
-                    limite.setInstitucaoUsuario(instituicaoUsuario);
+                    limite.setInstituicaoUsuario(instituicaoUsuario);
                 }
 
                 limite.setLimiteDesejado(limiteDTO.getValor());
@@ -166,11 +163,11 @@ public class ConfiguracoesService {
 
         LimitePorInstituicao limiteInstituicao = new LimitePorInstituicao();
         List<LimitePorInstituicao> limitePorInstituicaoByInstitucaoUsuarioId = limitePorInstiuicaoRepository
-                .findLimitePorInstituicaoByInstitucaoUsuario_Id(
+                .findLimitePorInstituicaoByInstituicaoUsuario_Id(
                         instituicaoUsuario.getId()
                 );
 
-        limiteInstituicao.setInstitucaoUsuario(instituicaoUsuario);
+        limiteInstituicao.setInstituicaoUsuario(instituicaoUsuario);
         limiteInstituicao.setLimiteDesejado(valor);
         return limitePorInstiuicaoRepository.save(limiteInstituicao);
     }
