@@ -85,6 +85,14 @@ public class UsuarioController {
     }
 
     @GetMapping("/calculo-xp/{user_id}")
+    @Operation(summary = "Busca o xp do usuário",
+            description = "Faz uma busca dinâmica nos dados para calcular o xp do usuário e retorna o valor correspondente")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso",content = @Content(mediaType = "application/json",
+                    schema = @Schema(example = "0.0"))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
+                    content = @Content)
+    })
     public ResponseEntity<Double> getXpByUserId(UUID user_id){
            Double xp = usuarioService.getXpByUserId(user_id);
         return ResponseEntity.status(200).body(xp);

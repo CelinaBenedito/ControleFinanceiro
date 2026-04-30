@@ -468,7 +468,6 @@ public class RegistroService {
         }
     }
 
-
     public String createSql(UUID userId) {
         Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
                 new EntidadeNaoEncontradaException(

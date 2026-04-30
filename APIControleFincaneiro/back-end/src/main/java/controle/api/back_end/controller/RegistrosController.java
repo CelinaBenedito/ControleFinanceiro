@@ -127,9 +127,13 @@ public class RegistrosController {
 
     @GetMapping("/download/{user_id}")
     @Operation(summary = "Download de registros do usuário")
-    @ApiResponse(responseCode = "200", description = "Arquivo gerado com sucesso",
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Arquivo gerado com sucesso",
             content = @Content(mediaType = "application/octet-stream",
-                    schema = @Schema(type = "string", format = "binary")))
+                    schema = @Schema(type = "string", format = "binary"))),
+                    @ApiResponse(responseCode = "404", description = "Dados inválidos!",
+                            content = @Content)
+    })
     public ResponseEntity<Resource> downloadFile(@PathVariable UUID user_id,
                                                  @RequestParam String tipo)  throws IOException {
         byte[] conteudo;
