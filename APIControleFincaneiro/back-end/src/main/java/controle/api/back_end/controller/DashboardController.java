@@ -23,20 +23,20 @@ public class DashboardController {
     }
 
     @GetMapping("/gasto-total-mes/{data}/usuarios/{user_id}")
-    public ResponseEntity<GastoTotalDoMes> getGastoTotalMes(@PathVariable LocalDate data, UUID user_id){
+    public ResponseEntity<GastoTotalDoMes> getGastoTotalMes(@PathVariable LocalDate data, @PathVariable("user_id") UUID user_id){
         GastoTotalDoMes gastoTotaldoMesAtual = dashboardService.getGastoTotalDoMes(data, user_id);
 
         return ResponseEntity.status(200).body(gastoTotaldoMesAtual);
     }
 
     @GetMapping("/maior-gasto-do-mes/{data}/usuarios/{user_id}")
-    public ResponseEntity<MaiorGastoDoMes> getMaiorGastoDoMes(@PathVariable LocalDate data, UUID user_id){
+    public ResponseEntity<MaiorGastoDoMes> getMaiorGastoDoMes(@PathVariable LocalDate data, @PathVariable("user_id") UUID user_id){
         MaiorGastoDoMes maiorGastoDoMes = dashboardService.getMaiorGastoDoMes(data, user_id);
         return ResponseEntity.status(200).body(maiorGastoDoMes);
     }
 
     @GetMapping("/percentual-por-categoria/{data}/usuarios/{user_id}")
-    public ResponseEntity<CategoriaEPorcentagens> getCategoriasEPorcentagens(@PathVariable LocalDate data, UUID user_id){
+    public ResponseEntity<CategoriaEPorcentagens> getCategoriasEPorcentagens(@PathVariable LocalDate data, @PathVariable("user_id") UUID user_id){
         CategoriaEPorcentagens categoriasEPorcentagens = dashboardService.getCategoriasEPorcentagens(data, user_id);
         return ResponseEntity.status(200).body(categoriasEPorcentagens);
     }
