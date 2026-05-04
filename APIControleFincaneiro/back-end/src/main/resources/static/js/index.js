@@ -26,6 +26,7 @@ function dataReferenciaPeriodo(periodo) {
 
 function atualizarDados(periodo) {
   gastosMes(periodo)
+  buscarSaldoTotal(periodo)
   buscarGastoTotal(periodo)
   buscarMaiorGasto(periodo)
   gerarTipos(periodo)
@@ -105,6 +106,7 @@ async function gerarKPIS(periodo) {
   console.log("Iniciando geração de KPI's")
 
   await Promise.all([
+    buscarSaldoTotal(periodo),
     buscarMaiorGasto(periodo),
     buscarGastoTotal(periodo),
     percentualTipo(periodo)
@@ -117,6 +119,43 @@ function gerarGraficos(periodo) {
   gerarTipos(periodo);
   graficoComparacao([10, 20, 356, 13, 121], [50, 90, 246, 113, 1221], ["jan", "fev", "mar", "abr", "mai"]);
 }
+//KPI
+function buscarSaldoTotal(periodo) {
+  const userId = obterUsuarioIdDashboard();
+  const divSaldo = document.getElementById('saldoTotal');
+  const spanLabel = document.getElementById('KPIsaldoTotal');
+
+  if (typeof periodo === 'number') {
+    // endpoint anual ainda não existe, aguardar implementação futura
+    spanLabel.innerHTML = 'ano';
+    divSaldo.innerHTML = '...';
+    return Promise.resolve();
+  }
+
+  if (typeof periodo === 'object') {
+    spanLabel.innerHTML = 'mês';
+    const dataRef = dataReferenciaPeriodo(periodo);
+    if (!dataRef || !userId) {
+      divSaldo.innerHTML = 'Sem dados';
+      return Promise.resolve();
+    }
+
+    return MainAPI.get(`/dashboard/gasto-total-mes/${dataRef}/usuarios/${userId}`)
+      .then(json => {
+        const valor = Number(json?.valor ?? 0);
+        divSaldo.innerHTML = `R$ ${valor.toFixed(2)}`;
+        const root = document.documentElement;
+        if (valor >= 0) {
+          divSaldo.style.color = getComputedStyle(root).getPropertyValue('--green-500') || '#22c55e';
+        } else {
+          divSaldo.style.color = getComputedStyle(root).getPropertyValue('--red-500') || '#ef4444';
+        }
+      });
+  }
+
+  return Promise.resolve();
+}
+
 //KPI
 function buscarMaiorGasto(periodo) {
   let url = '';
