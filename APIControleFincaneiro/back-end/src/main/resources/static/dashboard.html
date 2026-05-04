@@ -65,8 +65,7 @@
             </div>
             <button>Ver instituições</button>
             <!-- TEMP: botão de deslogar para testes -->
-            <button
-                onclick="localStorage.removeItem('usuarioLogado'); window.location.href='index.html'"
+            <button onclick="localStorage.removeItem('usuarioLogado'); window.location.href='index.html'"
                 style="background:transparent; border:1px solid currentColor; color:inherit; opacity:0.5; font-size:0.75rem; padding:4px 10px; cursor:pointer;">
                 <i class='bx bx-log-out'></i> Deslogar
             </button>
@@ -108,6 +107,14 @@
                 </div>
             </div>
             <div class="containerKPIS" id="containerKPIS">
+                <!--KPI: Saldo total do mês atual-->
+                <div class="KPI">
+                    <div>
+                        <p class="kpi-label">Saldo total do <span id="KPIsaldoTotal">mês</span> atual</p>
+                        <span class="saldo-valor" id="saldoTotal">...</span>
+                    </div>
+                </div>
+
                 <!-- KPI: Gasto Total -->
                 <div class="KPI">
                     <div>
@@ -123,7 +130,7 @@
                 <!-- KPI: Maior Gasto -->
                 <div class="KPI KPI-maior-gasto">
                     <div>
-                        <p class="kpi-label">Maior gasto do <span id="kpiMaiorGastoTitulo">ano</span></p>
+                        <p class="kpi-label">Maior gasto do <span id="kpiMaiorGastoTitulo">mês</span> atual</p>
                         <p class="categoria-nome" id="categoria">...</p>
                         <p class="valor-destaque" id="valorCategoria">...</p>
                         <p class="subtexto" id="tituloGasto"
@@ -171,7 +178,7 @@
                             Exibe quanto cada categoria representa do total de gastos no período analisado.
                         </div>
                     </div>
-                    
+
                     <div id="graficoDonut" class="grafico"></div>
                 </div>
                 <div class="campo-grafico">

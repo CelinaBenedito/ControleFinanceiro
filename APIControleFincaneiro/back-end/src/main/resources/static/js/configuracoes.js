@@ -517,6 +517,7 @@
             if (!res.ok) { mostrarAlerta(`Erro ao adicionar categoria (HTTP ${res.status}).`); return; }
             sel.value = "";
             await carregarCategorias();
+            window.dispatchEvent(new Event('xp:refresh'));
             mostrarAlerta("Categoria adicionada com sucesso!");
         } catch (e) {
             mostrarAlerta("Erro ao adicionar categoria.");
@@ -560,12 +561,14 @@
                 if (!resLink.ok) { mostrarAlerta("Erro ao vincular instituição."); return; }
                 fecharPersonalizada();
                 await carregarInstituicoes();
+                window.dispatchEvent(new Event('xp:refresh'));
                 mostrarAlerta("Instituição criada e vinculada com sucesso!");
             } else {
                 const res = await postJson(`${API}/categorias/usuario/${userId}`, { titulo: nome });
                 if (!res.ok) { mostrarAlerta("Erro ao criar categoria."); return; }
                 fecharPersonalizada();
                 await carregarCategorias();
+                window.dispatchEvent(new Event('xp:refresh'));
                 mostrarAlerta("Categoria personalizada criada com sucesso!");
             }
         } catch (e) {
