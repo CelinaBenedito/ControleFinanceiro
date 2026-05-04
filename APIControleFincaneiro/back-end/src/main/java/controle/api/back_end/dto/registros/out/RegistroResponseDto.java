@@ -4,6 +4,7 @@ import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,7 +12,7 @@ public class RegistroResponseDto {
     private GastoDetalheDto gastoDetalhe;
     private EventoFinanceiroDto eventoFinanceiro;
     private List<EventoInstituicaoDto> eventoInstituicao;
-    private LocalDate dataRegistro;
+    private LocalDateTime dataRegistro;
 
     public static class EventoFinanceiroDto{
         private UUID id;
@@ -203,11 +204,11 @@ public class RegistroResponseDto {
         this.eventoInstituicao = eventoInstituicao;
     }
 
-    public LocalDate getDataRegistro() {
+    public LocalDateTime getDataRegistro() {
         return dataRegistro;
     }
 
-    public void setDataRegistro(LocalDate dataRegistro) {
+    public void setDataRegistro(LocalDateTime dataRegistro) {
         this.dataRegistro = dataRegistro;
     }
 }

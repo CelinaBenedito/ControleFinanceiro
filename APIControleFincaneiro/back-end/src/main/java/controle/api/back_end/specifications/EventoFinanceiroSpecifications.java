@@ -40,7 +40,7 @@ public class EventoFinanceiroSpecifications {
 
 
             if (categoria != null && !categoria.isEmpty()) {
-                Join<EventoFinanceiro, GastoDetalhe> joinGasto = root.join("gastoDetalhe", JoinType.LEFT);
+                Join<EventoFinanceiro, EventoDetalhe> joinGasto = root.join("gastoDetalhe", JoinType.LEFT);
                 predicates.add(joinGasto.get("categoriaUsuario").in(categoria));
             }
 

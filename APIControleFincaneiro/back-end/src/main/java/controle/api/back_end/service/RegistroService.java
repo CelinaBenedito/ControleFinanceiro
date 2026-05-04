@@ -48,6 +48,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.format.TextStyle;
 import java.util.*;
 import java.util.List;
@@ -57,7 +58,7 @@ import java.util.stream.Collectors;
 public class RegistroService {
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
     private final EventoInstituicaoRepository eventoInstituicaoRepository;
-    private final GastoDetalheRepository gastoDetalheRepository;
+    private final EventoDetalheRepository eventoDetalheRepository;
     private final CategoriaUsuarioRepository categoriaUsuarioRepository;
     private final UsuarioRepository usuarioRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
@@ -69,10 +70,10 @@ public class RegistroService {
     private final LimitePorCategoriaRepository limitePorCategoriaRepository;
     private final ConfiguracoesRepository configuracoesRepository;
 
-    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, GastoDetalheRepository gastoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository) {
+    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository) {
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
-        this.gastoDetalheRepository = gastoDetalheRepository;
+        this.eventoDetalheRepository = eventoDetalheRepository;
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
         this.usuarioRepository = usuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
@@ -98,7 +99,7 @@ public class RegistroService {
                         );
 
         entity.setUsuario(user);
-        entity.setDataRegistro(LocalDate.now());
+        entity.setDataRegistro(LocalDateTime.now());
         return eventoFinanceiroRepository.save(entity);
     }
 
@@ -164,8 +165,8 @@ public class RegistroService {
         return savedInstituicoes;
     }
 
-    public GastoDetalhe createGastoDetalhe(GastoDetalhe entity,
-                                           EventoFinanceiro eventoFinanceiro) {
+    public EventoDetalhe createGastoDetalhe(EventoDetalhe entity,
+                                            EventoFinanceiro eventoFinanceiro) {
         if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())) {
             throw new EntidadeNaoEncontradaException(
                     "Evento Financeiro de id: %s não encontrado"
@@ -184,7 +185,7 @@ public class RegistroService {
         entity.setEventoFinanceiro(eventoFinanceiro);
         entity.setCategoriaUsuario(categorias);
 
-        return gastoDetalheRepository.save(entity);
+        return eventoDetalheRepository.save(entity);
     }
 
     public List<EventoFinanceiro> getEventosFinanceirosByUser(UUID userId) {
@@ -203,9 +204,9 @@ public class RegistroService {
                 .toList();
     }
 
-    public List<GastoDetalhe> getGastosDetalhesByEventoFinanceiro(
+    public List<EventoDetalhe> getGastosDetalhesByEventoFinanceiro(
             List<EventoFinanceiro> eventosFinanceiros) {
-        List<GastoDetalhe> gastoDetalhes = new ArrayList<>();
+        List<EventoDetalhe> eventoDetalhes = new ArrayList<>();
         for (EventoFinanceiro evento : eventosFinanceiros){
             if(!eventoFinanceiroRepository.existsById(evento.getId())){
                 throw new EntidadeNaoEncontradaException("Evento financeiro de id: %s não encontrado."
@@ -213,11 +214,11 @@ public class RegistroService {
                         )
                 );
             }
-            GastoDetalhe gastoDetalheByEventoFinanceiro = gastoDetalheRepository.findGastoDetalheByEventoFinanceiro(evento);
+            EventoDetalhe eventoDetalheByEventoFinanceiro = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro(evento);
 
-            gastoDetalhes.add(gastoDetalheByEventoFinanceiro);
+            eventoDetalhes.add(eventoDetalheByEventoFinanceiro);
         }
-        return gastoDetalhes;
+        return eventoDetalhes;
     }
 
     public List<RegistroResponseDto> getByFilter(UUID userId, Double valor, List<TipoMovimento> tipoMovimento, List<Tipo> tipo,
@@ -316,7 +317,7 @@ public class RegistroService {
         return atualizados;
     }
 
-    public GastoDetalhe editGastoDetalhe(UUID eventoId, GastoDetalhe entity) {
+    public EventoDetalhe editGastoDetalhe(UUID eventoId, EventoDetalhe entity) {
         EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
                 .orElseThrow(() ->
                         new EntidadeNaoEncontradaException(
@@ -324,15 +325,15 @@ public class RegistroService {
                                         .formatted(eventoId))
                 );
 
-        GastoDetalhe gastoDetalhe = gastoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
+        EventoDetalhe eventoDetalhe = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
 
         // Atualiza título se mudou
-        if (!Objects.equals(entity.getTituloGasto(), gastoDetalhe.getTituloGasto())) {
-            gastoDetalhe.setTituloGasto(entity.getTituloGasto());
+        if (!Objects.equals(entity.getTituloGasto(), eventoDetalhe.getTituloGasto())) {
+            eventoDetalhe.setTituloGasto(entity.getTituloGasto());
         }
 
         // Atualiza categorias (adiciona novas e remove as que não estão mais)
-        List<CategoriaUsuario> categoriasExistentes = gastoDetalhe.getCategoriaUsuario();
+        List<CategoriaUsuario> categoriasExistentes = eventoDetalhe.getCategoriaUsuario();
         List<CategoriaUsuario> categoriasNovas = entity.getCategoriaUsuario();
 
         // IDs das novas categorias
@@ -358,10 +359,10 @@ public class RegistroService {
             }
         }
 
-        gastoDetalhe.setCategoriaUsuario(categoriasExistentes);
-        gastoDetalhe.setEventoFinanceiro(financeiro);
+        eventoDetalhe.setCategoriaUsuario(categoriasExistentes);
+        eventoDetalhe.setEventoFinanceiro(financeiro);
 
-        return gastoDetalheRepository.save(gastoDetalhe);
+        return eventoDetalheRepository.save(eventoDetalhe);
     }
 
     public void deleteRegistroByEventoFinanceiro_Id(UUID eventoId) {
@@ -373,8 +374,8 @@ public class RegistroService {
                         )
                 );
 
-        GastoDetalhe gastos = gastoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
-        gastoDetalheRepository.delete(gastos);
+        EventoDetalhe gastos = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
+        eventoDetalheRepository.delete(gastos);
 
         // Deleta todas as instituições associadas ao evento
         List<EventoInstituicao> instituicoes = eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(eventoId);
@@ -435,7 +436,7 @@ public class RegistroService {
             eventoMap.put("instituicoes", instList);
 
             // Detalhes de gasto
-            GastoDetalhe gasto = gastoDetalheRepository.findGastoDetalheByEventoFinanceiro(e);
+            EventoDetalhe gasto = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro(e);
             if (gasto != null) {
                 Map<String, Object> gastoMap = new LinkedHashMap<>();
                 gastoMap.put("id", gasto.getId().toString());
@@ -577,7 +578,7 @@ public class RegistroService {
             }
 
             // Detalhes de gasto
-            GastoDetalhe gasto = gastoDetalheRepository.findGastoDetalheByEventoFinanceiro(e);
+            EventoDetalhe gasto = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro(e);
             if (gasto != null) {
                 sql.append("INSERT INTO gasto_detalhe (id, fk_evento, titulo_gasto) VALUES (")
                         .append("'").append(gasto.getId()).append("', ")

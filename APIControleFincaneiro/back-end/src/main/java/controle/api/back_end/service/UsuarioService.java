@@ -6,12 +6,9 @@ import controle.api.back_end.exception.MenorDeIdadeException;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
-import controle.api.back_end.model.eventoFinanceiro.GastoDetalhe;
-import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.*;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -156,5 +153,15 @@ public class UsuarioService {
         xp += qtdCategorias * 50;
 
         return xp;
+    }
+
+    public Usuario getUsuario(UUID userId){
+        return usuarioRepository.findById(userId)
+                .orElseThrow(()->
+                        new EntidadeNaoEncontradaException(
+                                "Usuário de id: %s não encontrado."
+                                        .formatted(userId)
+                        )
+                );
     }
 }

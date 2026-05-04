@@ -3,15 +3,16 @@ package controle.api.back_end.service;
 import controle.api.back_end.dto.dashboard.CategoriaEPorcentagens;
 import controle.api.back_end.dto.dashboard.MaiorGastoDoMes;
 import controle.api.back_end.dto.dashboard.GastoTotalDoMes;
+import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
+import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
-import controle.api.back_end.model.eventoFinanceiro.GastoDetalhe;
+import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
-import controle.api.back_end.repository.ConfiguracoesRepository;
-import controle.api.back_end.repository.EventoFinanceiroRepository;
-import controle.api.back_end.repository.UsuarioRepository;
+import controle.api.back_end.repository.*;
 import controle.api.back_end.utils.MesFiscalUtils;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,8 @@ public class DashboardService {
     private final UsuarioRepository usuarioRepository;
     private final RegistroService registroService;
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
+    private final EventoInstituicaoRepository eventoInstituicaoRepository;
+    private final EventoDetalheRepository eventoDetalheRepository;
     private final InstituicaoService instituicaoService;
     private final UsuarioService usuarioService;
     private final ConfiguracoesService configuracoesService;
@@ -34,6 +37,8 @@ public class DashboardService {
     public DashboardService(UsuarioRepository usuarioRepository,
                             RegistroService registroService,
                             EventoFinanceiroRepository eventoFinanceiroRepository,
+                            EventoInstituicaoRepository eventoInstituicaoRepository,
+                            EventoDetalheRepository eventoDetalheRepository,
                             InstituicaoService instituicaoService,
                             UsuarioService usuarioService,
                             ConfiguracoesService configuracoesService,
@@ -41,12 +46,13 @@ public class DashboardService {
         this.usuarioRepository = usuarioRepository;
         this.registroService = registroService;
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
+        this.eventoInstituicaoRepository = eventoInstituicaoRepository;
+        this.eventoDetalheRepository = eventoDetalheRepository;
         this.instituicaoService = instituicaoService;
         this.usuarioService = usuarioService;
         this.configuracoesService = configuracoesService;
         this.configuracoesRepository = configuracoesRepository;
     }
-
 
     public GastoTotalDoMes getGastoTotalDoMes(LocalDate data, UUID userId) {
         if (!usuarioRepository.existsById(userId)) {
@@ -162,10 +168,7 @@ public class DashboardService {
         }
 
     public CategoriaEPorcentagens getCategoriasEPorcentagens(LocalDate data, UUID userId) {
-        if (!usuarioRepository.existsById(userId)) {
-            throw new EntidadeNaoEncontradaException("Usuário de id: %s não encontrado"
-                    .formatted(userId));
-        }
+        usuarioService.getUsuario(userId);
 
         Configuracoes configuracoes = configuracoesService.getConfiguracaoByUserId(userId);
         Integer diaInicioMesFiscal = configuracoes.getInicioMesFiscal();
@@ -185,7 +188,7 @@ public class DashboardService {
                     !evento.getDataEvento().isAfter(fimMesFiscal) &&
                     (evento.getTipo().equals(Tipo.Gasto) || evento.getTipo().equals(Tipo.Transferencia))) {
 
-                GastoDetalhe detalhe = evento.getGastoDetalhe();
+                EventoDetalhe detalhe = evento.getGastoDetalhe();
                 if (detalhe != null && detalhe.getCategoriaUsuario() != null) {
                     for (CategoriaUsuario categoriaUsuario : detalhe.getCategoriaUsuario()) {
                         String nomeCategoria = categoriaUsuario.getCategoria().getTitulo();
@@ -219,4 +222,28 @@ public class DashboardService {
         return resultado;
     }
 
+    public List<RegistroResponseDto> getGastosPorPeriodoDeTempo(LocalDate data, UUID userId){
+        usuarioService.getUsuario(userId);
+        Configuracoes configuracoes = configuracoesService.getConfiguracaoByUserId(userId);
+        Integer diaInicioMesFiscal = configuracoes.getInicioMesFiscal();
+        MesFiscalUtils.PeriodoFiscal periodo = MesFiscalUtils.calcularPeriodoFiscal(data, diaInicioMesFiscal);
+
+        LocalDate inicioMesFiscal = periodo.getInicio();
+        LocalDate fimMesFiscal = periodo.getFim();
+
+        List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository.findByUsuarioAndPeriodoFiscal(userId, inicioMesFiscal, fimMesFiscal);
+
+        List<List<EventoInstituicao>> eventosInstituicoes = new ArrayList<>();
+        List<EventoDetalhe> eventoDetalhes = new ArrayList<>();
+
+        for (EventoFinanceiro evento : eventosFinanceiros){
+
+                List<EventoInstituicao> eventoInstituicao = eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(evento.getId());
+                eventosInstituicoes.add(eventoInstituicao);
+                eventoDetalhes.add(eventoDetalheRepository.findGastoDetalheByEventoFinanceiro(evento));
+
+        }
+
+        return RegistrosMapper.toResponse(eventosFinanceiros,eventosInstituicoes,eventoDetalhes);
+    }
     }

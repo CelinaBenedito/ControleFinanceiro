@@ -194,11 +194,11 @@ VALUES ('9b2e1f4c-8a7d-4c3b-9f12-7d8e5a6b7c90',
         5000.00,
         1);
 
-INSERT INTO gasto_detalhe (fk_evento, titulo_gasto)
+INSERT INTO evento_detalhe (fk_evento, titulo_gasto)
 VALUES ('9b2e1f4c-8a7d-4c3b-9f12-7d8e5a6b7c90',
         'Salário');
 
-INSERT INTO gasto_detalhe_categoria (gasto_detalhe_id, categoria_usuario_id)
+INSERT INTO evento_detalhe_categoria (evento_detalhe_id, categoria_usuario_id)
 VALUES(1,1);
 
 
@@ -220,11 +220,11 @@ VALUES ('44444444-dddd-eeee-ffff-000000000004',
         350.00,
         1);
 
-INSERT INTO gasto_detalhe (fk_evento, titulo_gasto)
+INSERT INTO evento_detalhe (fk_evento, titulo_gasto)
 VALUES ('44444444-dddd-eeee-ffff-000000000004',
         'Casaco de lã');
 
-INSERT INTO gasto_detalhe_categoria (gasto_detalhe_id, categoria_usuario_id)
+INSERT INTO evento_detalhe_categoria (evento_detalhe_id, categoria_usuario_id)
 VALUES(2, 1);
 
 -- Márcio - Recarga de bilhete único
@@ -244,11 +244,11 @@ VALUES ('550e8400-e29b-41d4-a716-446655440000',
         80.00,
         1);
 
-INSERT INTO gasto_detalhe (fk_evento, titulo_gasto)
+INSERT INTO evento_detalhe (fk_evento, titulo_gasto)
 VALUES ('550e8400-e29b-41d4-a716-446655440000',
         'Transporte público');
 
-INSERT INTO gasto_detalhe_categoria (gasto_detalhe_id, categoria_usuario_id)
+INSERT INTO evento_detalhe_categoria (evento_detalhe_id, categoria_usuario_id)
 VALUES(3,6);
 
 -- Márcio - Jantar em restaurante italiano
@@ -268,10 +268,10 @@ VALUES ('123e4567-e89b-12d3-a456-426614174000',
         120.00,
         1);
 
-INSERT INTO gasto_detalhe (fk_evento, titulo_gasto)
+INSERT INTO evento_detalhe (fk_evento, titulo_gasto)
 VALUES ('123e4567-e89b-12d3-a456-426614174000',
         'Restaurante');
-INSERT INTO gasto_detalhe_categoria (gasto_detalhe_id, categoria_usuario_id)
+INSERT INTO evento_detalhe_categoria (evento_detalhe_id, categoria_usuario_id)
 VALUES(4,2);
 
 -- Jonas comprando carne no mercado
@@ -291,10 +291,10 @@ VALUES ('11111111-aaaa-bbbb-cccc-000000000001',
         250.00,
         1);
 
-INSERT INTO gasto_detalhe (fk_evento, titulo_gasto)
+INSERT INTO evento_detalhe (fk_evento, titulo_gasto)
 VALUES ('11111111-aaaa-bbbb-cccc-000000000001',
         'Carne bovina');
-INSERT INTO gasto_detalhe_categoria (gasto_detalhe_id, categoria_usuario_id)
+INSERT INTO evento_detalhe_categoria (evento_detalhe_id, categoria_usuario_id)
 VALUES(5,3);
 
 -- Mariana pagando conta de água
@@ -314,11 +314,11 @@ VALUES ('22222222-bbbb-cccc-dddd-000000000002',
         120.00,
         1);
 
-INSERT INTO gasto_detalhe (fk_evento, titulo_gasto)
+INSERT INTO evento_detalhe (fk_evento, titulo_gasto)
 VALUES ('22222222-bbbb-cccc-dddd-000000000002',
         'Conta de Água');
 
-INSERT INTO gasto_detalhe_categoria (gasto_detalhe_id, categoria_usuario_id)
+INSERT INTO evento_detalhe_categoria (evento_detalhe_id, categoria_usuario_id)
 VALUES (6, 4);
 
 -- Carla comprando passagem de ônibus
@@ -339,11 +339,11 @@ VALUES ('33333333-cccc-dddd-eeee-000000000003',
         1);
 
 -- Carla comprando passagem de ônibus
-INSERT INTO gasto_detalhe (fk_evento, titulo_gasto)
+INSERT INTO evento_detalhe (fk_evento, titulo_gasto)
 VALUES ('33333333-cccc-dddd-eeee-000000000003',
         'Transporte público');
 
-INSERT INTO gasto_detalhe_categoria (gasto_detalhe_id, categoria_usuario_id)
+INSERT INTO evento_detalhe_categoria (evento_detalhe_id, categoria_usuario_id)
 VALUES (7, 6);
 
 

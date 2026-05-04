@@ -1,7 +1,6 @@
 package controle.api.back_end.model.categoria;
 
-import controle.api.back_end.model.eventoFinanceiro.GastoDetalhe;
-import controle.api.back_end.model.instituicao.Instituicao;
+import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 
@@ -24,7 +23,7 @@ public class CategoriaUsuario {
     private Boolean isAtivo;
 
     @ManyToMany
-    private List<GastoDetalhe> gastoDetalhe;
+    private List<EventoDetalhe> eventoDetalhe;
 
     private LocalDateTime ultimaAtualizacao;
 
@@ -60,12 +59,12 @@ public class CategoriaUsuario {
         isAtivo = ativo;
     }
 
-    public List<GastoDetalhe> getGastoDetalhe() {
-        return gastoDetalhe;
+    public List<EventoDetalhe> getGastoDetalhe() {
+        return eventoDetalhe;
     }
 
-    public void setGastoDetalhe(List<GastoDetalhe> gastoDetalhe) {
-        this.gastoDetalhe = gastoDetalhe;
+    public void setGastoDetalhe(List<EventoDetalhe> eventoDetalhe) {
+        this.eventoDetalhe = eventoDetalhe;
     }
 
     public LocalDateTime getUltimaAtualizacao() {

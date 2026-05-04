@@ -6,14 +6,13 @@ import controle.api.back_end.dto.registros.in.GastoDetalheCreateDto;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.dto.registros.out.RegistroUsuarioResponseDto;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
+import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
-import controle.api.back_end.model.eventoFinanceiro.GastoDetalhe;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.validation.Valid;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,12 +65,12 @@ public class RegistrosMapper {
                 .toList();
     }
 
-    public static GastoDetalhe toEntityGasto(@Valid GastoDetalheCreateDto dto){
+    public static EventoDetalhe toEntityGasto(@Valid GastoDetalheCreateDto dto){
         if(dto == null){
             return null;
         }
 
-        GastoDetalhe entity = new GastoDetalhe();
+        EventoDetalhe entity = new EventoDetalhe();
         List<CategoriaUsuario> categorias = dto.getCategoriaUsuario_id().stream()
                 .map(id -> {
                     CategoriaUsuario categoria = new CategoriaUsuario();
@@ -86,7 +85,7 @@ public class RegistrosMapper {
         return entity;
     }
 
-    public static List<GastoDetalhe> toEntityGasto(@Valid List<GastoDetalheCreateDto> dtos){
+    public static List<EventoDetalhe> toEntityGasto(@Valid List<GastoDetalheCreateDto> dtos){
         return dtos.stream()
                 .map(RegistrosMapper::toEntityGasto)
                 .toList();
@@ -94,8 +93,8 @@ public class RegistrosMapper {
 
     public static RegistroUsuarioResponseDto toResponseUser(EventoFinanceiro eventoFinanceiro,
                                                             List<EventoInstituicao> eventoInstituicoes,
-                                                            GastoDetalhe gastoDetalhe) {
-        if (eventoInstituicoes == null || eventoFinanceiro == null || gastoDetalhe == null) {
+                                                            EventoDetalhe eventoDetalhe) {
+        if (eventoInstituicoes == null || eventoFinanceiro == null || eventoDetalhe == null) {
             return null;
         }
 
@@ -129,8 +128,8 @@ public class RegistrosMapper {
         financeiroDto.setDataEvento(eventoFinanceiro.getDataEvento());
         financeiroDto.setValor(eventoFinanceiro.getValor());
 
-        // Mapeando categorias do GastoDetalhe
-        List<RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto> categoriasDto = gastoDetalhe.getCategoriaUsuario().stream()
+        // Mapeando categorias do EventoDetalhe
+        List<RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto> categoriasDto = eventoDetalhe.getCategoriaUsuario().stream()
                 .map(cu -> {
                     RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto categoriaDto =
                             new RegistroUsuarioResponseDto.GastoDetalheDto.CategoriaDto();
@@ -141,9 +140,9 @@ public class RegistrosMapper {
                 .toList();
 
         RegistroUsuarioResponseDto.GastoDetalheDto detalheDto = new RegistroUsuarioResponseDto.GastoDetalheDto();
-        detalheDto.setId(gastoDetalhe.getId());
+        detalheDto.setId(eventoDetalhe.getId());
         detalheDto.setCategoria(categoriasDto);
-        detalheDto.setTituloGasto(gastoDetalhe.getTituloGasto());
+        detalheDto.setTituloGasto(eventoDetalhe.getTituloGasto());
 
         // Mapeando usuário
         RegistroUsuarioResponseDto.UsuarioDto usuarioDto = new RegistroUsuarioResponseDto.UsuarioDto();
@@ -163,8 +162,8 @@ public class RegistrosMapper {
 
     public static RegistroResponseDto toResponse(EventoFinanceiro eventoFinanceiro,
                                                  List<EventoInstituicao> eventoInstituicoes,
-                                                 GastoDetalhe gastoDetalhe) {
-        if (eventoInstituicoes == null || eventoFinanceiro == null || gastoDetalhe == null) {
+                                                 EventoDetalhe eventoDetalhe) {
+        if (eventoInstituicoes == null || eventoFinanceiro == null || eventoDetalhe == null) {
             return null;
         }
 
@@ -198,8 +197,8 @@ public class RegistrosMapper {
         financeiroDto.setDataEvento(eventoFinanceiro.getDataEvento());
         financeiroDto.setValor(eventoFinanceiro.getValor());
 
-        // Mapeando categorias do GastoDetalhe
-        List<RegistroResponseDto.GastoDetalheDto.CategoriaDto> categoriasDto = gastoDetalhe.getCategoriaUsuario().stream()
+        // Mapeando categorias do EventoDetalhe
+        List<RegistroResponseDto.GastoDetalheDto.CategoriaDto> categoriasDto = eventoDetalhe.getCategoriaUsuario().stream()
                 .map(cu -> {
                     RegistroResponseDto.GastoDetalheDto.CategoriaDto categoriaDto =
                             new RegistroResponseDto.GastoDetalheDto.CategoriaDto();
@@ -210,9 +209,9 @@ public class RegistrosMapper {
                 .toList();
 
         RegistroResponseDto.GastoDetalheDto detalheDto = new RegistroResponseDto.GastoDetalheDto();
-        detalheDto.setId(gastoDetalhe.getId());
+        detalheDto.setId(eventoDetalhe.getId());
         detalheDto.setCategoria(categoriasDto); // agora é lista
-        detalheDto.setTituloGasto(gastoDetalhe.getTituloGasto());
+        detalheDto.setTituloGasto(eventoDetalhe.getTituloGasto());
 
         // Montando resposta final
         response.setDataRegistro(eventoFinanceiro.getDataRegistro());
@@ -227,10 +226,10 @@ public class RegistrosMapper {
     public static List<RegistroResponseDto> toResponse(
             List<EventoFinanceiro> eventosFinanceiros,
             List<List<EventoInstituicao>> eventosInstituicoes,
-            List<GastoDetalhe> gastoDetalhes) {
+            List<EventoDetalhe> eventoDetalhes) {
 
         if (eventosFinanceiros.size() != eventosInstituicoes.size()
-                || eventosFinanceiros.size() != gastoDetalhes.size()) {
+                || eventosFinanceiros.size() != eventoDetalhes.size()) {
             throw new IllegalArgumentException("As listas devem ter o mesmo tamanho");
         }
 
@@ -239,9 +238,9 @@ public class RegistrosMapper {
         for (int i = 0; i < eventosFinanceiros.size(); i++) {
             EventoFinanceiro eventoFinanceiro = eventosFinanceiros.get(i);
             List<EventoInstituicao> instituicoes = eventosInstituicoes.get(i);
-            GastoDetalhe gastoDetalhe = gastoDetalhes.get(i);
+            EventoDetalhe eventoDetalhe = eventoDetalhes.get(i);
 
-            RegistroResponseDto response = toResponse(eventoFinanceiro, instituicoes, gastoDetalhe);
+            RegistroResponseDto response = toResponse(eventoFinanceiro, instituicoes, eventoDetalhe);
             if (response != null) {
                 responses.add(response);
             }

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,10 +37,10 @@ public class EventoFinanceiro {
     private List<EventoInstituicao> eventoInstituicao;
 
     @OneToOne(mappedBy = "eventoFinanceiro", cascade = CascadeType.ALL, orphanRemoval = true)
-    private GastoDetalhe gastoDetalhe;
+    private EventoDetalhe eventoDetalhe;
 
     @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    private LocalDate dataRegistro;
+    private LocalDateTime dataRegistro;
 
     public Usuario getUsuario() {
         return usuario;
@@ -89,11 +90,11 @@ public class EventoFinanceiro {
         this.dataEvento = dataEvento;
     }
 
-    public LocalDate getDataRegistro() {
+    public LocalDateTime getDataRegistro() {
         return dataRegistro;
     }
 
-    public void setDataRegistro(LocalDate dataRegistro) {
+    public void setDataRegistro(LocalDateTime dataRegistro) {
         this.dataRegistro = dataRegistro;
     }
 
@@ -105,11 +106,11 @@ public class EventoFinanceiro {
         this.eventoInstituicao = eventoInstituicao;
     }
 
-    public GastoDetalhe getGastoDetalhe() {
-        return gastoDetalhe;
+    public EventoDetalhe getGastoDetalhe() {
+        return eventoDetalhe;
     }
 
-    public void setGastoDetalhe(GastoDetalhe gastoDetalhe) {
-        this.gastoDetalhe = gastoDetalhe;
+    public void setGastoDetalhe(EventoDetalhe eventoDetalhe) {
+        this.eventoDetalhe = eventoDetalhe;
     }
 }

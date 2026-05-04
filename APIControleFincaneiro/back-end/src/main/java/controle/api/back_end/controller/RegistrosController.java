@@ -1,6 +1,5 @@
 package controle.api.back_end.controller;
 
-import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
 import controle.api.back_end.dto.registros.in.RegistroCompletoCreateDto;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
@@ -68,7 +67,7 @@ public class RegistrosController {
         List<List<EventoInstituicao>> eventosInstituicoes = registroService
                 .getEventosInstituicoesByEventoFinanceiro(eventoFinanceiros);
 
-        List<GastoDetalhe> gastosDetalhes = registroService
+        List<EventoDetalhe> gastosDetalhes = registroService
                 .getGastosDetalhesByEventoFinanceiro(eventoFinanceiros);
 
         List<RegistroResponseDto> response = RegistrosMapper
@@ -195,7 +194,7 @@ public class RegistrosController {
         List<EventoInstituicao> instituicaoCreated = registroService.createEventoInstituicao(
                 RegistrosMapper.toEntityEvento(dto.getInstituicao()), eventoCreated);
 
-        GastoDetalhe gastoCreated = registroService.createGastoDetalhe(
+        EventoDetalhe gastoCreated = registroService.createGastoDetalhe(
                 RegistrosMapper.toEntityGasto(dto.getDetalhe()), eventoCreated);
 
         RegistroUsuarioResponseDto response = RegistrosMapper.toResponseUser(
@@ -226,7 +225,7 @@ public class RegistrosController {
                     List<EventoInstituicao> instituicoesCreated = registroService.createEventoInstituicao(
                             RegistrosMapper.toEntityEvento(dto.getInstituicao()), eventoCreated);
 
-                    GastoDetalhe gastoCreated = registroService.createGastoDetalhe(
+                    EventoDetalhe gastoCreated = registroService.createGastoDetalhe(
                             RegistrosMapper.toEntityGasto(dto.getDetalhe()), eventoCreated);
 
                     return RegistrosMapper
@@ -266,8 +265,8 @@ public class RegistrosController {
         List<EventoInstituicao> entityInstituicoes = RegistrosMapper.toEntityEvento(dto.getInstituicao());
         List<EventoInstituicao> instituicoesEdited = registroService.editEventoInstituicao(evento_id, entityInstituicoes);
 
-        GastoDetalhe entityGasto = RegistrosMapper.toEntityGasto(dto.getDetalhe());
-        GastoDetalhe gastoEdited = registroService.editGastoDetalhe(evento_id, entityGasto);
+        EventoDetalhe entityGasto = RegistrosMapper.toEntityGasto(dto.getDetalhe());
+        EventoDetalhe gastoEdited = registroService.editGastoDetalhe(evento_id, entityGasto);
 
         RegistroUsuarioResponseDto response = RegistrosMapper.toResponseUser(financeiroEdited, instituicoesEdited, gastoEdited);
 

@@ -32,7 +32,7 @@ public class ConfiguracoesService {
     private final LimitePorInstituicaoRepository limitePorInstiuicaoRepository;
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
     private final EventoInstituicaoRepository eventoInstituicaoRepository;
-    private final GastoDetalheRepository gastoDetalheRepository;
+    private final EventoDetalheRepository eventoDetalheRepository;
 
     public ConfiguracoesService(ConfiguracoesRepository configuracoesRepository,
                                 UsuarioRepository usuarioRepository,
@@ -42,7 +42,7 @@ public class ConfiguracoesService {
                                 LimitePorInstituicaoRepository limitePorInstiuicaoRepository,
                                 EventoFinanceiroRepository eventoFinanceiroRepository,
                                 EventoInstituicaoRepository eventoInstituicaoRepository,
-                                GastoDetalheRepository gastoDetalheRepository) {
+                                EventoDetalheRepository eventoDetalheRepository) {
         this.configuracoesRepository = configuracoesRepository;
         this.usuarioRepository = usuarioRepository;
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
@@ -51,7 +51,7 @@ public class ConfiguracoesService {
         this.limitePorInstiuicaoRepository = limitePorInstiuicaoRepository;
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
-        this.gastoDetalheRepository = gastoDetalheRepository;
+        this.eventoDetalheRepository = eventoDetalheRepository;
     }
 
     public List<Configuracoes> getConfiguracoes() {

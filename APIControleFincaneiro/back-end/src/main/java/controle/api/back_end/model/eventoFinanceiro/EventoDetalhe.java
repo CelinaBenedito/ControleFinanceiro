@@ -1,16 +1,14 @@
 package controle.api.back_end.model.eventoFinanceiro;
 
-import controle.api.back_end.model.categoria.Categoria;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
 @Entity
-public class GastoDetalhe {
+public class EventoDetalhe {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -21,8 +19,8 @@ public class GastoDetalhe {
 
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
-            name = "gasto_detalhe_categoria",
-            joinColumns = @JoinColumn(name = "gasto_detalhe_id"),
+            name = "evento_detalhe_categoria",
+            joinColumns = @JoinColumn(name = "evento_detalhe_id"),
             inverseJoinColumns = @JoinColumn(name = "categoria_usuario_id")
     )
     private List<CategoriaUsuario> categoriaUsuario;
