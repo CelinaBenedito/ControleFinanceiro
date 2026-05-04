@@ -59,6 +59,13 @@
         });
     }
 
+    function formatarLocalDateTime(valor) {
+        if (window.MainAPI?.formatarLocalDateTime) {
+            return window.MainAPI.formatarLocalDateTime(valor, "-");
+        }
+        return "-";
+    }
+
     function chaveAlertas() {
         return `cfg_alertas_${userId}`;
     }
@@ -331,7 +338,7 @@
             tr.appendChild(tdNome);
 
             const tdMod = document.createElement("td");
-            tdMod.textContent = "-";
+            tdMod.textContent = formatarLocalDateTime(inst.ultimaAtualizacao);
             tr.appendChild(tdMod);
 
             const tdAcoes = document.createElement("td");
@@ -463,7 +470,7 @@
             tr.appendChild(tdNome);
 
             const tdMod = document.createElement("td");
-            tdMod.textContent = "-";
+            tdMod.textContent = formatarLocalDateTime(cat.ultimaAtualizacao);
             tr.appendChild(tdMod);
 
             const tdAcoes = document.createElement("td");

@@ -26,9 +26,44 @@
         });
     }
 
+    function formatarLocalDateTime(valor, vazio = "-") {
+        if (!valor) return vazio;
+
+        if (Array.isArray(valor) && valor.length >= 5) {
+            const [ano, mes, dia, hora = 0, min = 0] = valor;
+            return `${String(dia).padStart(2, "0")}/${String(mes).padStart(2, "0")}/${ano} ${String(hora).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+        }
+
+        if (typeof valor === "string") {
+            const dt = new Date(valor);
+            if (!isNaN(dt.getTime())) {
+                const d = String(dt.getDate()).padStart(2, "0");
+                const m = String(dt.getMonth() + 1).padStart(2, "0");
+                const y = dt.getFullYear();
+                const h = String(dt.getHours()).padStart(2, "0");
+                const mi = String(dt.getMinutes()).padStart(2, "0");
+                return `${d}/${m}/${y} ${h}:${mi}`;
+            }
+        }
+
+        if (typeof valor === "object") {
+            const ano = valor.year ?? valor.ano;
+            const mes = valor.monthValue ?? valor.mes;
+            const dia = valor.dayOfMonth ?? valor.dia;
+            const hora = valor.hour ?? valor.hora ?? 0;
+            const min = valor.minute ?? valor.minuto ?? 0;
+            if (ano && mes && dia) {
+                return `${String(dia).padStart(2, "0")}/${String(mes).padStart(2, "0")}/${ano} ${String(hora).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+            }
+        }
+
+        return vazio;
+    }
+
     window.MainAPI = {
         request,
         get,
+        formatarLocalDateTime,
         getTipos(userId) {
             return request(`/categorias/usuario/${userId}`, { method: "GET" })
                 .then(res => {
