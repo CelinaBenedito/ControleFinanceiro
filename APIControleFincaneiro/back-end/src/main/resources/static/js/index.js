@@ -6,6 +6,24 @@ const semDados =
         <p>Selecionar outra data para visualizar o gráfico<p>
         </div>
 `
+
+function obterUsuarioIdDashboard() {
+  try {
+    const usuario = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+    return usuario?.id || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function dataReferenciaPeriodo(periodo) {
+  if (!periodo || typeof periodo !== 'object') return null;
+  const ano = Number(periodo.ano);
+  const mes = Number(periodo.mes);
+  if (!ano || !mes) return null;
+  return `${ano}-${String(mes).padStart(2, '0')}-01`;
+}
+
 function atualizarDados(periodo) {
   gastosMes(periodo)
   buscarGastoTotal(periodo)
@@ -102,6 +120,8 @@ function gerarGraficos(periodo) {
 //KPI
 function buscarMaiorGasto(periodo) {
   let url = '';
+  let usaNovoEndpoint = false;
+  const userId = obterUsuarioIdDashboard();
 
   if (typeof periodo === 'number') {
     console.log("Ano identificado")
@@ -112,7 +132,13 @@ function buscarMaiorGasto(periodo) {
   }
   else if (typeof periodo === 'object') {
     console.log("Mês identificado")
-    url = `/registros/maiorGastoMes/${periodo.ano}/${periodo.mes}`;
+    const dataRef = dataReferenciaPeriodo(periodo);
+    if (dataRef && userId) {
+      url = `/dashboard/maior-gasto-do-mes/${dataRef}/usuarios/${userId}`;
+      usaNovoEndpoint = true;
+    } else {
+      url = `/registros/maiorGastoMes/${periodo.ano}/${periodo.mes}`;
+    }
     kpiMaiorGastoTitulo.innerHTML = "mês"
 
     let mesAnterior = periodo.mes - 1;
@@ -127,17 +153,23 @@ function buscarMaiorGasto(periodo) {
   console.log("Iniciando fetch na kpi de maior categoria...")
   return MainAPI.get(url)
     .then(json => {
-      console.log("Dentro do fetch da maior categoria\nJson:", json[0])
+      console.log("Dentro do fetch da maior categoria\nJson:", json)
 
       let categoria = document.getElementById('categoria');
       let valorCategoria = document.getElementById('valorCategoria');
       let tituloGasto = document.getElementById('tituloGasto')
 
-      if (!json || json.length === 0) {
+      if (!json || (Array.isArray(json) && json.length === 0)) {
         categoria.innerHTML = "Sem dados";
         valorCategoria.innerHTML = "Sem dados";
         tituloGasto.innerHTML = "Categoria: Sem dados";
         return;
+      }
+
+      if (usaNovoEndpoint) {
+        categoria.innerHTML = json.nomeCategoria || "Sem dados";
+        valorCategoria.innerHTML = json.valor != null ? `R$ ${Number(json.valor).toFixed(2)}` : "Sem dados";
+        tituloGasto.innerHTML = json.porcentagem != null ? `${json.porcentagem}% do total` : "Categoria: Sem dados";
       } else {
         categoria.innerHTML = json[0].tituloGasto;
         valorCategoria.innerHTML = `R$ ${json[0].valor}`
@@ -152,6 +184,8 @@ function buscarMaiorGasto(periodo) {
 function buscarGastoTotal(periodo) {
   console.log("Entrei em buscarGastoTotal")
   let url = '';
+  let usaNovoEndpoint = false;
+  const userId = obterUsuarioIdDashboard();
   let div_titulo = document.getElementById('dataKPIgastoTotal');
   let labelComparacao = "";
 
@@ -164,7 +198,13 @@ function buscarGastoTotal(periodo) {
   }
   else if (periodo && typeof periodo === 'object') {
     console.log("Mês identificado")
-    url = `/registros/gastoTotalMes/${periodo.ano}/${periodo.mes}`;
+    const dataRef = dataReferenciaPeriodo(periodo);
+    if (dataRef && userId) {
+      url = `/dashboard/gasto-total-mes/${dataRef}/usuarios/${userId}`;
+      usaNovoEndpoint = true;
+    } else {
+      url = `/registros/gastoTotalMes/${periodo.ano}/${periodo.mes}`;
+    }
     div_titulo.innerHTML = "mês"
 
     let mesAnterior = periodo.mes - 1;
@@ -182,10 +222,42 @@ function buscarGastoTotal(periodo) {
   console.log("Iniciando fetch...")
   MainAPI.get(url)
     .then(json => {
-      console.log("Dentro do fetch\nJson:", json[0])
+      console.log("Dentro do fetch\nJson:", json)
       div_gastoTotal = document.getElementById('gastoTotal');
       div_percentual = document.getElementById('percentual');
       div_subtexto = document.getElementById('subtexto');
+
+      if (usaNovoEndpoint) {
+        const valorAtual = Number(json?.valor || 0);
+        const percentual = Number(json?.porcentagem || 0);
+        div_gastoTotal.innerHTML = `R$ ${valorAtual.toFixed(2)}`;
+
+        if (percentual === 0) {
+          div_percentual.style.display = "none";
+          div_subtexto.innerHTML = "variação não aplicável";
+          return;
+        }
+
+        const root = document.documentElement;
+        if (percentual > 0) {
+          const corFundo = getComputedStyle(root).getPropertyValue('--red-700');
+          const corTexto = getComputedStyle(root).getPropertyValue('--red-100');
+          div_percentual.style.display = "";
+          div_percentual.style.backgroundColor = corFundo;
+          div_percentual.style.color = corTexto;
+          div_percentual.innerHTML = `<i class='bx  bx-caret-big-up'></i> +${percentual}%`;
+        } else {
+          const corFundo = getComputedStyle(root).getPropertyValue('--green-700');
+          const corTexto = getComputedStyle(root).getPropertyValue('--green-100');
+          div_percentual.style.display = "";
+          div_percentual.style.backgroundColor = corFundo;
+          div_percentual.style.color = corTexto;
+          div_percentual.innerHTML = `<i class='bx  bx-caret-big-down'></i> ${percentual}%`;
+        }
+
+        div_subtexto.innerHTML = "Em relação ao mês anterior";
+        return;
+      }
 
       div_gastoTotal.innerHTML = `R$ ${json[0].total_atual.toFixed(2)}`
       if (json[0].total_anterior === 0 && json[0].total_atual > 0) {

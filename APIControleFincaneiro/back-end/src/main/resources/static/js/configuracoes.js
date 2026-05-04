@@ -8,6 +8,7 @@
     let instituicoes = [];
     let categorias = [];
     let tipoPersonalizada = null; // 'instituicao' | 'categoria'
+    let limiteModalTipo = null; // 'instituicao' | 'categoria'
 
     // ── helpers ──────────────────────────────────────────────────
     function mostrarAlerta(texto) {
@@ -58,12 +59,49 @@
         });
     }
 
+    function formatarLocalDateTime(valor) {
+        if (window.MainAPI?.formatarLocalDateTime) {
+            return window.MainAPI.formatarLocalDateTime(valor, "-");
+        }
+        return "-";
+    }
+
+    function chaveAlertas() {
+        return `cfg_alertas_${userId}`;
+    }
+
+    function salvarPreferenciasAlertas() {
+        const swWhatsapp = document.getElementById("sw_alerta_whatsapp");
+        const swEmail = document.getElementById("sw_alerta_email");
+        if (!swWhatsapp || !swEmail) return;
+
+        const preferencias = {
+            whatsapp: !!swWhatsapp.checked,
+            email: !!swEmail.checked
+        };
+        localStorage.setItem(chaveAlertas(), JSON.stringify(preferencias));
+    }
+
+    function inicializarSwitchesAlerta() {
+        const swWhatsapp = document.getElementById("sw_alerta_whatsapp");
+        const swEmail = document.getElementById("sw_alerta_email");
+        if (!swWhatsapp || !swEmail) return;
+
+        const salvas = JSON.parse(localStorage.getItem(chaveAlertas()) || "null");
+        swWhatsapp.checked = !!salvas?.whatsapp;
+        swEmail.checked = !!salvas?.email;
+
+        swWhatsapp.addEventListener("change", salvarPreferenciasAlertas);
+        swEmail.addEventListener("change", salvarPreferenciasAlertas);
+    }
+
     // ── INIT ─────────────────────────────────────────────────────
     async function init() {
         if (!userId) {
             window.location.href = "login.html";
             return;
         }
+        inicializarSwitchesAlerta();
         await Promise.all([
             carregarConfig(),
             carregarInstituicoes(),
@@ -103,10 +141,10 @@
 
         const linhas = [];
         limitesInst.forEach(l => {
-            linhas.push({ inst: l.instituicao?.nome || "-", cat: "-", limite: l.limiteDesejado });
+            linhas.push({ tipo: "Instituição", item: l.instituicao?.nome || "-", limite: l.limiteDesejado });
         });
         limitesCateg.forEach(l => {
-            linhas.push({ inst: "-", cat: l.categoria?.titulo || "-", limite: l.limiteDesejado });
+            linhas.push({ tipo: "Categoria", item: l.categoria?.titulo || "-", limite: l.limiteDesejado });
         });
 
         if (linhas.length === 0) {
@@ -115,7 +153,7 @@
         }
         linhas.forEach(l => {
             const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${l.inst}</td><td>${l.cat}</td><td>R$ ${Number(l.limite).toFixed(2)}</td><td>-</td>`;
+            tr.innerHTML = `<td>${l.tipo}</td><td>${l.item}</td><td>R$ ${Number(l.limite).toFixed(2)}</td><td>-</td>`;
             tbody.appendChild(tr);
         });
     }
@@ -152,44 +190,116 @@
         }
     };
 
-    window.salvarLimite = async function () {
+    window.salvarLimite = async function ({ instId = null, catId = null, valor = null } = {}) {
         if (!cfgId) {
             mostrarAlerta("Salve o mês fiscal primeiro para criar as configurações.");
-            return;
+            return false;
         }
-        const instId = document.getElementById("selInstituicaoLimite")?.value;
-        const catId = document.getElementById("selCategoriaLimite")?.value;
-        const valor = parseFloat(document.getElementById("ipt_limite_valor")?.value);
 
-        if (!instId && !catId) {
+        const idInst = instId || document.getElementById("selInstituicaoLimite")?.value;
+        const idCat = catId || document.getElementById("selCategoriaLimite")?.value;
+        const valorNum = valor != null
+            ? parseFloat(valor)
+            : parseFloat(document.getElementById("ipt_limite_valor")?.value);
+
+        if (!idInst && !idCat) {
             mostrarAlerta("Selecione uma instituição ou categoria para definir o limite.");
-            return;
+            return false;
         }
-        if (!valor || valor <= 0) {
+        if (!valorNum || valorNum <= 0) {
             mostrarAlerta("Informe um valor de limite válido.");
-            return;
+            return false;
         }
 
         // Preserva valores atuais para evitar sobrescrita com null no backend
         const payload = {};
         if (cfgData?.inicioMesFiscal != null) payload.inicioMesFiscal = cfgData.inicioMesFiscal;
         if (cfgData?.limiteDesejadoMensal != null) payload.limiteDesejadoMensal = cfgData.limiteDesejadoMensal;
-        if (instId) payload.limitesInstituicao = [{ instituicaoId: parseInt(instId), valor }];
-        if (catId) payload.limitesCategoria = [{ categoriaId: parseInt(catId), valor }];
+        if (idInst) payload.limitesInstituicao = [{ instituicaoId: parseInt(idInst), valor: valorNum }];
+        if (idCat) payload.limitesCategoria = [{ categoriaId: parseInt(idCat), valor: valorNum }];
 
         try {
             const res = await putJson(`${API}/configuracoes/edit/${cfgId}`, payload);
             if (res.ok) {
                 await carregarConfig();
                 mostrarAlerta("Limite salvo!");
+                return true;
             } else {
                 const body = await res.json().catch(() => ({}));
                 mostrarAlerta(`Erro ao salvar limite (HTTP ${res.status}): ${body.message || ""}`);
+                return false;
             }
         } catch (e) {
             mostrarAlerta("Erro ao salvar limite.");
             console.error(e);
+            return false;
         }
+    };
+
+    window.abrirModalLimite = function (tipo) {
+        limiteModalTipo = tipo;
+        const modal = document.getElementById("modalLimite");
+        const titulo = document.getElementById("modalLimiteTitulo");
+        const label = document.getElementById("lblLimiteItem");
+        const sel = document.getElementById("selLimiteItem");
+        const inputValor = document.getElementById("ipt_limite_modal_valor");
+        if (!modal || !titulo || !label || !sel || !inputValor) return;
+
+        sel.innerHTML = `<option value="" disabled selected></option>`;
+
+        if (tipo === "instituicao") {
+            titulo.textContent = "Definir limite por instituição";
+            label.textContent = "Selecionar instituição";
+            instituicoes.forEach(inst => {
+                const opt = document.createElement("option");
+                opt.value = inst.intituicao.id;
+                opt.textContent = inst.intituicao.nome;
+                sel.appendChild(opt);
+            });
+        } else {
+            titulo.textContent = "Definir limite por categoria";
+            label.textContent = "Selecionar categoria";
+            categorias.forEach(cat => {
+                const opt = document.createElement("option");
+                opt.value = cat.categoria.id;
+                opt.textContent = cat.categoria.titulo;
+                sel.appendChild(opt);
+            });
+        }
+
+        inputValor.value = "";
+        modal.style.display = "flex";
+    };
+
+    window.fecharModalLimite = function () {
+        const modal = document.getElementById("modalLimite");
+        if (modal) modal.style.display = "none";
+        limiteModalTipo = null;
+    };
+
+    window.salvarLimiteModal = async function () {
+        const sel = document.getElementById("selLimiteItem");
+        const valor = document.getElementById("ipt_limite_modal_valor");
+        const idSelecionado = sel?.value;
+        const valorSelecionado = valor?.value;
+
+        if (!limiteModalTipo) {
+            mostrarAlerta("Tipo de limite inválido.");
+            return;
+        }
+
+        if (!idSelecionado) {
+            mostrarAlerta("Selecione um item para limitar.");
+            return;
+        }
+
+        const ok = await window.salvarLimite({
+            instId: limiteModalTipo === "instituicao" ? idSelecionado : null,
+            catId: limiteModalTipo === "categoria" ? idSelecionado : null,
+            valor: valorSelecionado
+        });
+
+        if (ok) window.fecharModalLimite();
     };
 
     // ── INSTITUIÇÕES ──────────────────────────────────────────────
@@ -228,7 +338,7 @@
             tr.appendChild(tdNome);
 
             const tdMod = document.createElement("td");
-            tdMod.textContent = "-";
+            tdMod.textContent = formatarLocalDateTime(inst.ultimaAtualizacao);
             tr.appendChild(tdMod);
 
             const tdAcoes = document.createElement("td");
@@ -360,7 +470,7 @@
             tr.appendChild(tdNome);
 
             const tdMod = document.createElement("td");
-            tdMod.textContent = "-";
+            tdMod.textContent = formatarLocalDateTime(cat.ultimaAtualizacao);
             tr.appendChild(tdMod);
 
             const tdAcoes = document.createElement("td");
@@ -478,11 +588,230 @@
     window.importarDados = function () {
         document.getElementById("inputImportar")?.click();
     };
-    window.exportarDados = function () {
-        mostrarAlerta("Exportação de dados ainda não disponível.");
+    window.exportarDados = async function () {
+        if (!userId) {
+            mostrarAlerta("Usuário não identificado para exportação.");
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API}/registros/download/${userId}?tipo=pdf`);
+            if (!res.ok) {
+                mostrarAlerta(`Erro ao exportar PDF (HTTP ${res.status}).`);
+                return;
+            }
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+
+            const contentDisposition = res.headers.get("content-disposition") || "";
+            let nomeArquivo = "registros.pdf";
+            const match = contentDisposition.match(/filename=([^;]+)/i);
+            if (match && match[1]) {
+                nomeArquivo = match[1].replace(/"/g, "").trim();
+            }
+
+            const userAgent = navigator.userAgent || "";
+            const emWebViewJavaFx = /JavaFX/i.test(userAgent);
+
+            const desktopBridge = window.desktopBridge;
+            if (desktopBridge && typeof desktopBridge.saveBase64File === "function") {
+                const bytes = new Uint8Array(await blob.arrayBuffer());
+                let binario = "";
+                const tamanhoChunk = 0x8000;
+
+                for (let offset = 0; offset < bytes.length; offset += tamanhoChunk) {
+                    const chunk = bytes.subarray(offset, offset + tamanhoChunk);
+                    binario += String.fromCharCode(...chunk);
+                }
+
+                const salvo = desktopBridge.saveBase64File(nomeArquivo, btoa(binario));
+                if (salvo) {
+                    mostrarAlerta("PDF exportado com sucesso!");
+                } else {
+                    mostrarAlerta("Exportação cancelada pelo usuário.");
+                }
+                return;
+            }
+
+            if (emWebViewJavaFx) {
+                mostrarAlerta("Modo desktop detectado, mas a integração de exportação não está ativa. Reinicie o app Desktop.");
+                return;
+            }
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = nomeArquivo;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+
+            mostrarAlerta("PDF exportado com sucesso!");
+        } catch (e) {
+            console.error("Erro ao exportar PDF:", e);
+            mostrarAlerta("Erro ao exportar PDF.");
+        }
     };
     window.processarImportacao = function () {
         mostrarAlerta("Importação de dados ainda não disponível.");
+    };
+
+    // ── CALENDÁRIO – SELEÇÃO DE PERÍODO PARA EXCLUSÃO ────────────
+    let cfgCalCampo = null;        // 'inicio' | 'fim'
+    let cfgCalDataSelecionada = null;
+    let cfgDeleteInicio = null;    // YYYY-MM-DD
+    let cfgDeleteFim    = null;    // YYYY-MM-DD
+
+    let cfgCalMesAtual  = new Date().getMonth();
+    let cfgCalAnoAtual  = new Date().getFullYear();
+
+    function cfgCalFormatar(iso) {
+        const [a, m, d] = iso.split("-");
+        return `${d}/${m}/${a}`;
+    }
+
+    function cfgCalGerar() {
+        const dias    = document.getElementById("cfgCalDias");
+        const mesAno  = document.getElementById("cfgCalMesAno");
+        const confirmar = document.getElementById("cfgCalConfirmar");
+        if (!dias) return;
+
+        dias.innerHTML = "";
+        cfgCalDataSelecionada = null;
+        if (confirmar) confirmar.disabled = true;
+
+        mesAno.innerText = new Date(cfgCalAnoAtual, cfgCalMesAtual)
+            .toLocaleString("pt-BR", { month: "long", year: "numeric" });
+
+        const primeiroDia = new Date(cfgCalAnoAtual, cfgCalMesAtual, 1).getDay();
+        const totalDias   = new Date(cfgCalAnoAtual, cfgCalMesAtual + 1, 0).getDate();
+
+        for (let i = 0; i < primeiroDia; i++) dias.innerHTML += `<span></span>`;
+
+        for (let dia = 1; dia <= totalDias; dia++) {
+            const iso = `${cfgCalAnoAtual}-${String(cfgCalMesAtual + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+            const span = document.createElement("span");
+            span.innerText = dia;
+            span.onclick = () => {
+                dias.querySelectorAll(".diaSelecionado").forEach(e => e.classList.remove("diaSelecionado"));
+                span.classList.add("diaSelecionado");
+                cfgCalDataSelecionada = iso;
+                if (confirmar) confirmar.disabled = false;
+            };
+            dias.appendChild(span);
+        }
+    }
+
+    window.abrirCalendarioDelete = function (campo) {
+        cfgCalCampo = campo;
+        cfgCalMesAtual = new Date().getMonth();
+        cfgCalAnoAtual = new Date().getFullYear();
+        const modal = document.getElementById("cfgCalModal");
+        if (modal) { modal.style.display = "flex"; cfgCalGerar(); }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const fechar    = document.getElementById("cfgCalFechar");
+        const anterior  = document.getElementById("cfgCalAnterior");
+        const proximo   = document.getElementById("cfgCalProximo");
+        const confirmar = document.getElementById("cfgCalConfirmar");
+        const modal     = document.getElementById("cfgCalModal");
+
+        if (fechar)    fechar.onclick   = () => { if (modal) modal.style.display = "none"; };
+        if (anterior)  anterior.onclick = () => {
+            cfgCalMesAtual--;
+            if (cfgCalMesAtual < 0) { cfgCalMesAtual = 11; cfgCalAnoAtual--; }
+            cfgCalGerar();
+        };
+        if (proximo)   proximo.onclick  = () => {
+            cfgCalMesAtual++;
+            if (cfgCalMesAtual > 11) { cfgCalMesAtual = 0; cfgCalAnoAtual++; }
+            cfgCalGerar();
+        };
+        if (confirmar) confirmar.onclick = () => {
+            if (!cfgCalDataSelecionada) return;
+            if (cfgCalCampo === "inicio") {
+                cfgDeleteInicio = cfgCalDataSelecionada;
+                const lbl = document.getElementById("cfgDeleteInicioLabel");
+                if (lbl) lbl.textContent = cfgCalFormatar(cfgDeleteInicio);
+            } else {
+                cfgDeleteFim = cfgCalDataSelecionada;
+                const lbl = document.getElementById("cfgDeleteFimLabel");
+                if (lbl) lbl.textContent = cfgCalFormatar(cfgDeleteFim);
+            }
+            if (modal) modal.style.display = "none";
+        };
+    });
+
+    // ── APAGAR REGISTROS ─────────────────────────────────────────
+    window.apagarRegistrosPeriodo = function () {
+        if (!cfgDeleteInicio || !cfgDeleteFim) {
+            mostrarAlerta("Escolha a data inicial e a data final do período.");
+            return;
+        }
+        if (cfgDeleteInicio > cfgDeleteFim) {
+            mostrarAlerta("A data inicial não pode ser maior que a data final.");
+            return;
+        }
+        if (!cfgId) {
+            mostrarAlerta("Configuração do usuário não carregada.");
+            return;
+        }
+
+        mostrarConfirmacao(
+            `Apagar todos os registros de ${cfgCalFormatar(cfgDeleteInicio)} até ${cfgCalFormatar(cfgDeleteFim)}? Esta ação é irreversível.`,
+            async () => {
+                try {
+                    const res = await fetch(`${API}/configuracoes/${cfgId}/dados/periodo-tempo`, {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ dataInical: cfgDeleteInicio, dataFinal: cfgDeleteFim })
+                    });
+                    if (res.status === 204) {
+                        mostrarAlerta("Registros do período apagados com sucesso!");
+                        cfgDeleteInicio = cfgDeleteFim = null;
+                        const lI = document.getElementById("cfgDeleteInicioLabel");
+                        const lF = document.getElementById("cfgDeleteFimLabel");
+                        if (lI) lI.textContent = "";
+                        if (lF) lF.textContent = "";
+                    } else {
+                        const txt = await res.text();
+                        mostrarAlerta(`Erro ao apagar registros (HTTP ${res.status}): ${txt}`);
+                    }
+                } catch (e) {
+                    console.error("Erro ao apagar registros por período:", e);
+                    mostrarAlerta("Erro ao apagar registros do período.");
+                }
+            }
+        );
+    };
+
+    window.apagarTodosRegistros = function () {
+        if (!userId) {
+            mostrarAlerta("Usuário não identificado.");
+            return;
+        }
+
+        mostrarConfirmacao(
+            "Apagar TODOS os registros do usuário? Esta ação é irreversível.",
+            async () => {
+                try {
+                    const res = await fetch(`${API}/configuracoes/usuarios/${userId}/dados/deletar-tudo`, {
+                        method: "DELETE"
+                    });
+                    if (res.status === 204) {
+                        mostrarAlerta("Todos os registros foram apagados com sucesso!");
+                    } else {
+                        const txt = await res.text();
+                        mostrarAlerta(`Erro ao apagar registros (HTTP ${res.status}): ${txt}`);
+                    }
+                } catch (e) {
+                    console.error("Erro ao apagar todos os registros:", e);
+                    mostrarAlerta("Erro ao apagar todos os registros.");
+                }
+            }
+        );
     };
 
     if (document.readyState === "loading") {
