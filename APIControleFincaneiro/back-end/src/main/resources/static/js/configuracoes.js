@@ -604,6 +604,34 @@
                 nomeArquivo = match[1].replace(/"/g, "").trim();
             }
 
+            const userAgent = navigator.userAgent || "";
+            const emWebViewJavaFx = /JavaFX/i.test(userAgent);
+
+            const desktopBridge = window.desktopBridge;
+            if (desktopBridge && typeof desktopBridge.saveBase64File === "function") {
+                const bytes = new Uint8Array(await blob.arrayBuffer());
+                let binario = "";
+                const tamanhoChunk = 0x8000;
+
+                for (let offset = 0; offset < bytes.length; offset += tamanhoChunk) {
+                    const chunk = bytes.subarray(offset, offset + tamanhoChunk);
+                    binario += String.fromCharCode(...chunk);
+                }
+
+                const salvo = desktopBridge.saveBase64File(nomeArquivo, btoa(binario));
+                if (salvo) {
+                    mostrarAlerta("PDF exportado com sucesso!");
+                } else {
+                    mostrarAlerta("Exportação cancelada pelo usuário.");
+                }
+                return;
+            }
+
+            if (emWebViewJavaFx) {
+                mostrarAlerta("Modo desktop detectado, mas a integração de exportação não está ativa. Reinicie o app Desktop.");
+                return;
+            }
+
             const a = document.createElement("a");
             a.href = url;
             a.download = nomeArquivo;
