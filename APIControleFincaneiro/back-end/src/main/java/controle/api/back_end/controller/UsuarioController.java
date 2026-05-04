@@ -93,7 +93,7 @@ public class UsuarioController {
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
                     content = @Content)
     })
-    public ResponseEntity<Double> getXpByUserId(UUID user_id){
+    public ResponseEntity<Double> getXpByUserId(@PathVariable("user_id") UUID user_id){
            Double xp = usuarioService.getXpByUserId(user_id);
         return ResponseEntity.status(200).body(xp);
     }
