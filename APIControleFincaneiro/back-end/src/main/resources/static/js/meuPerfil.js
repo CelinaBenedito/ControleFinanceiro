@@ -57,6 +57,51 @@
         return "—";
     }
 
+    function xpNecessarioDoNivel(nivelAtual) {
+        return Math.round(500 * Math.pow(nivelAtual, 1.5));
+    }
+
+    function calcularNivelEProgresso(xpTotal) {
+        const xpSeguro = Number.isFinite(xpTotal) && xpTotal > 0 ? xpTotal : 0;
+        let nivel = 1;
+        let xpNoNivel = xpSeguro;
+        let xpProximoNivel = xpNecessarioDoNivel(nivel);
+
+        while (xpNoNivel >= xpProximoNivel) {
+            xpNoNivel -= xpProximoNivel;
+            nivel += 1;
+            xpProximoNivel = xpNecessarioDoNivel(nivel);
+        }
+
+        const progresso = xpProximoNivel > 0
+            ? Math.max(0, Math.min(100, (xpNoNivel / xpProximoNivel) * 100))
+            : 0;
+
+        return { nivel, xpNoNivel, xpProximoNivel, progresso };
+    }
+
+    async function carregarXpPerfil() {
+        const xpBar = document.getElementById("xpBar");
+        const xpLabel = document.querySelector(".pf-xp-label");
+        if (!xpBar || !xpLabel || !userId) return;
+
+        try {
+            const res = await fetch(`${API}/usuarios/calculo-xp/${userId}`);
+            if (!res.ok) {
+                xpBar.style.width = "0%";
+                xpLabel.textContent = "LVL 1 - 0/500 XP";
+                return;
+            }
+
+            const xp = Number(await res.json());
+            const info = calcularNivelEProgresso(xp);
+            xpBar.style.width = `${info.progresso.toFixed(2)}%`;
+            xpLabel.textContent = `LVL ${info.nivel} - ${Math.floor(info.xpNoNivel)}/${info.xpProximoNivel} XP`;
+        } catch (e) {
+            console.error("Erro ao carregar XP do perfil:", e);
+        }
+    }
+
     // ── INIT ─────────────────────────────────────────────────────
     async function init() {
         if (!userId) {
@@ -78,11 +123,14 @@
             popularHero(usuarioLogado);
         }
         await Promise.all([
+            carregarXpPerfil(),
             carregarConfig(),
             carregarInstituicoes(),
             carregarCategorias()
         ]);
     }
+
+    window.addEventListener("xp:refresh", carregarXpPerfil);
 
     // ── HERO ─────────────────────────────────────────────────────
     function popularHero(u) {
@@ -328,6 +376,7 @@
             }
             document.getElementById("modalInstituicao")?.remove();
             await carregarInstituicoes();
+            window.dispatchEvent(new Event("xp:refresh"));
         } catch (e) {
             mostrarAlerta("Erro ao vincular instituição.");
             console.error(e);
@@ -446,6 +495,7 @@
             document.getElementById("modalCategoria").style.display = "none";
             document.getElementById("edTituloCategoria").value = "";
             await carregarCategorias();
+            window.dispatchEvent(new Event("xp:refresh"));
         } catch (e) {
             mostrarAlerta("Erro ao criar categoria.");
             console.error(e);

@@ -187,6 +187,7 @@ async function registrar() {
     }).then(async (response) => {
         console.log("Resposta status:", response.status);
         if (response.ok) {
+            window.dispatchEvent(new Event('xp:refresh'));
             atualizarSaldoDisplay(instituicao);
             return setTimeout(() => alerta(
                 `Registro realizado com sucesso!<br>
@@ -518,6 +519,7 @@ function salvarLote() {
     Promise.all(promessas).then(respostas => {
         const erros = respostas.filter(r => !r.ok).length;
         if (erros === 0) {
+            window.dispatchEvent(new Event('xp:refresh'));
             lote = [];
             renderizarLote();
             alerta(`${respostas.length} registro(s) salvos com sucesso!<br><button onclick="document.getElementById('div_alerta').style.display='none'">OK</button>`, 0);
