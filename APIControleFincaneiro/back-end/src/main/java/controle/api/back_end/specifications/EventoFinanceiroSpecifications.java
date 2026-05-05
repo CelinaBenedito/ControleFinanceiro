@@ -26,6 +26,9 @@ public class EventoFinanceiroSpecifications {
             if (tipo != null && !tipo.isEmpty()) {
                 predicates.add(root.get("tipo").in(tipo));
             }
+            if (titulo != null && !titulo.isEmpty()){
+                predicates.add(root.get("titulo").in(titulo));
+            }
             if (dataEvento != null) predicates.add(cb.equal(root.get("dataEvento"), dataEvento));
             if (descricao != null) predicates.add(cb.like(cb.lower(root.get("descricao")), "%" + descricao.toLowerCase() + "%"));
 

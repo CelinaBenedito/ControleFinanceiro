@@ -3,6 +3,7 @@ package controle.api.back_end.service;
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.exception.MenorDeIdadeException;
+import controle.api.back_end.exception.SenhasNaoCoincidemException;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
@@ -163,5 +164,26 @@ public class UsuarioService {
                                         .formatted(userId)
                         )
                 );
+    }
+
+    public void deleteUserbyId(UUID userId) {
+        Usuario usuario = getUsuario(userId);
+        usuario.setIsAtivo(false);
+    }
+
+    public Usuario activateUsuario(UUID userId){
+        Usuario usuario = getUsuario(userId);
+        usuario.setIsAtivo(true);
+        return usuario;
+    }
+
+    public Usuario editSenhaByUserId(UUID userId, String novaSenha, String antigaSenha) {
+        Usuario usuario = getUsuario(userId);
+
+        if (!usuario.getSenha().equals(antigaSenha)){
+            throw new SenhasNaoCoincidemException();
+        }
+        usuario.setSenha(novaSenha);
+        return usuario;
     }
 }

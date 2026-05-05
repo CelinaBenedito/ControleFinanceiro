@@ -162,6 +162,11 @@ public class InstituicaoController {
         return ResponseEntity.status(200).body(response);
     }
 
+    @PutMapping("/desvincular-todas-as-instituicoes/usuarios/{user_id}")
+    public ResponseEntity<Void> detachAllIntituicoes(@PathVariable UUID user_id){
+        instituicaoService.detachAllIntituicoes(user_id);
+        return ResponseEntity.status(204).build();
+    }
 
     @DeleteMapping("{id}")
     @Operation(summary = "Deletar uma instituição",
@@ -172,7 +177,7 @@ public class InstituicaoController {
             @ApiResponse(responseCode = "404", description = "Instituição não encontrada",
                     content = @Content)
     })
-    public ResponseEntity<InstituicaoResponseDTO> deleteInstituicao(@PathVariable Integer id){
+    public ResponseEntity<Void> deleteInstituicao(@PathVariable Integer id){
         instituicaoService.deleteInstituicao(id);
         return ResponseEntity.status(204).build();
     }

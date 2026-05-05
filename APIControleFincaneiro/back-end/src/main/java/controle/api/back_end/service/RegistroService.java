@@ -31,6 +31,7 @@ import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.*;
 import controle.api.back_end.specifications.EventoFinanceiroSpecifications;
+import controle.api.back_end.strategy.eventoFinanceiro.TransferenciaEvento;
 import controle.api.back_end.strategy.movimento.MovimentoResultado;
 import controle.api.back_end.strategy.movimento.MovimentoStrategy;
 import com.alibaba.excel.EasyExcel;
@@ -69,8 +70,9 @@ public class RegistroService {
     private final LimitePorInstituicaoRepository limitePorInstituicaoRepository;
     private final LimitePorCategoriaRepository limitePorCategoriaRepository;
     private final ConfiguracoesRepository configuracoesRepository;
+    private final TransferenciaEvento transferenciaEvento;
 
-    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository) {
+    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository, TransferenciaEvento transferenciaEvento) {
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoDetalheRepository = eventoDetalheRepository;
@@ -84,6 +86,7 @@ public class RegistroService {
         this.limitePorInstituicaoRepository = limitePorInstituicaoRepository;
         this.limitePorCategoriaRepository = limitePorCategoriaRepository;
         this.configuracoesRepository = configuracoesRepository;
+        this.transferenciaEvento = transferenciaEvento;
     }
 
     public EventoFinanceiro createEventoFinanceiro(EventoFinanceiro entity) {
@@ -103,6 +106,13 @@ public class RegistroService {
         return eventoFinanceiroRepository.save(entity);
     }
 
+    public List<EventoInstituicao> createEventoInstituicaoTransferencia(EventoInstituicao eventoInstituicao, EventoFinanceiro eventoFinanceiro, InstituicaoUsuario destino){
+        if (eventoFinanceiro.getTipo().equals(Tipo.Transferencia)){
+            transferenciaEvento.processar(eventoFinanceiro,eventoInstituicao);
+        }
+
+    }
+
     public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> entities,
                                                            EventoFinanceiro eventoFinanceiro) {
         if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())) {
@@ -111,7 +121,6 @@ public class RegistroService {
                             .formatted(eventoFinanceiro.getId())
             );
         }
-
         List<EventoInstituicao> savedInstituicoes = new ArrayList<>();
 
         for (EventoInstituicao entity : entities) {
