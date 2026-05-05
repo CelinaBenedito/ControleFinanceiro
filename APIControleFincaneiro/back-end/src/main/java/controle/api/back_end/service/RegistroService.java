@@ -97,7 +97,9 @@ public class RegistroService {
                                         )
                                 )
                         );
+        if (entity.getTipo().equals(Tipo.Transferencia)){
 
+        }
         entity.setUsuario(user);
         entity.setDataRegistro(LocalDateTime.now());
         return eventoFinanceiroRepository.save(entity);

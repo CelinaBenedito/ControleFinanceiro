@@ -42,6 +42,9 @@ public class Usuario {
     @Size(max=25)
     private String senha;
 
+
+    private Boolean isAtivo = true;
+
     public Usuario() {
     }
 
@@ -118,5 +121,13 @@ public class Usuario {
 
     public void setSenha(String senha) {
         this.senha = senha;
+    }
+
+    public Boolean getIsAtivo() {
+        return isAtivo;
+    }
+
+    public void setIsAtivo(Boolean ativo) {
+        isAtivo = ativo;
     }
 }

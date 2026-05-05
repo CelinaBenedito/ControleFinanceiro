@@ -24,16 +24,18 @@ public class InstituicaoService {
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final EventoInstituicaoRepository eventoInstituicaoRepository;
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
+    private final UsuarioService usuarioService;
 
 
     public InstituicaoService(InstituicaoRepository instituicaoRepository,
                               UsuarioRepository usuarioRepository,
-                              InstituicaoUsuarioRepository instituicaoUsuarioRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoFinanceiroRepository eventoFinanceiroRepository) {
+                              InstituicaoUsuarioRepository instituicaoUsuarioRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoFinanceiroRepository eventoFinanceiroRepository, UsuarioService usuarioService) {
         this.instituicaoRepository = instituicaoRepository;
         this.usuarioRepository = usuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
+        this.usuarioService = usuarioService;
     }
 
     public List<Instituicao> getInstituicoes() {
@@ -144,5 +146,16 @@ public class InstituicaoService {
             saldo = saldo.add(valor);
         }
         return saldo;
+    }
+
+    public void detachAllIntituicoes(UUID userId) {
+        usuarioService.getUsuario(userId);
+
+        List<InstituicaoUsuario> instituicoesUsuarios = instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
+
+        for (InstituicaoUsuario instituicao : instituicoesUsuarios){
+            instituicao.setIsAtivo(false);
+            instituicaoUsuarioRepository.save(instituicao);
+        }
     }
 }

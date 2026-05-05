@@ -39,7 +39,7 @@ public class DesktopApp extends Application {
         }
 
         Scene scene = new Scene(webView, 1200, 800);
-        stage.setTitle("Controle Financeiro");
+        stage.setTitle("MyFinance");
         stage.setScene(scene);
         stage.show();
     }
