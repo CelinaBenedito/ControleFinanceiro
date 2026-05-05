@@ -606,24 +606,111 @@
     window.importarDados = function () {
         document.getElementById("inputImportar")?.click();
     };
-    window.exportarDados = async function () {
+
+    function obterFormatosExportacaoDisponiveis() {
+        return [
+            { tipo: "pdf", label: "PDF (.pdf)" },
+            { tipo: "excel", label: "Excel (.xlsx)" },
+            { tipo: "json", label: "JSON (.json)" },
+            { tipo: "sql", label: "SQL (.sql)" }
+        ];
+    }
+
+    function garantirModalExportacao() {
+        let modal = document.getElementById("cfgExportModal");
+        if (modal) return modal;
+
+        modal = document.createElement("div");
+        modal.id = "cfgExportModal";
+        modal.className = "modal";
+        modal.style.display = "none";
+        modal.innerHTML = `
+            <div class="conteudoModal" style="max-width:460px;">
+                <span id="cfgExportFechar" class="fechar" style="cursor:pointer;">&times;</span>
+                <h2 style="margin-top:0; color:#0e5454;">Exportar dados</h2>
+                <p style="margin:0 0 12px 0; color:#486468;">Selecione o formato do arquivo:</p>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <select id="cfgExportTipo" class="select_modal"></select>
+                    <div style="display:flex; gap:10px; justify-content:flex-end;">
+                        <button id="cfgExportCancelar" class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;">Cancelar</button>
+                        <button id="cfgExportConfirmar" class="cfg-btn">Exportar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const fechar = () => { modal.style.display = "none"; };
+        const btnFechar = document.getElementById("cfgExportFechar");
+        const btnCancelar = document.getElementById("cfgExportCancelar");
+        if (btnFechar) btnFechar.onclick = fechar;
+        if (btnCancelar) btnCancelar.onclick = fechar;
+
+        modal.addEventListener("click", (event) => {
+            if (event.target === modal) {
+                fechar();
+            }
+        });
+
+        const btnConfirmar = document.getElementById("cfgExportConfirmar");
+        if (btnConfirmar) {
+            btnConfirmar.onclick = async () => {
+                const select = document.getElementById("cfgExportTipo");
+                const tipo = select?.value;
+                if (!tipo) {
+                    mostrarAlerta("Selecione um formato para exportação.");
+                    return;
+                }
+                modal.style.display = "none";
+                await exportarDadosPorTipo(tipo);
+            };
+        }
+
+        return modal;
+    }
+
+    function abrirModalExportacao() {
+        const modal = garantirModalExportacao();
+        const select = document.getElementById("cfgExportTipo");
+        if (!select) return;
+
+        const formatos = obterFormatosExportacaoDisponiveis();
+        select.innerHTML = formatos
+            .map(f => `<option value="${f.tipo}">${f.label}</option>`)
+            .join("");
+
+        modal.style.display = "flex";
+    }
+
+    async function aguardarDesktopBridge(timeoutMs = 1800, intervaloMs = 120) {
+        const inicio = Date.now();
+        while (Date.now() - inicio < timeoutMs) {
+            if (window.desktopBridge) {
+                return window.desktopBridge;
+            }
+            await new Promise(resolve => setTimeout(resolve, intervaloMs));
+        }
+        return window.desktopBridge || null;
+    }
+
+    async function exportarDadosPorTipo(tipo) {
         if (!userId) {
             mostrarAlerta("Usuário não identificado para exportação.");
             return;
         }
 
         try {
-            const res = await fetch(`${API}/registros/download/${userId}?tipo=pdf`);
+            const res = await fetch(`${API}/registros/download/${userId}?tipo=${encodeURIComponent(tipo)}`);
             if (!res.ok) {
-                mostrarAlerta(`Erro ao exportar PDF (HTTP ${res.status}).`);
+                mostrarAlerta(`Erro ao exportar ${tipo.toUpperCase()} (HTTP ${res.status}).`);
                 return;
             }
 
             const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
 
             const contentDisposition = res.headers.get("content-disposition") || "";
-            let nomeArquivo = "registros.pdf";
+            let nomeArquivo = `registros.${tipo === "excel" ? "xlsx" : tipo}`;
             const match = contentDisposition.match(/filename=([^;]+)/i);
             if (match && match[1]) {
                 nomeArquivo = match[1].replace(/"/g, "").trim();
@@ -632,24 +719,30 @@
             const userAgent = navigator.userAgent || "";
             const emWebViewJavaFx = /JavaFX/i.test(userAgent);
 
-            const desktopBridge = window.desktopBridge;
-            if (desktopBridge && typeof desktopBridge.saveBase64File === "function") {
-                const bytes = new Uint8Array(await blob.arrayBuffer());
-                let binario = "";
-                const tamanhoChunk = 0x8000;
+            const desktopBridge = emWebViewJavaFx
+                ? await aguardarDesktopBridge()
+                : window.desktopBridge;
+            if (desktopBridge) {
+                try {
+                    const bytes = new Uint8Array(await blob.arrayBuffer());
+                    let binario = "";
+                    const tamanhoChunk = 0x8000;
 
-                for (let offset = 0; offset < bytes.length; offset += tamanhoChunk) {
-                    const chunk = bytes.subarray(offset, offset + tamanhoChunk);
-                    binario += String.fromCharCode(...chunk);
-                }
+                    for (let offset = 0; offset < bytes.length; offset += tamanhoChunk) {
+                        const chunk = bytes.subarray(offset, offset + tamanhoChunk);
+                        binario += String.fromCharCode(...chunk);
+                    }
 
-                const salvo = desktopBridge.saveBase64File(nomeArquivo, btoa(binario));
-                if (salvo) {
-                    mostrarAlerta("PDF exportado com sucesso!");
-                } else {
-                    mostrarAlerta("Exportação cancelada pelo usuário.");
+                    const salvo = desktopBridge.saveBase64File(nomeArquivo, btoa(binario));
+                    if (salvo) {
+                        mostrarAlerta(`${tipo.toUpperCase()} exportado com sucesso!`);
+                    } else {
+                        mostrarAlerta("Exportação cancelada pelo usuário.");
+                    }
+                    return;
+                } catch (bridgeError) {
+                    console.warn("desktopBridge indisponível ou incompatível nesta página:", bridgeError);
                 }
-                return;
             }
 
             if (emWebViewJavaFx) {
@@ -657,6 +750,7 @@
                 return;
             }
 
+            const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
             a.download = nomeArquivo;
@@ -665,12 +759,17 @@
             a.remove();
             URL.revokeObjectURL(url);
 
-            mostrarAlerta("PDF exportado com sucesso!");
+            mostrarAlerta(`${tipo.toUpperCase()} exportado com sucesso!`);
         } catch (e) {
-            console.error("Erro ao exportar PDF:", e);
-            mostrarAlerta("Erro ao exportar PDF.");
+            console.error(`Erro ao exportar ${tipo}:`, e);
+            mostrarAlerta(`Erro ao exportar ${tipo.toUpperCase()}.`);
         }
+    }
+
+    window.exportarDados = function () {
+        abrirModalExportacao();
     };
+
     window.processarImportacao = function () {
         mostrarAlerta("Importação de dados ainda não disponível.");
     };
