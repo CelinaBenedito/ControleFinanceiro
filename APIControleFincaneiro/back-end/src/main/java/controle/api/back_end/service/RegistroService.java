@@ -108,9 +108,10 @@ public class RegistroService {
 
     public List<EventoInstituicao> createEventoInstituicaoTransferencia(EventoInstituicao eventoInstituicao, EventoFinanceiro eventoFinanceiro, InstituicaoUsuario destino){
         if (eventoFinanceiro.getTipo().equals(Tipo.Transferencia)){
-            transferenciaEvento.processar(eventoFinanceiro,eventoInstituicao);
+            transferenciaEvento.processar(eventoFinanceiro,eventoInstituicao, destino);
         }
 
+        return null;
     }
 
     public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> entities,
