@@ -2,6 +2,7 @@ package controle.api.back_end.controller;
 
 import controle.api.back_end.dto.usuario.in.UsuarioCreateDTO;
 import controle.api.back_end.dto.usuario.in.UsuarioEditDTO;
+import controle.api.back_end.dto.usuario.in.UsuarioEditSenhaDTO;
 import controle.api.back_end.dto.usuario.in.UsuarioLoginDTO;
 import controle.api.back_end.dto.usuario.out.UsuarioResponseDTO;
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
@@ -17,6 +18,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.lang.annotation.Repeatable;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -148,6 +150,30 @@ public class UsuarioController {
         Usuario usuarioEditado = usuarioService.editUsuario(id, usuarioEdicao);
         UsuarioResponseDTO response = UsuarioMappper.toDto(usuarioEditado);
         return ResponseEntity.ok(response);
+    }
+    @PutMapping("ativar-usuario/{user_id}")
+    public ResponseEntity<UsuarioResponseDTO> activateUserBydId(@PathVariable UUID user_id){
+        Usuario usuario = usuarioService.activateUsuario(user_id);
+        UsuarioResponseDTO response = UsuarioMappper.toDto(usuario);
+
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @PutMapping("editar-senha/{user_id}")
+    public ResponseEntity<UsuarioResponseDTO> editSenhaByUserId(@PathVariable UUID user_id,
+                                                                @RequestBody UsuarioEditSenhaDTO novaSenha){
+        Usuario usuario = usuarioService.editSenhaByUserId(user_id,
+                novaSenha.getNovaSenha(),
+                novaSenha.getAntigaSenha());
+
+        UsuarioResponseDTO response = UsuarioMappper.toDto(usuario);
+
+        return ResponseEntity.status(200).body(response);
+    }
+    @DeleteMapping("/{user_id}")
+    public ResponseEntity<Void> deleteUserById(@PathVariable UUID user_id){
+        usuarioService.deleteUserbyId(user_id);
+        return ResponseEntity.status(204).build();
     }
 
 }
