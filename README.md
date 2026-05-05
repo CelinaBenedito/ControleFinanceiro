@@ -2,7 +2,7 @@
 
 
 ## 📖 Descrição
-Aplicativo de controle financeiro desenvolvido em Java, com front-end em HTML, CSS e JS servido via JavaFX. Criado inicialmente em 2025 para substituir planilhas Excel, evoluiu até a versão atual (2.6), oferecendo dashboards, relatórios e integração com dados bancários.
+Aplicativo de controle financeiro desenvolvido em Java, com front-end em HTML, CSS e JS servido via JavaFX. Criado inicialmente em 2025 para substituir planilhas Excel, evoluiu até a versão atual (4.5.13), oferecendo dashboards, relatórios e integração com dados bancários.
 
 ---
 
