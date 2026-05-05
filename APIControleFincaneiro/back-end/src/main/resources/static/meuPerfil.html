@@ -212,8 +212,7 @@
         .pf-tema-swatch {
             width: 56px;
             height: 56px;
-            border-radius: 9999px;
-            border: 3px solid transparent;
+            border-radius: 50px;
             transition: border-color 0.2s, transform 0.15s;
         }
 
@@ -222,7 +221,7 @@
         }
 
         .pf-tema-item.ativo .pf-tema-swatch {
-            border-color: #004C58;
+            border: 3px solid #004C58;
         }
 
         .pf-tema-label {
@@ -276,7 +275,7 @@
             border-radius: 12px;
             cursor: pointer;
             transition: background 0.2s;
-            outline: 1px solid #535353;
+<!--            outline: 1px solid #535353;-->
         }
 
         .pf-toggle-slider::after {
@@ -454,6 +453,25 @@
 
         .pf-icon-btn.delete:hover {
             background: rgba(229, 62, 62, 0.1);
+        }
+
+        .pf-campo {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pf-campo label {
+            margin-bottom: 20px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .pf-campo input {
+            border: 1px solid #367373;
+            padding: 10px 20px;
+            height: 50px;
+            width: 500px;
+            border-radius: 50px;
+            outline: none;
         }
     </style>
 </head>
@@ -686,6 +704,26 @@
                 </table>
 
                 <button class="pf-btn" onclick="adicionarCategoriaModal()">Adicionar Categoria</button>
+            </div>
+
+            <!-- ── SEGURANÇA ── -->
+            <div class="pf-card">
+                <h2>Segurança</h2>
+
+                <div class="pf-campo">
+                    <label>Senha Atual:</label>
+                    <input type="text" placeholder="Senha Atual...">
+                </div>
+                <div class="pf-campo">
+                    <label>Nova Senha:</label>
+                    <input type="text" placeholder="Nova Senha...">
+                </div>
+                <div class="pf-campo">
+                    <label>Corfirmar Nova Senha:</label>
+                    <input type="text" placeholder="Corfirmar Nova Senha...">
+                </div>
+
+                <button class="pf-btn">Alterar Senha</button>
             </div>
 
         </div>
