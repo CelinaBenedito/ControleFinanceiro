@@ -6,17 +6,13 @@ import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import org.springframework.stereotype.Component;
 
+@Component
 public class TransferenciaEvento implements EventoFinanceiroStrategy {
 
-    private InstituicaoUsuario destino;
-
-    public TransferenciaEvento(InstituicaoUsuario destino) {
-        this.destino = destino;
-    }
-
     @Override
-    public TransferenciaDTO processar(EventoFinanceiro evento, EventoInstituicao antigaInstituicao) {
+    public TransferenciaDTO processar(EventoFinanceiro evento, EventoInstituicao antigaInstituicao, InstituicaoUsuario destino) {
         if (destino.getUsuario().equals(evento.getUsuario())) {
             EventoFinanceiro recebimento = new EventoFinanceiro();
 
