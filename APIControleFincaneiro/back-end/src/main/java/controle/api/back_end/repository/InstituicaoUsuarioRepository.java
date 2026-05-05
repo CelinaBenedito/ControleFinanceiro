@@ -15,4 +15,6 @@ public interface InstituicaoUsuarioRepository extends JpaRepository<InstituicaoU
     InstituicaoUsuario findByUsuario_IdAndInstituicao_Id(UUID userId, Integer instituicaoId);
 
     List<InstituicaoUsuario> findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(UUID idUser);
+
+    List<InstituicaoUsuario> findInstituicaoUsuarioByEventoInstituicao_Id(Integer id);
 }

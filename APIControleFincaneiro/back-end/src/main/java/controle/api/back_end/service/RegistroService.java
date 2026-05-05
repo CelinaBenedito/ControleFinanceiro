@@ -16,6 +16,7 @@ import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.*;
 
 import com.itextpdf.layout.properties.UnitValue;
+import controle.api.back_end.dto.registros.in.TransferenciaDTO;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
@@ -106,12 +107,45 @@ public class RegistroService {
         return eventoFinanceiroRepository.save(entity);
     }
 
-    public List<EventoInstituicao> createEventoInstituicaoTransferencia(EventoInstituicao eventoInstituicao, EventoFinanceiro eventoFinanceiro, InstituicaoUsuario destino){
-        if (eventoFinanceiro.getTipo().equals(Tipo.Transferencia)){
-            transferenciaEvento.processar(eventoFinanceiro,eventoInstituicao, destino);
-        }
+    public List<EventoInstituicao> createEventoInstituicaoTransferencia(EventoInstituicao eventoInstituicao,
+                                                                        EventoFinanceiro eventoFinanceiro,
+                                                                        Integer destino_id){
 
-        return null;
+        if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())) {
+            throw new EntidadeNaoEncontradaException(
+                    "Evento Financeiro de id: %s não encontrado"
+                            .formatted(eventoFinanceiro.getId())
+            );
+        }
+        List<InstituicaoUsuario> instituicaoUsuario = instituicaoUsuarioRepository.findInstituicaoUsuarioByEventoInstituicao_Id(eventoInstituicao.getId());
+        eventoInstituicao.setInstituicaoUsuario(instituicaoUsuario.getFirst());
+
+
+        InstituicaoUsuario destino = instituicaoUsuarioRepository.findById(destino_id)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException("Instituição usuario de id: %d não encontrado."
+                                .formatted(destino_id)
+                        )
+                );
+
+        TransferenciaDTO processar = transferenciaEvento.processar(eventoFinanceiro, eventoInstituicao, destino);
+        List<EventoInstituicao> listaRecebedora = new ArrayList<>();
+
+        EventoInstituicao recebedora = processar.getEventoInstituicao();
+        EventoFinanceiro eventoRecebedora = processar.getEventoFinanceiro();
+
+        recebedora.setTipoMovimento(eventoInstituicao.getTipoMovimento());
+        recebedora.setEventoFinanceiro(eventoRecebedora);
+        recebedora.setParcelas(1);
+        recebedora.setValor(eventoInstituicao.getValor());
+        recebedora.setInstituicaoUsuario(destino);
+        listaRecebedora.add(recebedora);
+        eventoFinanceiroRepository.save(eventoRecebedora);
+        eventoInstituicaoRepository.save(recebedora);
+        eventoInstituicao.setEventoFinanceiro(eventoFinanceiro);
+        eventoInstituicaoRepository.save(eventoInstituicao);
+
+        return listaRecebedora;
     }
 
     public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> entities,
@@ -122,6 +156,7 @@ public class RegistroService {
                             .formatted(eventoFinanceiro.getId())
             );
         }
+
         List<EventoInstituicao> savedInstituicoes = new ArrayList<>();
 
         for (EventoInstituicao entity : entities) {
