@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Base64;
+import java.util.Locale;
 
 public class DesktopApp extends Application {
     @Override
@@ -61,14 +62,13 @@ public class DesktopApp extends Application {
                 return false;
             }
 
+            String safeFileName = (fileName == null || fileName.isBlank()) ? "registros.pdf" : fileName;
+            String extension = getFileExtension(safeFileName);
+
             FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Salvar PDF exportado");
-            fileChooser.setInitialFileName(
-                    fileName == null || fileName.isBlank() ? "registros.pdf" : fileName
-            );
-            fileChooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("Arquivos PDF", "*.pdf")
-            );
+            fileChooser.setTitle("Salvar arquivo exportado");
+            fileChooser.setInitialFileName(safeFileName);
+            fileChooser.getExtensionFilters().add(createExtensionFilter(extension));
 
             File targetFile = fileChooser.showSaveDialog(stage);
             if (targetFile == null) {
@@ -79,10 +79,33 @@ public class DesktopApp extends Application {
             try {
                 byte[] bytes = Base64.getDecoder().decode(base64Content);
                 Files.write(targetFile.toPath(), bytes);
-                System.out.println("[DesktopApp] PDF salvo em: " + targetFile.getAbsolutePath());
+                System.out.println("[DesktopApp] Arquivo salvo em: " + targetFile.getAbsolutePath());
                 return true;
             } catch (IllegalArgumentException | IOException e) {
                 throw new RuntimeException("Falha ao salvar arquivo exportado.", e);
+            }
+        }
+
+        private String getFileExtension(String fileName) {
+            int dot = fileName.lastIndexOf('.');
+            if (dot < 0 || dot == fileName.length() - 1) {
+                return "pdf";
+            }
+            return fileName.substring(dot + 1).toLowerCase(Locale.ROOT);
+        }
+
+        private FileChooser.ExtensionFilter createExtensionFilter(String extension) {
+            switch (extension) {
+                case "json":
+                    return new FileChooser.ExtensionFilter("Arquivos JSON", "*.json");
+                case "sql":
+                    return new FileChooser.ExtensionFilter("Arquivos SQL", "*.sql");
+                case "xlsx":
+                case "excel":
+                    return new FileChooser.ExtensionFilter("Planilhas Excel", "*.xlsx");
+                case "pdf":
+                default:
+                    return new FileChooser.ExtensionFilter("Arquivos PDF", "*.pdf");
             }
         }
     }
