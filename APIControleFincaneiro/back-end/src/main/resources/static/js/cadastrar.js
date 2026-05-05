@@ -1,7 +1,21 @@
 
 div_alerta.style.display = 'none';
 
+function habilitarFecharAlertaAoClicarFora() {
+    const divAl = document.getElementById("div_alerta");
+    const contAl = document.getElementById("conteudoAlerta");
+    if (!divAl || !contAl || divAl.dataset.closeOutsideBound === "1") return;
+
+    divAl.dataset.closeOutsideBound = "1";
+    divAl.addEventListener("click", (event) => {
+        if (event.target === divAl) {
+            divAl.style.display = "none";
+        }
+    });
+}
+
 function alerta(texto) {
+    habilitarFecharAlertaAoClicarFora();
     div_alerta.style.display = "flex"
     conteudoAlerta.innerHTML =
         `

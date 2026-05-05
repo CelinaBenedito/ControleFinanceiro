@@ -11,7 +11,21 @@
     let limiteModalTipo = null; // 'instituicao' | 'categoria'
 
     // ── helpers ──────────────────────────────────────────────────
+    function habilitarFecharAlertaAoClicarFora() {
+        const div = document.getElementById("div_alerta");
+        const conteudo = document.getElementById("conteudoAlerta");
+        if (!div || !conteudo || div.dataset.closeOutsideBound === "1") return;
+
+        div.dataset.closeOutsideBound = "1";
+        div.addEventListener("click", (event) => {
+            if (event.target === div) {
+                div.style.display = "none";
+            }
+        });
+    }
+
     function mostrarAlerta(texto) {
+        habilitarFecharAlertaAoClicarFora();
         const div = document.getElementById("div_alerta");
         const conteudo = document.getElementById("conteudoAlerta");
         if (!div || !conteudo) return;
@@ -21,6 +35,7 @@
     }
 
     function mostrarConfirmacao(texto, onConfirm) {
+        habilitarFecharAlertaAoClicarFora();
         const div = document.getElementById("div_alerta");
         const conteudo = document.getElementById("conteudoAlerta");
         if (!div || !conteudo) { onConfirm(); return; }

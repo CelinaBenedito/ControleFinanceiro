@@ -7,9 +7,27 @@ const userId = usuarioLogado ? usuarioLogado.id : null;
 
 let _alertaTimer = null;
 
+function habilitarFecharAlertaAoClicarFora() {
+    const divAl = document.getElementById("div_alerta");
+    const contAl = document.getElementById("conteudoAlerta");
+    if (!divAl || !contAl || divAl.dataset.closeOutsideBound === "1") return;
+
+    divAl.dataset.closeOutsideBound = "1";
+    divAl.addEventListener("click", (event) => {
+        if (event.target === divAl) {
+            divAl.style.display = "none";
+            if (_alertaTimer) {
+                clearTimeout(_alertaTimer);
+                _alertaTimer = null;
+            }
+        }
+    });
+}
+
 function alerta(texto, duracaoMs = 4000) {
     const divAl = document.getElementById("div_alerta");
     const contAl = document.getElementById("conteudoAlerta");
+    habilitarFecharAlertaAoClicarFora();
     if (divAl) divAl.style.display = "flex";
     if (contAl) contAl.innerHTML = texto;
 
