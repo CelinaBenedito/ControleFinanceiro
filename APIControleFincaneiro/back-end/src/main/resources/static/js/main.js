@@ -160,6 +160,13 @@
                 body: JSON.stringify(payload)
             });
         },
+        editarSenhaUsuario(userId, payload) {
+            return request(`/usuarios/editar-senha/${userId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        },
         deletarRegistro(eventoId) {
             return request(`/registros/${eventoId}`, { method: "DELETE" });
         }
