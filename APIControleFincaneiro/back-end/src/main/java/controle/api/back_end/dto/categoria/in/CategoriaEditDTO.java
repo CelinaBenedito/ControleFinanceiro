@@ -1,9 +1,7 @@
-package controle.api.back_end.dto.categoria;
+package controle.api.back_end.dto.categoria.in;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Positive;
-
-import java.util.UUID;
 
 public class CategoriaEditDTO {
     @Positive

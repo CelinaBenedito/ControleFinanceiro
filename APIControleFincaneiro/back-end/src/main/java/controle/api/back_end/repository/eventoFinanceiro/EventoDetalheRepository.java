@@ -1,4 +1,4 @@
-package controle.api.back_end.repository;
+package controle.api.back_end.repository.eventoFinanceiro;
 
 import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;

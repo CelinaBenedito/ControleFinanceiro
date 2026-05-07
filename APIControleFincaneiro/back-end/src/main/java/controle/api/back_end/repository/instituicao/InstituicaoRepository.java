@@ -1,4 +1,4 @@
-package controle.api.back_end.repository;
+package controle.api.back_end.repository.instituicao;
 
 import controle.api.back_end.model.instituicao.Instituicao;
 import org.springframework.data.jpa.repository.JpaRepository;

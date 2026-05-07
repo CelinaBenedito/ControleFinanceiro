@@ -8,6 +8,8 @@ import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+
 @Component
 public class TransferenciaEvento implements EventoFinanceiroStrategy {
 
@@ -24,7 +26,8 @@ public class TransferenciaEvento implements EventoFinanceiroStrategy {
             recebimentoInstituicao.setTipoMovimento(antigaInstituicao.getTipoMovimento());
 
             recebimento.setUsuario(destino.getUsuario());
-
+            recebimento.setDataEvento(evento.getDataEvento());
+            recebimento.setDataRegistro(LocalDateTime.now());
             recebimento.setTipo(Tipo.Recebimento);
 
             recebimento.setValor(evento.getValor());

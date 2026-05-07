@@ -82,6 +82,13 @@ public class RegistrosController {
         return ResponseEntity.status(200).body(response);
     }
 
+    @GetMapping("/saldo-poupanca/usuarios/{user_id}")
+    public ResponseEntity<Double> getSaldoPoupanca(@PathVariable UUID user_id){
+        Double saldo = registroService.getSaldoPoupanca(user_id);
+
+        return ResponseEntity.status(200).body(saldo);
+    }
+
     @GetMapping("/filtro/usuarios/{user_id}")
     @Operation(summary =
             "Buscar os registros com um filtro",
@@ -190,10 +197,14 @@ public class RegistrosController {
             @RequestBody @Valid RegistroCompletoCreateDto dto){
         EventoFinanceiro eventoCreated = registroService.createEventoFinanceiro(
                 RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro()));
-
-        List<EventoInstituicao> instituicaoCreated = registroService.createEventoInstituicao(
-                RegistrosMapper.toEntityEvento(dto.getInstituicao()), eventoCreated);
-
+        List<EventoInstituicao> instituicaoCreated;
+        if (eventoCreated.getTipo().equals(Tipo.Transferencia)){
+            instituicaoCreated = registroService.createEventoInstituicaoTransferencia(
+                    RegistrosMapper.toEntityEvento(dto.getInstituicao().getFirst()), eventoCreated,dto.getInstituicaoRecebendo_id());
+        }else {
+            instituicaoCreated = registroService.createEventoInstituicao(
+                    RegistrosMapper.toEntityEvento(dto.getInstituicao()), eventoCreated);
+        }
         EventoDetalhe gastoCreated = registroService.createGastoDetalhe(
                 RegistrosMapper.toEntityGasto(dto.getDetalhe()), eventoCreated);
 
@@ -203,6 +214,7 @@ public class RegistrosController {
         return ResponseEntity.status(201).body(response);
 
     }
+
 
     @PostMapping("/lote")
     @Operation(summary = "Criar uma lista de novos registros.",
