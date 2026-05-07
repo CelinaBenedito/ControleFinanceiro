@@ -4,16 +4,15 @@ import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.categoria.Categoria;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.repository.CategoriaRepository;
-import controle.api.back_end.repository.CategoriaUsuarioRepository;
-import controle.api.back_end.repository.UsuarioRepository;
+import controle.api.back_end.repository.categoria.CategoriaRepository;
+import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
+import controle.api.back_end.repository.usuario.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service

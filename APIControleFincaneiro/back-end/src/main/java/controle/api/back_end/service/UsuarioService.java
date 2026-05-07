@@ -9,7 +9,10 @@ import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.repository.*;
+import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
+import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
+import controle.api.back_end.repository.usuario.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -184,6 +187,6 @@ public class UsuarioService {
             throw new SenhasNaoCoincidemException();
         }
         usuario.setSenha(novaSenha);
-        return usuario;
+        return usuarioRepository.save(usuario);
     }
 }

@@ -16,6 +16,7 @@ import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.*;
 
 import com.itextpdf.layout.properties.UnitValue;
+import controle.api.back_end.dto.registros.in.TransferenciaDTO;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
@@ -29,7 +30,17 @@ import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.*;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.repository.*;
+import controle.api.back_end.repository.categoria.CategoriaRepository;
+import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
+import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
+import controle.api.back_end.repository.configuracoes.LimitePorCategoriaRepository;
+import controle.api.back_end.repository.configuracoes.LimitePorInstituicaoRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoDetalheRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
+import controle.api.back_end.repository.instituicao.InstituicaoRepository;
+import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
+import controle.api.back_end.repository.usuario.UsuarioRepository;
 import controle.api.back_end.specifications.EventoFinanceiroSpecifications;
 import controle.api.back_end.strategy.eventoFinanceiro.TransferenciaEvento;
 import controle.api.back_end.strategy.movimento.MovimentoResultado;
@@ -71,8 +82,9 @@ public class RegistroService {
     private final LimitePorCategoriaRepository limitePorCategoriaRepository;
     private final ConfiguracoesRepository configuracoesRepository;
     private final TransferenciaEvento transferenciaEvento;
+    private final UsuarioService usuarioService;
 
-    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository, TransferenciaEvento transferenciaEvento) {
+    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository, TransferenciaEvento transferenciaEvento, UsuarioService usuarioService) {
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoDetalheRepository = eventoDetalheRepository;
@@ -87,6 +99,7 @@ public class RegistroService {
         this.limitePorCategoriaRepository = limitePorCategoriaRepository;
         this.configuracoesRepository = configuracoesRepository;
         this.transferenciaEvento = transferenciaEvento;
+        this.usuarioService = usuarioService;
     }
 
     public EventoFinanceiro createEventoFinanceiro(EventoFinanceiro entity) {
@@ -106,12 +119,45 @@ public class RegistroService {
         return eventoFinanceiroRepository.save(entity);
     }
 
-    public List<EventoInstituicao> createEventoInstituicaoTransferencia(EventoInstituicao eventoInstituicao, EventoFinanceiro eventoFinanceiro, InstituicaoUsuario destino){
-        if (eventoFinanceiro.getTipo().equals(Tipo.Transferencia)){
-            transferenciaEvento.processar(eventoFinanceiro,eventoInstituicao, destino);
-        }
+    public List<EventoInstituicao> createEventoInstituicaoTransferencia(EventoInstituicao eventoInstituicao,
+                                                                        EventoFinanceiro eventoFinanceiro,
+                                                                        Integer destino_id){
 
-        return null;
+        if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())) {
+            throw new EntidadeNaoEncontradaException(
+                    "Evento Financeiro de id: %s não encontrado"
+                            .formatted(eventoFinanceiro.getId())
+            );
+        }
+        List<InstituicaoUsuario> instituicaoUsuario = instituicaoUsuarioRepository.findInstituicaoUsuarioByEventoInstituicao_Id(eventoInstituicao.getId());
+        eventoInstituicao.setInstituicaoUsuario(instituicaoUsuario.getFirst());
+
+
+        InstituicaoUsuario destino = instituicaoUsuarioRepository.findById(destino_id)
+                .orElseThrow(() ->
+                        new EntidadeNaoEncontradaException("Instituição usuario de id: %d não encontrado."
+                                .formatted(destino_id)
+                        )
+                );
+
+        TransferenciaDTO processar = transferenciaEvento.processar(eventoFinanceiro, eventoInstituicao, destino);
+        List<EventoInstituicao> listaRecebedora = new ArrayList<>();
+
+        EventoInstituicao recebedora = processar.getEventoInstituicao();
+        EventoFinanceiro eventoRecebedora = processar.getEventoFinanceiro();
+
+        recebedora.setTipoMovimento(eventoInstituicao.getTipoMovimento());
+        recebedora.setEventoFinanceiro(eventoRecebedora);
+        recebedora.setParcelas(1);
+        recebedora.setValor(eventoInstituicao.getValor());
+        recebedora.setInstituicaoUsuario(destino);
+        listaRecebedora.add(recebedora);
+        eventoFinanceiroRepository.save(eventoRecebedora);
+        eventoInstituicaoRepository.save(recebedora);
+        eventoInstituicao.setEventoFinanceiro(eventoFinanceiro);
+        eventoInstituicaoRepository.save(eventoInstituicao);
+
+        return listaRecebedora;
     }
 
     public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> entities,
@@ -122,6 +168,7 @@ public class RegistroService {
                             .formatted(eventoFinanceiro.getId())
             );
         }
+
         List<EventoInstituicao> savedInstituicoes = new ArrayList<>();
 
         for (EventoInstituicao entity : entities) {
@@ -1026,5 +1073,14 @@ public class RegistroService {
             e.printStackTrace();
         }
         return out.toByteArray();
+    }
+
+    public Double getSaldoPoupanca(UUID userId) {
+        Usuario usuario = usuarioService.getUsuario(userId);
+
+        List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository
+                .getEventoFinanceirosByUsuario_id(usuario.getId());
+
+        return 0.0;
     }
 }

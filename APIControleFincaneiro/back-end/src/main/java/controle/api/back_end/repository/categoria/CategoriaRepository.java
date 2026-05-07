@@ -1,13 +1,10 @@
-package controle.api.back_end.repository;
+package controle.api.back_end.repository.categoria;
 
 import controle.api.back_end.model.categoria.Categoria;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-
-import java.util.List;
-import java.util.UUID;
 
 public interface CategoriaRepository extends JpaRepository<Categoria,Integer> {
 

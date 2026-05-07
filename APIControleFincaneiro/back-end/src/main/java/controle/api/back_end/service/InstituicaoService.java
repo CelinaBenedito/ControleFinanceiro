@@ -8,7 +8,11 @@ import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.repository.*;
+import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
+import controle.api.back_end.repository.instituicao.InstituicaoRepository;
+import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
+import controle.api.back_end.repository.usuario.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

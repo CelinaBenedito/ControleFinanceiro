@@ -1,4 +1,5 @@
-package controle.api.back_end.dto.instituicao;
+package controle.api.back_end.dto.categoria.out;
+
 
 import controle.api.back_end.model.usuario.UsuarioSexo;
 
@@ -6,25 +7,22 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class InstituicaoUsuarioResponseDTO {
-
+public class CategoriaUsuarioResponseDTO {
     private Integer id;
-    private UsuarioInstituicaoDTO usuario;
-    private InstituicaoUsuarioDTO intituicao;
+    private UsuarioDTO usuario;
+    private CategoriaDTO categoria;
     private Boolean isAtivo;
     private LocalDateTime ultimaAtualizacao;
 
-    public static class UsuarioInstituicaoDTO{
+    public static class UsuarioDTO{
         private UUID id;
         private String nome;
         private String sobrenome;
         private LocalDate dataNascimento;
         private UsuarioSexo sexo;
-        private String email;
 
         public UUID getId() {
             return id;
-
         }
 
         public void setId(UUID id) {
@@ -62,19 +60,10 @@ public class InstituicaoUsuarioResponseDTO {
         public void setSexo(UsuarioSexo sexo) {
             this.sexo = sexo;
         }
-
-        public String getEmail() {
-            return email;
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
-        }
     }
-
-    public static class InstituicaoUsuarioDTO{
+    public static class CategoriaDTO{
         private Integer id;
-        private String nome;
+        private String titulo;
 
         public Integer getId() {
             return id;
@@ -84,22 +73,13 @@ public class InstituicaoUsuarioResponseDTO {
             this.id = id;
         }
 
-        public String getNome() {
-            return nome;
+        public String getTitulo() {
+            return titulo;
         }
 
-        public void setNome(String nome) {
-            this.nome = nome;
+        public void setTitulo(String titulo) {
+            this.titulo = titulo;
         }
-    }
-
-    public InstituicaoUsuarioResponseDTO(Integer id, UsuarioInstituicaoDTO usuario, InstituicaoUsuarioDTO intituicao) {
-        this.id = id;
-        this.usuario = usuario;
-        this.intituicao = intituicao;
-    }
-
-    public InstituicaoUsuarioResponseDTO() {
     }
 
     public Integer getId() {
@@ -110,20 +90,20 @@ public class InstituicaoUsuarioResponseDTO {
         this.id = id;
     }
 
-    public UsuarioInstituicaoDTO getUsuario() {
+    public UsuarioDTO getUsuario() {
         return usuario;
     }
 
-    public void setUsuario(UsuarioInstituicaoDTO usuario) {
+    public void setUsuario(UsuarioDTO usuario) {
         this.usuario = usuario;
     }
 
-    public InstituicaoUsuarioDTO getIntituicao() {
-        return intituicao;
+    public CategoriaDTO getCategoria() {
+        return categoria;
     }
 
-    public void setIntituicao(InstituicaoUsuarioDTO intituicao) {
-        this.intituicao = intituicao;
+    public void setCategoria(CategoriaDTO categoria) {
+        this.categoria = categoria;
     }
 
     public Boolean getAtivo() {

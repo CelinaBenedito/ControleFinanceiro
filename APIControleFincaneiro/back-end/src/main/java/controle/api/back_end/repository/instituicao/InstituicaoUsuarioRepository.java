@@ -1,4 +1,4 @@
-package controle.api.back_end.repository;
+package controle.api.back_end.repository.instituicao;
 
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
@@ -15,4 +15,6 @@ public interface InstituicaoUsuarioRepository extends JpaRepository<InstituicaoU
     InstituicaoUsuario findByUsuario_IdAndInstituicao_Id(UUID userId, Integer instituicaoId);
 
     List<InstituicaoUsuario> findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(UUID idUser);
+
+    List<InstituicaoUsuario> findInstituicaoUsuarioByEventoInstituicao_Id(Integer id);
 }

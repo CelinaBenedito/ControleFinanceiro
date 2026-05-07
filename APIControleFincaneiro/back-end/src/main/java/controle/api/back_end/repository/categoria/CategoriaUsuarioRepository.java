@@ -1,4 +1,4 @@
-package controle.api.back_end.repository;
+package controle.api.back_end.repository.categoria;
 
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import org.springframework.data.jpa.repository.JpaRepository;

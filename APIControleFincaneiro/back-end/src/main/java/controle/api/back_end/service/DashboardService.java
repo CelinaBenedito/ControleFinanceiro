@@ -1,8 +1,8 @@
 package controle.api.back_end.service;
 
-import controle.api.back_end.dto.dashboard.CategoriaEPorcentagens;
-import controle.api.back_end.dto.dashboard.MaiorGastoDoMes;
-import controle.api.back_end.dto.dashboard.GastoTotalDoMes;
+import controle.api.back_end.dto.dashboard.out.CategoriaEPorcentagens;
+import controle.api.back_end.dto.dashboard.out.MaiorGastoDoMes;
+import controle.api.back_end.dto.dashboard.out.GastoTotalDoMes;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
@@ -12,7 +12,11 @@ import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
-import controle.api.back_end.repository.*;
+import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoDetalheRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
+import controle.api.back_end.repository.usuario.UsuarioRepository;
 import controle.api.back_end.utils.MesFiscalUtils;
 import org.springframework.stereotype.Service;
 

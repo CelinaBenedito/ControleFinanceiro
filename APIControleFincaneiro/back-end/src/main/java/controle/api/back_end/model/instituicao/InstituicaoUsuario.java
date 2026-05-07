@@ -1,9 +1,11 @@
 package controle.api.back_end.model.instituicao;
 
+import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 public class InstituicaoUsuario {
@@ -21,6 +23,9 @@ public class InstituicaoUsuario {
 
     @Column(name = "is_ativo", nullable = false)
     private Boolean isAtivo = Boolean.TRUE;
+
+    @OneToMany
+    private List<EventoInstituicao> eventoInstituicao;
 
     private LocalDateTime ultimaModificacao;
 

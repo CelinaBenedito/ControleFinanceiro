@@ -1,6 +1,5 @@
-package controle.api.back_end.repository;
+package controle.api.back_end.repository.eventoFinanceiro;
 
-import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import org.springframework.data.jpa.repository.JpaRepository;
 

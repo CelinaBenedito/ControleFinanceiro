@@ -1,8 +1,8 @@
 package controle.api.back_end.controller;
 
-import controle.api.back_end.dto.dashboard.CategoriaEPorcentagens;
-import controle.api.back_end.dto.dashboard.MaiorGastoDoMes;
-import controle.api.back_end.dto.dashboard.GastoTotalDoMes;
+import controle.api.back_end.dto.dashboard.out.CategoriaEPorcentagens;
+import controle.api.back_end.dto.dashboard.out.MaiorGastoDoMes;
+import controle.api.back_end.dto.dashboard.out.GastoTotalDoMes;
 import controle.api.back_end.service.DashboardService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
