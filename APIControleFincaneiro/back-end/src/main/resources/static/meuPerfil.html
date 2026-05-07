@@ -712,18 +712,18 @@
 
                 <div class="pf-campo">
                     <label>Senha Atual:</label>
-                    <input type="text" placeholder="Senha Atual...">
+                    <input type="text" id="edSenhaAntiga" placeholder="Senha Atual...">
                 </div>
                 <div class="pf-campo">
                     <label>Nova Senha:</label>
-                    <input type="text" placeholder="Nova Senha...">
+                    <input type="text" id="edSenhaNova" placeholder="Nova Senha...">
                 </div>
                 <div class="pf-campo">
                     <label>Corfirmar Nova Senha:</label>
-                    <input type="text" placeholder="Corfirmar Nova Senha...">
+                    <input type="text" id="edSenhaNovaConf" placeholder="Corfirmar Nova Senha...">
                 </div>
 
-                <button class="pf-btn">Alterar Senha</button>
+                <button id="btnEditarSenha" onclick="editarSenhaUsuario()" class="pf-btn">Alterar Senha</button>
             </div>
 
         </div>

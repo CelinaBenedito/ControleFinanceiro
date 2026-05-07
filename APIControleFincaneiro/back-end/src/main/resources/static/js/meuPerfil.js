@@ -244,6 +244,42 @@
         }
     };
 
+    window.editarSenhaUsuario = async function () {
+        let senhaAntiga = document.getElementById("edSenhaAntiga")?.value.trim();
+        let senhaNova = document.getElementById("edSenhaNova")?.value.trim();
+        let senhaNovaConf = document.getElementById("edSenhaNovaConf")?.value.trim();
+
+        const payload = { 
+            novaSenha: senhaNova,
+            antigaSenha: senhaAntiga
+        };
+
+        if (!senhaAntiga || !payload.novaSenha || !payload.antigaSenha) {
+            mostrarAlerta("Preencha todos os campos de senha.");
+            return;
+        }
+        if (payload.novaSenha !== senhaNovaConf) {
+            mostrarAlerta("A nova senha e a confirmação não coincidem.");
+            return;
+        }
+
+        try {
+            const res = await MainAPI.editarSenhaUsuario(userId, payload);
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                mostrarAlerta(body.message || "Erro ao alterar senha.");
+                return;
+            }
+            mostrarAlerta("Senha alterada com sucesso.");
+            document.getElementById("edSenhaAntiga").value = "";
+            document.getElementById("edSenhaNova").value = "";
+            document.getElementById("edSenhaNovaConf").value = "";
+        } catch (e) {
+            mostrarAlerta("Erro ao alterar senha.");
+            console.error(e);
+        }
+    }
+
     // ── CONFIGURAÇÕES (resumo) ────────────────────────────────────
     async function carregarConfig() {
         try {
