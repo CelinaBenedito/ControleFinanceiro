@@ -254,25 +254,25 @@
 
                 <div class="pf-campo">
                     <label>Senha Atual:</label>
-                    <input type="text" placeholder="Senha Atual...">
+                    <input type="text" id="edSenhaAntiga" placeholder="Senha Atual...">
                 </div>
                 <div class="pf-campo">
                     <label>Nova Senha:</label>
-                    <input type="text" placeholder="Nova Senha...">
+                    <input type="text" id="edSenhaNova" placeholder="Nova Senha...">
                 </div>
                 <div class="pf-campo">
                     <label>Corfirmar Nova Senha:</label>
-                    <input type="text" placeholder="Corfirmar Nova Senha...">
+                    <input type="text" id="edSenhaNovaConf" placeholder="Corfirmar Nova Senha...">
                 </div>
 
-                <button class="pf-btn">Alterar Senha</button>
+                <button id="btnEditarSenha" onclick="editarSenhaUsuario()" class="pf-btn">Alterar Senha</button>
             </div>
             <div class="pf-card">
                 <h2>Ações Críticas</h2>
                 <div class="btn-criticos">
-                    <button class="btn-urgente">Apagar todos os eventos financeiros</button>
-                    <button class="btn-urgente">Desvincular todas as Instituições</button>
-                    <button class="btn-urgente">Excluir minha conta</button>
+                    <button id="btnApagarTodosEventos" onclick="deletarTodosEventos()" class="btn-urgente">Apagar todos os eventos financeiros</button>
+                    <button id="btnDesvincularTodasInstituicoes" onclick="desvincularTodasInstituicoes()" class="btn-urgente">Desvincular todas as Instituições</button>
+                    <button id="btnExcluirConta" onclick="excluirConta()" class="btn-urgente">Excluir minha conta</button>
                 </div>
             </div>
         </div>
