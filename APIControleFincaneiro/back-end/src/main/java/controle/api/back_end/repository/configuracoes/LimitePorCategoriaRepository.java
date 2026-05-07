@@ -1,4 +1,4 @@
-package controle.api.back_end.repository;
+package controle.api.back_end.repository.configuracoes;
 
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;

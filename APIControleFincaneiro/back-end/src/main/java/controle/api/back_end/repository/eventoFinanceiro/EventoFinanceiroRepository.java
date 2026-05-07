@@ -1,8 +1,7 @@
-package controle.api.back_end.repository;
+package controle.api.back_end.repository.eventoFinanceiro;
 
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.usuario.Usuario;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;

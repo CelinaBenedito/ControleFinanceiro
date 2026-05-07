@@ -3,5 +3,7 @@
     public enum Tipo {
         Gasto,
         Recebimento,
-        Transferencia
+        Transferencia,
+        Poupanca,
+        Emprestimo
     }

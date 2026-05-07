@@ -30,7 +30,17 @@ import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.*;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.repository.*;
+import controle.api.back_end.repository.categoria.CategoriaRepository;
+import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
+import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
+import controle.api.back_end.repository.configuracoes.LimitePorCategoriaRepository;
+import controle.api.back_end.repository.configuracoes.LimitePorInstituicaoRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoDetalheRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
+import controle.api.back_end.repository.instituicao.InstituicaoRepository;
+import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
+import controle.api.back_end.repository.usuario.UsuarioRepository;
 import controle.api.back_end.specifications.EventoFinanceiroSpecifications;
 import controle.api.back_end.strategy.eventoFinanceiro.TransferenciaEvento;
 import controle.api.back_end.strategy.movimento.MovimentoResultado;
@@ -72,8 +82,9 @@ public class RegistroService {
     private final LimitePorCategoriaRepository limitePorCategoriaRepository;
     private final ConfiguracoesRepository configuracoesRepository;
     private final TransferenciaEvento transferenciaEvento;
+    private final UsuarioService usuarioService;
 
-    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository, TransferenciaEvento transferenciaEvento) {
+    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository, TransferenciaEvento transferenciaEvento, UsuarioService usuarioService) {
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoDetalheRepository = eventoDetalheRepository;
@@ -88,6 +99,7 @@ public class RegistroService {
         this.limitePorCategoriaRepository = limitePorCategoriaRepository;
         this.configuracoesRepository = configuracoesRepository;
         this.transferenciaEvento = transferenciaEvento;
+        this.usuarioService = usuarioService;
     }
 
     public EventoFinanceiro createEventoFinanceiro(EventoFinanceiro entity) {
@@ -1061,5 +1073,14 @@ public class RegistroService {
             e.printStackTrace();
         }
         return out.toByteArray();
+    }
+
+    public Double getSaldoPoupanca(UUID userId) {
+        Usuario usuario = usuarioService.getUsuario(userId);
+
+        List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository
+                .getEventoFinanceirosByUsuario_id(usuario.getId());
+
+        return 0.0;
     }
 }

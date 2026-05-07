@@ -1,4 +1,4 @@
-package controle.api.back_end.dto.categoria;
+package controle.api.back_end.dto.categoria.out;
 
 public class CategoriaResponseDTO{
     private Integer id;

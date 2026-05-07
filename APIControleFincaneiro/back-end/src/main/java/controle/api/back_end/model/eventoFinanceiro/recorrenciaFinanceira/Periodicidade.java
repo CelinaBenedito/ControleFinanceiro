@@ -1,4 +1,4 @@
-package controle.api.back_end.model.recorrenciaFinanceira;
+package controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira;
 
 public enum Periodicidade {
     Diario,

@@ -1,4 +1,4 @@
-package controle.api.back_end.dto.instituicao;
+package controle.api.back_end.dto.instituicao.out;
 
 public class InstituicaoResponseDTO {
     private Integer id;

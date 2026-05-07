@@ -1,10 +1,9 @@
 package controle.api.back_end.controller;
 
-import controle.api.back_end.dto.categoria.CategoriaCreateDTO;
-import controle.api.back_end.dto.categoria.CategoriaResponseDTO;
-import controle.api.back_end.dto.categoria.CategoriaUsuarioResponseDTO;
+import controle.api.back_end.dto.categoria.in.CategoriaCreateDTO;
+import controle.api.back_end.dto.categoria.out.CategoriaResponseDTO;
+import controle.api.back_end.dto.categoria.out.CategoriaUsuarioResponseDTO;
 import controle.api.back_end.dto.categoria.mapper.CategoriaMapper;
-import controle.api.back_end.dto.instituicao.InstituicaoResponseDTO;
 import controle.api.back_end.model.categoria.Categoria;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import io.swagger.v3.oas.annotations.Operation;

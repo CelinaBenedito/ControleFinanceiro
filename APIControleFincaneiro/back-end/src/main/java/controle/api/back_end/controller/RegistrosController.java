@@ -82,6 +82,13 @@ public class RegistrosController {
         return ResponseEntity.status(200).body(response);
     }
 
+    @GetMapping("/saldo-poupanca/usuarios/{user_id}")
+    public ResponseEntity<Double> getSaldoPoupanca(@PathVariable UUID user_id){
+        Double saldo = registroService.getSaldoPoupanca(user_id);
+
+        return ResponseEntity.status(200).body(saldo);
+    }
+
     @GetMapping("/filtro/usuarios/{user_id}")
     @Operation(summary =
             "Buscar os registros com um filtro",

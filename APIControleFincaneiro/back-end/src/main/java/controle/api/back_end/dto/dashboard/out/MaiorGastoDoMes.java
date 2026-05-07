@@ -1,4 +1,4 @@
-package controle.api.back_end.dto.dashboard;
+package controle.api.back_end.dto.dashboard.out;
 
 public class MaiorGastoDoMes {
     private String nomeCategoria;

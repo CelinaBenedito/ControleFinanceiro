@@ -1,11 +1,10 @@
 package controle.api.back_end.controller;
 
-import controle.api.back_end.dto.instituicao.InstituicaoCreateDTO;
-import controle.api.back_end.dto.instituicao.InstituicaoResponseDTO;
-import controle.api.back_end.dto.instituicao.InstituicaoUsuarioResponseDTO;
+import controle.api.back_end.dto.instituicao.in.InstituicaoCreateDTO;
+import controle.api.back_end.dto.instituicao.out.InstituicaoResponseDTO;
+import controle.api.back_end.dto.instituicao.out.InstituicaoUsuarioResponseDTO;
 import controle.api.back_end.dto.instituicao.mapper.InstituicaoMapper;
 import controle.api.back_end.dto.instituicao.mapper.InstituicaoUsuarioMapper;
-import controle.api.back_end.dto.usuario.out.UsuarioResponseDTO;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.service.InstituicaoService;

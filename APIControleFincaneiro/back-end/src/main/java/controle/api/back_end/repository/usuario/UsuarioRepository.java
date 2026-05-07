@@ -1,4 +1,4 @@
-package controle.api.back_end.repository;
+package controle.api.back_end.repository.usuario;
 
 import controle.api.back_end.model.usuario.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
