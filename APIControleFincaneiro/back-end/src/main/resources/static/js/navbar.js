@@ -128,6 +128,16 @@ document.getElementById("toggleTheme").addEventListener("click", () => {
     atualizarIconeTema();
 });
 
+document.getElementById("purpura-mode").addEventListener("click", () => {
+    document.body.classList.toggle("purpura-mode");
+
+    // localStorage.setItem(
+    //     "theme",
+    //     document.body.classList.contains("purpura-mode") ? "dark" : "light"
+    // );
+    atualizarIconeTema();
+});
+
 function atualizarIconeTema() {
     const icone = document.getElementById("icone");
     if (document.body.classList.contains("dark-mode")) {
