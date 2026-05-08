@@ -254,12 +254,14 @@
                     <!-- Importar / Exportar -->
                     <div style="display:flex;flex-direction:column;gap:12px;">
                         <p class="cfg-delete-label">Importar / Exportar dados:</p>
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                            <button class="cfg-btn" onclick="importarDados()">
-                                <i class='bx bx-upload' style="margin-right:6px;"></i> Importar dados
+                        <div class="btn-downDados" style="display:flex;gap:12px;flex-wrap:wrap;">
+                            <button onclick="importarDados()">
+                                <span>Importar dados</span>
+                                <i class="bx bx-arrow-in-down-square-half"></i>
                             </button>
-                            <button class="cfg-btn" onclick="exportarDados()" style="background:transparent;border:2px solid #367373;color:#367373;">
-                                <i class='bx bx-download' style="margin-right:6px;"></i> Exportar dados
+                            <button onclick="exportarDados()">
+                                <span>Exportar dados</span>
+                                <i class="bx bx-arrow-out-up-square-half"></i>
                             </button>
                             <input type="file" id="inputImportar" accept=".json,.csv" style="display:none;" onchange="processarImportacao(event)">
                         </div>

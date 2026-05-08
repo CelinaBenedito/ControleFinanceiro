@@ -1,3 +1,5 @@
+@import "root.css"; 
+
 /* ── Configurações page overrides ── */
 .cfg-page {
     font-family: 'Inter', sans-serif;
@@ -404,4 +406,9 @@ body.dark-mode .cfg-table td {
     text-align: center;
     color: #888;
     font-style: italic;
+}
+
+.btn-downDados button {
+    display: flex;
+    flex-direction: column;
 }

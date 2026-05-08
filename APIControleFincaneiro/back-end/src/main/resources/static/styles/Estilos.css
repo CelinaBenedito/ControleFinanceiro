@@ -163,10 +163,19 @@ body.dark-mode {
 }
 
 .side-bar a {
-    display: block;
+    display: flex;
     text-decoration: none;
     transition: 0.3s;
     color: var(--cor-texto);
+}
+
+.side-bar a span {
+    display: flex;
+    align-items: center;
+}
+
+.side-bar a i {
+    margin-right: 10px;
 }
 
 .containerKPIS {
