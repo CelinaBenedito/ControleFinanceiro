@@ -15,8 +15,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.lang.annotation.Repeatable;
 import java.math.BigDecimal;
@@ -170,6 +172,32 @@ public class UsuarioController {
 
         return ResponseEntity.status(200).body(response);
     }
+
+    @PutMapping(
+            value = "/{id}/upload-imagem",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(summary = "Upload de imagem do usuário",
+            description = "Recebe uma imagem, salva em uma pasta e atualiza o atributo imagem do usuário.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Imagem enviada e usuário atualizado com sucesso!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
+                    content = @Content),
+            @ApiResponse(responseCode = "400", description = "Erro ao salvar imagem.",
+                    content = @Content)
+    })
+    public ResponseEntity<UsuarioResponseDTO> uploadImagemUsuario(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+
+        Usuario usuarioAtualizado = usuarioService.uploadImagemUsuario(id, file);
+        UsuarioResponseDTO response = UsuarioMappper.toDto(usuarioAtualizado);
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/{user_id}")
     public ResponseEntity<Void> deleteUserById(@PathVariable UUID user_id){
         usuarioService.deleteUserbyId(user_id);

@@ -6,5 +6,5 @@ import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 
 public interface EventoFinanceiroStrategy {
-    TransferenciaDTO processar(EventoFinanceiro evento, EventoInstituicao eventoInstituicao, InstituicaoUsuario destino);
+    Registro processar(EventoFinanceiro evento, EventoInstituicao eventoInstituicao, InstituicaoUsuario destino);
 }

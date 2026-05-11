@@ -1,6 +1,5 @@
 package controle.api.back_end.dto.registros.in;
 
-import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 
@@ -12,7 +11,7 @@ public class RegistroCompletoCreateDto {
     @Valid
     private List<EventoInstituicaoCreateDto> instituicao;
     @Valid
-    private GastoDetalheCreateDto detalhe;
+    private EventoDetalheCreateDto detalhe;
     @Schema
     private Integer instituicaoRecebendo_id;
 
@@ -33,11 +32,11 @@ public class RegistroCompletoCreateDto {
         this.financeiro = financeiro;
     }
 
-    public GastoDetalheCreateDto getDetalhe() {
+    public EventoDetalheCreateDto getDetalhe() {
         return detalhe;
     }
 
-    public void setDetalhe(GastoDetalheCreateDto detalhe) {
+    public void setDetalhe(EventoDetalheCreateDto detalhe) {
         this.detalhe = detalhe;
     }
 

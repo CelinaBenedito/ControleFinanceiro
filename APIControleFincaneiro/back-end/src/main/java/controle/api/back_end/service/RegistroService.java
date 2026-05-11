@@ -140,22 +140,22 @@ public class RegistroService {
                         )
                 );
 
-        TransferenciaDTO processar = transferenciaEvento.processar(eventoFinanceiro, eventoInstituicao, destino);
+        //TransferenciaDTO processar = transferenciaEvento.processar(eventoFinanceiro, eventoInstituicao, destino);
         List<EventoInstituicao> listaRecebedora = new ArrayList<>();
 
-        EventoInstituicao recebedora = processar.getEventoInstituicao();
-        EventoFinanceiro eventoRecebedora = processar.getEventoFinanceiro();
+        //EventoInstituicao recebedora = processar.getEventoInstituicao();
+        //EventoFinanceiro eventoRecebedora = processar.getEventoFinanceiro();
 
-        recebedora.setTipoMovimento(eventoInstituicao.getTipoMovimento());
-        recebedora.setEventoFinanceiro(eventoRecebedora);
-        recebedora.setParcelas(1);
-        recebedora.setValor(eventoInstituicao.getValor());
-        recebedora.setInstituicaoUsuario(destino);
-        listaRecebedora.add(recebedora);
-        eventoFinanceiroRepository.save(eventoRecebedora);
-        eventoInstituicaoRepository.save(recebedora);
-        eventoInstituicao.setEventoFinanceiro(eventoFinanceiro);
-        eventoInstituicaoRepository.save(eventoInstituicao);
+//        recebedora.setTipoMovimento(eventoInstituicao.getTipoMovimento());
+//        recebedora.setEventoFinanceiro(eventoRecebedora);
+//        recebedora.setParcelas(1);
+//        recebedora.setValor(eventoInstituicao.getValor());
+//        recebedora.setInstituicaoUsuario(destino);
+//        listaRecebedora.add(recebedora);
+//        eventoFinanceiroRepository.save(eventoRecebedora);
+//        eventoInstituicaoRepository.save(recebedora);
+//        eventoInstituicao.setEventoFinanceiro(eventoFinanceiro);
+//        eventoInstituicaoRepository.save(eventoInstituicao);
 
         return listaRecebedora;
     }

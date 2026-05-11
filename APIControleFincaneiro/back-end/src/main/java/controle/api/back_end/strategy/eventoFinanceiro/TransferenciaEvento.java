@@ -9,40 +9,44 @@ import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class TransferenciaEvento implements EventoFinanceiroStrategy {
 
     @Override
-    public TransferenciaDTO processar(EventoFinanceiro evento, EventoInstituicao antigaInstituicao, InstituicaoUsuario destino) {
-        if (destino.getUsuario().equals(evento.getUsuario())) {
-            EventoFinanceiro recebimento = new EventoFinanceiro();
-
-            EventoInstituicao recebimentoInstituicao = new EventoInstituicao();
-            recebimentoInstituicao.setInstituicaoUsuario(destino);
-            recebimentoInstituicao.setParcelas(1);
-            recebimentoInstituicao.setEventoFinanceiro(evento);
-            recebimentoInstituicao.setValor(evento.getValor());
-            recebimentoInstituicao.setTipoMovimento(antigaInstituicao.getTipoMovimento());
-
-            recebimento.setUsuario(destino.getUsuario());
-            recebimento.setDataEvento(evento.getDataEvento());
-            recebimento.setDataRegistro(LocalDateTime.now());
-            recebimento.setTipo(Tipo.Recebimento);
-
-            recebimento.setValor(evento.getValor());
-
-            recebimento.setDescricao("Transferência recebida da instituição %s"
-                    .formatted(antigaInstituicao.getInstituicaoUsuario()
-                            .getInstituicao()
-                            .getNome()
-                    )
-            );
-            System.out.println("Transferência interna registrada como recebimento.");
-            return new TransferenciaDTO(recebimentoInstituicao,recebimento);
-        } else {
-            System.out.println("Transferência externa para outro usuário.");
-            return new TransferenciaDTO();
-        }
+    public Registro processar(EventoFinanceiro evento, EventoInstituicao antigaInstituicao, InstituicaoUsuario destino) {
+//        if (destino.getUsuario().equals(evento.getUsuario())) {
+//            List<EventoFinanceiro> recebimento = new ArrayList<>();
+//            recebimento.add(new EventoFinanceiro());
+//
+//            List<EventoInstituicao> recebimentoInstituicao = new ArrayList<>();
+//            recebimentoInstituicao.setInstituicaoUsuario(destino);
+//            recebimentoInstituicao.setParcelas(1);
+//            recebimentoInstituicao.setEventoFinanceiro(evento);
+//            recebimentoInstituicao.setValor(evento.getValor());
+//            recebimentoInstituicao.setTipoMovimento(antigaInstituicao.getTipoMovimento());
+//
+//            recebimento.getFirst().setUsuario(destino.getUsuario());
+//            recebimento.getFirst().setDataEvento(evento.getDataEvento());
+//            recebimento.getFirst().setDataRegistro(LocalDateTime.now());
+//            recebimento.getFirst().setTipo(Tipo.Recebimento);
+//
+//            recebimento.getFirst().setValor(evento.getValor());
+//
+//            recebimento.getFirst().setDescricao("Transferência recebida da instituição %s"
+//                    .formatted(antigaInstituicao.getInstituicaoUsuario()
+//                            .getInstituicao()
+//                            .getNome()
+//                    )
+//            );
+//            System.out.println("Transferência interna registrada como recebimento.");
+//            return new Registro(recebimento,recebimentoInstituicao);
+//        } else {
+//            System.out.println("Transferência externa para outro usuário.");
+//            return new Registro();
+//        }
+        return new Registro();
     }
 }
