@@ -1,0 +1,381 @@
+/* ── Adicionar Registros page ── */
+.ar-page {
+    font-family: 'Inter', sans-serif;
+}
+
+.ar-page h1 {
+    color: #004C58;
+    font-size: 2.8rem;
+    font-weight: 400;
+    margin-bottom: 28px;
+}
+
+body.dark-mode .ar-page h1 {
+    color: #7dd3fc;
+}
+
+/* ── Tab header ── */
+.ar-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+}
+
+.ar-tab {
+    padding: 10px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #004C58;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    background: #FAFFFF;
+    border: 2px solid #367373;
+    border-bottom: none;
+    border-radius: 2px 2px 0 0;
+    position: relative;
+    bottom: -2px;
+    transition: background 0.15s;
+    text-decoration: none;
+    user-select: none;
+}
+
+.ar-tab.ativo {
+    background: #FAFFFF;
+    color: #004C58;
+    z-index: 1;
+}
+
+.ar-tab:not(.ativo) {
+    background: #d4e8e8;
+    color: #367373;
+}
+
+body.dark-mode .ar-tab {
+    background: #0f172a;
+    color: #7dd3fc;
+    border-color: #7dd3fc;
+}
+
+body.dark-mode .ar-tab:not(.ativo) {
+    background: #0a0f1e;
+    color: #5bb3c4;
+}
+
+body.dark-mode .ar-tab.ativo {
+    background: #0f172a;
+    color: #7dd3fc;
+}
+
+/* ── Main form card ── */
+.ar-card {
+    background: #FAFFFF;
+    border-radius: 0 20px 20px 20px;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    border-left: 2px solid #367373;
+    padding: 28px 24px;
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+body.dark-mode .ar-card {
+    background: #0f172a;
+    border-color: #7dd3fc;
+}
+
+/* Mascot column */
+.ar-mascot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+.ar-mascot-img {
+    width: 200px;
+    border: 1px solid #00AEFF;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    border-radius: 4px;
+    display: block;
+}
+
+/* Form column */
+.ar-form-col {
+    flex: 1;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Field wrapper — floating label (espelha .campo do Estilos.css) */
+.ar-field-wrap {
+    position: relative;
+    margin: 4px 0;
+}
+
+/* Label repousa no centro do input (top 21px = (58px - ~16px) / 2) */
+.ar-field-wrap label {
+    position: absolute;
+    left: 15px;
+    top: 21px;
+    font-size: 15px;
+    color: var(--cor-texto-secundario);
+    background-color: #FAFFFF;
+    padding: 0 4px;
+    pointer-events: none;
+    transition: 0.2s ease-in-out;
+    z-index: 1;
+}
+
+body.dark-mode .ar-field-wrap label {
+    background-color: #0f172a;
+}
+
+.ar-field-wrap input {
+    height: 58px;
+    border-radius: 10px;
+    border: 2px solid #367373;
+    padding: 0 18px;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    color: #367373;
+    background: transparent;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease-in-out;
+}
+
+.ar-field-wrap select {
+    height: 58px;
+    border-radius: 10px;
+    border: 2px solid #367373;
+    padding: 0 18px;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    color: #367373;
+    background: transparent;
+    width: 100%;
+    box-sizing: border-box;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease-in-out;
+}
+
+.ar-field-wrap input:focus,
+.ar-field-wrap select:focus {
+    outline: none;
+    border-color: #004C58;
+}
+
+body.dark-mode .ar-field-wrap input,
+body.dark-mode .ar-field-wrap select {
+    border-color: #7dd3fc;
+    color: #7dd3fc;
+}
+
+/* Inputs: label flutua para top:-1px (assenta na borda) ao focar ou ter valor */
+.ar-field-wrap input:focus+label,
+.ar-field-wrap input:not(:placeholder-shown)+label {
+    top: -1px;
+    font-size: 12px;
+    color: #367373;
+}
+
+/* Selects: label sempre flutua — select exibe o valor selecionado */
+.ar-field-wrap select+label {
+    top: -1px;
+    font-size: 12px;
+    color: #367373;
+}
+
+body.dark-mode .ar-field-wrap input:focus+label,
+body.dark-mode .ar-field-wrap input:not(:placeholder-shown)+label,
+body.dark-mode .ar-field-wrap select+label {
+    color: #7dd3fc;
+}
+
+/* Seta para selects */
+.ar-field-wrap:has(select)::after {
+    content: "▾";
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #367373;
+    pointer-events: none;
+    font-size: 0.9rem;
+    z-index: 1;
+}
+
+body.dark-mode .ar-field-wrap:has(select)::after {
+    color: #7dd3fc;
+}
+
+/* Date display + button row */
+.ar-date-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.ar-date-display {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0E5454;
+}
+
+body.dark-mode .ar-date-display {
+    color: #7dd3fc;
+}
+
+/* Buttons */
+.ar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 52px;
+    padding: 0 24px;
+    min-width: 130px;
+    background: #367373;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin: 0;
+}
+
+.ar-btn:hover {
+    background: #004C58;
+}
+
+/* Fix: .containerGeral button (especificidade 11) sobrescreve .ar-btn (10).
+           Esta regra tem especificidade 21 e restaura padding/margin corretos. */
+.ar-page button.ar-btn {
+    padding: 0 24px;
+    margin: 0;
+    height: 52px;
+}
+
+.ar-btn.secondary {
+    background: transparent;
+    border: 2px solid #367373;
+    color: #367373;
+}
+
+.ar-btn.secondary:hover {
+    background: #367373;
+    color: #fff;
+}
+
+body.dark-mode .ar-btn.secondary {
+    border-color: #7dd3fc;
+    color: #7dd3fc;
+}
+
+.ar-btns-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+/* Label-data text */
+.label-data {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #367373;
+    margin: 0;
+}
+
+body.dark-mode .label-data {
+    color: #7dd3fc;
+}
+
+/* Gestão de Conta section */
+.ar-gestao-info {
+    background: var(--cor-fundo-pagina);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ar-gestao-info h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #004C58;
+    margin: 0;
+}
+
+body.dark-mode .ar-gestao-info h3 {
+    color: #7dd3fc;
+}
+
+#ValorTotal {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #367373;
+    margin: 0;
+}
+
+body.dark-mode #ValorTotal {
+    color: #7dd3fc;
+}
+
+/* ── Múltiplos Registros table ── */
+.ar-multi-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 15px;
+    overflow: hidden;
+    outline: 2px solid #367373;
+}
+
+body.dark-mode .ar-multi-table {
+    outline-color: #7dd3fc;
+}
+
+.ar-multi-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #367373;
+    border-bottom: 1px solid #367373;
+    font-family: 'Inter', sans-serif;
+    background: #EBF4F4;
+}
+
+body.dark-mode .ar-multi-table th {
+    color: #7dd3fc;
+    border-color: #7dd3fc;
+    background: #0a0f1e;
+}
+
+.ar-multi-table td {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    color: #367373;
+    border-bottom: 1px solid rgba(54, 115, 115, 0.2);
+    font-family: 'Inter', sans-serif;
+}
+
+body.dark-mode .ar-multi-table td {
+    color: #7dd3fc;
+    border-color: rgba(125, 211, 252, 0.15);
+}
+
+.ar-multi-table tr:last-child td {
+    border-bottom: none;
+}
