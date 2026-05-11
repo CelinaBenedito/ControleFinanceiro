@@ -30,7 +30,8 @@
                     <a href="registros.html"><i class='bx bx-address-book'></i> <span id="reg">Registros</span></a>
                 </li>
                 <li>
-                    <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i> <span id="add">Adicionar Registros</span></a>
+                    <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i> <span id="add">Adicionar
+                            Registros</span></a>
                 </li>
                 <li>
                     <a href="agendaGastos.html"><i class='bx bx-calendar-event'></i> <span id="agenda">Agenda</span></a>
@@ -68,8 +69,10 @@
 
             <!-- Tabs -->
             <div class="ar-tabs">
-                <button type="button" class="ar-tab ativo" id="tabUnico" onclick="trocarFormulario('addGasto')">Registro Único</button>
-                <button type="button" class="ar-tab" id="tabMultiplo" onclick="trocarFormulario('multiplosRegistros')">Múltiplos Registros</button>
+                <button type="button" class="ar-tab ativo" id="tabUnico" onclick="trocarFormulario('addGasto')">Registro
+                    Único</button>
+                <button type="button" class="ar-tab" id="tabMultiplo"
+                    onclick="trocarFormulario('multiplosRegistros')">Múltiplos Registros</button>
             </div>
 
             <!-- Card: Registro Único -->
@@ -107,7 +110,9 @@
                         <select id="select_instituicao" onchange="atualizarSaldoDisplay(this.value)"></select>
                         <label for="select_instituicao">Instituição</label>
                     </div>
-                    <p id="saldo_display" style="display:none; font-size:0.92rem; font-weight:600; color:#367373; margin:-8px 0 4px 4px;"></p>
+                    <p id="saldo_display"
+                        style="display:none; font-size:0.92rem; font-weight:600; color:#367373; margin:-8px 0 4px 4px;">
+                    </p>
 
                     <div class="ar-field-wrap">
                         <select id="select_movimento" onchange="toggleParcelas('ipt_parcelas', this.value)">
@@ -247,7 +252,8 @@
                         </thead>
                         <tbody id="corpoLote">
                             <tr id="loteVazio">
-                                <td colspan="6" style="text-align:center; color:#888; font-style:italic; padding:20px;">Nenhum registro adicionado ainda.</td>
+                                <td colspan="6" style="text-align:center; color:#888; font-style:italic; padding:20px;">
+                                    Nenhum registro adicionado ainda.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -304,10 +310,34 @@
                 <div class="principal" id="principal"></div>
             </dialog>
 
-            <footer>
-                <a href="teamo.html">Te amo meu bem</a>
-            </footer>
         </div>
+        <footer>
+            <div class="footer-conteudo">
+                <div class="footer-desenvolvedores">
+                    <p>
+                        <strong>Desenvolvido Por:</strong> <br>
+                        Celina dos Santos Benedito <br>
+                        Isaak Guilherme Menezes <br>
+                        Leticia da Silva Santos
+                    </p>
+                </div>
+                <div>
+                    <p>
+                        <strong>Idealizado Por:</strong><br>
+                        Celina dos Santos Benedito
+                    </p>
+                </div>
+                <div>
+                    <p>Celina dos Santos Benedito</p>
+                </div>
+                <div>
+                    <p>Isaak Guilheme Menezes</p>
+                </div>
+                <div>
+                    <p>Leticia da Silva Santos</p>
+                </div>
+            </div>
+        </footer>
     </div>
 
     <script src="js/main.js"></script>

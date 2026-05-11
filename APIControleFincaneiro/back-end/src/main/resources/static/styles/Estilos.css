@@ -738,12 +738,21 @@ body.dark-mode {
 footer {
     margin-top: 15px;
     display: flex;
-    justify-content: center;
-    align-items: center;
     background-color: var(--teal-escuro);
     padding: 10px;
-    margin: 0;
-    border: 0;
+}
+
+.footer-conteudo{
+    color: var(--cor-texto-claro);
+    margin-left: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 100%;
+}
+
+.footer-conteudo div {
+    margin: 0 15px;
 }
 
 footer a {
