@@ -67,8 +67,8 @@ public class DashboardService {
         Integer diaInicioMesFiscal = configuracoes.getInicioMesFiscal();
         MesFiscalUtils.PeriodoFiscal periodo = MesFiscalUtils.calcularPeriodoFiscal(data, diaInicioMesFiscal);
 
-        LocalDate inicioMesFiscal=periodo.getInicio();
-        LocalDate fimMesFiscal = periodo.getFim();
+        LocalDate inicioMesFiscal=periodo.inicio();
+        LocalDate fimMesFiscal = periodo.fim();
 
         List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository.findEventoFinanceiroByUsuario_Id(userId);
         BigDecimal saldo = BigDecimal.ZERO;
@@ -123,8 +123,8 @@ public class DashboardService {
         Integer diaInicioMesFiscal = configuracoes.getInicioMesFiscal();
         MesFiscalUtils.PeriodoFiscal periodo = MesFiscalUtils.calcularPeriodoFiscal(data, diaInicioMesFiscal);
 
-        LocalDate inicioMesFiscal=periodo.getInicio();
-        LocalDate fimMesFiscal = periodo.getFim();
+        LocalDate inicioMesFiscal=periodo.inicio();
+        LocalDate fimMesFiscal = periodo.fim();
 
         List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository.findEventoFinanceiroByUsuario_Id(userId);
 
@@ -178,8 +178,8 @@ public class DashboardService {
         Integer diaInicioMesFiscal = configuracoes.getInicioMesFiscal();
         MesFiscalUtils.PeriodoFiscal periodo = MesFiscalUtils.calcularPeriodoFiscal(data, diaInicioMesFiscal);
 
-        LocalDate inicioMesFiscal = periodo.getInicio();
-        LocalDate fimMesFiscal = periodo.getFim();
+        LocalDate inicioMesFiscal = periodo.inicio();
+        LocalDate fimMesFiscal = periodo.fim();
 
         List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository.findEventoFinanceiroByUsuario_Id(userId);
 
@@ -232,8 +232,8 @@ public class DashboardService {
         Integer diaInicioMesFiscal = configuracoes.getInicioMesFiscal();
         MesFiscalUtils.PeriodoFiscal periodo = MesFiscalUtils.calcularPeriodoFiscal(data, diaInicioMesFiscal);
 
-        LocalDate inicioMesFiscal = periodo.getInicio();
-        LocalDate fimMesFiscal = periodo.getFim();
+        LocalDate inicioMesFiscal = periodo.inicio();
+        LocalDate fimMesFiscal = periodo.fim();
 
         List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository.findByUsuarioAndPeriodoFiscal(userId, inicioMesFiscal, fimMesFiscal);
 

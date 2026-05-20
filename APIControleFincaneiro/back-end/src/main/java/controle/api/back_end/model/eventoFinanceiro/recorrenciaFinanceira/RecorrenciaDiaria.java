@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RecorrenciaDiaria extends RecorrenciaFinanceira{
-    private Integer intervaloDias = 1;
+    private final Integer intervaloDias = 1;
     @Override
     public List<EventoFinanceiro> gerarEventos(LocalDate limite) {
         List<EventoFinanceiro> eventos = new ArrayList<>();

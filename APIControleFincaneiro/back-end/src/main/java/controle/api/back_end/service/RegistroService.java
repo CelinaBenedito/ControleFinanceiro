@@ -688,8 +688,8 @@ public class RegistroService {
 
             // ===== Sheet 1: Informações básicas =====
             List<List<String>> headInfo = Arrays.asList(
-                    Arrays.asList("Campo"),
-                    Arrays.asList("Valor")
+                    List.of("Campo"),
+                    List.of("Valor")
             );
 
             List<List<String>> infoSheet = new ArrayList<>();
@@ -764,15 +764,15 @@ public class RegistroService {
 
             for (Map.Entry<String, List<List<String>>> entry : dadosPorMes.entrySet()) {
                 List<List<String>> headMes = Arrays.asList(
-                        Arrays.asList("Data"),
-                        Arrays.asList("Título"),
-                        Arrays.asList("Valor"),
-                        Arrays.asList("Tipo"),
-                        Arrays.asList("Descrição"),
-                        Arrays.asList("Instituição"),
-                        Arrays.asList("Movimentação"),
-                        Arrays.asList("Parcelas"),
-                        Arrays.asList("Categoria")
+                        List.of("Data"),
+                        List.of("Título"),
+                        List.of("Valor"),
+                        List.of("Tipo"),
+                        List.of("Descrição"),
+                        List.of("Instituição"),
+                        List.of("Movimentação"),
+                        List.of("Parcelas"),
+                        List.of("Categoria")
                 );
 
                 List<List<String>> linhasMes = new ArrayList<>(entry.getValue());
@@ -786,7 +786,7 @@ public class RegistroService {
                     if ("Recebimento".equals(tipo)) ganhosMes = ganhosMes.add(valor);
                     else if ("Gasto".equals(tipo)) gastosMes = gastosMes.add(valor);
                 }
-                linhasMes.add(Arrays.asList(""));
+                linhasMes.add(List.of(""));
                 linhasMes.add(Arrays.asList("Resumo do Mês", ""));
                 linhasMes.add(Arrays.asList("Ganhos", "R$ " + ganhosMes));
                 linhasMes.add(Arrays.asList("Gastos", "R$ " + gastosMes));
