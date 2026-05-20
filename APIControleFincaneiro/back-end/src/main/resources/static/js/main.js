@@ -160,6 +160,22 @@
                 body: JSON.stringify(payload)
             });
         },
+        editarSenhaUsuario(userId, payload) {
+            return request(`/usuarios/editar-senha/${userId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        },
+        excluirUsuario(userId) {
+            return request(`/usuarios/${userId}`, { method: "DELETE" });
+        },
+        desvincularTodasInstituicoes(userId) {
+            return request(`/instituicoes/desvincular-todas-as-instituicoes/usuarios/${userId}`, { method: "PUT" });
+        },
+        deletarTodosEventos(userId) {
+            return request(`/configuracoes/usuarios/${userId}/dados/deletar-tudo`, { method: "DELETE" });
+        },
         deletarRegistro(eventoId) {
             return request(`/registros/${eventoId}`, { method: "DELETE" });
         }

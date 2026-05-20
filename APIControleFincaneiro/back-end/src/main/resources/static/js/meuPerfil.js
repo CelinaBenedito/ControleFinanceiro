@@ -522,4 +522,99 @@
     } else {
         init();
     }
+
+    // SEGURANÇA
+    window.editarSenhaUsuario = async function () {
+        let senhaAntiga = document.getElementById("edSenhaAntiga")?.value.trim();
+        let senhaNova = document.getElementById("edSenhaNova")?.value.trim();
+        let senhaNovaConf = document.getElementById("edSenhaNovaConf")?.value.trim();
+
+        const payload = {
+            novaSenha: senhaNova,
+            antigaSenha: senhaAntiga
+        };
+
+        if (!senhaAntiga || !payload.novaSenha || !payload.antigaSenha) {
+            mostrarAlerta("Preencha todos os campos de senha.");
+            return;
+        }
+        if (payload.novaSenha !== senhaNovaConf) {
+            mostrarAlerta("A nova senha e a confirmação não coincidem.");
+            return;
+        }
+
+        try {
+            const res = await MainAPI.editarSenhaUsuario(userId, payload);
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                mostrarAlerta(body.message || "Erro ao alterar senha.");
+                return;
+            }
+            mostrarAlerta("Senha alterada com sucesso.");
+            document.getElementById("edSenhaAntiga").value = "";
+            document.getElementById("edSenhaNova").value = "";
+            document.getElementById("edSenhaNovaConf").value = "";
+        } catch (e) {
+            mostrarAlerta("Erro ao alterar senha.");
+            console.error(e);
+        }
+    }
+
+    // AÇÕES CRÍTICAS
+    window.excluirConta = async function () {
+        mostrarConfirmacao("Tem certeza que deseja excluir sua conta? Esta ação é irreversível.", async () => {
+            try {
+                const res = await MainAPI.excluirUsuario(userId);
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    mostrarAlerta(body.message || "Erro ao excluir conta.");
+                    return;
+                }
+                mostrarAlerta("Conta excluída com sucesso.");
+                localStorage.removeItem("usuarioLogado");
+                setTimeout(() => {
+                    window.location.href = "login.html";
+                }, 1500);
+            } catch (e) {
+                mostrarAlerta("Erro ao excluir conta.");
+                console.error(e);
+            }
+        });
+    }
+
+    window.desvincularTodasInstituicoes = async function () {
+        mostrarConfirmacao("Tem certeza que deseja desvincular todas as instituições? Esta ação não pode ser desfeita.", async () => {
+            try {
+                const res = await MainAPI.desvincularTodasInstituicoes(userId);
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    mostrarAlerta(body.message || "Erro ao desvincular instituições.");
+                    return;
+                }
+                mostrarAlerta("Todas as instituições desvinculadas com sucesso.");
+                await carregarInstituicoes();
+            } catch (e) {
+                mostrarAlerta("Erro ao desvincular instituições.");
+                console.error(e);
+            }
+        });
+    }
+
+    window.deletarTodosEventos = async function () {
+        mostrarConfirmacao("Tem certeza que deseja apagar todos os eventos financeiros? Esta ação é irreversível.", async () => {
+            try {
+                const res = await MainAPI.deletarTodosEventos(userId);
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    mostrarAlerta(body.message || "Erro ao apagar eventos.");
+                    return;
+                }
+                mostrarAlerta("Todos os eventos apagados com sucesso.");
+                window.dispatchEvent(new Event("xp:refresh"));
+            } catch (e) {
+                mostrarAlerta("Erro ao apagar eventos.");
+                console.error(e);
+            }
+        });
+    }
 })();
