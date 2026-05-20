@@ -3,11 +3,10 @@ package controle.api.back_end.dto.registros.in;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.websocket.OnOpen;
 
 import java.util.List;
 
-public class GastoDetalheCreateDto {
+public class EventoDetalheCreateDto {
     @Schema(example = "[1, 2]", description = "Representa as categorias da movimentação")
     @NotNull
     private List<Integer> categoriaUsuario_id;

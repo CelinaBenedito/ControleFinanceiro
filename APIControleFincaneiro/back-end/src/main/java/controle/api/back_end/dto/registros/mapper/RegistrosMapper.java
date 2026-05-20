@@ -2,7 +2,7 @@ package controle.api.back_end.dto.registros.mapper;
 
 import controle.api.back_end.dto.registros.in.EventoFinanceiroCreateDto;
 import controle.api.back_end.dto.registros.in.EventoInstituicaoCreateDto;
-import controle.api.back_end.dto.registros.in.GastoDetalheCreateDto;
+import controle.api.back_end.dto.registros.in.EventoDetalheCreateDto;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.dto.registros.out.RegistroUsuarioResponseDto;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
@@ -65,7 +65,7 @@ public class RegistrosMapper {
                 .toList();
     }
 
-    public static EventoDetalhe toEntityGasto(@Valid GastoDetalheCreateDto dto){
+    public static EventoDetalhe toEntityGasto(@Valid EventoDetalheCreateDto dto){
         if(dto == null){
             return null;
         }
@@ -85,7 +85,7 @@ public class RegistrosMapper {
         return entity;
     }
 
-    public static List<EventoDetalhe> toEntityGasto(@Valid List<GastoDetalheCreateDto> dtos){
+    public static List<EventoDetalhe> toEntityGasto(@Valid List<EventoDetalheCreateDto> dtos){
         return dtos.stream()
                 .map(RegistrosMapper::toEntityGasto)
                 .toList();

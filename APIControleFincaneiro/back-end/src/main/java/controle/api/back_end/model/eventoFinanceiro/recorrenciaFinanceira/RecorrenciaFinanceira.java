@@ -1,27 +1,37 @@
 package controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira;
 
+import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.usuario.Usuario;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
-public class RecorrenciaFinanceira {
+public abstract class RecorrenciaFinanceira {
     @Id
     private UUID id;
 
     @ManyToOne
     private Usuario usuario;
 
+    @Enumerated(EnumType.STRING)
     private Tipo tipo;
+
+    @NotNull
     private Double valor;
+
+    @Size(max = 500)
     private String descricao;
-    private LocalDate diaRecorrencia;
-    private Periodicidade periodicidade;
+
+    private LocalDate dataInicio;
+    private LocalDate dataFim;
+
+    public abstract List<EventoFinanceiro> gerarEventos(LocalDate limite);
 
     public UUID getId() {
         return id;
@@ -63,20 +73,20 @@ public class RecorrenciaFinanceira {
         this.descricao = descricao;
     }
 
-    public LocalDate getDiaRecorrencia() {
-        return diaRecorrencia;
+    public LocalDate getDataInicio() {
+        return dataInicio;
     }
 
-    public void setDiaRecorrencia(LocalDate diaRecorrencia) {
-        this.diaRecorrencia = diaRecorrencia;
+    public void setDataInicio(LocalDate dataInicio) {
+        this.dataInicio = dataInicio;
     }
 
-    public Periodicidade getPeriodicidade() {
-        return periodicidade;
+    public LocalDate getDataFim() {
+        return dataFim;
     }
 
-    public void setPeriodicidade(Periodicidade periodicidade) {
-        this.periodicidade = periodicidade;
+    public void setDataFim(LocalDate dataFim) {
+        this.dataFim = dataFim;
     }
 }
 

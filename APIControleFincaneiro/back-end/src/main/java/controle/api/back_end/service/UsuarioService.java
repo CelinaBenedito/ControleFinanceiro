@@ -14,8 +14,15 @@ import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroReposit
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -188,5 +195,42 @@ public class UsuarioService {
         }
         usuario.setSenha(novaSenha);
         return usuarioRepository.save(usuario);
+    }
+
+    public Usuario uploadImagemUsuario(UUID id, MultipartFile file) {
+        Usuario usuario = getUsuario(id);
+
+        try {
+            // Definir pasta de destino
+            String pastaDestino = System.getProperty("user.dir") + "/uploads/user_images/";
+            File diretorio = new File(pastaDestino);
+            if (!diretorio.exists()) {
+                diretorio.mkdirs();
+            }
+            String contentType = file.getContentType();
+            String extensao = "";
+
+            if (contentType != null) {
+                switch (contentType) {
+                    case "image/jpeg": extensao = "jpg"; break;
+                    case "image/png": extensao = "png"; break;
+                    case "image/gif": extensao = "gif"; break;
+                    default: extensao = "bin";
+                }
+            }
+
+
+            String nomeArquivo = id.toString() + "_" + usuario.getSobrenome() +
+                    "." + extensao;
+
+            Path caminhoArquivo = Paths.get(pastaDestino, nomeArquivo);
+
+            Files.copy(file.getInputStream(), caminhoArquivo, StandardCopyOption.REPLACE_EXISTING);
+
+            usuario.setImagem(caminhoArquivo.toString());
+            return usuarioRepository.save(usuario);
+        } catch (IOException e) {
+            throw new RuntimeException("Erro ao salvar imagem: " + e.getMessage());
+        }
     }
 }
