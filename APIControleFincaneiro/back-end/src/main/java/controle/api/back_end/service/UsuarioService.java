@@ -1,6 +1,7 @@
 package controle.api.back_end.service;
 
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
+import controle.api.back_end.exception.ContentTypeException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.exception.MenorDeIdadeException;
 import controle.api.back_end.exception.SenhasNaoCoincidemException;
@@ -48,15 +49,15 @@ public class UsuarioService {
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
     }
 
-    public List<Usuario> getUsuarios(){
+    public List<Usuario> getUsuarios() {
         return usuarioRepository.findAll();
     }
 
     public Usuario getUsuarioById(UUID id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException(
-                        "Usuario de id: %s não encontrado".
-                                formatted(id)
+                                "Usuario de id: %s não encontrado".
+                                        formatted(id)
                         )
                 );
     }
@@ -79,7 +80,7 @@ public class UsuarioService {
 
     public Usuario createUsuario(Usuario entity) {
         //VALIDAÇÃO DE IDADE
-        if(ageValidation(entity.getDataNascimento()) == false){
+        if (ageValidation(entity.getDataNascimento()) == false) {
             throw new MenorDeIdadeException("Usuario menor de idade");
         }
         return usuarioRepository.save(entity);
@@ -88,33 +89,33 @@ public class UsuarioService {
     public Usuario LoginUsuario(Usuario login) {
         List<Usuario> usuarioByEmailAndSenha = usuarioRepository.
                 findUsuarioByEmailAndSenha(
-                login.getEmail(),
+                        login.getEmail(),
                         login.getSenha()
-        );
-               if(usuarioByEmailAndSenha.isEmpty()){
-                   throw new EntidadeNaoEncontradaException(
-                           "Usuario de email: %s e senha: %s não encontrado".
-                           formatted(
-                                   login.getEmail(),
-                                   login.getSenha()
-                           )
-                   );
-               }
-               return usuarioByEmailAndSenha.getFirst();
+                );
+        if (usuarioByEmailAndSenha.isEmpty()) {
+            throw new EntidadeNaoEncontradaException(
+                    "Usuario de email: %s e senha: %s não encontrado".
+                            formatted(
+                                    login.getEmail(),
+                                    login.getSenha()
+                            )
+            );
+        }
+        return usuarioByEmailAndSenha.getFirst();
     }
 
-    public Usuario editUsuario(UUID id,Usuario entity) {
+    public Usuario editUsuario(UUID id, Usuario entity) {
         //VALIDAÇÃO DE IDADE
-        if(entity.getDataNascimento()!= null){
-            if(ageValidation(entity.getDataNascimento()) == false){
+        if (entity.getDataNascimento() != null) {
+            if (ageValidation(entity.getDataNascimento()) == false) {
                 throw new MenorDeIdadeException("Data para adicionado é menor que 18 anos");
             }
         }
 
         Usuario userAtual = usuarioRepository.findById(id)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException(
-                        "Usuario com o id: %s para editar não encontrado"
-                                .formatted(id)
+                                "Usuario com o id: %s para editar não encontrado"
+                                        .formatted(id)
                         )
                 );
 
@@ -123,7 +124,7 @@ public class UsuarioService {
         return usuarioRepository.save(edit);
     }
 
-    public Boolean ageValidation(LocalDate dataNascimento){
+    public Boolean ageValidation(LocalDate dataNascimento) {
         LocalDate hoje = LocalDate.now();
 
         LocalDate dataMaioridade = hoje.minusYears(18);
@@ -134,12 +135,12 @@ public class UsuarioService {
         return false;
     }
 
-    public void createConfiguracao(Usuario usuario){
+    public void createConfiguracao(Usuario usuario) {
         Configuracoes configuracoes = new Configuracoes();
         configuracoes.setUsuario(usuario);
         configuracoes.setInicioMesFiscal(1);
         configuracoes.setUltimaAtualizacao(LocalDate.now());
-        configuracoesService.createConfiguracao(configuracoes,usuario.getId());
+        configuracoesService.createConfiguracao(configuracoes, usuario.getId());
     }
 
     public Double getXpByUserId(UUID user_id) {
@@ -166,9 +167,9 @@ public class UsuarioService {
         return xp;
     }
 
-    public Usuario getUsuario(UUID userId){
+    public Usuario getUsuario(UUID userId) {
         return usuarioRepository.findById(userId)
-                .orElseThrow(()->
+                .orElseThrow(() ->
                         new EntidadeNaoEncontradaException(
                                 "Usuário de id: %s não encontrado."
                                         .formatted(userId)
@@ -181,7 +182,7 @@ public class UsuarioService {
         usuario.setIsAtivo(false);
     }
 
-    public Usuario activateUsuario(UUID userId){
+    public Usuario activateUsuario(UUID userId) {
         Usuario usuario = getUsuario(userId);
         usuario.setIsAtivo(true);
         return usuario;
@@ -190,7 +191,7 @@ public class UsuarioService {
     public Usuario editSenhaByUserId(UUID userId, String novaSenha, String antigaSenha) {
         Usuario usuario = getUsuario(userId);
 
-        if (!usuario.getSenha().equals(antigaSenha)){
+        if (!usuario.getSenha().equals(antigaSenha)) {
             throw new SenhasNaoCoincidemException();
         }
         usuario.setSenha(novaSenha);
@@ -212,13 +213,19 @@ public class UsuarioService {
 
             if (contentType != null) {
                 switch (contentType) {
-                    case "image/jpeg": extensao = "jpg"; break;
-                    case "image/png": extensao = "png"; break;
-                    case "image/gif": extensao = "gif"; break;
-                    default: extensao = "bin";
+                    case "image/jpeg":
+                        extensao = "jpg";
+                        break;
+                    case "image/png":
+                        extensao = "png";
+                        break;
+                    case "image/gif":
+                        extensao = "gif";
+                        break;
+                    default:
+                        throw new ContentTypeException("Extensão de imagem não aceita");
                 }
             }
-
 
             String nomeArquivo = id.toString() + "_" + usuario.getSobrenome() +
                     "." + extensao;
@@ -227,7 +234,7 @@ public class UsuarioService {
 
             Files.copy(file.getInputStream(), caminhoArquivo, StandardCopyOption.REPLACE_EXISTING);
 
-            usuario.setImagem(caminhoArquivo.toString());
+            usuario.setImagem("/uploads/user_images/" + nomeArquivo);
             return usuarioRepository.save(usuario);
         } catch (IOException e) {
             throw new RuntimeException("Erro ao salvar imagem: " + e.getMessage());
