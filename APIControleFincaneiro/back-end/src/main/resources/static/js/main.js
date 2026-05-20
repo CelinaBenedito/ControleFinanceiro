@@ -26,6 +26,10 @@
         });
     }
 
+    function chaveImagemLocal(userId) {
+        return userId ? `usuarioImagemLocal:${userId}` : null;
+    }
+
     function formatarLocalDateTime(valor, vazio = "-") {
         if (!valor) return vazio;
 
@@ -152,6 +156,40 @@
         },
         loginUsuario(payload) {
             return postJson("/usuarios/login", payload);
+        },
+        obterUsuario(userId) {
+            return request(`/usuarios/${userId}`, { method: "GET" })
+                .then(res => res.json());
+        },
+        enviarImagemUsuario(userId, file) {
+            const formData = new FormData();
+            formData.append("file", file);
+            return request(`/usuarios/${userId}/upload-imagem`, {
+                method: "PUT",
+                body: formData
+            });
+        },
+        salvarImagemLocal(userId, dataUrl) {
+            const chave = chaveImagemLocal(userId);
+            if (!chave || !dataUrl) return;
+            try {
+                localStorage.setItem(chave, dataUrl);
+            } catch (_) {
+            }
+        },
+        obterImagemLocal(userId) {
+            const chave = chaveImagemLocal(userId);
+            if (!chave) return null;
+            return localStorage.getItem(chave);
+        },
+        resolverUrlImagem(caminhoImagem, userId) {
+            if (!caminhoImagem) return null;
+            if (/^data:image\//i.test(caminhoImagem)) return caminhoImagem;
+            if (/^https?:\/\//i.test(caminhoImagem)) return caminhoImagem;
+
+            const local = this.obterImagemLocal(userId);
+            if (local) return local;
+            return null;
         },
         editarRegistro(eventoId, payload) {
             return request(`/registros/${eventoId}`, {

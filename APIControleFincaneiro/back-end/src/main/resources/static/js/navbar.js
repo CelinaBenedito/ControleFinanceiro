@@ -64,10 +64,29 @@ if (theme === "dark") {
     const uwNome = document.getElementById("uw_nome");
     const uwXp = document.getElementById("uw_xp");
     const uwLvl = document.getElementById("uw_lvl");
+    const uwAvatar = document.querySelector(".uw-avatar");
     if (!uwNome) return;
 
     const user = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
     if (user && user.nome) uwNome.textContent = user.nome;
+
+    function renderizarAvatarWidget(usuarioAtual) {
+        if (!uwAvatar) return;
+        const url = window.MainAPI?.resolverUrlImagem
+            ? window.MainAPI.resolverUrlImagem(usuarioAtual?.imagem, usuarioAtual?.id)
+            : null;
+
+        if (url) {
+            const urlFinal = /^data:image\//i.test(url)
+                ? url
+                : `${url}${url.includes("?") ? "&" : "?"}v=${Date.now()}`;
+            uwAvatar.innerHTML = `<img src="${urlFinal}" alt="Foto de perfil" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+        } else {
+            uwAvatar.innerHTML = "<i class='bx bx-user' style='font-size:1.6rem; color:#367373;'></i>";
+        }
+    }
+
+    renderizarAvatarWidget(user);
 
     function xpNecessarioDoNivel(nivelAtual) {
         return Math.round(500 * Math.pow(nivelAtual, 1.5));
@@ -115,6 +134,10 @@ if (theme === "dark") {
 
     window.atualizarXPWidget = atualizarXPWidget;
     window.addEventListener("xp:refresh", atualizarXPWidget);
+    window.addEventListener("usuario:imagemAtualizada", () => {
+        const usuarioAtual = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
+        renderizarAvatarWidget(usuarioAtual);
+    });
     atualizarXPWidget();
 })();
 
