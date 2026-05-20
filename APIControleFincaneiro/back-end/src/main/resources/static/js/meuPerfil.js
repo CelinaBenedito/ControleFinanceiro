@@ -72,6 +72,80 @@
         return "—";
     }
 
+    function arquivoParaDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error("Falha ao ler imagem local."));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function renderizarAvatar(caminhoImagem) {
+        const avatarImg = document.getElementById("pfAvatarImg");
+        const avatarIcon = document.getElementById("pfAvatarIcon");
+        if (!avatarImg || !avatarIcon) return;
+
+        const url = window.MainAPI?.resolverUrlImagem
+            ? window.MainAPI.resolverUrlImagem(caminhoImagem, userId)
+            : null;
+
+        if (url) {
+            const urlFinal = /^data:image\//i.test(url)
+                ? url
+                : `${url}${url.includes("?") ? "&" : "?"}v=${Date.now()}`;
+            avatarImg.src = urlFinal;
+            avatarImg.style.display = "block";
+            avatarIcon.style.display = "none";
+        } else {
+            avatarImg.removeAttribute("src");
+            avatarImg.style.display = "none";
+            avatarIcon.style.display = "block";
+        }
+    }
+
+    function bindUploadImagemPerfil() {
+        const avatar = document.getElementById("pfAvatar");
+        const input = document.getElementById("inputFotoPerfil");
+        if (!avatar || !input) return;
+
+        avatar.addEventListener("click", () => input.click());
+
+        input.addEventListener("change", async (event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+
+            if (!file) return;
+            if (!file.type.startsWith("image/")) {
+                mostrarAlerta("Selecione um arquivo de imagem válido.");
+                return;
+            }
+
+            try {
+                const res = await window.MainAPI.enviarImagemUsuario(userId, file);
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    mostrarAlerta(body.message || "Erro ao enviar imagem.");
+                    return;
+                }
+
+                const atualizado = await res.json();
+                const dataUrl = await arquivoParaDataUrl(file);
+                const atualLocal = JSON.parse(localStorage.getItem("usuarioLogado") || "null") || {};
+                const novoUsuario = { ...atualLocal, ...atualizado, imagem: dataUrl };
+                window.MainAPI.salvarImagemLocal(userId, dataUrl);
+                localStorage.setItem("usuarioLogado", JSON.stringify(novoUsuario));
+
+                popularHero(novoUsuario);
+                window.dispatchEvent(new Event("usuario:imagemAtualizada"));
+                mostrarAlerta("Imagem de perfil atualizada com sucesso.");
+            } catch (e) {
+                console.error("Erro ao enviar imagem:", e);
+                mostrarAlerta("Erro ao enviar imagem.");
+            }
+        });
+    }
+
     function xpNecessarioDoNivel(nivelAtual) {
         return Math.round(500 * Math.pow(nivelAtual, 1.5));
     }
@@ -125,18 +199,18 @@
         }
         // Busca dados frescos da API para garantir sobrenome, sexo, dataNascimento e email
         try {
-            const res = await fetch(`${API}/usuarios/${userId}`);
-            if (res.ok) {
-                const usuarioAtualizado = await res.json();
-                const merged = { ...usuarioLogado, ...usuarioAtualizado };
-                localStorage.setItem("usuarioLogado", JSON.stringify(merged));
-                popularHero(merged);
-            } else {
-                popularHero(usuarioLogado);
-            }
+            const usuarioAtualizado = await window.MainAPI.obterUsuario(userId);
+            const merged = { ...usuarioLogado, ...usuarioAtualizado };
+            const imagemLocal = window.MainAPI.obterImagemLocal(userId);
+            if (imagemLocal) merged.imagem = imagemLocal;
+            localStorage.setItem("usuarioLogado", JSON.stringify(merged));
+            popularHero(merged);
         } catch (e) {
             popularHero(usuarioLogado);
         }
+
+        bindUploadImagemPerfil();
+
         await Promise.all([
             carregarXpPerfil(),
             carregarConfig(),
@@ -157,6 +231,7 @@
         if (nascEl) nascEl.textContent = formatarData(u.dataNascimento);
         const emailEl = document.getElementById("pfEmail");
         if (emailEl) emailEl.textContent = u.email || "—";
+        renderizarAvatar(u.imagem || null);
     }
 
     // ── EDITAR PERFIL ─────────────────────────────────────────────
