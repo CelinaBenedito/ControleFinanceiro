@@ -735,7 +735,7 @@ body.dark-mode {
     display: none;
 }
 
-footer {
+/* footer {
     margin-top: 15px;
     display: flex;
     background-color: var(--teal-escuro);
@@ -758,7 +758,7 @@ footer {
 footer a {
     text-decoration: none;
     color: var(--cor-texto-claro);
-}
+} */
 
 .containerRegistros {
     display: grid;
