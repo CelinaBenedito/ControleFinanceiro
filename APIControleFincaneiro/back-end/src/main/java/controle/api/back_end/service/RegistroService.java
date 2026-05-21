@@ -16,18 +16,21 @@ import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.*;
 
 import com.itextpdf.layout.properties.UnitValue;
-import controle.api.back_end.dto.registros.in.TransferenciaDTO;
+import controle.api.back_end.dto.registros.in.RegistroCompletoCreateDto;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.exception.InstituicaoInativaException;
 import controle.api.back_end.exception.SaldoInsuficienteException;
+import controle.api.back_end.factory.EventoFinanceiroFactory;
 import controle.api.back_end.factory.MovimentoFactory;
+import controle.api.back_end.factory.RecorrenciaFactory;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.*;
+import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.categoria.CategoriaRepository;
@@ -42,7 +45,6 @@ import controle.api.back_end.repository.instituicao.InstituicaoRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import controle.api.back_end.specifications.EventoFinanceiroSpecifications;
-import controle.api.back_end.strategy.eventoFinanceiro.TransferenciaEvento;
 import controle.api.back_end.strategy.movimento.MovimentoResultado;
 import controle.api.back_end.strategy.movimento.MovimentoStrategy;
 import com.alibaba.excel.EasyExcel;
@@ -53,6 +55,7 @@ import java.io.ByteArrayOutputStream;
 
 import java.time.LocalDate;
 
+import controle.api.back_end.strategy.recorrenciaFinanceira.RecorrenciaStrategy;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
@@ -75,16 +78,17 @@ public class RegistroService {
     private final UsuarioRepository usuarioRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final MovimentoFactory movimentoFactory;
+    private final EventoFinanceiroFactory eventoFinanceiroFactory;
+    private final RecorrenciaFactory recorrenciaFactory;
     private final InstituicaoRepository instituicaoRepository;
     private final CategoriaRepository categoriaRepository;
     private final InstituicaoService instituicaoService;
     private final LimitePorInstituicaoRepository limitePorInstituicaoRepository;
     private final LimitePorCategoriaRepository limitePorCategoriaRepository;
     private final ConfiguracoesRepository configuracoesRepository;
-    private final TransferenciaEvento transferenciaEvento;
     private final UsuarioService usuarioService;
 
-    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository, TransferenciaEvento transferenciaEvento, UsuarioService usuarioService) {
+    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, EventoFinanceiroFactory eventoFinanceiroFactory, RecorrenciaFactory recorrenciaFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository, UsuarioService usuarioService) {
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoDetalheRepository = eventoDetalheRepository;
@@ -92,13 +96,14 @@ public class RegistroService {
         this.usuarioRepository = usuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
         this.movimentoFactory = movimentoFactory;
+        this.eventoFinanceiroFactory = eventoFinanceiroFactory;
+        this.recorrenciaFactory = recorrenciaFactory;
         this.instituicaoRepository = instituicaoRepository;
         this.categoriaRepository = categoriaRepository;
         this.instituicaoService = instituicaoService;
         this.limitePorInstituicaoRepository = limitePorInstituicaoRepository;
         this.limitePorCategoriaRepository = limitePorCategoriaRepository;
         this.configuracoesRepository = configuracoesRepository;
-        this.transferenciaEvento = transferenciaEvento;
         this.usuarioService = usuarioService;
     }
 
@@ -119,46 +124,23 @@ public class RegistroService {
         return eventoFinanceiroRepository.save(entity);
     }
 
-    public List<EventoInstituicao> createEventoInstituicaoTransferencia(EventoInstituicao eventoInstituicao,
-                                                                        EventoFinanceiro eventoFinanceiro,
-                                                                        Integer destino_id){
+    public List<RegistroResponseDto> createEventosRecorrentes(RecorrenciaFinanceira recorrencia, RegistroCompletoCreateDto dto) {
+        RecorrenciaStrategy strategy = recorrenciaFactory.getStrategy(recorrencia.getPeriodicidade());
+        List<EventoFinanceiro> eventos = strategy.gerarEventos(recorrencia, recorrencia.getDataFim());
 
-        if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())) {
-            throw new EntidadeNaoEncontradaException(
-                    "Evento Financeiro de id: %s não encontrado"
-                            .formatted(eventoFinanceiro.getId())
-            );
+        List<RegistroResponseDto> responses = new ArrayList<>();
+        for (EventoFinanceiro evento : eventos) {
+            EventoFinanceiro saved = createEventoFinanceiro(evento);
+            List<EventoInstituicao> insts = createEventoInstituicao(
+                    RegistrosMapper.toEntityEvento(dto.getInstituicao()), saved);
+            EventoDetalhe detalhe = createGastoDetalhe(
+                    RegistrosMapper.toEntityGasto(dto.getDetalhe()), saved);
+
+            responses.add(RegistrosMapper.toResponse(saved, insts, detalhe));
         }
-        List<InstituicaoUsuario> instituicaoUsuario = instituicaoUsuarioRepository.findInstituicaoUsuarioByEventoInstituicao_Id(eventoInstituicao.getId());
-        eventoInstituicao.setInstituicaoUsuario(instituicaoUsuario.getFirst());
-
-
-        InstituicaoUsuario destino = instituicaoUsuarioRepository.findById(destino_id)
-                .orElseThrow(() ->
-                        new EntidadeNaoEncontradaException("Instituição usuario de id: %d não encontrado."
-                                .formatted(destino_id)
-                        )
-                );
-
-        //TransferenciaDTO processar = transferenciaEvento.processar(eventoFinanceiro, eventoInstituicao, destino);
-        List<EventoInstituicao> listaRecebedora = new ArrayList<>();
-
-        //EventoInstituicao recebedora = processar.getEventoInstituicao();
-        //EventoFinanceiro eventoRecebedora = processar.getEventoFinanceiro();
-
-//        recebedora.setTipoMovimento(eventoInstituicao.getTipoMovimento());
-//        recebedora.setEventoFinanceiro(eventoRecebedora);
-//        recebedora.setParcelas(1);
-//        recebedora.setValor(eventoInstituicao.getValor());
-//        recebedora.setInstituicaoUsuario(destino);
-//        listaRecebedora.add(recebedora);
-//        eventoFinanceiroRepository.save(eventoRecebedora);
-//        eventoInstituicaoRepository.save(recebedora);
-//        eventoInstituicao.setEventoFinanceiro(eventoFinanceiro);
-//        eventoInstituicaoRepository.save(eventoInstituicao);
-
-        return listaRecebedora;
+        return responses;
     }
+
 
     public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> entities,
                                                            EventoFinanceiro eventoFinanceiro) {
@@ -302,7 +284,7 @@ public class RegistroService {
 
 
         return eventos.stream()
-                .map(e -> RegistrosMapper.toResponse(e, e.getEventoInstituicao(), e.getGastoDetalhe()))
+                .map(e -> RegistrosMapper.toResponse(e, e.getEventoInstituicoes(), e.getGastoDetalhe()))
                 .collect(Collectors.toList());
 
     }

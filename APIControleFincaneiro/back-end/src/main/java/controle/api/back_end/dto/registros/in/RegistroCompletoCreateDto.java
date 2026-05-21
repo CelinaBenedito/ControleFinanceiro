@@ -12,9 +12,6 @@ public class RegistroCompletoCreateDto {
     private List<EventoInstituicaoCreateDto> instituicao;
     @Valid
     private EventoDetalheCreateDto detalhe;
-    @Schema
-    private Integer instituicaoRecebendo_id;
-
 
     public List<EventoInstituicaoCreateDto> getInstituicao() {
         return instituicao;
@@ -38,13 +35,5 @@ public class RegistroCompletoCreateDto {
 
     public void setDetalhe(EventoDetalheCreateDto detalhe) {
         this.detalhe = detalhe;
-    }
-
-    public Integer getInstituicaoRecebendo_id() {
-        return instituicaoRecebendo_id;
-    }
-
-    public void setInstituicaoRecebendo_id(Integer instituicaoRecebendo_id) {
-        this.instituicaoRecebendo_id = instituicaoRecebendo_id;
     }
 }

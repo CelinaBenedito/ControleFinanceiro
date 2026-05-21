@@ -15,13 +15,13 @@ public interface EventoFinanceiroRepository extends JpaRepository<EventoFinancei
                                                     JpaSpecificationExecutor<EventoFinanceiro> {
     List<EventoFinanceiro> getEventoFinanceirosByUsuario_id(UUID fkUsuarioId);
 
-    List<EventoFinanceiro> findEventoFinanceiroByEventoInstituicao_InstituicaoUsuario_Id(Integer eventoInstituicaoInstituicaoUsuarioId);
+    List<EventoFinanceiro> findEventoFinanceiroByEventoInstituicoes_InstituicaoUsuario_Id(Integer eventoInstituicaoInstituicaoUsuarioId);
 
     List<EventoFinanceiro> findEventoFinanceiroByUsuario(Usuario usuario);
 
     void deleteEventoFinanceiroById(UUID id);
 
-    EventoFinanceiro findEventoFinanceiroByEventoInstituicao_Id(Integer id);
+    EventoFinanceiro findEventoFinanceiroByEventoInstituicoes_Id(Integer id);
 
     List<EventoFinanceiro> findEventoFinanceiroByUsuarioOrderByDataEventoDesc(Usuario usuario);
 

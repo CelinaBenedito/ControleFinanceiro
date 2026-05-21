@@ -6,6 +6,7 @@ import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.dto.registros.out.RegistroUsuarioResponseDto;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.eventoFinanceiro.*;
+import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.service.RegistroService;
@@ -195,16 +196,22 @@ public class RegistrosController {
     })
     public ResponseEntity<RegistroUsuarioResponseDto> createRegistroCompleto(
             @RequestBody @Valid RegistroCompletoCreateDto dto){
+
+        boolean isRecorrente = Boolean.TRUE.equals(dto.getFinanceiro().getRecorrente())
+                && (dto.getFinanceiro().getPeriodicidade() != null);
+
+        if (isRecorrente &&
+                (dto.getFinanceiro().getTipo() == Tipo.Gasto || dto.getFinanceiro().getTipo() == Tipo.Recebimento)) {
+
+            RecorrenciaFinanceira recorrencia = RegistrosMapper.toEntityRecorrencia(dto.getFinanceiro());
+            List<RegistroResponseDto> responses = registroService.createEventosRecorrentes(recorrencia, dto);
+        }
         EventoFinanceiro eventoCreated = registroService.createEventoFinanceiro(
                 RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro()));
         List<EventoInstituicao> instituicaoCreated;
-        if (eventoCreated.getTipo().equals(Tipo.Transferencia)){
-            instituicaoCreated = registroService.createEventoInstituicaoTransferencia(
-                    RegistrosMapper.toEntityEvento(dto.getInstituicao().getFirst()), eventoCreated,dto.getInstituicaoRecebendo_id());
-        }else {
+
             instituicaoCreated = registroService.createEventoInstituicao(
                     RegistrosMapper.toEntityEvento(dto.getInstituicao()), eventoCreated);
-        }
         EventoDetalhe gastoCreated = registroService.createGastoDetalhe(
                 RegistrosMapper.toEntityGasto(dto.getDetalhe()), eventoCreated);
 

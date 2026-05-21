@@ -9,6 +9,8 @@ import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.Periodicidade;
+import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.validation.Valid;
@@ -19,9 +21,7 @@ import java.util.List;
 public class RegistrosMapper {
 
     public static EventoFinanceiro toEntityFinanceiro(@Valid EventoFinanceiroCreateDto dto){
-        if (dto == null){
-            return null;
-        }
+        if (dto == null) return null;
 
         EventoFinanceiro entity = new EventoFinanceiro();
         Usuario user = new Usuario();
@@ -33,14 +33,45 @@ public class RegistrosMapper {
         entity.setDescricao(dto.getDescricao());
         entity.setDataEvento(dto.getDataEvento());
 
+        // Campos de poupança
+        entity.setTaxaRendimento(dto.getTaxaRendimento());
+        entity.setTempoAplicacao(dto.getTempoAplicacao());
+        entity.setTempoProjecao(dto.getTempoProjecao());
+
         return entity;
     }
+
 
     public static List<EventoFinanceiro> toEntityFinanceiro(@Valid List<EventoFinanceiroCreateDto> dtos){
         return dtos.stream()
                 .map(RegistrosMapper::toEntityFinanceiro)
                 .toList();
     }
+
+    public static RecorrenciaFinanceira toEntityRecorrencia(@Valid EventoFinanceiroCreateDto dto) {
+        if (dto == null) return null;
+
+        RecorrenciaFinanceira entity = new RecorrenciaFinanceira();
+        Usuario user = new Usuario();
+        user.setId(dto.getUsuario_id());
+
+        entity.setUsuario(user);
+        entity.setTipo(dto.getTipo());
+        entity.setValor(dto.getValor());
+        entity.setDescricao(dto.getDescricao());
+        entity.setDataInicio(dto.getDataEvento());
+        entity.setDataFim(dto.getDataFim());
+        entity.setIntervalo(dto.getIntervalo());
+        entity.setDia(dto.getDia());
+
+        if (dto.getPeriodicidade() != null) {
+            entity.setPeriodicidade(Periodicidade.valueOf(dto.getPeriodicidade()));
+        }
+        entity.setDiasDaSemana(dto.getDiasDaSemana());
+
+        return entity;
+    }
+
 
     public static EventoInstituicao toEntityEvento(@Valid EventoInstituicaoCreateDto dto){
         if (dto == null){

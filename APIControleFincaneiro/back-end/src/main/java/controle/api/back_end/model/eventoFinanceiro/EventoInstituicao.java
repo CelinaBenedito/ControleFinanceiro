@@ -1,5 +1,6 @@
 package controle.api.back_end.model.eventoFinanceiro;
 
+import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -34,6 +35,10 @@ public class EventoInstituicao {
     @Positive
     @NotNull
     private Integer parcelas = 1;
+
+    @ManyToOne
+    @JoinColumn(name = "fkRecorrencia")
+    private RecorrenciaFinanceira recorrenciaFinanceira;
 
     public InstituicaoUsuario getInstituicaoUsuario() {
         return instituicaoUsuario;
