@@ -25,6 +25,8 @@ public class EventoInstituicaoCreateDto {
     @Schema(example = "2", description = "Representa a quantidade de parcelas da movimentação")
     private Integer parcelas = 1;
 
+    private Integer destinoInstituicaoUsuario_id;
+
     public Integer getInstituicaoUsuario_id() {
         return instituicaoUsuario_id;
     }
@@ -55,6 +57,14 @@ public class EventoInstituicaoCreateDto {
 
     public void setParcelas(Integer parcelas) {
         this.parcelas = parcelas;
+    }
+
+    public Integer getDestinoInstituicaoUsuario_id() {
+        return destinoInstituicaoUsuario_id;
+    }
+
+    public void setDestinoInstituicaoUsuario_id(Integer destinoInstituicaoUsuario_id) {
+        this.destinoInstituicaoUsuario_id = destinoInstituicaoUsuario_id;
     }
 }
 

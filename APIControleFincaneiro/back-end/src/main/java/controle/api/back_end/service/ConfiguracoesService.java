@@ -246,8 +246,8 @@ public class ConfiguracoesService {
                 evento.getGastoDetalhe().getCategoriaUsuario().clear(); // limpa vínculos
                 evento.setGastoDetalhe(null);
             }
-            if (evento.getEventoInstituicao() != null) {
-                evento.getEventoInstituicao().clear();
+            if (evento.getEventoInstituicoes() != null) {
+                evento.getEventoInstituicoes().clear();
             }
         }
         eventoFinanceiroRepository.deleteAll(eventosFinanceiros);

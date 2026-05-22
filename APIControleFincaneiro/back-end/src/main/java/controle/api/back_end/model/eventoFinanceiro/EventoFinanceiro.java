@@ -33,8 +33,14 @@ public class EventoFinanceiro {
     @NotNull
     private LocalDate dataEvento;
 
+    private Double taxaRendimento;
+
+    private Integer tempoAplicacao;
+
+    private Integer tempoProjecao;
+
     @OneToMany(mappedBy = "eventoFinanceiro", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<EventoInstituicao> eventoInstituicao;
+    private List<EventoInstituicao> eventoInstituicoes;
 
     @OneToOne(mappedBy = "eventoFinanceiro", cascade = CascadeType.ALL, orphanRemoval = true)
     private EventoDetalhe eventoDetalhe;
@@ -90,6 +96,30 @@ public class EventoFinanceiro {
         this.dataEvento = dataEvento;
     }
 
+    public Double getTaxaRendimento() {
+        return taxaRendimento;
+    }
+
+    public void setTaxaRendimento(Double taxaRendimento) {
+        this.taxaRendimento = taxaRendimento;
+    }
+
+    public Integer getTempoAplicacao() {
+        return tempoAplicacao;
+    }
+
+    public void setTempoAplicacao(Integer tempoAplicacao) {
+        this.tempoAplicacao = tempoAplicacao;
+    }
+
+    public Integer getTempoProjecao() {
+        return tempoProjecao;
+    }
+
+    public void setTempoProjecao(Integer tempoProjecao) {
+        this.tempoProjecao = tempoProjecao;
+    }
+
     public LocalDateTime getDataRegistro() {
         return dataRegistro;
     }
@@ -98,12 +128,12 @@ public class EventoFinanceiro {
         this.dataRegistro = dataRegistro;
     }
 
-    public List<EventoInstituicao> getEventoInstituicao() {
-        return eventoInstituicao;
+    public List<EventoInstituicao> getEventoInstituicoes() {
+        return eventoInstituicoes;
     }
 
-    public void setEventoInstituicao(List<EventoInstituicao> eventoInstituicao) {
-        this.eventoInstituicao = eventoInstituicao;
+    public void setEventoInstituicoes(List<EventoInstituicao> eventoInstituicoes) {
+        this.eventoInstituicoes = eventoInstituicoes;
     }
 
     public EventoDetalhe getGastoDetalhe() {

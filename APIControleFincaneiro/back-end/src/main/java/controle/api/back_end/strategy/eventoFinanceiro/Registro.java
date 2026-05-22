@@ -5,41 +5,30 @@ import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 
 import java.util.List;
+import java.util.Map;
 
 public class Registro {
     private List<EventoFinanceiro> eventosFinanceiros;
-    private List<EventoInstituicao> eventosInstituicoes;
-    private EventoDetalhe eventoDetalhe;
+    private Map<EventoFinanceiro, List<EventoInstituicao>> instituicoesPorEvento;
+    private Map<EventoFinanceiro, EventoDetalhe> detalhePorEvento;
 
     public Registro(List<EventoFinanceiro> eventosFinanceiros,
-                    List<EventoInstituicao> eventosInstituicoes,
-                    EventoDetalhe eventoDetalhe) {
+                    Map<EventoFinanceiro, List<EventoInstituicao>> instituicoesPorEvento,
+                    Map<EventoFinanceiro, EventoDetalhe> detalhePorEvento) {
         this.eventosFinanceiros = eventosFinanceiros;
-        this.eventosInstituicoes = eventosInstituicoes;
-        this.eventoDetalhe = eventoDetalhe;
+        this.instituicoesPorEvento = instituicoesPorEvento;
+        this.detalhePorEvento = detalhePorEvento;
     }
 
-    public Registro(List<EventoFinanceiro> eventosFinanceiros,
-                    List<EventoInstituicao> eventosInstituicoes) {
-        this(eventosFinanceiros, eventosInstituicoes, null);
+    public List<EventoFinanceiro> getEventosFinanceiros() {
+        return eventosFinanceiros;
     }
 
-    public Registro() {
+    public Map<EventoFinanceiro, List<EventoInstituicao>> getInstituicoesPorEvento() {
+        return instituicoesPorEvento;
     }
 
-    public List<EventoFinanceiro> getEventosFinanceiros() { return eventosFinanceiros; }
-    public List<EventoInstituicao> getEventosInstituicoes() { return eventosInstituicoes; }
-    public EventoDetalhe getEventoDetalhe() { return eventoDetalhe; }
-
-    public void setEventosFinanceiros(List<EventoFinanceiro> eventosFinanceiros) {
-        this.eventosFinanceiros = eventosFinanceiros;
-    }
-
-    public void setEventosInstituicoes(List<EventoInstituicao> eventosInstituicoes) {
-        this.eventosInstituicoes = eventosInstituicoes;
-    }
-
-    public void setEventoDetalhe(EventoDetalhe eventoDetalhe) {
-        this.eventoDetalhe = eventoDetalhe;
+    public Map<EventoFinanceiro, EventoDetalhe> getDetalhePorEvento() {
+        return detalhePorEvento;
     }
 }

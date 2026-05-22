@@ -1,52 +1,89 @@
 package controle.api.back_end.strategy.eventoFinanceiro;
 
-import controle.api.back_end.dto.registros.in.TransferenciaDTO;
-import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
-import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
-import controle.api.back_end.model.eventoFinanceiro.Tipo;
-import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
-import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.model.eventoFinanceiro.*;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class TransferenciaEvento implements EventoFinanceiroStrategy {
 
     @Override
-    public Registro processar(EventoFinanceiro evento, EventoInstituicao antigaInstituicao, InstituicaoUsuario destino) {
-//        if (destino.getUsuario().equals(evento.getUsuario())) {
-//            List<EventoFinanceiro> recebimento = new ArrayList<>();
-//            recebimento.add(new EventoFinanceiro());
-//
-//            List<EventoInstituicao> recebimentoInstituicao = new ArrayList<>();
-//            recebimentoInstituicao.setInstituicaoUsuario(destino);
-//            recebimentoInstituicao.setParcelas(1);
-//            recebimentoInstituicao.setEventoFinanceiro(evento);
-//            recebimentoInstituicao.setValor(evento.getValor());
-//            recebimentoInstituicao.setTipoMovimento(antigaInstituicao.getTipoMovimento());
-//
-//            recebimento.getFirst().setUsuario(destino.getUsuario());
-//            recebimento.getFirst().setDataEvento(evento.getDataEvento());
-//            recebimento.getFirst().setDataRegistro(LocalDateTime.now());
-//            recebimento.getFirst().setTipo(Tipo.Recebimento);
-//
-//            recebimento.getFirst().setValor(evento.getValor());
-//
-//            recebimento.getFirst().setDescricao("Transferência recebida da instituição %s"
-//                    .formatted(antigaInstituicao.getInstituicaoUsuario()
-//                            .getInstituicao()
-//                            .getNome()
-//                    )
-//            );
-//            System.out.println("Transferência interna registrada como recebimento.");
-//            return new Registro(recebimento,recebimentoInstituicao);
-//        } else {
-//            System.out.println("Transferência externa para outro usuário.");
-//            return new Registro();
-//        }
-        return new Registro();
+    public Registro processar(EventoFinanceiro evento,
+                              List<EventoInstituicao> eventoInstituicoes,
+                              EventoDetalhe eventoDetalhe) {
+
+        List<EventoFinanceiro> eventos = new ArrayList<>();
+        Map<EventoFinanceiro, List<EventoInstituicao>> instituicoesPorEvento = new HashMap<>();
+        Map<EventoFinanceiro, EventoDetalhe> detalhePorEvento = new HashMap<>();
+
+        if (eventoInstituicoes == null || eventoInstituicoes.isEmpty()) {
+            return new Registro(eventos, instituicoesPorEvento, detalhePorEvento);
+        }
+
+        // Origem = primeira instituição
+        EventoInstituicao origem = eventoInstituicoes.getFirst();
+
+        // Destino = última instituição
+        EventoInstituicao destino = eventoInstituicoes.getLast();
+
+        // 1. Evento de saída (transferência)
+        EventoFinanceiro transferenciaSaida = new EventoFinanceiro();
+        transferenciaSaida.setUsuario(evento.getUsuario());
+        transferenciaSaida.setTipo(Tipo.Transferencia);
+        transferenciaSaida.setValor(evento.getValor());
+        transferenciaSaida.setDescricao("Transferência realizada para " +
+                destino.getInstituicaoUsuario().getInstituicao().getNome());
+        transferenciaSaida.setDataEvento(evento.getDataEvento());
+        transferenciaSaida.setDataRegistro(LocalDateTime.now());
+        eventos.add(transferenciaSaida);
+
+        // Vincular origem ao evento de saída
+        origem.setEventoFinanceiro(transferenciaSaida);
+        origem.setValor(evento.getValor());
+        origem.setParcelas(1);
+        instituicoesPorEvento.put(transferenciaSaida, List.of(origem));
+
+        // Detalhe único vinculado ao evento de saída
+        if (eventoDetalhe != null) {
+            eventoDetalhe.setEventoFinanceiro(transferenciaSaida);
+            detalhePorEvento.put(transferenciaSaida, eventoDetalhe);
+        }
+
+        // 2. Evento de recebimento (interno)
+        if (destino.getInstituicaoUsuario().getUsuario().equals(evento.getUsuario())) {
+            EventoFinanceiro transferenciaRecebida = new EventoFinanceiro();
+            transferenciaRecebida.setUsuario(evento.getUsuario());
+            transferenciaRecebida.setTipo(Tipo.Recebimento);
+            transferenciaRecebida.setValor(evento.getValor());
+            transferenciaRecebida.setDescricao("Transferência recebida da instituição " +
+                    origem.getInstituicaoUsuario().getInstituicao().getNome());
+            transferenciaRecebida.setDataEvento(evento.getDataEvento());
+            transferenciaRecebida.setDataRegistro(LocalDateTime.now());
+            eventos.add(transferenciaRecebida);
+
+            destino.setEventoFinanceiro(transferenciaRecebida);
+            destino.setValor(evento.getValor());
+            destino.setParcelas(1);
+            instituicoesPorEvento.put(transferenciaRecebida, List.of(destino));
+
+            // Detalhe único vinculado ao recebimento
+            if (eventoDetalhe != null) {
+                detalhePorEvento.put(transferenciaRecebida, eventoDetalhe);
+            }
+        } else {
+            // Caso seja transferência externa (outro usuário)
+            destino.setEventoFinanceiro(transferenciaSaida);
+            destino.setValor(evento.getValor());
+            destino.setParcelas(1);
+            instituicoesPorEvento.get(transferenciaSaida).add(destino);
+        }
+
+        return new Registro(eventos, instituicoesPorEvento, detalhePorEvento);
     }
 }
+
