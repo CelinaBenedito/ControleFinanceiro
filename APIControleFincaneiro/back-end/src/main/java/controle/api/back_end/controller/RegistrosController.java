@@ -11,6 +11,7 @@ import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.service.RegistroService;
 import controle.api.back_end.service.UsuarioService;
+import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -196,32 +197,36 @@ public class RegistrosController {
     })
     public ResponseEntity<RegistroUsuarioResponseDto> createRegistroCompleto(
             @RequestBody @Valid RegistroCompletoCreateDto dto){
+        EventoFinanceiro  eventoFinanceiro = RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro());
+        List<EventoInstituicao> eventoInstituicao = RegistrosMapper.toEntityEvento(dto.getInstituicao());
+        EventoDetalhe eventoDetalhe = RegistrosMapper.toEntityGasto(dto.getDetalhe());
+        Registro registro = registroService.createEventoFinanceiro(eventoFinanceiro,eventoInstituicao,eventoDetalhe);
+        RegistroUsuarioResponseDto response = RegistrosMapper.toResponseUser(registro);
 
-        boolean isRecorrente = Boolean.TRUE.equals(dto.getFinanceiro().getRecorrente())
-                && (dto.getFinanceiro().getPeriodicidade() != null);
+        return ResponseEntity.status(201).body(response);
+    }
 
-        if (isRecorrente &&
-                (dto.getFinanceiro().getTipo() == Tipo.Gasto || dto.getFinanceiro().getTipo() == Tipo.Recebimento)) {
+    @PostMapping("/recorrente")
+    @Operation(summary = "Criar um novo registro recorrente",
+            description = "Cria um novo evento financeiro recorrente adicionando o ao banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Recorrencia criado com sucesso",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = RegistroUsuarioResponseDto.class))),
+            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
+                    content = @Content)
+    })
+    public ResponseEntity<List<RegistroResponseDto>> createRecorrencia(@Valid @RequestBody RegistroCompletoCreateDto dto){
+        if (dto.getFinanceiro().getTipo() == Tipo.Gasto
+                || dto.getFinanceiro().getTipo() == Tipo.Recebimento) {
 
             RecorrenciaFinanceira recorrencia = RegistrosMapper.toEntityRecorrencia(dto.getFinanceiro());
             List<RegistroResponseDto> responses = registroService.createEventosRecorrentes(recorrencia, dto);
+            return ResponseEntity.status(201).body(responses);
+
         }
-        EventoFinanceiro eventoCreated = registroService.createEventoFinanceiro(
-                RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro()));
-        List<EventoInstituicao> instituicaoCreated;
-
-            instituicaoCreated = registroService.createEventoInstituicao(
-                    RegistrosMapper.toEntityEvento(dto.getInstituicao()), eventoCreated);
-        EventoDetalhe gastoCreated = registroService.createGastoDetalhe(
-                RegistrosMapper.toEntityGasto(dto.getDetalhe()), eventoCreated);
-
-        RegistroUsuarioResponseDto response = RegistrosMapper.toResponseUser(
-                eventoCreated, instituicaoCreated, gastoCreated);
-
-        return ResponseEntity.status(201).body(response);
-
+        return ResponseEntity.status(400).build();
     }
-
 
     @PostMapping("/lote")
     @Operation(summary = "Criar uma lista de novos registros.",
@@ -312,7 +317,5 @@ public class RegistrosController {
         registroService.deleteRegistroByEventoFinanceiro_Id(evento_id);
         return ResponseEntity.status(204).build();
     }
-
-
 }
 

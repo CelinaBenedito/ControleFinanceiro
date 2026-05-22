@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class GastoEvento implements EventoFinanceiroStrategy {
@@ -19,8 +21,10 @@ public class GastoEvento implements EventoFinanceiroStrategy {
                               EventoDetalhe eventoDetalhe) {
 
         List<EventoFinanceiro> eventos = new ArrayList<>();
-        List<EventoInstituicao> instituicoes = new ArrayList<>();
+        Map<EventoFinanceiro, List<EventoInstituicao>> instituicoesPorEvento = new HashMap<>();
+        Map<EventoFinanceiro, EventoDetalhe> detalhePorEvento = new HashMap<>();
 
+        // Criar evento principal de gasto
         EventoFinanceiro gasto = new EventoFinanceiro();
         gasto.setUsuario(evento.getUsuario());
         gasto.setTipo(Tipo.Gasto);
@@ -30,12 +34,20 @@ public class GastoEvento implements EventoFinanceiroStrategy {
         gasto.setDataRegistro(LocalDateTime.now());
         eventos.add(gasto);
 
+        // Vincular instituições ao gasto
+        List<EventoInstituicao> insts = new ArrayList<>();
         for (EventoInstituicao inst : eventoInstituicoes) {
             inst.setEventoFinanceiro(gasto);
-            instituicoes.add(inst);
+            insts.add(inst);
+        }
+        instituicoesPorEvento.put(gasto, insts);
+
+        // Vincular detalhe único ao gasto
+        if (eventoDetalhe != null) {
+            eventoDetalhe.setEventoFinanceiro(gasto);
+            detalhePorEvento.put(gasto, eventoDetalhe);
         }
 
-        return new Registro(eventos, instituicoes, eventoDetalhe);
+        return new Registro(eventos, instituicoesPorEvento, detalhePorEvento);
     }
 }
-

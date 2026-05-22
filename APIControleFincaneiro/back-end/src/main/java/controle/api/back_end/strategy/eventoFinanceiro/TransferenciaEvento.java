@@ -5,7 +5,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class TransferenciaEvento implements EventoFinanceiroStrategy {
@@ -16,10 +18,11 @@ public class TransferenciaEvento implements EventoFinanceiroStrategy {
                               EventoDetalhe eventoDetalhe) {
 
         List<EventoFinanceiro> eventos = new ArrayList<>();
-        List<EventoInstituicao> instituicoes = new ArrayList<>();
+        Map<EventoFinanceiro, List<EventoInstituicao>> instituicoesPorEvento = new HashMap<>();
+        Map<EventoFinanceiro, EventoDetalhe> detalhePorEvento = new HashMap<>();
 
         if (eventoInstituicoes == null || eventoInstituicoes.isEmpty()) {
-            return new Registro(eventos, instituicoes, eventoDetalhe);
+            return new Registro(eventos, instituicoesPorEvento, detalhePorEvento);
         }
 
         // Origem = primeira instituição
@@ -39,10 +42,17 @@ public class TransferenciaEvento implements EventoFinanceiroStrategy {
         transferenciaSaida.setDataRegistro(LocalDateTime.now());
         eventos.add(transferenciaSaida);
 
+        // Vincular origem ao evento de saída
         origem.setEventoFinanceiro(transferenciaSaida);
         origem.setValor(evento.getValor());
         origem.setParcelas(1);
-        instituicoes.add(origem);
+        instituicoesPorEvento.put(transferenciaSaida, List.of(origem));
+
+        // Detalhe único vinculado ao evento de saída
+        if (eventoDetalhe != null) {
+            eventoDetalhe.setEventoFinanceiro(transferenciaSaida);
+            detalhePorEvento.put(transferenciaSaida, eventoDetalhe);
+        }
 
         // 2. Evento de recebimento (interno)
         if (destino.getInstituicaoUsuario().getUsuario().equals(evento.getUsuario())) {
@@ -59,15 +69,21 @@ public class TransferenciaEvento implements EventoFinanceiroStrategy {
             destino.setEventoFinanceiro(transferenciaRecebida);
             destino.setValor(evento.getValor());
             destino.setParcelas(1);
-            instituicoes.add(destino);
+            instituicoesPorEvento.put(transferenciaRecebida, List.of(destino));
+
+            // Detalhe único vinculado ao recebimento
+            if (eventoDetalhe != null) {
+                detalhePorEvento.put(transferenciaRecebida, eventoDetalhe);
+            }
         } else {
             // Caso seja transferência externa (outro usuário)
             destino.setEventoFinanceiro(transferenciaSaida);
             destino.setValor(evento.getValor());
             destino.setParcelas(1);
-            instituicoes.add(destino);
+            instituicoesPorEvento.get(transferenciaSaida).add(destino);
         }
 
-        return new Registro(eventos, instituicoes, eventoDetalhe);
+        return new Registro(eventos, instituicoesPorEvento, detalhePorEvento);
     }
 }
+

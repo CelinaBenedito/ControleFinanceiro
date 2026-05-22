@@ -36,7 +36,7 @@ public class EventoFinanceiroCreateDto {
             description = "Indica se o evento é recorrente (apenas Gasto e Recebimento)")
     private Boolean recorrente;
 
-    @Schema(example = "SEMANAL",
+    @Schema(example = "Semanal",
             description = "Periodicidade da recorrência: DIARIO, SEMANAL, MENSAL ou ANUAL")
     private String periodicidade;
 
@@ -56,10 +56,16 @@ public class EventoFinanceiroCreateDto {
             description = "Data final da recorrência")
     private LocalDate dataFim;
 
+    @Schema(example = "2.7",
+            description = "Taxa de rendimento na poupança")
     private Double taxaRendimento;
 
+    @Schema(example = "12",
+            description = "Tempo em meses que o valor ficará aplicado")
     private Integer tempoAplicacao;
 
+    @Schema(example = "24",
+            description = "Tempo em meses que o da projeção em que o valor ficaria aplicado")
     private Integer tempoProjecao;
 
     public UUID getUsuario_id() {

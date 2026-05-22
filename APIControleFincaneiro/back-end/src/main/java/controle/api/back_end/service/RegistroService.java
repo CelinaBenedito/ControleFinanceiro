@@ -45,6 +45,8 @@ import controle.api.back_end.repository.instituicao.InstituicaoRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import controle.api.back_end.specifications.EventoFinanceiroSpecifications;
+import controle.api.back_end.strategy.eventoFinanceiro.EventoFinanceiroStrategy;
+import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import controle.api.back_end.strategy.movimento.MovimentoResultado;
 import controle.api.back_end.strategy.movimento.MovimentoStrategy;
 import com.alibaba.excel.EasyExcel;
@@ -106,6 +108,91 @@ public class RegistroService {
         this.configuracoesRepository = configuracoesRepository;
         this.usuarioService = usuarioService;
     }
+
+    public Registro createEventoFinanceiro(EventoFinanceiro entity,
+                                           List<EventoInstituicao> instituicoes,
+                                           EventoDetalhe detalhe) {
+
+        // 1. Validar usuário
+        Usuario user = usuarioRepository.findById(entity.getUsuario().getId())
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Usuário de id: %s não encontrado."
+                                .formatted(entity.getUsuario().getId())
+                ));
+
+        entity.setUsuario(user);
+        entity.setDataRegistro(LocalDateTime.now());
+
+        // 2. Selecionar strategy pelo tipo
+        EventoFinanceiroStrategy strategy = eventoFinanceiroFactory.getStrategy(entity.getTipo());
+
+        // 3. Processar evento com a strategy
+        Registro registro = strategy.processar(entity, instituicoes, detalhe);
+
+        List<EventoFinanceiro> eventosSalvos = new ArrayList<>();
+        List<EventoInstituicao> instituicoesSalvas = new ArrayList<>();
+        EventoDetalhe detalheSalvo = null;
+
+        // 4. Persistência diferenciada por tipo
+        if (entity.getTipo() == Tipo.Gasto || entity.getTipo() == Tipo.Recebimento) {
+            // Apenas o primeiro evento
+            EventoFinanceiro eventoPrincipal = createEventoFinanceiro(
+                    registro.getEventosFinanceiros().getFirst()
+            );
+            eventosSalvos.add(eventoPrincipal);
+
+            // Vincular instituições usando regra de negócio
+            List<EventoInstituicao> insts = registro.getInstituicoesPorEvento().get(eventoPrincipal);
+            if (insts != null) {
+                instituicoesSalvas.addAll(createEventoInstituicao(insts, eventoPrincipal));
+            }
+
+            // Vincular detalhe usando regra de negócio
+            EventoDetalhe det = registro.getDetalhePorEvento().get(eventoPrincipal);
+            if (det != null) {
+                detalheSalvo = createGastoDetalhe(det, eventoPrincipal);
+            }
+
+        } else {
+            // Tipos que geram múltiplos eventos
+            for (EventoFinanceiro ev : registro.getEventosFinanceiros()) {
+                // Usa regra de negócio de criação de evento
+                EventoFinanceiro evSalvo = createEventoFinanceiro(ev);
+                eventosSalvos.add(evSalvo);
+
+                // Instituições específicas desse evento (com validações)
+                List<EventoInstituicao> insts = registro.getInstituicoesPorEvento().get(ev);
+                if (insts != null) {
+                    instituicoesSalvas.addAll(createEventoInstituicao(insts, evSalvo));
+                }
+
+                // Detalhe único desse evento (com validação de categorias)
+                EventoDetalhe det = registro.getDetalhePorEvento().get(ev);
+                if (det != null) {
+                    detalheSalvo = createGastoDetalhe(det, evSalvo);
+                }
+            }
+        }
+
+        // 5. Montar os maps corretos antes de retornar
+        Map<EventoFinanceiro, List<EventoInstituicao>> instituicoesMap = new HashMap<>();
+        for (EventoFinanceiro ev : eventosSalvos) {
+            List<EventoInstituicao> instsDoEvento = instituicoesSalvas.stream()
+                    .filter(inst -> inst.getEventoFinanceiro().equals(ev))
+                    .toList();
+            instituicoesMap.put(ev, instsDoEvento);
+        }
+
+        Map<EventoFinanceiro, EventoDetalhe> detalheMap = new HashMap<>();
+        if (detalheSalvo != null) {
+            detalheMap.put(eventosSalvos.getFirst(), detalheSalvo);
+        }
+
+// 6. Retornar registro persistido com os vínculos corretos
+        return new Registro(eventosSalvos, instituicoesMap, detalheMap);
+
+    }
+
 
     public EventoFinanceiro createEventoFinanceiro(EventoFinanceiro entity) {
 
@@ -219,7 +306,8 @@ public class RegistroService {
                                 new EntidadeNaoEncontradaException("Categoria Usuário de id: %d não encontrada."
                                         .formatted(cu.getId()))
                         ))
-                .toList();
+                .collect(Collectors.toList());
+
 
         entity.setEventoFinanceiro(eventoFinanceiro);
         entity.setCategoriaUsuario(categorias);

@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class RecebimentoEvento implements EventoFinanceiroStrategy {
@@ -19,7 +21,8 @@ public class RecebimentoEvento implements EventoFinanceiroStrategy {
                               EventoDetalhe eventoDetalhe) {
 
         List<EventoFinanceiro> eventos = new ArrayList<>();
-        List<EventoInstituicao> instituicoes = new ArrayList<>();
+        Map<EventoFinanceiro, List<EventoInstituicao>> instituicoesPorEvento = new HashMap<>();
+        Map<EventoFinanceiro, EventoDetalhe> detalhePorEvento = new HashMap<>();
 
         // 1. Evento principal (recebimento)
         EventoFinanceiro recebimento = new EventoFinanceiro();
@@ -31,14 +34,23 @@ public class RecebimentoEvento implements EventoFinanceiroStrategy {
         recebimento.setDataRegistro(LocalDateTime.now());
         eventos.add(recebimento);
 
-        // 2. Vincular instituições
+        // 2. Vincular instituições ao recebimento
+        List<EventoInstituicao> insts = new ArrayList<>();
         for (EventoInstituicao inst : eventoInstituicoes) {
             inst.setEventoFinanceiro(recebimento);
-            instituicoes.add(inst);
+            insts.add(inst);
+        }
+        instituicoesPorEvento.put(recebimento, insts);
+
+        // 3. Vincular detalhe único ao recebimento
+        if (eventoDetalhe != null) {
+            eventoDetalhe.setEventoFinanceiro(recebimento);
+            detalhePorEvento.put(recebimento, eventoDetalhe);
         }
 
-        // 3. Retornar registro completo
-        return new Registro(eventos, instituicoes, eventoDetalhe);
+        // 4. Retornar registro completo
+        return new Registro(eventos, instituicoesPorEvento, detalhePorEvento);
     }
 }
+
 

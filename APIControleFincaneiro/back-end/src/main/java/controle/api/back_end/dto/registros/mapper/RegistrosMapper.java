@@ -13,10 +13,12 @@ import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.Period
 import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
+import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import jakarta.validation.Valid;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class RegistrosMapper {
 
@@ -280,5 +282,30 @@ public class RegistrosMapper {
         return responses;
     }
 
+    public static RegistroUsuarioResponseDto toResponseUser(Registro registro) {
+        if (registro == null || registro.getEventosFinanceiros() == null) {
+            return null;
+        }
+
+        // Pega o primeiro evento como referência
+        EventoFinanceiro eventoFinanceiro = registro.getEventosFinanceiros().getFirst();
+
+        // Recupera TODAS as instituições vinculadas ao registro
+        List<EventoInstituicao> eventoInstituicoes = registro.getInstituicoesPorEvento()
+                .values()
+                .stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
+
+        // Recupera detalhe único vinculado ao primeiro evento
+        EventoDetalhe eventoDetalhe = registro.getDetalhePorEvento()
+                .getOrDefault(eventoFinanceiro, null);
+
+        if (eventoFinanceiro == null || eventoDetalhe == null) {
+            return null;
+        }
+
+        return toResponseUser(eventoFinanceiro, eventoInstituicoes, eventoDetalhe);
+    }
 
 }
