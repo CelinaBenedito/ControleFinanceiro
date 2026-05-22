@@ -10,9 +10,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/Estilos.css">
     <link rel="stylesheet" href="styles/configuracao.css">
+    <link rel="stylesheet" href="styles/root.css">
 </head>
 
-<body>
+<body data-tema="padrao" data-mode="light">
     <div class="alerta" id="div_alerta" style="display:none;">
         <div class="conteudoAlerta" id="conteudoAlerta"></div>
     </div>
@@ -27,7 +28,7 @@
             </div>
             <div style="display:flex; gap:12px; flex-wrap:wrap;">
                 <button class="cfg-btn" onclick="salvarPersonalizada()">Salvar</button>
-                <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="fecharPersonalizada()">Cancelar</button>
+                <button class="cfg-btn" style="background:transparent;border:2px solid var(--cor-principal);color:var(--cor-principal);" onclick="fecharPersonalizada()">Cancelar</button>
             </div>
         </div>
     </div>
@@ -51,7 +52,7 @@
 
             <div style="display:flex; gap:12px; flex-wrap:wrap;">
                 <button class="cfg-btn" onclick="salvarLimiteModal()">Salvar limite</button>
-                <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="fecharModalLimite()">Cancelar</button>
+                <button class="cfg-btn" style="background:transparent;border:2px solid var(--cor-principal);color:var(--cor-principal);" onclick="fecharModalLimite()">Cancelar</button>
             </div>
         </div>
     </div>
@@ -100,14 +101,14 @@
                             </div>
                         </div>
                         <div class="uw-avatar">
-                            <i class='bx bx-user' style="font-size:1.6rem; color:#367373;"></i>
+                            <i class='bx bx-user' style="font-size:1.6rem; color:var(--cor-principal);"></i>
                         </div>
                     </a>
                 </div>
 
                 <!-- MÊS FISCAL -->
                 <div class="cfg-card">
-                    <h2><i class='bx bx-calendar' style="color:#367373;font-size:1.6rem;"></i> Mês Fiscal</h2>
+                    <h2><i class='bx bx-calendar' style="color:var(--cor-principal);font-size:1.6rem;"></i> Mês Fiscal</h2>
 
                     <div class="cfg-row">
                         <div class="cfg-field" style="max-width:380px;">
@@ -131,13 +132,13 @@
 
                 <!-- LIMITES DE GASTOS + ALERTAS -->
                 <div class="cfg-card">
-                    <h2><i class='bx bx-wallet-alt' style="color:#367373;font-size:1.6rem;"></i> Limite de Gastos</h2>
+                    <h2><i class='bx bx-wallet-alt' style="color:var(--cor-principal);font-size:1.6rem;"></i> Limite de Gastos</h2>
 
                     <div class="cfg-split">
                         <div class="cfg-split-main">
                             <div style="display:flex; gap:12px; flex-wrap:wrap;">
                                 <button class="cfg-btn" onclick="abrirModalLimite('instituicao')">Definir limite por instituição</button>
-                                <button class="cfg-btn" onclick="abrirModalLimite('categoria')" style="background:transparent;border:2px solid #367373;color:#367373;">Definir limite por categoria</button>
+                                <button class="cfg-btn" onclick="abrirModalLimite('categoria')" style="background:transparent;border:2px solid var(--cor-principal);color:var(--cor-principal);">Definir limite por categoria</button>
                             </div>
 
                             <!-- Tabela de limites existentes -->
@@ -183,7 +184,7 @@
 
                 <!-- INSTITUIÇÕES FINANCEIRAS -->
                 <div class="cfg-card">
-                    <h2><i class='bx bx-buildings' style="color:#367373;font-size:1.6rem;"></i> Instituições Financeiras</h2>
+                    <h2><i class='bx bx-buildings' style="color:var(--cor-principal);font-size:1.6rem;"></i> Instituições Financeiras</h2>
 
                     <div class="cfg-row" style="align-items:flex-end;">
                         <div class="cfg-field" style="flex:1;max-width:380px;">
@@ -192,7 +193,7 @@
                             </select>
                             <label>Nova instituição</label>
                         </div>
-                        <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="abrirPersonalizada('instituicao')">Personalizada</button>
+                        <button class="cfg-btn" style="background:transparent;border:2px solid var(--cor-principal);color:var(--cor-principal);" onclick="abrirPersonalizada('instituicao')">Personalizada</button>
                         <button class="cfg-btn" onclick="adicionarInstituicao()">Adicionar instituição</button>
                     </div>
 
@@ -216,7 +217,7 @@
 
                 <!-- CATEGORIAS -->
                 <div class="cfg-card">
-                    <h2><i class='bx bx-tag-alt' style="color:#367373;font-size:1.6rem;"></i> Categorias</h2>
+                    <h2><i class='bx bx-tag-alt' style="color:var(--cor-principal);font-size:1.6rem;"></i> Categorias</h2>
 
                     <div class="cfg-row" style="align-items:flex-end;">
                         <div class="cfg-field" style="flex:1;max-width:380px;">
@@ -225,7 +226,7 @@
                             </select>
                             <label>Selecionar categoria</label>
                         </div>
-                        <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="abrirPersonalizada('categoria')">Personalizada</button>
+                        <button class="cfg-btn" style="background:transparent;border:2px solid var(--cor-principal);color:var(--cor-principal);" onclick="abrirPersonalizada('categoria')">Personalizada</button>
                         <button class="cfg-btn" onclick="adicionarCategoria()">Adicionar categoria</button>
                     </div>
 
@@ -249,7 +250,7 @@
 
                 <!-- EVENTOS FINANCEIROS / LIMPEZA DE DADOS -->
                 <div class="cfg-card">
-                    <h2><i class='bx bx-trash-alt' style="color:#367373;font-size:1.6rem;"></i> Eventos Financeiros</h2>
+                    <h2><i class='bx bx-trash-alt' style="color:var(--cor-principal);font-size:1.6rem;"></i> Eventos Financeiros</h2>
 
                     <!-- Importar / Exportar -->
                     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -272,14 +273,14 @@
                         <p class="cfg-delete-label">Excluir eventos por período:</p>
                         <div class="cfg-row" style="align-items:flex-end;">
                             <div style="display:flex;flex-direction:column;gap:4px;">
-                                <span id="cfgDeleteInicioLabel" style="font-size:0.82rem;color:var(--teal-escuro);min-height:1.1em;font-weight:600;"></span>
-                                <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="abrirCalendarioDelete('inicio')">
+                                <span id="cfgDeleteInicioLabel" style="font-size:0.82rem;color:var(--cor-principal);min-height:1.1em;font-weight:600;"></span>
+                                <button class="cfg-btn" style="background:transparent;border:2px solid var(--cor-principal);color:var(--cor-principal);" onclick="abrirCalendarioDelete('inicio')">
                                     <i class='bx bx-calendar' style="margin-right:6px;"></i> Data inicial
                                 </button>
                             </div>
                             <div style="display:flex;flex-direction:column;gap:4px;">
-                                <span id="cfgDeleteFimLabel" style="font-size:0.82rem;color:var(--teal-escuro);min-height:1.1em;font-weight:600;"></span>
-                                <button class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;" onclick="abrirCalendarioDelete('fim')">
+                                <span id="cfgDeleteFimLabel" style="font-size:0.82rem;color:var(--cor-principal);min-height:1.1em;font-weight:600;"></span>
+                                <button class="cfg-btn" style="background:transparent;border:2px solid var(--cor-principal);color:var(--cor-principal);" onclick="abrirCalendarioDelete('fim')">
                                     <i class='bx bx-calendar' style="margin-right:6px;"></i> Data final
                                 </button>
                             </div>

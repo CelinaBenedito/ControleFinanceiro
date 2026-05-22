@@ -1,6 +1,22 @@
 :root {
+    --cor-principal: #367373;
+    --cor-fundo-pagina: #EBF4F4;
     --teal-claro: #B4D9D5;
-    --teal-escuro: #367373;
+    --cor-fundo-card: #FFFFFF;
+    --cor-texto-claro: #FFFFFF;
+    --cor-texto-escuro: #1A1A1A;
+    --cor-texto-secundario: #4A4A4A;
+    --cor-texto-alternativo: #367373;
+    --sombra-card: rgba(54, 115, 115, 0.099);
+    --red-700: #b91c1c;
+    --red-100: #fee2e2;
+    --green-700: #15803d;
+    --green-100: #d1fae5;
+}
+
+body[data-tema="padrao"][data-mode="light"] {
+    --teal-claro: #B4D9D5;
+    --cor-principal: #367373;
     --cor-fundo-pagina: #EBF4F4;
     --cor-fundo-card: #FFFFFF;
     --cor-texto-claro: #FFFFFF;
@@ -14,9 +30,9 @@
     --green-100: #d1fae5;
 }
 
-body.dark-mode {
+body[data-tema="padrao"][data-mode="dark"] {
     --teal-claro: #B4D9D5;
-    --teal-escuro: #367373;
+    --cor-principal: #367373;
     --cor-fundo-pagina: #020617;
     --cor-fundo-card: #011D1D;
     --cor-texto-escuro: #e5f6ff;
@@ -29,9 +45,9 @@ body.dark-mode {
     --green-100: #052e16;
 }
 
-body.vampirico {
+body[data-tema="vampirico"][data-mode="light"] {
     --teal-claro: #B4D9D5;
-    --teal-escuro: #C00303;
+    --cor-principal: #C00303;
     --cor-fundo-pagina: #0D0D0D;
     --cor-fundo-card: #020617;
     --cor-texto-escuro: #e5f6ff;
@@ -44,9 +60,9 @@ body.vampirico {
     --green-100: #052e16;
 }
 
-body.purpura-mode {
+body[data-tema="purpura"][data-mode="light"] {
     --teal-claro: #B4D9D5;
-    --teal-escuro: #680082;
+    --cor-principal: #680082;
     --cor-fundo-pagina: #E784FF;
     --cor-fundo-card: #FDF4FF;
     --cor-texto-escuro: #e5f6ff;
@@ -59,9 +75,9 @@ body.purpura-mode {
     --green-100: #052e16;
 }
 
-body.purpura-dark-mode {
+body[data-tema="purpura"][data-mode="dark"] {
     --teal-claro: #B4D9D5;
-    --teal-escuro: #8700A8;
+    --cor-principal: #8700A8;
     --cor-fundo-pagina: #30003C;
     --cor-fundo-card: #380046;
     --cor-texto-escuro: #e5f6ff;
@@ -74,9 +90,9 @@ body.purpura-dark-mode {
     --green-100: #052e16;
 }
 
-body.branco-mode {
+body[data-tema="branco"][data-mode="light"] {
     --teal-claro: #B4D9D5;
-    --teal-escuro: #464646;
+    --cor-principal: #464646;
     --cor-fundo-pagina: #FEFEFE;
     --cor-fundo-card: #DDDDDD;
     --cor-texto-escuro: #1A1A1A;
@@ -89,9 +105,9 @@ body.branco-mode {
     --green-100: #052e16;
 }
 
-body.braco-dark-mode {
+body[data-tema="branco"][data-mode="dark"] {
     --teal-claro: #B4D9D5;
-    --teal-escuro: #7C7C7C;
+    --cor-principal: #7C7C7C;
     --cor-fundo-pagina: #111111;
     --cor-fundo-card: #000000;
     --cor-texto-escuro: #FFFFFF;

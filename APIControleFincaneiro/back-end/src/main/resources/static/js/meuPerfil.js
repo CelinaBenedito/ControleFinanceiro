@@ -251,14 +251,14 @@
                 <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(460px,90vw);display:flex;flex-direction:column;gap:16px;">
                     <h2 style="color:#004C58;margin:0;font-size:1.4rem;">Editar Perfil</h2>
                     <input id="edNome" type="text" placeholder="Nome"
-                        style="height:48px;border:2px solid #367373;border-radius:8px;padding:0 14px;font-size:16px;">
+                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;">
                     <input id="edSobrenome" type="text" placeholder="Sobrenome"
-                        style="height:48px;border:2px solid #367373;border-radius:8px;padding:0 14px;font-size:16px;">
+                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;">
                     <input id="edEmail" type="email" placeholder="Email"
-                        style="height:48px;border:2px solid #367373;border-radius:8px;padding:0 14px;font-size:16px;">
+                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;">
                     <input id="edNascimento" type="date"
-                        style="height:48px;border:2px solid #367373;border-radius:8px;padding:0 14px;font-size:16px;">
-                    <select id="edSexo" style="height:48px;border:2px solid #367373;border-radius:8px;padding:0 14px;font-size:16px;appearance:none;">
+                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;">
+                    <select id="edSexo" style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;appearance:none;">
                         <option value="">Sexo</option>
                         <option value="Masculino">Masculino</option>
                         <option value="Feminino">Feminino</option>
@@ -266,11 +266,11 @@
                     </select>
                     <div style="display:flex;gap:12px;margin-top:4px;">
                         <button onclick="salvarEdicaoPerfil()"
-                            style="flex:1;height:48px;background:#367373;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                            style="flex:1;height:48px;background:var(--cor-principal);color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
                             Salvar
                         </button>
                         <button onclick="document.getElementById('modalEdicao').style.display='none'"
-                            style="flex:1;height:48px;background:transparent;color:#367373;border:2px solid #367373;border-radius:8px;font-size:16px;cursor:pointer;">
+                            style="flex:1;height:48px;background:transparent;color:var(--cor-principal);border:2px solid var(--cor-principal);border-radius:8px;font-size:16px;cursor:pointer;">
                             Cancelar
                         </button>
                     </div>
@@ -435,17 +435,17 @@
         modal.innerHTML = `
             <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(400px,90vw);display:flex;flex-direction:column;gap:16px;">
                 <h2 style="color:#004C58;margin:0;font-size:1.4rem;">Vincular Instituição</h2>
-                <select id="selNovaInst" style="height:48px;border:2px solid #367373;border-radius:8px;padding:0 14px;font-size:16px;appearance:none;">
+                <select id="selNovaInst" style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;appearance:none;">
                     <option value="">Selecione...</option>
                     ${options}
                 </select>
                 <div style="display:flex;gap:12px;">
                     <button onclick="confirmarAdicionarInst()"
-                        style="flex:1;height:48px;background:#367373;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                        style="flex:1;height:48px;background:var(--cor-principal);color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
                         Vincular
                     </button>
                     <button onclick="document.getElementById('modalInstituicao').remove()"
-                        style="flex:1;height:48px;background:transparent;color:#367373;border:2px solid #367373;border-radius:8px;font-size:16px;cursor:pointer;">
+                        style="flex:1;height:48px;background:transparent;color:var(--cor-principal);border:2px solid var(--cor-principal);border-radius:8px;font-size:16px;cursor:pointer;">
                         Cancelar
                     </button>
                 </div>
@@ -556,14 +556,14 @@
             <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(400px,90vw);display:flex;flex-direction:column;gap:16px;">
                 <h2 style="color:#004C58;margin:0;font-size:1.4rem;">Nova Categoria</h2>
                 <input id="edTituloCategoria" type="text" placeholder="Nome da categoria"
-                    style="height:48px;border:2px solid #367373;border-radius:8px;padding:0 14px;font-size:16px;">
+                    style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;">
                 <div style="display:flex;gap:12px;">
                     <button onclick="confirmarAdicionarCategoria()"
-                        style="flex:1;height:48px;background:#367373;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                        style="flex:1;height:48px;background:var(--cor-principal);color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
                         Adicionar
                     </button>
                     <button onclick="document.getElementById('modalCategoria').style.display='none'"
-                        style="flex:1;height:48px;background:transparent;color:#367373;border:2px solid #367373;border-radius:8px;font-size:16px;cursor:pointer;">
+                        style="flex:1;height:48px;background:transparent;color:var(--cor-principal);border:2px solid var(--cor-principal);border-radius:8px;font-size:16px;cursor:pointer;">
                         Cancelar
                     </button>
                 </div>

@@ -8,11 +8,12 @@
     <title>Dashboard</title>
     <link href='https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="styles/Estilos.css">
+    <link rel="stylesheet" href="styles/root.css">
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body onload="gerarInformações()">
+<body data-tema="padrao" data-mode="light" onload="gerarInformações()">
     <div class="containerGeral">
         <nav class="side-bar" id="navbar">
             <ul>
@@ -59,7 +60,7 @@
                         </div>
                     </div>
                     <div class="uw-avatar">
-                        <i class='bx bx-user' style="font-size:1.6rem; color:#367373;"></i>
+                        <i class='bx bx-user' style="font-size:1.6rem; color:var(--cor-principal);"></i>
                     </div>
                 </a>
             </div>

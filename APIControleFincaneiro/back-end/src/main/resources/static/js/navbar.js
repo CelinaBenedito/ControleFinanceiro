@@ -52,13 +52,6 @@ function sidebarFunction() {
 
 }
 
-/*---------------- Tema dark ----------------*/
-const theme = localStorage.getItem("theme");
-
-if (theme === "dark") {
-    document.body.classList.add("dark-mode");
-}
-
 /*---------------- User widget ----------------*/
 (function () {
     const uwNome = document.getElementById("uw_nome");
@@ -82,7 +75,7 @@ if (theme === "dark") {
                 : `${url}${url.includes("?") ? "&" : "?"}v=${Date.now()}`;
             uwAvatar.innerHTML = `<img src="${urlFinal}" alt="Foto de perfil" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
         } else {
-            uwAvatar.innerHTML = "<i class='bx bx-user' style='font-size:1.6rem; color:#367373;'></i>";
+            uwAvatar.innerHTML = "<i class='bx bx-user' style='font-size:1.6rem; color:var(--cor-principal);'></i>";
         }
     }
 
@@ -141,32 +134,70 @@ if (theme === "dark") {
     atualizarXPWidget();
 })();
 
-document.getElementById("toggleTheme").addEventListener("click", () => {
-    document.body.classList.toggle("dark-mode");
+/*---------------- Tema dark ----------------*/
+const modoSalvo = localStorage.getItem("modo");
 
-    localStorage.setItem(
-        "theme",
-        document.body.classList.contains("dark-mode") ? "dark" : "light"
-    );
-    atualizarIconeTema();
+if (modoSalvo === "dark") {
+    document.body.setAttribute("data-mode", "dark");
+}
+
+const temas = document.querySelectorAll(".pf-tema-item");
+const btnEscolher = document.getElementById("btnEscolherTema");
+
+let temaSelecionado = "padrao";
+
+temas.forEach((tema) => {
+    tema.addEventListener("click", () => {
+        temas.forEach(t => t.classList.remove("ativo"));
+        tema.classList.add("ativo");
+        temaSelecionado = tema.dataset.tema;
+    });
 });
 
-document.getElementById("purpura-mode").addEventListener("click", () => {
-    document.body.classList.toggle("purpura-mode");
+document.getElementById("toggleTheme").addEventListener("click", () => {
 
-    // localStorage.setItem(
-    //     "theme",
-    //     document.body.classList.contains("purpura-mode") ? "dark" : "light"
-    // );
+    const modo =  document.body.getAttribute("data-mode") == "dark" ? "light" : "dark";
+    document.body.setAttribute("data-mode", modo);
+    localStorage.setItem("modo", modo);
     atualizarIconeTema();
+    console.log("mudei")
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+
+    const temaSalvo = localStorage.getItem("tema");
+    const modoSalvo = localStorage.getItem("modo");
+
+    if (temaSalvo) {
+        document.body.setAttribute("data-tema", temaSalvo);
+        temas.forEach(t => {
+            t.classList.remove("ativo");
+
+            if (t.dataset.tema === temaSalvo) {
+                t.classList.add("ativo");
+            }
+        });
+        temaSelecionado = temaSalvo;
+    }
+
+    if (modoSalvo) {
+        document.body.setAttribute("data-mode", modoSalvo);
+        atualizarIconeTema();
+        console.log("mudei 2")
+    }
 });
 
 function atualizarIconeTema() {
     const icone = document.getElementById("icone");
-    if (document.body.classList.contains("dark-mode")) {
+    const modoSalvo = localStorage.getItem("modo");
+    if (modoSalvo === "dark") {
         icone.innerHTML = "<i class='bx bx-sun'></i>";
+            console.log("cheguei 2")
+
     } else {
         icone.innerHTML = "<i class='bx bx-moon'></i>";
+            console.log("cheguei 1")
+
     }
 }
 
