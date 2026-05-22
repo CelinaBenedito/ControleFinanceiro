@@ -632,7 +632,7 @@
                 <div style="display:flex; flex-direction:column; gap:10px;">
                     <select id="cfgExportTipo" class="select_modal"></select>
                     <div style="display:flex; gap:10px; justify-content:flex-end;">
-                        <button id="cfgExportCancelar" class="cfg-btn" style="background:transparent;border:2px solid #367373;color:#367373;">Cancelar</button>
+                        <button id="cfgExportCancelar" class="cfg-btn" style="background:transparent;border:2px solid var(--cor-principal);color:var(--cor-principal);">Cancelar</button>
                         <button id="cfgExportConfirmar" class="cfg-btn">Exportar</button>
                     </div>
                 </div>

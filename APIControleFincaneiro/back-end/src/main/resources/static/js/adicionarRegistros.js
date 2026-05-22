@@ -58,7 +58,7 @@ async function atualizarSaldoDisplay(instituicaoUsuarioId) {
         const saldo = await res.json();
         const valor = Number(saldo);
         el.textContent = `Saldo disponível: R$ ${valor.toFixed(2)}`;
-        el.style.color = valor <= 0 ? '#e53e3e' : '#367373';
+        el.style.color = valor <= 0 ? '#e53e3e' : 'var(--cor-principal)';
         el.style.display = '';
     } catch (e) {
         el.style.display = 'none';
