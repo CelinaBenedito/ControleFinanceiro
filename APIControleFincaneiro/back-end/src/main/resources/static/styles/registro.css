@@ -1,3 +1,5 @@
+@import "root.css"; 
+
 /* ── Adicionar Registros page ── */
 .ar-page {
     font-family: 'Inter', sans-serif;
@@ -29,7 +31,7 @@ body.dark-mode .ar-page h1 {
     font-family: 'Inter', sans-serif;
     cursor: pointer;
     background: #FAFFFF;
-    border: 2px solid #367373;
+    border: 2px solid var(--cor-principal);
     border-bottom: none;
     border-radius: 2px 2px 0 0;
     position: relative;
@@ -47,7 +49,7 @@ body.dark-mode .ar-page h1 {
 
 .ar-tab:not(.ativo) {
     background: #d4e8e8;
-    color: #367373;
+    color: var(--cor-principal);
 }
 
 body.dark-mode .ar-tab {
@@ -71,7 +73,7 @@ body.dark-mode .ar-tab.ativo {
     background: #FAFFFF;
     border-radius: 0 20px 20px 20px;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-    border-left: 2px solid #367373;
+    border-left: 2px solid var(--cor-principal);
     padding: 28px 24px;
     display: flex;
     gap: 32px;
@@ -137,12 +139,12 @@ body.dark-mode .ar-field-wrap label {
 .ar-field-wrap input {
     height: 58px;
     border-radius: 10px;
-    border: 2px solid #367373;
+    border: 2px solid var(--cor-principal);
     padding: 0 18px;
     font-size: 1rem;
     font-family: 'Inter', sans-serif;
     font-weight: 600;
-    color: #367373;
+    color: var(--cor-principal);
     background: transparent;
     width: 100%;
     box-sizing: border-box;
@@ -152,12 +154,12 @@ body.dark-mode .ar-field-wrap label {
 .ar-field-wrap select {
     height: 58px;
     border-radius: 10px;
-    border: 2px solid #367373;
+    border: 2px solid var(--cor-principal);
     padding: 0 18px;
     font-size: 1rem;
     font-family: 'Inter', sans-serif;
     font-weight: 600;
-    color: #367373;
+    color: var(--cor-principal);
     background: transparent;
     width: 100%;
     box-sizing: border-box;
@@ -183,14 +185,14 @@ body.dark-mode .ar-field-wrap select {
 .ar-field-wrap input:not(:placeholder-shown)+label {
     top: -1px;
     font-size: 12px;
-    color: #367373;
+    color: var(--cor-principal);
 }
 
 /* Selects: label sempre flutua — select exibe o valor selecionado */
 .ar-field-wrap select+label {
     top: -1px;
     font-size: 12px;
-    color: #367373;
+    color: var(--cor-principal);
 }
 
 body.dark-mode .ar-field-wrap input:focus+label,
@@ -206,7 +208,7 @@ body.dark-mode .ar-field-wrap select+label {
     right: 16px;
     top: 50%;
     transform: translateY(-50%);
-    color: #367373;
+    color: var(--cor-principal);
     pointer-events: none;
     font-size: 0.9rem;
     z-index: 1;
@@ -242,7 +244,7 @@ body.dark-mode .ar-date-display {
     height: 52px;
     padding: 0 24px;
     min-width: 130px;
-    background: #367373;
+    background: var(--cor-principal);
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -268,12 +270,12 @@ body.dark-mode .ar-date-display {
 
 .ar-btn.secondary {
     background: transparent;
-    border: 2px solid #367373;
-    color: #367373;
+    border: 2px solid var(--cor-principal);
+    color: var(--cor-principal);
 }
 
 .ar-btn.secondary:hover {
-    background: #367373;
+    background: var(--cor-principal);
     color: #fff;
 }
 
@@ -293,7 +295,7 @@ body.dark-mode .ar-btn.secondary {
 .label-data {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #367373;
+    color: var(--cor-principal);
     margin: 0;
 }
 
@@ -325,7 +327,7 @@ body.dark-mode .ar-gestao-info h3 {
 #ValorTotal {
     font-size: 1.4rem;
     font-weight: 700;
-    color: #367373;
+    color: var(--cor-principal);
     margin: 0;
 }
 
@@ -339,7 +341,7 @@ body.dark-mode #ValorTotal {
     border-collapse: collapse;
     border-radius: 15px;
     overflow: hidden;
-    outline: 2px solid #367373;
+    outline: 2px solid var(--cor-principal);
 }
 
 body.dark-mode .ar-multi-table {
@@ -351,10 +353,10 @@ body.dark-mode .ar-multi-table {
     padding: 10px 14px;
     font-size: 0.95rem;
     font-weight: 600;
-    color: #367373;
-    border-bottom: 1px solid #367373;
+    color: var(--cor-principal);
+    border-bottom: 1px solid var(--cor-principal);
     font-family: 'Inter', sans-serif;
-    background: #EBF4F4;
+    background: var(--cor-fundo-pagina);
 }
 
 body.dark-mode .ar-multi-table th {
@@ -366,7 +368,7 @@ body.dark-mode .ar-multi-table th {
 .ar-multi-table td {
     padding: 10px 14px;
     font-size: 0.9rem;
-    color: #367373;
+    color: var(--cor-principal);
     border-bottom: 1px solid rgba(54, 115, 115, 0.2);
     font-family: 'Inter', sans-serif;
 }

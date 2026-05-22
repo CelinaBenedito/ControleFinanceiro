@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="styles/root.css">
 </head>
 
-<body>
+<body data-tema="padrao" data-mode="light">
     <div class="alerta" id="div_alerta" style="display:none;">
         <div class="conteudoAlerta" id="conteudoAlerta"></div>
     </div>
@@ -324,6 +324,16 @@
         document.getElementById("toggleVidro").addEventListener("change", function () {
             document.getElementById("estadoVidro").textContent = this.checked ? "ON" : "OFF";
         });
+
+        btnEscolher.addEventListener("click", () => {
+
+            document.body.setAttribute("data-tema", temaSelecionado);
+
+            localStorage.setItem("tema", temaSelecionado);
+            console.log("mudei 3")
+
+        });
+
 
         // ── Theme swatch selection ──
         document.querySelectorAll(".pf-tema-item").forEach(item => {
