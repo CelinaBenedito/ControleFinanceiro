@@ -1010,15 +1010,6 @@ footer a {
     max-width: 700px;
 }
 
-body.dark-mode .card-formulario {
-    background-color: rgba(2, 6, 23, 0.75);
-    backdrop-filter: blur(10px);
-}
-
-body.dark-mode .card-formulario .campo label {
-    background-color: rgba(2, 6, 23, 0.4);
-}
-
 .campo.full {
     align-self: center;
     text-align: center;
@@ -1115,10 +1106,6 @@ body.dark-mode .card-formulario .campo label {
     font-weight: 600;
 }
 
-body.dark-mode .uw-nome {
-    color: #7dd3fc;
-}
-
 .uw-xp-track {
     width: 150px;
     height: 14px;
@@ -1130,10 +1117,6 @@ body.dark-mode .uw-nome {
     overflow: hidden;
     padding: 0 6px 0 0;
     box-sizing: border-box;
-}
-
-body.dark-mode .uw-xp-track {
-    background: #0f172a;
 }
 
 .uw-xp-fill {
@@ -1149,10 +1132,6 @@ body.dark-mode .uw-xp-track {
     font-weight: 200;
     color: #0E5454;
     white-space: nowrap;
-}
-
-body.dark-mode .uw-lvl {
-    color: #7dd3fc;
 }
 
 .uw-avatar {
@@ -1171,9 +1150,4 @@ body.dark-mode .uw-lvl {
 
 .user-widget:hover .uw-avatar {
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px #004C58;
-}
-
-body.dark-mode .uw-avatar {
-    background: #0f172a;
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px #7dd3fc;
 }

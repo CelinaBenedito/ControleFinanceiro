@@ -86,87 +86,89 @@
 
                 <!-- Adicionar Gasto form -->
                 <div class="ar-form-col" id="addGasto">
+                    <div class="formulario-adicionar-gasto">
+                        <div class="ar-field-wrap">
+                            <input type="text" id="ipt_nome" placeholder=" " required>
+                            <label for="ipt_nome">Título</label>
+                        </div>
 
-                    <div class="ar-field-wrap">
-                        <input type="text" id="ipt_nome" placeholder=" " required>
-                        <label for="ipt_nome">Título</label>
-                    </div>
+                        <div class="ar-field-wrap">
+                            <select id="select_tipo">
+                                <option value="#">Tipo do Evento</option>
+                                <option value="Gasto">Gasto</option>
+                                <option value="Recebimento">Recebimento</option>
+                                <option value="Transferencia">Transferência</option>
+                            </select>
+                            <label for="select_tipo">Tipo do Evento</label>
+                        </div>
 
-                    <div class="ar-field-wrap">
-                        <select id="select_tipo">
-                            <option value="#">Tipo do Evento</option>
-                            <option value="Gasto">Gasto</option>
-                            <option value="Recebimento">Recebimento</option>
-                            <option value="Transferencia">Transferência</option>
-                        </select>
-                        <label for="select_tipo">Tipo do Evento</label>
-                    </div>
+                        <div class="ar-field-wrap">
+                            <select id="select_categoria"></select>
+                            <label for="select_categoria">Categoria</label>
+                        </div>
 
-                    <div class="ar-field-wrap">
-                        <select id="select_categoria"></select>
-                        <label for="select_categoria">Categoria</label>
-                    </div>
+                        <div class="ar-field-wrap">
+                            <select id="select_instituicao" onchange="atualizarSaldoDisplay(this.value)"></select>
+                            <label for="select_instituicao">Instituição</label>
+                        </div>
+                        <p id="saldo_display"
+                            style="display:none; font-size:0.92rem; font-weight:600; color:var(--cor-principal); margin:-8px 0 4px 4px;">
+                        </p>
 
-                    <div class="ar-field-wrap">
-                        <select id="select_instituicao" onchange="atualizarSaldoDisplay(this.value)"></select>
-                        <label for="select_instituicao">Instituição</label>
-                    </div>
-                    <p id="saldo_display"
-                        style="display:none; font-size:0.92rem; font-weight:600; color:var(--cor-principal); margin:-8px 0 4px 4px;">
-                    </p>
+                        <div class="ar-field-wrap">
+                            <select id="select_movimento" onchange="toggleParcelas('ipt_parcelas', this.value)">
+                                <option value="#">Movimento</option>
+                                <option value="Debito">Débito</option>
+                                <option value="Credito">Crédito</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                                <option value="Pix">Pix</option>
+                                <option value="Boleto">Boleto</option>
+                                <option value="Voucher">Voucher</option>
+                            </select>
+                            <label for="select_movimento">Movimento</label>
+                        </div>
 
-                    <div class="ar-field-wrap">
-                        <select id="select_movimento" onchange="toggleParcelas('ipt_parcelas', this.value)">
-                            <option value="#">Movimento</option>
-                            <option value="Debito">Débito</option>
-                            <option value="Credito">Crédito</option>
-                            <option value="Dinheiro">Dinheiro</option>
-                            <option value="Pix">Pix</option>
-                            <option value="Boleto">Boleto</option>
-                            <option value="Voucher">Voucher</option>
-                        </select>
-                        <label for="select_movimento">Movimento</label>
-                    </div>
+                        <div class="ar-field-wrap" id="wrap_parcelas" style="display:none;">
+                            <input type="number" id="ipt_parcelas" placeholder=" " min="1" value="1">
+                            <label for="ipt_parcelas">Parcelas</label>
+                        </div>
 
-                    <div class="ar-field-wrap" id="wrap_parcelas" style="display:none;">
-                        <input type="number" id="ipt_parcelas" placeholder=" " min="1" value="1">
-                        <label for="ipt_parcelas">Parcelas</label>
-                    </div>
+                        <div class="ar-field-wrap">
+                            <input type="number" id="ipt_valor" placeholder=" " required>
+                            <label for="ipt_valor">Valor</label>
+                        </div>
 
-                    <div class="ar-field-wrap">
-                        <input type="number" id="ipt_valor" placeholder=" " required>
-                        <label for="ipt_valor">Valor</label>
-                    </div>
-
-                    <div class="ar-field-wrap">
-                        <input type="text" id="ipt_desc" placeholder=" ">
-                        <label for="ipt_desc">Descrição</label>
-                    </div>
-
-                    <!-- Date picker -->
-                    <div>
-                        <p class="label-data">Quando foi?</p>
-                        <div class="ar-date-row" style="margin-top:8px;">
-                            <p class="ar-date-display hidden" id="data"></p>
-                            <button class="ar-btn secondary" id="calendario">
-                                <i class='bx bx-calendar' style="margin-right:6px;"></i> Escolher data
-                            </button>
+                        <div class="ar-field-wrap">
+                            <input type="text" id="ipt_desc" placeholder=" ">
+                            <label for="ipt_desc">Descrição</label>
                         </div>
                     </div>
-
-                    <!-- Action buttons -->
-                    <div class="ar-btns-row">
-                        <button class="ar-btn" onclick="registrar()">Registrar Gasto</button>
-                        <button class="ar-btn secondary" onclick="adicionarTipo.showModal()">+ Novo tipo</button>
-                    </div>
-
-                    <dialog id="adicionarTipo" class="adicionarTipo">
-                        <div class="conteudoTipo">
-                            <h1>Adicionar novo tipo</h1>
-                            <input type="text" placeholder="Adicione o nome" id="ipt_tituloTipo">
-                            <button type="button" onclick="adicionarTipos()">Adicionar</button>
+                    <div class="botao-formulario">
+                        <!-- Date picker -->
+                        <div>
+                            <p class="label-data">Quando foi?</p>
+                            <div class="ar-date-row" style="margin-top:8px;">
+                                <p class="ar-date-display hidden" id="data"></p>
+                                <button class="ar-btn secondary" id="calendario">
+                                    <i class='bx bx-calendar' style="margin-right:6px;"></i> Escolher data
+                                </button>
+                            </div>
                         </div>
-                    </dialog>
+
+                        <!-- Action buttons -->
+                        <div class="ar-btns-row">
+                            <button class="ar-btn" onclick="registrar()">Registrar Gasto</button>
+                            <button class="ar-btn secondary" onclick="adicionarTipo.showModal()">+ Novo tipo</button>
+                        </div>
+
+                        <dialog id="adicionarTipo" class="adicionarTipo">
+                            <div class="conteudoTipo">
+                                <h1>Adicionar novo tipo</h1>
+                                <input type="text" placeholder="Adicione o nome" id="ipt_tituloTipo">
+                                <button type="button" onclick="adicionarTipos()">Adicionar</button>
+                            </div>
+                        </dialog>
+                    </div>
                 </div>
 
             </div><!-- /cardUnico -->
@@ -187,12 +189,13 @@
                 </div>
 
                 <!-- Form fields row -->
-                <div style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
-                    <div class="ar-field-wrap" style="flex:1; min-width:160px;">
+                <div class="multi-form">
+                    <div class="ar-field-wrap field-default">
                         <input type="text" id="ipt_multi_nome" placeholder=" ">
                         <label for="ipt_multi_nome">Título</label>
                     </div>
-                    <div class="ar-field-wrap" style="flex:1; min-width:160px;">
+
+                    <div class="ar-field-wrap field-default">
                         <select id="multi_select_tipo">
                             <option value="#">Tipo do Evento</option>
                             <option value="Gasto">Gasto</option>
@@ -201,17 +204,20 @@
                         </select>
                         <label for="multi_select_tipo">Tipo do Evento</label>
                     </div>
-                    <div class="ar-field-wrap" style="flex:1; min-width:160px;">
+
+                    <div class="ar-field-wrap field-default">
                         <select id="multi_select_categoria"></select>
                         <label for="multi_select_categoria">Categoria</label>
                     </div>
-                    <div class="ar-field-wrap" style="flex:1; min-width:160px;">
+
+                    <div class="ar-field-wrap field-default">
                         <select id="multi_select_instituicao">
                             <option value="#">Instituição</option>
                         </select>
                         <label for="multi_select_instituicao">Instituição</label>
                     </div>
-                    <div class="ar-field-wrap" style="flex:1; min-width:160px;">
+
+                    <div class="ar-field-wrap field-default">
                         <select id="multi_select_movimento" onchange="toggleParcelas('ipt_multi_parcelas', this.value)">
                             <option value="#">Movimento</option>
                             <option value="Debito">Débito</option>
@@ -223,23 +229,29 @@
                         </select>
                         <label for="multi_select_movimento">Movimento</label>
                     </div>
-                    <div class="ar-field-wrap" id="wrap_multi_parcelas" style="display:none; flex:1; min-width:130px;">
+
+                    <div class="ar-field-wrap field-small" id="wrap_multi_parcelas">
                         <input type="number" id="ipt_multi_parcelas" placeholder=" " min="1" value="1">
                         <label for="ipt_multi_parcelas">Parcelas</label>
                     </div>
-                    <div class="ar-field-wrap" style="flex:1; min-width:140px;">
+
+                    <div class="ar-field-wrap field-value">
                         <input type="number" id="ipt_multi_valor" placeholder=" ">
                         <label for="ipt_multi_valor">Valor</label>
                     </div>
-                    <div class="ar-field-wrap" style="flex:2; min-width:200px;">
+
+                    <div class="ar-field-wrap field-description">
                         <input type="text" id="ipt_multi_desc" placeholder=" ">
                         <label for="ipt_multi_desc">Descrição</label>
                     </div>
-                    <button class="ar-btn" onclick="adicionarAoLote()" style="flex-shrink:0;">Adicionar</button>
+
+                    <button class="ar-btn btn-add" onclick="adicionarAoLote()">
+                        Adicionar
+                    </button>
                 </div>
 
                 <!-- Preview table -->
-                <div style="overflow-x:auto;">
+                <div class="tabela-registro">
                     <table class="ar-multi-table">
                         <thead>
                             <tr>
