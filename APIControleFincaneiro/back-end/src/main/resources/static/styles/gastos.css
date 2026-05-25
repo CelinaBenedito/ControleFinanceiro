@@ -12,9 +12,6 @@
     margin-bottom: 24px;
 }
 
-body.dark-mode .ag-page h1 {
-    color: #7dd3fc;
-}
 
 /* Two-column layout */
 .ag-layout {
@@ -42,10 +39,6 @@ body.dark-mode .ag-page h1 {
     font-size: 2.5rem;
     font-weight: 500;
     min-width: 220px;
-}
-
-body.dark-mode .ag-month-name {
-    color: #7dd3fc;
 }
 
 .ag-nav-btn {
@@ -83,10 +76,6 @@ body.dark-mode .ag-month-name {
     font-weight: 600;
     color: var(--cor-principal);
     padding: 4px 0;
-}
-
-body.dark-mode .ag-weekday {
-    color: #7dd3fc;
 }
 
 /* Calendar grid */
@@ -187,21 +176,12 @@ body.dark-mode .ag-weekday {
     top: 20px;
 }
 
-body.dark-mode .ag-resumo {
-    background: #0f172a;
-}
-
 .ag-resumo-titulo {
     color: #004C58;
     font-size: 2rem;
     font-weight: 400;
     border-bottom: 2px solid var(--cor-principal);
     padding-bottom: 10px;
-}
-
-body.dark-mode .ag-resumo-titulo {
-    color: #7dd3fc;
-    border-color: #7dd3fc;
 }
 
 .ag-resumo-empty {
@@ -217,10 +197,6 @@ body.dark-mode .ag-resumo-titulo {
     font-size: 1.2rem;
     font-weight: 400;
     margin-top: 8px;
-}
-
-body.dark-mode .ag-resumo-data {
-    color: #e5f6ff;
 }
 
 /* Event chip */

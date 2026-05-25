@@ -12,10 +12,6 @@
     margin-bottom: 28px;
 }
 
-body.dark-mode .pf-page h1 {
-    color: #7dd3fc;
-}
-
 /* ── Shared card ── */
 .pf-card {
     background: #FAFFFF;
@@ -28,19 +24,11 @@ body.dark-mode .pf-page h1 {
     gap: 20px;
 }
 
-body.dark-mode .pf-card {
-    background: #0f172a;
-}
-
 .pf-card h2 {
     color: #004C58;
     font-size: 2rem;
     font-weight: 700;
     margin: 0;
-}
-
-body.dark-mode .pf-card h2 {
-    color: #7dd3fc;
 }
 
 /* ── Profile hero ── */
@@ -57,7 +45,7 @@ body.dark-mode .pf-card h2 {
     width: 200px;
     height: 200px;
     border-radius: 9999px;
-    border: 2px solid var(--cor-principal);
+    border: 2px solid #367373;
     background: #FAFFFF;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
     display: flex;
@@ -66,18 +54,9 @@ body.dark-mode .pf-card h2 {
     flex-shrink: 0;
 }
 
-body.dark-mode .pf-avatar {
-    background: #0f172a;
-    border-color: #7dd3fc;
-}
-
 .pf-avatar i {
     font-size: 5rem;
-    color: var(--cor-principal);
-}
-
-body.dark-mode .pf-avatar i {
-    color: #7dd3fc;
+    color: #367373;
 }
 
 /* XP bar */
@@ -93,14 +72,10 @@ body.dark-mode .pf-avatar i {
     position: relative;
 }
 
-body.dark-mode .pf-xp-wrap {
-    background: #1e293b;
-}
-
 .pf-xp-bar {
     height: 100%;
     width: 30%;
-    background: var(--cor-principal);
+    background: #367373;
     border-radius: 100px;
     transition: width 0.4s ease;
 }
@@ -111,10 +86,6 @@ body.dark-mode .pf-xp-wrap {
     font-size: 11px;
     color: #0E5454;
     font-weight: 200;
-}
-
-body.dark-mode .pf-xp-label {
-    color: #7dd3fc;
 }
 
 /* Name row */
@@ -132,25 +103,17 @@ body.dark-mode .pf-xp-label {
     line-height: 1.15;
 }
 
-body.dark-mode .pf-nome {
-    color: #7dd3fc;
-}
-
 .pf-edit-btn {
     background: none;
     border: none;
     cursor: pointer;
     padding: 4px;
     margin: 0;
-    color: var(--cor-principal);
+    color: #367373;
     font-size: 1.5rem;
     line-height: 1;
     display: flex;
     align-items: center;
-}
-
-body.dark-mode .pf-edit-btn {
-    color: #7dd3fc;
 }
 
 /* Info row */
@@ -176,11 +139,6 @@ body.dark-mode .pf-edit-btn {
 .pf-info-item span {
     font-weight: 500;
     color: #1A1A1A;
-}
-
-body.dark-mode .pf-info-item strong,
-body.dark-mode .pf-info-item span {
-    color: #e5f6ff;
 }
 
 /* ── Temas ── */
@@ -220,11 +178,6 @@ body.dark-mode .pf-info-item span {
     color: #1A1A1A;
     text-align: center;
 }
-
-body.dark-mode .pf-tema-label {
-    color: #e5f6ff;
-}
-
 /* Toggles */
 .pf-toggles {
     display: flex;
@@ -239,10 +192,6 @@ body.dark-mode .pf-tema-label {
     font-size: 1rem;
     font-weight: 400;
     color: #1A1A1A;
-}
-
-body.dark-mode .pf-toggle-row {
-    color: #e5f6ff;
 }
 
 .pf-toggle {
@@ -281,12 +230,12 @@ body.dark-mode .pf-toggle-row {
 }
 
 .pf-toggle input:checked+.pf-toggle-slider {
-    background: var(--cor-fundo-pagina);
-    outline-color: var(--cor-principal);
+    background: #EBF4F4;
+    outline-color: #367373;
 }
 
 .pf-toggle input:checked+.pf-toggle-slider::after {
-    background: var(--cor-principal);
+    background: #367373;
     transform: translateX(22px);
 }
 
@@ -297,10 +246,6 @@ body.dark-mode .pf-toggle-row {
     min-width: 24px;
 }
 
-body.dark-mode .pf-toggle-state {
-    color: #e5f6ff;
-}
-
 /* ── Shared btn (same as cfg-btn) ── */
 .pf-btn {
     display: inline-flex;
@@ -309,7 +254,7 @@ body.dark-mode .pf-toggle-state {
     height: 52px;
     padding: 0 24px;
     min-width: 130px;
-    background: var(--cor-principal);
+    background: #367373;
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -359,22 +304,13 @@ body.dark-mode .pf-toggle-state {
     color: #1A1A1A;
 }
 
-body.dark-mode .pf-resumo-label,
-body.dark-mode .pf-resumo-valor {
-    color: #e5f6ff;
-}
-
 /* ── Tables (institutions / categories) ── */
 .pf-table {
     width: 100%;
     border-collapse: collapse;
     border-radius: 15px;
     overflow: hidden;
-    outline: 2px solid var(--cor-principal);
-}
-
-body.dark-mode .pf-table {
-    outline-color: #7dd3fc;
+    outline: 2px solid #367373;
 }
 
 .pf-table th {
@@ -384,12 +320,7 @@ body.dark-mode .pf-table {
     font-size: 1rem;
     font-weight: 600;
     color: #1A1A1A;
-    border-bottom: 1px solid var(--cor-principal);
-}
-
-body.dark-mode .pf-table th {
-    color: #e5f6ff;
-    border-color: #7dd3fc;
+    border-bottom: 1px solid #367373;
 }
 
 .pf-table td {
@@ -398,11 +329,6 @@ body.dark-mode .pf-table th {
     color: #0E5454;
     border-bottom: 1px solid rgba(54, 115, 115, 0.2);
     vertical-align: middle;
-}
-
-body.dark-mode .pf-table td {
-    color: #7dd3fc;
-    border-color: rgba(125, 211, 252, 0.2);
 }
 
 .pf-table tr:last-child td {
@@ -456,7 +382,7 @@ body.dark-mode .pf-table td {
 }
 
 .pf-campo input {
-    border: 1px solid var(--cor-principal);
+    border: 1px solid #367373;
     padding: 10px 20px;
     height: 50px;
     width: 500px;
