@@ -1,13 +1,14 @@
 :root {
     --cor-principal: #367373;
     --cor-fundo-pagina: #EBF4F4;
-    --teal-claro: #B4D9D5;
-    --cor-fundo-card: #FFFFFF;
-    --cor-texto-claro: #FFFFFF;
-    --cor-texto-escuro: #1A1A1A;
+    --cor-fundo-card: #FAFFFF;
+    --cor-titulo: #004C58;
+    --cor-hover: #B4D9D5;
+    --cor-texto-principal: #1A1A1A;
     --cor-texto-secundario: #4A4A4A;
     --cor-texto-alternativo: #367373;
-    --cor-para-distoar: #004c58;
+    --cor-texto-claro: #FFFFFF;
+    --cor-para-destacar: #004C58;
     --sombra-card: rgba(54, 115, 115, 0.099);
     --red-700: #b91c1c;
     --red-100: #fee2e2;
@@ -16,14 +17,16 @@
 }
 
 body[data-tema="padrao"][data-mode="light"] {
-    --teal-claro: #B4D9D5;
     --cor-principal: #367373;
     --cor-fundo-pagina: #EBF4F4;
-    --cor-fundo-card: #FFFFFF;
-    --cor-texto-claro: #FFFFFF;
-    --cor-texto-escuro: #1A1A1A;
+    --cor-fundo-card: #FAFFFF;
+    --cor-titulo: #004C58;
+    --cor-hover: #B4D9D5;
+    --cor-texto-principal: #1A1A1A;
     --cor-texto-secundario: #4A4A4A;
     --cor-texto-alternativo: #367373;
+    --cor-texto-claro: #FFFFFF;
+    --cor-para-destacar: #004C58;
     --sombra-card: rgba(54, 115, 115, 0.099);
     --red-700: #b91c1c;
     --red-100: #fee2e2;
@@ -32,13 +35,15 @@ body[data-tema="padrao"][data-mode="light"] {
 }
 
 body[data-tema="padrao"][data-mode="dark"] {
-    --teal-claro: #B4D9D5;
-    --cor-principal: #367373;
-    --cor-fundo-pagina: #020617;
+    --cor-principal: #096464;
+    --cor-fundo-pagina: #041A1A;
     --cor-fundo-card: #011D1D;
-    --cor-texto-escuro: #e5f6ff;
+    --cor-titulo: #00B2CE;
+    --cor-hover: #B4D9D5;
+    --cor-texto-principal: #FFFFFF;
     --cor-texto-secundario: #94a3b8;
     --cor-texto-alternativo: #7dd3fc;
+    --cor-para-destacar: #086B6B;
     --sombra-card: rgba(15, 23, 42, 0.9);
     --red-700: #f87171;
     --red-100: #450a0a;
@@ -47,13 +52,63 @@ body[data-tema="padrao"][data-mode="dark"] {
 }
 
 body[data-tema="vampirico"][data-mode="light"] {
-    --teal-claro: #B4D9D5;
-    --cor-principal: #C00303;
-    --cor-fundo-pagina: #0D0D0D;
-    --cor-fundo-card: #020617;
-    --cor-texto-escuro: #e5f6ff;
+    --cor-principal: #F50000;
+    --cor-fundo-pagina: #FCE9E9;
+    --cor-fundo-card: #FFFFFF;
+    --cor-titulo: #FFFFFF;
+    --cor-hover: #B4D9D5;
+    --cor-texto-principal: #161616;
     --cor-texto-secundario: #94a3b8;
     --cor-texto-alternativo: #7dd3fc;
+    --cor-para-destacar: #F50000;
+    --sombra-card: rgba(15, 23, 42, 0.9);
+    --red-700: #f87171;
+    --red-100: #450a0a;
+    --green-700: #4ade80;
+    --green-100: #052e16;
+}
+
+body[data-tema="vampirico"][data-mode="dark"] {
+    --cor-principal: #7E0202;
+    --cor-fundo-pagina: #000000;
+    --cor-fundo-card: #111111;
+    --cor-titulo: #7E0202;
+    --cor-hover: #B4D9D5;
+    --cor-texto-principal: #FFFFFF;
+    --cor-texto-secundario: #94a3b8;
+    --cor-para-destacar: #7E0202;
+    --sombra-card: rgba(15, 23, 42, 0.9);
+    --red-700: #f87171;
+    --red-100: #450a0a;
+    --green-700: #4ade80;
+    --green-100: #052e16;
+}
+
+body[data-tema="ceu-azul"][data-mode="light"] {
+    --cor-principal: #00DDFF;
+    --cor-fundo-pagina: #EBF4F4;
+    --cor-fundo-card: #FAFFFF;
+    --cor-titulo: #008DCE;
+    --cor-hover: #B4D9D5;
+    --cor-texto-principal: #000000;
+    --cor-texto-secundario: #94a3b8;
+    --cor-para-destacar: #00DDFF;
+    --sombra-card: rgba(15, 23, 42, 0.9);
+    --red-700: #f87171;
+    --red-100: #450a0a;
+    --green-700: #4ade80;
+    --green-100: #052e16;
+}
+
+body[data-tema="ceu-azul"][data-mode="dark"] {
+    --cor-principal: #004DDB;
+    --cor-fundo-pagina: #1A234D;
+    --cor-fundo-card: #111B47;
+    --cor-titulo: #5C71FF;
+    --cor-hover: #B4D9D5;
+    --cor-texto-principal: #E1F0FF;
+    --cor-texto-secundario: #94a3b8;
+    --cor-para-destacar: #004DDB;
     --sombra-card: rgba(15, 23, 42, 0.9);
     --red-700: #f87171;
     --red-100: #450a0a;
@@ -62,13 +117,15 @@ body[data-tema="vampirico"][data-mode="light"] {
 }
 
 body[data-tema="purpura"][data-mode="light"] {
-    --teal-claro: #B4D9D5;
     --cor-principal: #680082;
     --cor-fundo-pagina: #E784FF;
     --cor-fundo-card: #FDF4FF;
-    --cor-texto-escuro: #e5f6ff;
+    --cor-titulo: #30003C;
+    --cor-hover: #B4D9D5;
+    --cor-texto-principal: #000000;
     --cor-texto-secundario: #94a3b8;
     --cor-texto-alternativo: #7dd3fc;
+    --cor-para-destacar: #680082;
     --sombra-card: rgba(15, 23, 42, 0.9);
     --red-700: #f87171;
     --red-100: #450a0a;
@@ -77,13 +134,15 @@ body[data-tema="purpura"][data-mode="light"] {
 }
 
 body[data-tema="purpura"][data-mode="dark"] {
-    --teal-claro: #B4D9D5;
     --cor-principal: #8700A8;
     --cor-fundo-pagina: #30003C;
     --cor-fundo-card: #380046;
-    --cor-texto-escuro: #e5f6ff;
+    --cor-titulo: #E783FF;
+    --cor-hover: #B4D9D5;
+    --cor-texto-principal: #FFFFFF;
     --cor-texto-secundario: #94a3b8;
     --cor-texto-alternativo: #7dd3fc;
+    --cor-para-destacar: #8700A8;
     --sombra-card: rgba(15, 23, 42, 0.9);
     --red-700: #f87171;
     --red-100: #450a0a;
@@ -92,13 +151,15 @@ body[data-tema="purpura"][data-mode="dark"] {
 }
 
 body[data-tema="branco"][data-mode="light"] {
-    --teal-claro: #B4D9D5;
     --cor-principal: #464646;
     --cor-fundo-pagina: #FEFEFE;
     --cor-fundo-card: #DDDDDD;
-    --cor-texto-escuro: #1A1A1A;
+    --cor-titulo: #000000;
+    --cor-hover: #B4D9D5;
+    --cor-texto-principal: #1A1A1A;
     --cor-texto-secundario: #94a3b8;
     --cor-texto-alternativo: #7dd3fc;
+    --cor-para-destacar: #464646;
     --sombra-card: rgba(15, 23, 42, 0.9);
     --red-700: #f87171;
     --red-100: #450a0a;
@@ -107,13 +168,15 @@ body[data-tema="branco"][data-mode="light"] {
 }
 
 body[data-tema="branco"][data-mode="dark"] {
-    --teal-claro: #B4D9D5;
     --cor-principal: #7C7C7C;
     --cor-fundo-pagina: #111111;
-    --cor-fundo-card: #000000;
-    --cor-texto-escuro: #FFFFFF;
+    --cor-fundo-card: #1C1C1C;
+    --cor-titulo: #FFFFFF;
+    --cor-hover: #B4D9D5;
+    --cor-texto-principal: #FFFFFF;
     --cor-texto-secundario: #FFFFFF;
     --cor-texto-alternativo: #7dd3fc;
+    --cor-para-destacar: #7C7C7C;
     --sombra-card: rgba(15, 23, 42, 0.9);
     --red-700: #f87171;
     --red-100: #450a0a;

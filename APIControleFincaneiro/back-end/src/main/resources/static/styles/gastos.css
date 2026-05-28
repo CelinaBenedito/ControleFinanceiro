@@ -5,14 +5,6 @@
     font-family: 'Inter', sans-serif;
 }
 
-.ag-page h1 {
-    color: #004C58;
-    font-size: 2.8rem;
-    font-weight: 400;
-    margin-bottom: 24px;
-}
-
-
 /* Two-column layout */
 .ag-layout {
     display: flex;
@@ -35,7 +27,7 @@
 }
 
 .ag-month-name {
-    color: #004C58;
+    color: var(--cor-titulo);
     font-size: 2.5rem;
     font-weight: 500;
     min-width: 220px;
