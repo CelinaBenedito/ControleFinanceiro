@@ -417,7 +417,7 @@ confirmar.onclick = () => {
     if (modalAbertoPor === 'multi') {
         const label = document.getElementById('multi_data_label');
         const hidden = document.getElementById('multi_data');
-        if (label) { label.textContent = dataFormatada; label.classList.remove('hidden'); label.style.display = ''; }
+        if (label) { label.textContent = "Dia: " + dataFormatada; label.classList.remove('hidden'); label.style.display = ''; }
         if (hidden) hidden.value = dataSelecionada;
     } else {
         const dataEl = document.getElementById('data');

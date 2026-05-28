@@ -107,7 +107,7 @@
     top: 21px;
     font-size: 15px;
     color: var(--cor-texto-secundario);
-    background-color: #FAFFFF;
+    background-color: var(--cor-fundo-card);
     padding: 0 4px;
     pointer-events: none;
     transition: 0.2s ease-in-out;
@@ -189,9 +189,9 @@
 }
 
 .ar-date-display {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #0E5454;
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--cor-principal);
 }
 
 /* Buttons */

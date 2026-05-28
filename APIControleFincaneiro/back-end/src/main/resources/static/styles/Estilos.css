@@ -142,7 +142,7 @@ h1 {
     display: flex;
     text-decoration: none;
     transition: 0.3s;
-    color: var(--cor-texto);
+    color: var(--cor-texto-claro);
 }
 
 .side-bar a span {
@@ -370,6 +370,7 @@ h1 {
     background: rgba(0, 0, 0, 0.5);
     justify-content: center;
     align-items: center;
+    z-index: 1;
 }
 
 .conteudoModal {

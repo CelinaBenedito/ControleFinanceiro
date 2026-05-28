@@ -44,7 +44,7 @@
     font-size: 15px;
     font-weight: 600;
     color: var(--cor-texto-secundario);
-    background-color: #FAFFFF;
+    background-color: var(--cor-fundo-card);
     /* cobre a borda ao flutuar */
     padding: 0 4px;
     pointer-events: none;
@@ -292,12 +292,18 @@
 }
 
 /* Table inside cards */
+.tabela-config {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .cfg-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
     border-radius: 15px;
     overflow: hidden;
-    outline: 2px solid var(--cor-principal);
+    border-spacing: 0;
+    border: 2px solid var(--cor-principal);
 }
 
 .cfg-table th {
