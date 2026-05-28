@@ -77,7 +77,7 @@
     position: absolute;
     right: 12px;
     font-size: 11px;
-    color: #0E5454;
+    color: var(--cor-texto-secundario);
     font-weight: 200;
 }
 
