@@ -1,4 +1,4 @@
-@import "root.css"; 
+@import "root.css";
 
 
 * {
@@ -6,6 +6,13 @@
     padding: 0;
     border: 0;
     box-sizing: border-box;
+}
+
+h1 {
+    color: var(--cor-titulo);
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 28px;
 }
 
 .adicionarTipo {
@@ -72,7 +79,7 @@
     flex-direction: column;
     gap: 15px;
     background-color: var(--cor-fundo-pagina);
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     min-height: 100vh;
 }
@@ -386,12 +393,12 @@
 }
 
 .dias span:hover {
-    background: var(--teal-claro);
+    background: var(--cor-hover);
 }
 
 .diaSelecionado {
     background: var(--cor-principal);
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
     border-radius: 5px;
 }
 
@@ -618,11 +625,11 @@
 .registroValor {
     font-weight: 700;
     font-size: 1.1rem;
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
 }
 
 .registroTipo {
-    background: var(--teal-claro);
+    background: var(--cor-hover);
     padding: 4px 8px;
     border-radius: 8px;
     font-size: 1.0rem;
@@ -731,7 +738,7 @@ footer a {
 
 .containerRegistros {
     display: grid;
-    grid-template-columns: 130px 10% 10%;
+    grid-template-columns: 250px 10% 10%;
     gap: 5px;
     align-items: center;
 }
@@ -779,7 +786,7 @@ footer a {
     color: var(--cor-principal);
 
     background-color: var(--cor-fundo-card);
-    border: 1px solid var(--teal-claro);
+    border: 1px solid var(--cor-hover);
     border-left: 5px solid var(--cor-principal);
     border-radius: 10px;
 
@@ -824,10 +831,10 @@ footer a {
     opacity: 0.9;
 }
 
-.aviso h1 {
+.aviso h3 {
     font-size: 1.4rem;
     font-weight: 800;
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
 }
 
 .aviso p {
@@ -852,7 +859,7 @@ footer a {
 
     font-size: 0.95rem;
     font-weight: 700;
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
 }
 
 .titulo-grafico span {
@@ -965,13 +972,13 @@ footer a {
 
 .usuario-card span {
     font-size: 14px;
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
 }
 
 .usuario:hover,
 .addUsuario:hover {
     transform: scale(1.08);
-    background-color: var(--teal-claro);
+    background-color: var(--cor-hover);
 }
 
 .containerCadastro {
@@ -1022,12 +1029,12 @@ footer a {
 
 .containerCadastro h1 {
     font-size: 32px;
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
     font-weight: 600;
 }
 
 .containerCadastro p {
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
     opacity: 0.9;
 }
 
@@ -1132,6 +1139,9 @@ footer a {
     font-weight: 200;
     color: #0E5454;
     white-space: nowrap;
+    position: absolute;
+    z-index: 2;
+    margin-left: 10px;
 }
 
 .uw-avatar {

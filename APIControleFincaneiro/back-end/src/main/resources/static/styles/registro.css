@@ -5,13 +5,6 @@
     font-family: 'Inter', sans-serif;
 }
 
-.ar-page h1 {
-    color: #004C58;
-    font-size: 2.8rem;
-    font-weight: 400;
-    margin-bottom: 28px;
-}
-
 /* ── Tab header ── */
 .ar-tabs {
     display: flex;
@@ -50,7 +43,7 @@
 
 /* ── Main form card ── */
 .ar-card {
-    background: #FAFFFF;
+    background: var(--cor-fundo-card);
     border-radius: 0 20px 20px 20px;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
     border-left: 2px solid var(--cor-principal);
