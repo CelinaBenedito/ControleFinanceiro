@@ -1,10 +1,5 @@
 @import "root.css"; 
 
-/* ── Configurações page overrides ── */
-.cfg-page {
-    font-family: 'Inter', sans-serif;
-}
-
 /* Cards */
 .cfg-card {
     background: var(--cor-fundo-card);
@@ -84,7 +79,6 @@
     border: 2px solid var(--cor-principal);
     padding: 0 18px;
     font-size: 17px;
-    font-family: 'Inter', sans-serif;
     color: var(--cor-principal);
     background: transparent;
     font-weight: 600;
@@ -96,7 +90,7 @@
 .cfg-field select:focus,
 .cfg-field input:focus {
     outline: none;
-    border-color: #004C58;
+    border-color: var(--cor-hover);
     transition: border-color 0.2s ease-in-out;
 }
 
@@ -230,7 +224,6 @@
     border: none;
     border-radius: 10px;
     font-size: 17px;
-    font-family: 'Inter', sans-serif;
     font-weight: 400;
     cursor: pointer;
     transition: background 0.2s;
@@ -239,7 +232,7 @@
 }
 
 .cfg-btn:hover {
-    background: #004C58;
+    background: var(--cor-hover);
 }
 
 .cfg-btn.danger {
@@ -313,7 +306,6 @@
     font-weight: 600;
     color: var(--cor-principal);
     border-bottom: 1px solid var(--cor-principal);
-    font-family: 'Inter', sans-serif;
     background: var(--cor-fundo-pagina);
 }
 
@@ -322,7 +314,6 @@
     font-size: 0.95rem;
     color: var(--cor-principal);
     border-bottom: 1px solid rgba(54, 115, 115, 0.2);
-    font-family: 'Inter', sans-serif;
 }
 
 .cfg-table tr:last-child td {

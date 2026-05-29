@@ -458,7 +458,7 @@ async function abrirEdicaoRegistro(registro) {
     modal.innerHTML = `
         <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(520px,92vw);
                     display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,0.25);
-                    max-height:90vh;overflow-y:auto;font-family:'Inter',sans-serif;">
+                    max-height:90vh;overflow-y:auto;">
             <h2 style="color:#004C58;margin:0;font-size:1.4rem;">Editar Registro</h2>
 
             <div class="er-field-wrap">
@@ -605,7 +605,7 @@ function confirmarRemocaoRegistro(registro) {
         popup.innerHTML = `
             <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(380px,90vw);
                         display:flex;flex-direction:column;gap:20px;box-shadow:0 8px 32px rgba(0,0,0,0.25);
-                        font-family:'Inter',sans-serif;align-items:center;text-align:center;">
+                        align-items:center;text-align:center;">
                 <i class='bx bx-error-circle' style="font-size:3rem;color:#e53e3e;"></i>
                 <div>
                     <p style="font-size:1.1rem;font-weight:600;color:#1A1A1A;margin:0 0 6px;">Remover registro?</p>
