@@ -1,11 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
 @import "root.css";
-
 
 * {
     margin: 0;
     padding: 0;
     border: 0;
     box-sizing: border-box;
+    font-family: "Open Sans", sans-serif;;
 }
 
 h1 {
@@ -80,7 +81,6 @@ h1 {
     gap: 15px;
     background-color: var(--cor-fundo-pagina);
     color: var(--cor-texto-principal);
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     min-height: 100vh;
 }
 
@@ -95,7 +95,6 @@ h1 {
 .side-bar {
     padding: 20px;
     gap: 10px;
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     font-weight: bolder;
     font-size: 23px;
     display: flex;
@@ -553,7 +552,6 @@ h1 {
     border-radius: 10px;
     padding: 0 16px;
     font-size: 1rem;
-    font-family: 'Inter', sans-serif;
     font-weight: 600;
     color: var(--cor-principal);
     background: transparent;
@@ -565,7 +563,7 @@ h1 {
 .er-field-wrap input:focus,
 .er-field-wrap select:focus {
     outline: none;
-    border-color: #004C58;
+    border-color: var(--cor-hover);
 }
 
 .er-field-wrap label {
@@ -915,7 +913,6 @@ footer a {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     background-color: var(--cor-fundo-pagina);
 }
 
@@ -1110,7 +1107,6 @@ footer a {
 .uw-nome {
     color: var(--cor-principal);
     font-size: 12px;
-    font-family: 'Inter', sans-serif;
     font-weight: 600;
 }
 
@@ -1160,5 +1156,5 @@ footer a {
 }
 
 .user-widget:hover .uw-avatar {
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px #004C58;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px var(--cor-hover);
 }

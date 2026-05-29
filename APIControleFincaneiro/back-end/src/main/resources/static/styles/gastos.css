@@ -1,9 +1,6 @@
 @import "root.css"; 
 
 /* ── Agenda page ── */
-.ag-page {
-    font-family: 'Inter', sans-serif;
-}
 
 /* Two-column layout */
 .ag-layout {
@@ -51,7 +48,7 @@
 }
 
 .ag-nav-btn:hover {
-    background: #004C58;
+    background: var(--cor-hover);
 }
 
 /* Day-of-week header */
@@ -93,17 +90,17 @@
 }
 
 .ag-day:hover {
-    background: #2a5c5c;
+    background: var(--cor-hover);
     transform: translateY(-2px);
 }
 
 .ag-day.ag-today {
-    outline: 2px solid #004C58;
+    outline: 2px solid var(--cor-hover);
     outline-offset: -2px;
 }
 
 .ag-day.ag-selected {
-    background: #004C58;
+    background: var(--cor-hover);
 }
 
 .ag-day.ag-empty {
@@ -169,7 +166,7 @@
 }
 
 .ag-resumo-titulo {
-    color: #004C58;
+    color: var(--cor-titulo);
     font-size: 2rem;
     font-weight: 400;
     border-bottom: 2px solid var(--cor-principal);

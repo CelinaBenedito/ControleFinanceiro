@@ -1,9 +1,6 @@
 @import "root.css";
 
 /* ── Adicionar Registros page ── */
-.ar-page {
-    font-family: 'Inter', sans-serif;
-}
 
 /* ── Tab header ── */
 .ar-tabs {
@@ -17,7 +14,6 @@
     font-size: 1rem;
     font-weight: 600;
     color: #004C58;
-    font-family: 'Inter', sans-serif;
     cursor: pointer;
     background: #FAFFFF;
     border: 2px solid var(--cor-principal);
@@ -32,7 +28,7 @@
 
 .ar-tab.ativo {
     background: #FAFFFF;
-    color: #004C58;
+    color: var(--cor-hover);
     z-index: 1;
 }
 
@@ -120,7 +116,6 @@
     border: 2px solid var(--cor-principal);
     padding: 0 18px;
     font-size: 1rem;
-    font-family: 'Inter', sans-serif;
     font-weight: 600;
     color: var(--cor-principal);
     background: transparent;
@@ -135,7 +130,6 @@
     border: 2px solid var(--cor-principal);
     padding: 0 18px;
     font-size: 1rem;
-    font-family: 'Inter', sans-serif;
     font-weight: 600;
     color: var(--cor-principal);
     background: transparent;
@@ -207,7 +201,6 @@
     border: none;
     border-radius: 10px;
     font-size: 1rem;
-    font-family: 'Inter', sans-serif;
     font-weight: 400;
     cursor: pointer;
     transition: background 0.2s;
@@ -215,7 +208,7 @@
 }
 
 .ar-btn:hover {
-    background: #004C58;
+    background: var(--cor-hover);
 }
 
 /* Fix: .containerGeral button (especificidade 11) sobrescreve .ar-btn (10).
@@ -300,7 +293,6 @@
     font-weight: 600;
     color: var(--cor-principal);
     border-bottom: 1px solid var(--cor-principal);
-    font-family: 'Inter', sans-serif;
     background: var(--cor-fundo-pagina);
 }
 
@@ -309,7 +301,6 @@
     font-size: 0.9rem;
     color: var(--cor-principal);
     border-bottom: 1px solid rgba(54, 115, 115, 0.2);
-    font-family: 'Inter', sans-serif;
 }
 
 .ar-multi-table tr:last-child td {

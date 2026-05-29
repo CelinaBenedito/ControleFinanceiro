@@ -1,9 +1,6 @@
 @import "root.css";
 
 /* ── Meu Perfil page ── */
-.pf-page {
-    font-family: 'Inter', sans-serif;
-}
 
 /* ── Shared card ── */
 .pf-card {
@@ -247,12 +244,11 @@
     height: 52px;
     padding: 0 24px;
     min-width: 130px;
-    background: #367373;
+    background: var(--cor-principal);
     color: #fff;
     border: none;
     border-radius: 10px;
     font-size: 17px;
-    font-family: 'Inter', sans-serif;
     font-weight: 400;
     cursor: pointer;
     transition: background 0.2s;
@@ -261,7 +257,7 @@
 }
 
 .pf-btn:hover {
-    background: #004C58;
+    background: var(--cor-hover);
 }
 
 .pf-btn.danger {
@@ -356,7 +352,7 @@
     background: rgba(0, 187, 221, 0.1);
 }
 
-.pf-icon-btn.delete {
+.pf-icon-btn.delete {   
     color: #e53e3e;
 }
 
@@ -371,11 +367,10 @@
 
 .pf-campo label {
     margin-bottom: 20px;
-    font-family: 'Inter', sans-serif;
 }
 
 .pf-campo input {
-    border: 1px solid #367373;
+    border: 1px solid var(--cor-principal);
     padding: 10px 20px;
     height: 50px;
     width: 500px;
@@ -385,7 +380,6 @@
 
 .btn-criticos .btn-urgente {
     background-color: var(--red-700);
-    font-family: 'Inter', sans-serif;
     padding: 15px;
     margin: 0 10px;
 }
