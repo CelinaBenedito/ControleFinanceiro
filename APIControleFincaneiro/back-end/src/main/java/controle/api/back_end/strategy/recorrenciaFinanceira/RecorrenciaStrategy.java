@@ -1,7 +1,7 @@
 package controle.api.back_end.strategy.recorrenciaFinanceira;
 
-import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
-import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
+import controle.api.back_end.domain.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.domain.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;

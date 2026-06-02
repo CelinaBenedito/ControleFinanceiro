@@ -1,0 +1,15 @@
+package controle.api.back_end.adapters.outbound.repository.categoria;
+
+import controle.api.back_end.domain.categoria.Categoria;
+import jakarta.transaction.Transactional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+
+public interface CategoriaRepository extends JpaRepository<Categoria,Integer> {
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Categoria c WHERE c.id = :id")
+    void deleteCategoriaById(Integer id);
+}

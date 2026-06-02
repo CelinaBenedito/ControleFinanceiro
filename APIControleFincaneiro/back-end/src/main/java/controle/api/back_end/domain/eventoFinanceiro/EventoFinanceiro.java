@@ -1,0 +1,146 @@
+package controle.api.back_end.domain.eventoFinanceiro;
+
+import controle.api.back_end.domain.usuario.Usuario;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+@Entity
+public class EventoFinanceiro {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @ManyToOne
+    @NotNull
+    private Usuario usuario;
+
+    @Enumerated(EnumType.STRING)
+    @NotNull
+    private Tipo tipo;
+
+    @NotNull
+    @PositiveOrZero
+    private Double valor;
+
+    @Size(max = 500)
+    private String descricao;
+
+    @NotNull
+    private LocalDate dataEvento;
+
+    private Double taxaRendimento;
+
+    private Integer tempoAplicacao;
+
+    private Integer tempoProjecao;
+
+    @OneToMany(mappedBy = "eventoFinanceiro", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EventoInstituicao> eventoInstituicoes;
+
+    @OneToOne(mappedBy = "eventoFinanceiro", cascade = CascadeType.ALL, orphanRemoval = true)
+    private EventoDetalhe eventoDetalhe;
+
+    @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime dataRegistro;
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario fkUsuario) {
+        this.usuario = fkUsuario;
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public Tipo getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(Tipo tipo) {
+        this.tipo = tipo;
+    }
+
+    public Double getValor() {
+        return valor;
+    }
+
+    public void setValor(Double valor) {
+        this.valor = valor;
+    }
+
+    public String getDescricao() {
+        return descricao;
+    }
+
+    public void setDescricao(String descricao) {
+        this.descricao = descricao;
+    }
+
+    public LocalDate getDataEvento() {
+        return dataEvento;
+    }
+
+    public void setDataEvento(LocalDate dataEvento) {
+        this.dataEvento = dataEvento;
+    }
+
+    public Double getTaxaRendimento() {
+        return taxaRendimento;
+    }
+
+    public void setTaxaRendimento(Double taxaRendimento) {
+        this.taxaRendimento = taxaRendimento;
+    }
+
+    public Integer getTempoAplicacao() {
+        return tempoAplicacao;
+    }
+
+    public void setTempoAplicacao(Integer tempoAplicacao) {
+        this.tempoAplicacao = tempoAplicacao;
+    }
+
+    public Integer getTempoProjecao() {
+        return tempoProjecao;
+    }
+
+    public void setTempoProjecao(Integer tempoProjecao) {
+        this.tempoProjecao = tempoProjecao;
+    }
+
+    public LocalDateTime getDataRegistro() {
+        return dataRegistro;
+    }
+
+    public void setDataRegistro(LocalDateTime dataRegistro) {
+        this.dataRegistro = dataRegistro;
+    }
+
+    public List<EventoInstituicao> getEventoInstituicoes() {
+        return eventoInstituicoes;
+    }
+
+    public void setEventoInstituicoes(List<EventoInstituicao> eventoInstituicoes) {
+        this.eventoInstituicoes = eventoInstituicoes;
+    }
+
+    public EventoDetalhe getGastoDetalhe() {
+        return eventoDetalhe;
+    }
+
+    public void setGastoDetalhe(EventoDetalhe eventoDetalhe) {
+        this.eventoDetalhe = eventoDetalhe;
+    }
+}

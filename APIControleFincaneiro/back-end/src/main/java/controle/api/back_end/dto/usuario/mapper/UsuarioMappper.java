@@ -4,7 +4,7 @@ import controle.api.back_end.dto.usuario.in.UsuarioCreateDTO;
 import controle.api.back_end.dto.usuario.in.UsuarioEditDTO;
 import controle.api.back_end.dto.usuario.in.UsuarioLoginDTO;
 import controle.api.back_end.dto.usuario.out.UsuarioResponseDTO;
-import controle.api.back_end.model.usuario.Usuario;
+import controle.api.back_end.domain.usuario.Usuario;
 import jakarta.validation.Valid;
 
 import java.util.List;

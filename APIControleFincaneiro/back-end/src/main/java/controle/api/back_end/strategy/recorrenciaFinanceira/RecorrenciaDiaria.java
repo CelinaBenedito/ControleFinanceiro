@@ -1,7 +1,7 @@
     package controle.api.back_end.strategy.recorrenciaFinanceira;
 
-    import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
-    import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
+    import controle.api.back_end.domain.eventoFinanceiro.EventoFinanceiro;
+    import controle.api.back_end.domain.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 
     import java.time.LocalDate;
     import java.time.LocalDateTime;

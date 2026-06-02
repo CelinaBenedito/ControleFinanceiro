@@ -1,13 +1,10 @@
 package controle.api.back_end.factory;
 
-import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
-import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
+import controle.api.back_end.domain.eventoFinanceiro.TipoMovimento;
 import controle.api.back_end.strategy.movimento.*;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
-
-import static controle.api.back_end.model.eventoFinanceiro.TipoMovimento.Credito;
 
 @Component
 public class MovimentoFactory {

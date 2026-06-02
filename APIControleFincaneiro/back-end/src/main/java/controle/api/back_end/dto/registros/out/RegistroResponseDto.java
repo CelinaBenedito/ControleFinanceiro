@@ -1,7 +1,7 @@
 package controle.api.back_end.dto.registros.out;
 
-import controle.api.back_end.model.eventoFinanceiro.Tipo;
-import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
+import controle.api.back_end.domain.eventoFinanceiro.Tipo;
+import controle.api.back_end.domain.eventoFinanceiro.TipoMovimento;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

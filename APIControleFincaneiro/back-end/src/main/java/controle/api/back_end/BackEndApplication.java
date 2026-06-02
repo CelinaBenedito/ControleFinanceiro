@@ -6,12 +6,11 @@ import org.h2.tools.Server;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import java.sql.SQLException;
 
 @SpringBootApplication
-@EntityScan(basePackages = "controle.api.back_end.model")
+@EntityScan(basePackages = "controle.api.back_end.domain")
 public class BackEndApplication {
 
 	public static void main(String[] args) {

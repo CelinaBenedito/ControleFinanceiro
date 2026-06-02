@@ -1,6 +1,6 @@
 package controle.api.back_end.dto.usuario.out;
 
-import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.domain.usuario.UsuarioSexo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;

@@ -1,14 +1,9 @@
 package controle.api.back_end.dto.registros.in;
 
-import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
-import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.domain.eventoFinanceiro.TipoMovimento;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-
-import java.util.List;
-import java.util.UUID;
 
 public class EventoInstituicaoCreateDto {
     @Schema(example = "2", description = "Representa a instituição a qual pertence a movimentação.")

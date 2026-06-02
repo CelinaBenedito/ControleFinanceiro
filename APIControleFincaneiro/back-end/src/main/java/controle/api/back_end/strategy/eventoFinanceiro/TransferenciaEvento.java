@@ -1,6 +1,6 @@
 package controle.api.back_end.strategy.eventoFinanceiro;
 
-import controle.api.back_end.model.eventoFinanceiro.*;
+import controle.api.back_end.domain.eventoFinanceiro.*;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;

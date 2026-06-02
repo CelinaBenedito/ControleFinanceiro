@@ -1,8 +1,8 @@
 package controle.api.back_end.strategy.eventoFinanceiro;
 
-import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
-import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
-import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.domain.eventoFinanceiro.EventoDetalhe;
+import controle.api.back_end.domain.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.domain.eventoFinanceiro.EventoInstituicao;
 
 import java.util.List;
 

@@ -1,8 +1,8 @@
 package controle.api.back_end.specifications;
 
-import controle.api.back_end.model.categoria.CategoriaUsuario;
-import controle.api.back_end.model.eventoFinanceiro.*;
-import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.domain.categoria.CategoriaUsuario;
+import controle.api.back_end.domain.eventoFinanceiro.*;
+import controle.api.back_end.domain.instituicao.InstituicaoUsuario;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;

@@ -6,10 +6,10 @@ import controle.api.back_end.dto.configuracoes.out.ConfiguracaoUsuarioResponseDT
 import controle.api.back_end.dto.configuracoes.out.ConfiguracoesResponsesDTO;
 import controle.api.back_end.dto.configuracoes.out.LimitePorCategoriaResponseDto;
 import controle.api.back_end.dto.configuracoes.out.LimitePorInstituicaoResponseDto;
-import controle.api.back_end.model.configuracoes.Configuracoes;
-import controle.api.back_end.model.configuracoes.LimitePorCategoria;
-import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
-import controle.api.back_end.model.usuario.Usuario;
+import controle.api.back_end.domain.configuracoes.Configuracoes;
+import controle.api.back_end.domain.configuracoes.LimitePorCategoria;
+import controle.api.back_end.domain.configuracoes.LimitePorInstituicao;
+import controle.api.back_end.domain.usuario.Usuario;
 import jakarta.validation.Valid;
 
 import java.util.ArrayList;

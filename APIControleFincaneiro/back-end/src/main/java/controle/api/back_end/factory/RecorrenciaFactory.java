@@ -1,6 +1,6 @@
 package controle.api.back_end.factory;
 
-import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.Periodicidade;
+import controle.api.back_end.domain.eventoFinanceiro.recorrenciaFinanceira.Periodicidade;
 import controle.api.back_end.strategy.recorrenciaFinanceira.*;
 import org.springframework.stereotype.Component;
 

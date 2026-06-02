@@ -1,7 +1,7 @@
 package controle.api.back_end.dto.categoria.out;
 
 
-import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.domain.usuario.UsuarioSexo;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

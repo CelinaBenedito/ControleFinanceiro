@@ -1,6 +1,6 @@
 package controle.api.back_end.factory;
 
-import controle.api.back_end.model.eventoFinanceiro.Tipo;
+import controle.api.back_end.domain.eventoFinanceiro.Tipo;
 import controle.api.back_end.strategy.eventoFinanceiro.*;
 import org.springframework.stereotype.Component;
 

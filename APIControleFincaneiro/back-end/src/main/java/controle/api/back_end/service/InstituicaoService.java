@@ -2,17 +2,17 @@ package controle.api.back_end.service;
 
 import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
-import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
-import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
-import controle.api.back_end.model.eventoFinanceiro.Tipo;
-import controle.api.back_end.model.instituicao.Instituicao;
-import controle.api.back_end.model.instituicao.InstituicaoUsuario;
-import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
-import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
-import controle.api.back_end.repository.instituicao.InstituicaoRepository;
-import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
-import controle.api.back_end.repository.usuario.UsuarioRepository;
+import controle.api.back_end.domain.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.domain.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.domain.eventoFinanceiro.Tipo;
+import controle.api.back_end.domain.instituicao.Instituicao;
+import controle.api.back_end.domain.instituicao.InstituicaoUsuario;
+import controle.api.back_end.domain.usuario.Usuario;
+import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.EventoFinanceiroRepository;
+import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.EventoInstituicaoRepository;
+import controle.api.back_end.adapters.outbound.repository.instituicao.InstituicaoRepository;
+import controle.api.back_end.adapters.outbound.repository.instituicao.InstituicaoUsuarioRepository;
+import controle.api.back_end.adapters.outbound.repository.usuario.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

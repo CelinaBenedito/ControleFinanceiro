@@ -1,0 +1,206 @@
+package controle.api.back_end.adapters.inbound.controller;
+
+import controle.api.back_end.dto.usuario.in.UsuarioCreateDTO;
+import controle.api.back_end.dto.usuario.in.UsuarioEditDTO;
+import controle.api.back_end.dto.usuario.in.UsuarioEditSenhaDTO;
+import controle.api.back_end.dto.usuario.in.UsuarioLoginDTO;
+import controle.api.back_end.dto.usuario.out.UsuarioResponseDTO;
+import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
+import controle.api.back_end.domain.usuario.Usuario;
+import controle.api.back_end.service.UsuarioService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+@CrossOrigin
+@RestController
+@RequestMapping("/usuarios")
+@Tag(name = "Usuários", description = "Endpoints referentes aos usuários da aplicação.")
+public class UsuarioController {
+
+    public final UsuarioService usuarioService;
+
+    public UsuarioController(UsuarioService usuarioService) {
+        this.usuarioService = usuarioService;
+    }
+
+    @GetMapping
+    @Operation(summary = "Buscar todos os usuarios",
+            description = "Busca todos os usuarios registrados no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e não retornou dados",
+                    content = @Content)
+    })
+    public ResponseEntity<List<UsuarioResponseDTO>> getUsuarios() {
+        List<Usuario> all = usuarioService.getUsuarios();
+        if (all.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        List<UsuarioResponseDTO> response = UsuarioMappper.toDto(all);
+        return ResponseEntity.ok(response);
+    }
+
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Buscar o usuario que contém o id desejado ",
+            description = "Busca no banco de dados o usuario com o id desejado.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Usuario não encontrado.",
+                    content = @Content)
+    })
+    public ResponseEntity<UsuarioResponseDTO> getUsuarioById(@PathVariable UUID id){
+        Usuario usuario = usuarioService.getUsuarioById(id);
+        UsuarioResponseDTO response = UsuarioMappper.toDto(usuario);
+
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/saldo/{user_id}")
+    @Operation(summary = "Buscar o saldo do usuário",
+            description = "Faz uma busca dinâmica nos registros para calcular o saldo do usuário e retorna o valor correspondente")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso e retornou com dados",content = @Content(mediaType = "application/json",
+                    schema = @Schema(example = "0.0"))),
+            @ApiResponse(responseCode = "404", description = "Usuario não encontrado.",
+                    content = @Content)
+    })
+    public ResponseEntity<BigDecimal> getSaldoByUsuario(@PathVariable UUID user_id){
+        BigDecimal saldoByUsuario = usuarioService
+                .getSaldoByUsuario(user_id);
+        return ResponseEntity.status(200).body(saldoByUsuario);
+    }
+
+    @GetMapping("/calculo-xp/{user_id}")
+    @Operation(summary = "Busca o xp do usuário",
+            description = "Faz uma busca dinâmica nos dados para calcular o xp do usuário e retorna o valor correspondente")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca de dados feita com sucesso",content = @Content(mediaType = "application/json",
+                    schema = @Schema(example = "0.0"))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
+                    content = @Content)
+    })
+    public ResponseEntity<Double> getXpByUserId(@PathVariable("user_id") UUID user_id){
+           Double xp = usuarioService.getXpByUserId(user_id);
+        return ResponseEntity.status(200).body(xp);
+    }
+
+    @PostMapping
+    @Operation(summary = "Adicionar um novo usuario.",
+            description = "Cria um novo usuario no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Usuario criado com sucesso!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos.",
+                    content = @Content)
+    })
+    public ResponseEntity<UsuarioResponseDTO> createUsuario(@Valid @RequestBody UsuarioCreateDTO dto){
+        Usuario entity = UsuarioMappper.toEntity(dto);
+        Usuario userCreated = usuarioService.createUsuario(entity);
+        usuarioService.createConfiguracao(userCreated);
+        UsuarioResponseDTO response = UsuarioMappper.toDto(userCreated);
+        return ResponseEntity.status(201).body(response);
+    }
+
+    @PostMapping("/login")
+    @Operation(summary = "Logar um usuario.",
+            description = "Busca pelo email e a senha o usuário no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Usuario encontrado!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos.",
+                    content = @Content)
+    })
+    public ResponseEntity<UsuarioResponseDTO> loginUsuario(@Valid @RequestBody UsuarioLoginDTO dto){
+        Usuario login = UsuarioMappper.toEntity(dto);
+        Usuario usuarioEncontrado = usuarioService.LoginUsuario(login);
+        UsuarioResponseDTO response = UsuarioMappper.toDto(usuarioEncontrado);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Editar as informações do usuário.",
+            description = "Editar de um usuario já presente no banco de dados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Usuario editado com sucesso!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos.",
+                    content = @Content)
+    })
+    public ResponseEntity<UsuarioResponseDTO> editUsuario(@PathVariable UUID id, @Valid @RequestBody UsuarioEditDTO dto){
+        Usuario usuarioEdicao = UsuarioMappper.toEntity(dto);
+        Usuario usuarioEditado = usuarioService.editUsuario(id, usuarioEdicao);
+        UsuarioResponseDTO response = UsuarioMappper.toDto(usuarioEditado);
+        return ResponseEntity.ok(response);
+    }
+    @PutMapping("ativar-usuario/{user_id}")
+    public ResponseEntity<UsuarioResponseDTO> activateUserBydId(@PathVariable UUID user_id){
+        Usuario usuario = usuarioService.activateUsuario(user_id);
+        UsuarioResponseDTO response = UsuarioMappper.toDto(usuario);
+
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @PutMapping("editar-senha/{user_id}")
+    public ResponseEntity<UsuarioResponseDTO> editSenhaByUserId(@PathVariable UUID user_id,
+                                                                @RequestBody UsuarioEditSenhaDTO novaSenha){
+        Usuario usuario = usuarioService.editSenhaByUserId(user_id,
+                novaSenha.getNovaSenha(),
+                novaSenha.getAntigaSenha());
+
+        UsuarioResponseDTO response = UsuarioMappper.toDto(usuario);
+
+        return ResponseEntity.status(200).body(response);
+    }
+
+    @PutMapping(
+            value = "/{id}/upload-imagem",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(summary = "Upload de imagem do usuário",
+            description = "Recebe uma imagem, salva em uma pasta e atualiza o atributo imagem do usuário.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Imagem enviada e usuário atualizado com sucesso!",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
+                    content = @Content),
+            @ApiResponse(responseCode = "400", description = "Erro ao salvar imagem.",
+                    content = @Content)
+    })
+    public ResponseEntity<UsuarioResponseDTO> uploadImagemUsuario(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+
+        Usuario usuarioAtualizado = usuarioService.uploadImagemUsuario(id, file);
+        UsuarioResponseDTO response = UsuarioMappper.toDto(usuarioAtualizado);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{user_id}")
+    public ResponseEntity<Void> deleteUserById(@PathVariable UUID user_id){
+        usuarioService.deleteUserbyId(user_id);
+        return ResponseEntity.status(204).build();
+    }
+
+}
