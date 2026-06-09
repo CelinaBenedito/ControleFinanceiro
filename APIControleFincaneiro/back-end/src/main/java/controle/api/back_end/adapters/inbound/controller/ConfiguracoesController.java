@@ -9,7 +9,7 @@ import controle.api.back_end.domain.configuracoes.Configuracoes;
 import controle.api.back_end.domain.configuracoes.LimitePorCategoria;
 import controle.api.back_end.domain.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.domain.instituicao.InstituicaoUsuario;
-import controle.api.back_end.service.ConfiguracoesService;
+import controle.api.back_end.application.service.ConfiguracoesService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

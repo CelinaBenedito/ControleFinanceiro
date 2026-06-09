@@ -1,4 +1,4 @@
-package controle.api.back_end.service;
+package controle.api.back_end.application.service;
 
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.exception.ContentTypeException;
@@ -13,7 +13,8 @@ import controle.api.back_end.domain.usuario.Usuario;
 import controle.api.back_end.adapters.outbound.repository.categoria.CategoriaUsuarioRepository;
 import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.EventoFinanceiroRepository;
 import controle.api.back_end.adapters.outbound.repository.instituicao.InstituicaoUsuarioRepository;
-import controle.api.back_end.adapters.outbound.repository.usuario.UsuarioRepository;
+import controle.api.back_end.adapters.outbound.repository.usuario.JpaUsuarioRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,33 +29,23 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+@RequiredArgsConstructor
 @Service
 public class UsuarioService {
 
-    private final UsuarioRepository usuarioRepository;
+    private final JpaUsuarioRepository jpaUsuarioRepository;
     private final ConfiguracoesService configuracoesService;
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final CategoriaUsuarioRepository categoriaUsuarioRepository;
 
-    public UsuarioService(UsuarioRepository usuarioRepository,
-                          ConfiguracoesService configuracoesService,
-                          EventoFinanceiroRepository eventoFinanceiroRepository,
-                          InstituicaoUsuarioRepository instituicaoUsuarioRepository,
-                          CategoriaUsuarioRepository categoriaUsuarioRepository) {
-        this.usuarioRepository = usuarioRepository;
-        this.configuracoesService = configuracoesService;
-        this.eventoFinanceiroRepository = eventoFinanceiroRepository;
-        this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
-        this.categoriaUsuarioRepository = categoriaUsuarioRepository;
-    }
 
     public List<Usuario> getUsuarios() {
-        return usuarioRepository.findAll();
+        return jpaUsuarioRepository.findAll();
     }
 
     public Usuario getUsuarioById(UUID id) {
-        return usuarioRepository.findById(id)
+        return jpaUsuarioRepository.findById(id)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException(
                                 "Usuario de id: %s não encontrado".
                                         formatted(id)
@@ -63,7 +54,7 @@ public class UsuarioService {
     }
 
     public BigDecimal getSaldoByUsuario(UUID userId) {
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
+        Usuario usuario = jpaUsuarioRepository.findById(userId).orElseThrow(() ->
                 new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado"
                         .formatted(userId)
                 )
@@ -83,11 +74,11 @@ public class UsuarioService {
         if (ageValidation(entity.getDataNascimento()) == false) {
             throw new MenorDeIdadeException("Usuario menor de idade");
         }
-        return usuarioRepository.save(entity);
+        return jpaUsuarioRepository.save(entity);
     }
 
     public Usuario LoginUsuario(Usuario login) {
-        List<Usuario> usuarioByEmailAndSenha = usuarioRepository.
+        List<Usuario> usuarioByEmailAndSenha = jpaUsuarioRepository.
                 findUsuarioByEmailAndSenha(
                         login.getEmail(),
                         login.getSenha()
@@ -112,7 +103,7 @@ public class UsuarioService {
             }
         }
 
-        Usuario userAtual = usuarioRepository.findById(id)
+        Usuario userAtual = jpaUsuarioRepository.findById(id)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException(
                                 "Usuario com o id: %s para editar não encontrado"
                                         .formatted(id)
@@ -121,7 +112,7 @@ public class UsuarioService {
 
         Usuario edit = UsuarioMappper.toEdit(entity, userAtual);
 
-        return usuarioRepository.save(edit);
+        return jpaUsuarioRepository.save(edit);
     }
 
     public Boolean ageValidation(LocalDate dataNascimento) {
@@ -144,7 +135,7 @@ public class UsuarioService {
     }
 
     public Double getXpByUserId(UUID user_id) {
-        if (!usuarioRepository.existsById(user_id)) {
+        if (!jpaUsuarioRepository.existsById(user_id)) {
             throw new EntidadeNaoEncontradaException("Usuário de id: %s não encontrado"
                     .formatted(user_id));
         }
@@ -168,7 +159,7 @@ public class UsuarioService {
     }
 
     public Usuario getUsuario(UUID userId) {
-        return usuarioRepository.findById(userId)
+        return jpaUsuarioRepository.findById(userId)
                 .orElseThrow(() ->
                         new EntidadeNaoEncontradaException(
                                 "Usuário de id: %s não encontrado."
@@ -195,7 +186,7 @@ public class UsuarioService {
             throw new SenhasNaoCoincidemException();
         }
         usuario.setSenha(novaSenha);
-        return usuarioRepository.save(usuario);
+        return jpaUsuarioRepository.save(usuario);
     }
 
     public Usuario uploadImagemUsuario(UUID id, MultipartFile file) {
@@ -235,7 +226,7 @@ public class UsuarioService {
             Files.copy(file.getInputStream(), caminhoArquivo, StandardCopyOption.REPLACE_EXISTING);
 
             usuario.setImagem("/uploads/user_images/" + nomeArquivo);
-            return usuarioRepository.save(usuario);
+            return jpaUsuarioRepository.save(usuario);
         } catch (IOException e) {
             throw new RuntimeException("Erro ao salvar imagem: " + e.getMessage());
         }

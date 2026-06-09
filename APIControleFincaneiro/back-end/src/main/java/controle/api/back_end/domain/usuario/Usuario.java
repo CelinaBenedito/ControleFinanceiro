@@ -1,48 +1,18 @@
 package controle.api.back_end.domain.usuario;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-
 import java.time.LocalDate;
 import java.util.UUID;
 
-@Entity
 public class Usuario {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+
     private UUID id;
-
-    @Size(max = 50)
-    @NotBlank
     private String nome;
-
-    @Size(max = 100)
-    @NotBlank
-    @Column(nullable = false)
     private String sobrenome;
-
-    @Past
-    @NotNull
-    @Column(nullable = false)
     private LocalDate dataNascimento;
-
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private UsuarioSexo sexo;
-
-    @Size(max=500)
     private String imagem;
-
-    @NotBlank
-    @Size(max = 150)
     private String email;
-
-    @NotBlank
-    @Size(max=25)
     private String senha;
-
-
     private Boolean isAtivo = true;
 
     public Usuario() {

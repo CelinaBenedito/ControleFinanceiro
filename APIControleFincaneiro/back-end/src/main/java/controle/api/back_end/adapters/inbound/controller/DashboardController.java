@@ -3,7 +3,7 @@ package controle.api.back_end.adapters.inbound.controller;
 import controle.api.back_end.dto.dashboard.out.CategoriaEPorcentagens;
 import controle.api.back_end.dto.dashboard.out.MaiorGastoDoMes;
 import controle.api.back_end.dto.dashboard.out.GastoTotalDoMes;
-import controle.api.back_end.service.DashboardService;
+import controle.api.back_end.application.service.DashboardService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

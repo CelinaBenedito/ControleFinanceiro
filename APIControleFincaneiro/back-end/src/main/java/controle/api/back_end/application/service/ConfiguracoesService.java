@@ -1,4 +1,4 @@
-package controle.api.back_end.service;
+package controle.api.back_end.application.service;
 
 import controle.api.back_end.dto.configuracoes.in.ConfiguracaoEditDTO;
 import controle.api.back_end.dto.configuracoes.in.PeriodoTempoRequestDto;
@@ -19,7 +19,7 @@ import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.Event
 import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.EventoFinanceiroRepository;
 import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.EventoInstituicaoRepository;
 import controle.api.back_end.adapters.outbound.repository.instituicao.InstituicaoUsuarioRepository;
-import controle.api.back_end.adapters.outbound.repository.usuario.UsuarioRepository;
+import controle.api.back_end.adapters.outbound.repository.usuario.JpaUsuarioRepository;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ import java.util.UUID;
 public class ConfiguracoesService {
 
     private final ConfiguracoesRepository configuracoesRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final JpaUsuarioRepository jpaUsuarioRepository;
     private final CategoriaUsuarioRepository categoriaUsuarioRepository;
     private final LimitePorCategoriaRepository limitePorCategoriaRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
@@ -43,7 +43,7 @@ public class ConfiguracoesService {
     private final EventoDetalheRepository eventoDetalheRepository;
 
     public ConfiguracoesService(ConfiguracoesRepository configuracoesRepository,
-                                UsuarioRepository usuarioRepository,
+                                JpaUsuarioRepository jpaUsuarioRepository,
                                 CategoriaUsuarioRepository categoriaUsuarioRepository,
                                 LimitePorCategoriaRepository limitePorCategoriaRepository,
                                 InstituicaoUsuarioRepository instituicaoUsuarioRepository,
@@ -52,7 +52,7 @@ public class ConfiguracoesService {
                                 EventoInstituicaoRepository eventoInstituicaoRepository,
                                 EventoDetalheRepository eventoDetalheRepository) {
         this.configuracoesRepository = configuracoesRepository;
-        this.usuarioRepository = usuarioRepository;
+        this.jpaUsuarioRepository = jpaUsuarioRepository;
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
         this.limitePorCategoriaRepository = limitePorCategoriaRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
@@ -69,7 +69,7 @@ public class ConfiguracoesService {
 
 
     public Configuracoes createConfiguracao(Configuracoes entity, UUID idUsuario) {
-        Usuario user = usuarioRepository.findById(idUsuario)
+        Usuario user = jpaUsuarioRepository.findById(idUsuario)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("Usuário não encontrado"));
 
         if (configuracoesRepository.existsConfiguracoesByUsuario_Id(idUsuario)) {
@@ -256,7 +256,7 @@ public class ConfiguracoesService {
 
     @Transactional
     public void deleteAllByUsuario(UUID usuarioId) {
-        Usuario usuario = usuarioRepository.findById(usuarioId)
+        Usuario usuario = jpaUsuarioRepository.findById(usuarioId)
                 .orElseThrow(() ->
                         new EntidadeNaoEncontradaException(
                                 "Usuário de id: %s não encontrado.".formatted(usuarioId)

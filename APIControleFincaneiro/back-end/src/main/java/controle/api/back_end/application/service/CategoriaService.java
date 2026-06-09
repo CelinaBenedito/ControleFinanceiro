@@ -1,4 +1,4 @@
-package controle.api.back_end.service;
+package controle.api.back_end.application.service;
 
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.domain.categoria.Categoria;
@@ -6,7 +6,7 @@ import controle.api.back_end.domain.categoria.CategoriaUsuario;
 import controle.api.back_end.domain.usuario.Usuario;
 import controle.api.back_end.adapters.outbound.repository.categoria.CategoriaRepository;
 import controle.api.back_end.adapters.outbound.repository.categoria.CategoriaUsuarioRepository;
-import controle.api.back_end.adapters.outbound.repository.usuario.UsuarioRepository;
+import controle.api.back_end.adapters.outbound.repository.usuario.JpaUsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,12 +19,12 @@ import java.util.UUID;
 public class CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final JpaUsuarioRepository jpaUsuarioRepository;
     private final CategoriaUsuarioRepository categoriaUsuarioRepository;
 
-    public CategoriaService(CategoriaRepository categoriaRepository, UsuarioRepository usuarioRepository, CategoriaUsuarioRepository categoriaUsuarioRepository) {
+    public CategoriaService(CategoriaRepository categoriaRepository, JpaUsuarioRepository jpaUsuarioRepository, CategoriaUsuarioRepository categoriaUsuarioRepository) {
         this.categoriaRepository = categoriaRepository;
-        this.usuarioRepository = usuarioRepository;
+        this.jpaUsuarioRepository = jpaUsuarioRepository;
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
     }
 
@@ -41,7 +41,7 @@ public class CategoriaService {
     }
 
     public List<CategoriaUsuario> getByUserId(UUID userId) {
-        if(!usuarioRepository.existsById(userId)){
+        if(!jpaUsuarioRepository.existsById(userId)){
             throw new EntidadeNaoEncontradaException(
                     "Usuario de id: %s não encontrado"
                             .formatted(userId)
@@ -78,7 +78,7 @@ public class CategoriaService {
     public CategoriaUsuario createCategoriaAndAssociate(Categoria categoria, UUID usuarioId) {
         Categoria savedCategoria = categoriaRepository.save(categoria);
 
-        Usuario usuario = usuarioRepository.findById(usuarioId).orElseThrow(() ->
+        Usuario usuario = jpaUsuarioRepository.findById(usuarioId).orElseThrow(() ->
                 new EntidadeNaoEncontradaException(
                         "Usuario de id: %s não encontrado"
                                 .formatted(usuarioId)
@@ -97,7 +97,7 @@ public class CategoriaService {
     public CategoriaUsuario createCategoriaForUser(Integer categoriaId, UUID usuarioId) {
         CategoriaUsuario categoriaUsuario = new CategoriaUsuario();
 
-        Usuario usuario = usuarioRepository.findById(usuarioId).orElseThrow(() ->
+        Usuario usuario = jpaUsuarioRepository.findById(usuarioId).orElseThrow(() ->
                 new EntidadeNaoEncontradaException(
                         "Usuario de id: %s não encontrado"
                                 .formatted(usuarioId)

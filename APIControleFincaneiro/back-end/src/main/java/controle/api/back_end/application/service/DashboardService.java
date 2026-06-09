@@ -1,4 +1,4 @@
-package controle.api.back_end.service;
+package controle.api.back_end.application.service;
 
 import controle.api.back_end.dto.dashboard.out.CategoriaEPorcentagens;
 import controle.api.back_end.dto.dashboard.out.MaiorGastoDoMes;
@@ -16,7 +16,7 @@ import controle.api.back_end.adapters.outbound.repository.configuracoes.Configur
 import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.EventoDetalheRepository;
 import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.EventoFinanceiroRepository;
 import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.EventoInstituicaoRepository;
-import controle.api.back_end.adapters.outbound.repository.usuario.UsuarioRepository;
+import controle.api.back_end.adapters.outbound.repository.usuario.JpaUsuarioRepository;
 import controle.api.back_end.utils.MesFiscalUtils;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +28,7 @@ import java.util.*;
 @Service
 public class DashboardService {
 
-    private final UsuarioRepository usuarioRepository;
+    private final JpaUsuarioRepository jpaUsuarioRepository;
     private final RegistroService registroService;
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
     private final EventoInstituicaoRepository eventoInstituicaoRepository;
@@ -38,7 +38,7 @@ public class DashboardService {
     private final ConfiguracoesService configuracoesService;
     private final ConfiguracoesRepository configuracoesRepository;
 
-    public DashboardService(UsuarioRepository usuarioRepository,
+    public DashboardService(JpaUsuarioRepository jpaUsuarioRepository,
                             RegistroService registroService,
                             EventoFinanceiroRepository eventoFinanceiroRepository,
                             EventoInstituicaoRepository eventoInstituicaoRepository,
@@ -47,7 +47,7 @@ public class DashboardService {
                             UsuarioService usuarioService,
                             ConfiguracoesService configuracoesService,
                             ConfiguracoesRepository configuracoesRepository) {
-        this.usuarioRepository = usuarioRepository;
+        this.jpaUsuarioRepository = jpaUsuarioRepository;
         this.registroService = registroService;
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
@@ -59,7 +59,7 @@ public class DashboardService {
     }
 
     public GastoTotalDoMes getGastoTotalDoMes(LocalDate data, UUID userId) {
-        if (!usuarioRepository.existsById(userId)) {
+        if (!jpaUsuarioRepository.existsById(userId)) {
             throw new EntidadeNaoEncontradaException("Usuário de id: %s não encontrado"
                     .formatted(userId));
         }
@@ -113,7 +113,7 @@ public class DashboardService {
     }
 
     public MaiorGastoDoMes getMaiorGastoDoMes(LocalDate data, UUID userId) {
-            if (!usuarioRepository.existsById(userId)) {
+            if (!jpaUsuarioRepository.existsById(userId)) {
                 throw new EntidadeNaoEncontradaException("Usuário de id: %s não encontrado"
                         .formatted(userId));
             }

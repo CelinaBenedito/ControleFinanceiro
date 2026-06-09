@@ -1,4 +1,4 @@
-package controle.api.back_end.service;
+package controle.api.back_end.application.service;
 
 import com.alibaba.excel.write.metadata.style.WriteCellStyle;
 import com.alibaba.excel.write.metadata.style.WriteFont;
@@ -43,7 +43,7 @@ import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.Event
 import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.EventoInstituicaoRepository;
 import controle.api.back_end.adapters.outbound.repository.instituicao.InstituicaoRepository;
 import controle.api.back_end.adapters.outbound.repository.instituicao.InstituicaoUsuarioRepository;
-import controle.api.back_end.adapters.outbound.repository.usuario.UsuarioRepository;
+import controle.api.back_end.adapters.outbound.repository.usuario.JpaUsuarioRepository;
 import controle.api.back_end.specifications.EventoFinanceiroSpecifications;
 import controle.api.back_end.strategy.eventoFinanceiro.EventoFinanceiroStrategy;
 import controle.api.back_end.strategy.eventoFinanceiro.Registro;
@@ -77,7 +77,7 @@ public class RegistroService {
     private final EventoInstituicaoRepository eventoInstituicaoRepository;
     private final EventoDetalheRepository eventoDetalheRepository;
     private final CategoriaUsuarioRepository categoriaUsuarioRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final JpaUsuarioRepository jpaUsuarioRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final MovimentoFactory movimentoFactory;
     private final EventoFinanceiroFactory eventoFinanceiroFactory;
@@ -90,12 +90,12 @@ public class RegistroService {
     private final ConfiguracoesRepository configuracoesRepository;
     private final UsuarioService usuarioService;
 
-    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, EventoFinanceiroFactory eventoFinanceiroFactory, RecorrenciaFactory recorrenciaFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository, UsuarioService usuarioService) {
+    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, JpaUsuarioRepository jpaUsuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, EventoFinanceiroFactory eventoFinanceiroFactory, RecorrenciaFactory recorrenciaFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository, UsuarioService usuarioService) {
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoDetalheRepository = eventoDetalheRepository;
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
-        this.usuarioRepository = usuarioRepository;
+        this.jpaUsuarioRepository = jpaUsuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
         this.movimentoFactory = movimentoFactory;
         this.eventoFinanceiroFactory = eventoFinanceiroFactory;
@@ -114,7 +114,7 @@ public class RegistroService {
                                            EventoDetalhe detalhe) {
 
         // 1. Validar usuário
-        Usuario user = usuarioRepository.findById(entity.getUsuario().getId())
+        Usuario user = jpaUsuarioRepository.findById(entity.getUsuario().getId())
                 .orElseThrow(() -> new EntidadeNaoEncontradaException(
                         "Usuário de id: %s não encontrado."
                                 .formatted(entity.getUsuario().getId())
@@ -196,7 +196,7 @@ public class RegistroService {
 
     public EventoFinanceiro createEventoFinanceiro(EventoFinanceiro entity) {
 
-        Usuario user = usuarioRepository
+        Usuario user = jpaUsuarioRepository
                 .findById(entity.getUsuario().getId())
                         .orElseThrow(() ->
                                 new EntidadeNaoEncontradaException(
@@ -316,7 +316,7 @@ public class RegistroService {
     }
 
     public List<EventoFinanceiro> getEventosFinanceirosByUser(UUID userId) {
-        if(!usuarioRepository.existsById(userId)){
+        if(!jpaUsuarioRepository.existsById(userId)){
             throw new EntidadeNaoEncontradaException("Usuário de id: %s não encontrado."
                     .formatted(userId)
             );
@@ -352,7 +352,7 @@ public class RegistroService {
                                                  LocalDate dataEvento, List<InstituicaoUsuario> instituicao,
                                                  List<CategoriaUsuario> categoria, String descricao, String titulo){
 
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
+        Usuario usuario = jpaUsuarioRepository.findById(userId).orElseThrow(() ->
                 new EntidadeNaoEncontradaException(
                         "Usuario de id: %s não encontrado"
                                 .formatted(userId)
@@ -516,7 +516,7 @@ public class RegistroService {
     }
 
     public String createJson(UUID userId) {
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
+        Usuario usuario = jpaUsuarioRepository.findById(userId).orElseThrow(() ->
                 new EntidadeNaoEncontradaException(
                         "Usuário de id: %s não encontrado.".formatted(userId)
                 )
@@ -597,7 +597,7 @@ public class RegistroService {
     }
 
     public String createSql(UUID userId) {
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
+        Usuario usuario = jpaUsuarioRepository.findById(userId).orElseThrow(() ->
                 new EntidadeNaoEncontradaException(
                         "Usuário de id: %s não encontrado.".formatted(userId)
                 )
@@ -725,7 +725,7 @@ public class RegistroService {
     }
 
     public byte[] createExcel(UUID userId) {
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
+        Usuario usuario = jpaUsuarioRepository.findById(userId).orElseThrow(() ->
                 new EntidadeNaoEncontradaException(
                         "Usuário de id: %s não encontrado.".formatted(userId)
                 )
@@ -883,7 +883,7 @@ public class RegistroService {
         DeviceRgb textoEscuro = new DeviceRgb(26, 26, 26);
         DeviceRgb textoClaro = new DeviceRgb(255, 255, 255);
 
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
+        Usuario usuario = jpaUsuarioRepository.findById(userId).orElseThrow(() ->
                 new EntidadeNaoEncontradaException(
                         "Usuário de id: %s não encontrado."
                                 .formatted(userId)

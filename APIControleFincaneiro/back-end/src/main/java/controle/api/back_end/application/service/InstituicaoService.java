@@ -1,4 +1,4 @@
-package controle.api.back_end.service;
+package controle.api.back_end.application.service;
 
 import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
@@ -12,7 +12,7 @@ import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.Event
 import controle.api.back_end.adapters.outbound.repository.eventoFinanceiro.EventoInstituicaoRepository;
 import controle.api.back_end.adapters.outbound.repository.instituicao.InstituicaoRepository;
 import controle.api.back_end.adapters.outbound.repository.instituicao.InstituicaoUsuarioRepository;
-import controle.api.back_end.adapters.outbound.repository.usuario.UsuarioRepository;
+import controle.api.back_end.adapters.outbound.repository.usuario.JpaUsuarioRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,7 +24,7 @@ import java.util.UUID;
 @Service
 public class InstituicaoService {
     private final InstituicaoRepository instituicaoRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final JpaUsuarioRepository jpaUsuarioRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final EventoInstituicaoRepository eventoInstituicaoRepository;
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
@@ -32,10 +32,10 @@ public class InstituicaoService {
 
 
     public InstituicaoService(InstituicaoRepository instituicaoRepository,
-                              UsuarioRepository usuarioRepository,
+                              JpaUsuarioRepository jpaUsuarioRepository,
                               InstituicaoUsuarioRepository instituicaoUsuarioRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoFinanceiroRepository eventoFinanceiroRepository, UsuarioService usuarioService) {
         this.instituicaoRepository = instituicaoRepository;
-        this.usuarioRepository = usuarioRepository;
+        this.jpaUsuarioRepository = jpaUsuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
@@ -73,7 +73,7 @@ public class InstituicaoService {
     }
 
     public InstituicaoUsuario createInstituicaoForUsuario(Integer instituicao_id, UUID user_id) {
-        if (!usuarioRepository.existsById(user_id)) {
+        if (!jpaUsuarioRepository.existsById(user_id)) {
             throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado"
                     .formatted(user_id));
         }
@@ -81,7 +81,7 @@ public class InstituicaoService {
             throw new EntidadeNaoEncontradaException("Instituição de id: %s não encontrado".formatted(instituicao_id));
         }
 
-        Optional<Usuario> user = usuarioRepository.findById(user_id);
+        Optional<Usuario> user = jpaUsuarioRepository.findById(user_id);
         Optional<Instituicao> instituicao = instituicaoRepository.findById(instituicao_id);
 
         if (instituicaoUsuarioRepository.existsByUsuarioAndInstituicao(user.get(), instituicao.get())) {
@@ -96,14 +96,14 @@ public class InstituicaoService {
     }
 
     public List<InstituicaoUsuario> getInstituicoesByUserId(UUID idUser) {
-        if (!usuarioRepository.existsById(idUser)) {
+        if (!jpaUsuarioRepository.existsById(idUser)) {
             throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado".formatted(idUser));
         }
         return instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(idUser);
     }
 
     public InstituicaoUsuario detachUserFromInstituicao(Integer instituicaoId, UUID userId) {
-        if (!usuarioRepository.existsById(userId)) {
+        if (!jpaUsuarioRepository.existsById(userId)) {
             throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado".formatted(userId));
         }
         if (!instituicaoRepository.existsById(instituicaoId)) {

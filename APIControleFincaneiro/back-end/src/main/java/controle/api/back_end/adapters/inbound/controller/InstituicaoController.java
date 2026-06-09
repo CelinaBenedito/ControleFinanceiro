@@ -7,7 +7,7 @@ import controle.api.back_end.dto.instituicao.mapper.InstituicaoMapper;
 import controle.api.back_end.dto.instituicao.mapper.InstituicaoUsuarioMapper;
 import controle.api.back_end.domain.instituicao.Instituicao;
 import controle.api.back_end.domain.instituicao.InstituicaoUsuario;
-import controle.api.back_end.service.InstituicaoService;
+import controle.api.back_end.application.service.InstituicaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

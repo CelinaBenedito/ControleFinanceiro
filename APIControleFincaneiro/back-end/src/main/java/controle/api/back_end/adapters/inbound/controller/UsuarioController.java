@@ -7,7 +7,7 @@ import controle.api.back_end.dto.usuario.in.UsuarioLoginDTO;
 import controle.api.back_end.dto.usuario.out.UsuarioResponseDTO;
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.domain.usuario.Usuario;
-import controle.api.back_end.service.UsuarioService;
+import controle.api.back_end.application.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
