@@ -4,9 +4,9 @@
     max-height: 90vh;
     overflow: auto;
     padding: 28px;
-    background: #FAFFFF;
+    background: var(--cor-fundo-card);
     border-radius: 30px;
-    border: 1px solid #CFE5E5;
+    /* border: 1px solid #CFE5E5; */
     box-shadow: 0 16px 42px rgba(14, 84, 84, 0.22);
     display: flex;
     flex-direction: column;
@@ -89,20 +89,21 @@
     align-items: center;
     gap: 10px;
     font-size: 1rem;
-    color: #1f2b2b;
+    color: var(--cor-texto-principal);
     padding: 6px 8px;
     border-radius: 8px;
     transition: background .15s;
 }
 
 .fr-check:hover {
-    background: #F0F9F9;
+    background: var(--cor-hover);
 }
 
 .fr-check input {
     width: 18px;
     height: 18px;
     accent-color: var(--cor-principal);
+    border-color: var(--cor-principal);
 }
 
 .fr-date-row {
@@ -144,7 +145,7 @@
 }
 
 .fr-btn.primary:hover {
-    background: #0E5454;
+    background: var(--cor-hover);
 }
 
 .fr-btn.secondary {
@@ -198,7 +199,7 @@
     font-size: 1rem;
     font-weight: 600;
     color: var(--cor-principal);
-    background: #FAFFFF;
+    background: var(--cor-fundo-card);
     appearance: none;
     outline: none;
     transition: border-color .2s, box-shadow .2s;
