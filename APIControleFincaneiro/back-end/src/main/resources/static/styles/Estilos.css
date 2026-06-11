@@ -180,7 +180,7 @@ h1 {
 
 .gasto-valor {
     font-size: 1.875rem;
-    font-weight: 800;
+    font-weight: 600;
     display: block;
 }
 
@@ -489,7 +489,7 @@ h1 {
 
 .cardRegistro {
     display: grid;
-    grid-template-columns: 70px 1fr auto auto;
+    grid-template-columns: 1fr 100px 1fr 1fr 1fr auto;
     gap: 16px;
     align-items: center;
 
@@ -503,9 +503,12 @@ h1 {
 /* Botões de ação do card de registro */
 .registroAcoes {
     display: flex;
-    flex-direction: column;
     gap: 6px;
     align-items: center;
+}
+
+.registroInfo {
+    text-align: center;
 }
 
 .reg-icon-btn {
