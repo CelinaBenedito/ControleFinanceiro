@@ -99,17 +99,25 @@ function renderizarRegistros(json) {
                             const card = document.createElement("div");
                             card.className = "cardRegistro";
                             card.innerHTML = `
-                                <div class="dataRegistro">${dia}</div>
-
                                 <div class="registroInfo">
+                                    <div class="dataRegistro">${dia}</div>
+                                    <div class="registroTipo">${tipo}</div>
+                                </div>
+                                <div class="registroInfo">
+                                    <div><p>Valor</p></div>
+                                    <div class="registroValor">${formatadorMoeda.format(valor)}</div>
+                                </div>
+                                <div class="registroDetalhes">
                                     <div class="registroTitulo">${titulo}</div>
                                     <div class="registroDescricao">${descricao}</div>
                                 </div>
-
                                 <div class="registroDetalhes">
-                                    <div class="registroValor">${formatadorMoeda.format(valor)}</div>
-                                    <div class="registroTipo">${tipo}</div>
+                                    <div><p>Instituições</p></div>
                                     <div class="registroInstituicao">${instNome}</div>
+                                </div>
+                                <div class="registroDetalhes">
+                                    <div><p>Categoria</p></div>
+                                    <div class="registroInstituicao">{Falta integrar}</div>
                                 </div>
 
                                 <div class="registroAcoes">
