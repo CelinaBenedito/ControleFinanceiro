@@ -8,15 +8,10 @@ import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.model.usuario.UsuarioSexo;
-import controle.api.back_end.repository.categoria.CategoriaRepository;
 import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
-import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
-import controle.api.back_end.repository.configuracoes.LimitePorCategoriaRepository;
-import controle.api.back_end.repository.configuracoes.LimitePorInstituicaoRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoDetalheRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
-import controle.api.back_end.repository.instituicao.InstituicaoRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import controle.api.back_end.factory.EventoFinanceiroFactory;
@@ -43,6 +38,7 @@ import static org.mockito.Mockito.*;
 @DisplayName("RegistroService - testes unitários")
 class RegistroServiceTest {
 
+    // Dependências do RegistroService refatorado
     @Mock EventoFinanceiroRepository eventoFinanceiroRepository;
     @Mock EventoInstituicaoRepository eventoInstituicaoRepository;
     @Mock EventoDetalheRepository eventoDetalheRepository;
@@ -52,13 +48,7 @@ class RegistroServiceTest {
     @Mock MovimentoFactory movimentoFactory;
     @Mock EventoFinanceiroFactory eventoFinanceiroFactory;
     @Mock RecorrenciaFactory recorrenciaFactory;
-    @Mock InstituicaoRepository instituicaoRepository;
-    @Mock CategoriaRepository categoriaRepository;
     @Mock InstituicaoService instituicaoService;
-    @Mock LimitePorInstituicaoRepository limitePorInstituicaoRepository;
-    @Mock LimitePorCategoriaRepository limitePorCategoriaRepository;
-    @Mock ConfiguracoesRepository configuracoesRepository;
-    @Mock UsuarioService usuarioService;
 
     @InjectMocks RegistroService registroService;
 

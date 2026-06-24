@@ -16,8 +16,8 @@ import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.service.RegistroExportacaoService;
 import controle.api.back_end.service.RegistroService;
-import controle.api.back_end.service.UsuarioService;
 import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,12 +42,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(RegistrosController.class)
-@DisplayName("RegistrosController - testes de integração da camada web")
+@DisplayName("RegistrosController — testes da camada web")
 class RegistrosControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockBean  RegistroService registroService;
-    @MockBean  UsuarioService usuarioService;
+    @MockBean  RegistroExportacaoService exportacaoService;
 
     private ObjectMapper objectMapper;
     private UUID userId;
@@ -63,7 +63,7 @@ class RegistrosControllerTest {
         userId   = UUID.randomUUID();
         eventoId = UUID.randomUUID();
 
-        // Monta um RegistroResponseDto para uso nos testes
+        // RegistroResponseDto de exemplo
         RegistroResponseDto.EventoFinanceiroDto efDto = new RegistroResponseDto.EventoFinanceiroDto();
         efDto.setId(eventoId);
         efDto.setTipo(Tipo.Gasto);
@@ -100,20 +100,21 @@ class RegistrosControllerTest {
         registroDto.setDataRegistro(LocalDateTime.now());
     }
 
-    // ── GET /registros/{user_id} ───────────────────────────────────────────
+    // ── GET /registros/{user_id} ─────────────────────────────────────────────
+
     @Test
     @DisplayName("GET /registros/{user_id}: retorna 200 com lista quando há registros")
-    void getRegistrosByUser_retornaLista() throws Exception {
-        Usuario usuario = criarUsuario();
-        EventoFinanceiro evento     = criarEvento(usuario);
-        EventoInstituicao instEvento = criarEventoInstituicao(evento);
-        EventoDetalhe detalhe       = criarDetalhe(evento);
+    void listarRegistros_retornaLista() throws Exception {
+        Usuario usuario      = criarUsuario();
+        EventoFinanceiro ev  = criarEvento(usuario);
+        EventoInstituicao ei = criarEventoInstituicao(ev);
+        EventoDetalhe det    = criarDetalhe(ev);
 
-        when(registroService.getEventosFinanceirosByUser(userId)).thenReturn(List.of(evento));
-        when(registroService.getEventosInstituicoesByEventoFinanceiro(List.of(evento)))
-                .thenReturn(List.of(List.of(instEvento)));
-        when(registroService.getGastosDetalhesByEventoFinanceiro(List.of(evento)))
-                .thenReturn(List.of(detalhe));
+        when(registroService.getEventosFinanceirosByUser(userId)).thenReturn(List.of(ev));
+        when(registroService.getEventosInstituicoesByEventoFinanceiro(List.of(ev)))
+                .thenReturn(List.of(List.of(ei)));
+        when(registroService.getGastosDetalhesByEventoFinanceiro(List.of(ev)))
+                .thenReturn(List.of(det));
 
         mockMvc.perform(get("/registros/{user_id}", userId))
                 .andExpect(status().isOk())
@@ -122,10 +123,8 @@ class RegistrosControllerTest {
 
     @Test
     @DisplayName("GET /registros/{user_id}: retorna 204 quando lista vazia")
-    void getRegistrosByUser_retorna204QuandoVazio() throws Exception {
+    void listarRegistros_retorna204QuandoVazio() throws Exception {
         when(registroService.getEventosFinanceirosByUser(userId)).thenReturn(List.of());
-        when(registroService.getEventosInstituicoesByEventoFinanceiro(List.of())).thenReturn(List.of());
-        when(registroService.getGastosDetalhesByEventoFinanceiro(List.of())).thenReturn(List.of());
 
         mockMvc.perform(get("/registros/{user_id}", userId))
                 .andExpect(status().isNoContent());
@@ -133,7 +132,7 @@ class RegistrosControllerTest {
 
     @Test
     @DisplayName("GET /registros/{user_id}: retorna 404 quando usuário não encontrado")
-    void getRegistrosByUser_retorna404() throws Exception {
+    void listarRegistros_retorna404() throws Exception {
         when(registroService.getEventosFinanceirosByUser(userId))
                 .thenThrow(new EntidadeNaoEncontradaException("não encontrado"));
 
@@ -141,7 +140,8 @@ class RegistrosControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // ── GET /registros/saldo-poupanca/usuarios/{user_id} ──────────────────
+    // ── GET /registros/saldo-poupanca/usuarios/{user_id} ────────────────────
+
     @Test
     @DisplayName("GET /registros/saldo-poupanca/usuarios/{user_id}: retorna 200 com saldo")
     void getSaldoPoupanca_retornaSaldo() throws Exception {
@@ -152,24 +152,24 @@ class RegistrosControllerTest {
                 .andExpect(content().string("500.0"));
     }
 
-    // ── POST /registros ────────────────────────────────────────────────────
+    // ── POST /registros ──────────────────────────────────────────────────────
+
     @Test
     @DisplayName("POST /registros: cria registro e retorna 201")
-    void createRegistroCompleto_retorna201() throws Exception {
+    void criarRegistro_retorna201() throws Exception {
         RegistroCompletoCreateDto dto = criarRegistroDto();
 
-        // Monta Registro retornado pelo service
-        EventoFinanceiro evento     = criarEvento(criarUsuario());
-        EventoInstituicao instEvento = criarEventoInstituicao(evento);
-        EventoDetalhe detalhe       = criarDetalhe(evento);
+        EventoFinanceiro ev  = criarEvento(criarUsuario());
+        EventoInstituicao ei = criarEventoInstituicao(ev);
+        EventoDetalhe det    = criarDetalhe(ev);
 
         Map<EventoFinanceiro, List<EventoInstituicao>> instMap = new HashMap<>();
-        instMap.put(evento, List.of(instEvento));
-        Map<EventoFinanceiro, EventoDetalhe> detalheMap = new HashMap<>();
-        detalheMap.put(evento, detalhe);
+        instMap.put(ev, List.of(ei));
+        Map<EventoFinanceiro, EventoDetalhe> detMap = new HashMap<>();
+        detMap.put(ev, det);
 
-        Registro registro = new Registro(List.of(evento), instMap, detalheMap);
-        when(registroService.createEventoFinanceiro(any(), any(), any())).thenReturn(registro);
+        when(registroService.createEventoFinanceiro(any(), any(), any()))
+                .thenReturn(new Registro(List.of(ev), instMap, detMap));
 
         mockMvc.perform(post("/registros")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -177,10 +177,11 @@ class RegistrosControllerTest {
                 .andExpect(status().isCreated());
     }
 
-    // ── DELETE /registros/{evento_id} ──────────────────────────────────────
+    // ── DELETE /registros/{evento_id} ────────────────────────────────────────
+
     @Test
     @DisplayName("DELETE /registros/{evento_id}: retorna 204")
-    void deleteRegistro_retorna204() throws Exception {
+    void deletarRegistro_retorna204() throws Exception {
         doNothing().when(registroService).deleteRegistroByEventoFinanceiro_Id(eventoId);
 
         mockMvc.perform(delete("/registros/{evento_id}", eventoId))
@@ -189,7 +190,7 @@ class RegistrosControllerTest {
 
     @Test
     @DisplayName("DELETE /registros/{evento_id}: retorna 404 quando não encontrado")
-    void deleteRegistro_retorna404() throws Exception {
+    void deletarRegistro_retorna404() throws Exception {
         doThrow(new EntidadeNaoEncontradaException("não encontrado"))
                 .when(registroService).deleteRegistroByEventoFinanceiro_Id(eventoId);
 
@@ -197,7 +198,8 @@ class RegistrosControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // ── helpers ─────────────────────────────────────────────────────────────
+    // ── helpers ──────────────────────────────────────────────────────────────
+
     private Usuario criarUsuario() {
         Usuario u = new Usuario();
         u.setId(userId);
@@ -276,4 +278,3 @@ class RegistrosControllerTest {
         return dto;
     }
 }
-
