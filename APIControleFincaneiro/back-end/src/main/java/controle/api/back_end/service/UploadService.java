@@ -506,6 +506,196 @@ public class UploadService {
     }
 
     // =====================================================================
+    // OFX IMPORT
+    // =====================================================================
+
+    /**
+     * Importa transações a partir de um arquivo OFX (Open Financial Exchange).
+     * Suporta OFX 1.x (SGML) e OFX 2.x (XML).
+     * <p>
+     * Mapeamento de campos OFX → modelo:
+     * <ul>
+     *   <li>TRNTYPE + sinal do valor  → {@link Tipo} (Gasto / Recebimento)</li>
+     *   <li>TRNAMT (valor absoluto)   → EventoFinanceiro.valor</li>
+     *   <li>DTPOSTED (YYYYMMDD...)    → EventoFinanceiro.dataEvento</li>
+     *   <li>NAME                      → EventoDetalhe.tituloGasto</li>
+     *   <li>MEMO                      → EventoFinanceiro.descricao</li>
+     *   <li>ORG (banco emissor)       → InstituicaoUsuario (por correspondência de nome)</li>
+     * </ul>
+     */
+    public ImportResultDto importFromOfx(UUID userId, byte[] content) {
+        List<RegistroResponseDto> importados = new ArrayList<>();
+        List<String> erros = new ArrayList<>();
+
+        try {
+            // Detect charset from OFX header (default UTF-8 for OFX 2.x, ISO-8859-1 common for 1.x)
+            String rawHeader = new String(content, 0, Math.min(content.length, 512), StandardCharsets.ISO_8859_1).toUpperCase();
+            java.nio.charset.Charset charset = rawHeader.contains("CHARSET:1252") || rawHeader.contains("CHARSET:ISO")
+                    ? StandardCharsets.ISO_8859_1 : StandardCharsets.UTF_8;
+
+            String ofxContent = new String(content, charset);
+
+            // Locate the start of the OFX body (skip SGML header lines)
+            int ofxStart = -1;
+            for (String tag : new String[]{"<OFX>", "<ofx>"}) {
+                ofxStart = ofxContent.indexOf(tag);
+                if (ofxStart >= 0) break;
+            }
+            if (ofxStart < 0) {
+                erros.add("Arquivo OFX inválido: tag <OFX> não encontrada.");
+                return new ImportResultDto(0, importados, erros);
+            }
+            String body = ofxContent.substring(ofxStart);
+
+            // Try to match institution from the <ORG> tag in the OFX header
+            List<InstituicaoUsuario> userInstituicoes =
+                    instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
+
+            String orgName = ofxExtractTagValue(body, "ORG");
+            InstituicaoUsuario matchedInstituicao = null;
+            if (orgName != null && !orgName.isBlank()) {
+                final String orgLower = orgName.toLowerCase();
+                matchedInstituicao = userInstituicoes.stream()
+                        .filter(iu -> {
+                            String nome = iu.getInstituicao().getNome().toLowerCase();
+                            return nome.contains(orgLower) || orgLower.contains(nome);
+                        })
+                        .findFirst()
+                        .orElse(null);
+            }
+
+            // Extract all <STMTTRN>...</STMTTRN> blocks
+            Pattern trnPattern = Pattern.compile(
+                    "<STMTTRN>(.+?)</STMTTRN>",
+                    Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+            );
+            Matcher trnMatcher = trnPattern.matcher(body);
+
+            int transacaoIndex = 0;
+            while (trnMatcher.find()) {
+                transacaoIndex++;
+                String trn = trnMatcher.group(1);
+                String fitId = ofxExtractTagValue(trn, "FITID");
+                String identificador = fitId != null ? fitId : "transacao-" + transacaoIndex;
+
+                try {
+                    String trnType  = ofxExtractTagValue(trn, "TRNTYPE");
+                    String dtPosted = ofxExtractTagValue(trn, "DTPOSTED");
+                    String amtStr   = ofxExtractTagValue(trn, "TRNAMT");
+                    String name     = ofxExtractTagValue(trn, "NAME");
+                    String memo     = ofxExtractTagValue(trn, "MEMO");
+
+                    if (amtStr == null || dtPosted == null) {
+                        erros.add("Transação '" + identificador + "': campos TRNAMT ou DTPOSTED ausentes.");
+                        continue;
+                    }
+
+                    double amount    = Double.parseDouble(amtStr.replace(",", "."));
+                    double absAmount = Math.abs(amount);
+                    Tipo tipo        = ofxMapTrnType(trnType, amount);
+                    LocalDate data   = ofxParseDate(dtPosted);
+
+                    // EventoFinanceiro
+                    EventoFinanceiro financeiro = new EventoFinanceiro();
+                    financeiro.setUsuario(getUsuario(userId));
+                    financeiro.setTipo(tipo);
+                    financeiro.setValor(absAmount);
+                    String descricao = memo != null && !memo.isBlank() ? memo
+                            : (name != null ? name : "Importado via OFX");
+                    financeiro.setDescricao(descricao.length() > 500 ? descricao.substring(0, 500) : descricao);
+                    financeiro.setDataEvento(data);
+
+                    // EventoInstituicao (somente se encontrou correspondência)
+                    List<EventoInstituicao> instituicoes = new ArrayList<>();
+                    if (matchedInstituicao != null) {
+                        EventoInstituicao ei = new EventoInstituicao();
+                        ei.setInstituicaoUsuario(matchedInstituicao);
+                        ei.setTipoMovimento(amount < 0 ? TipoMovimento.Debito : TipoMovimento.Credito);
+                        ei.setValor(absAmount);
+                        ei.setParcelas(1);
+                        instituicoes.add(ei);
+                    }
+
+                    // EventoDetalhe
+                    EventoDetalhe detalhe = new EventoDetalhe();
+                    String titulo = name != null && !name.isBlank() ? name : "Registro OFX";
+                    detalhe.setTituloGasto(titulo.length() > 50 ? titulo.substring(0, 50) : titulo);
+                    detalhe.setCategoriaUsuario(new ArrayList<>());
+
+                    RegistroResponseDto dto = persistirRegistro(financeiro, instituicoes, detalhe);
+                    if (dto != null) importados.add(dto);
+
+                } catch (Exception e) {
+                    erros.add("Transação '" + identificador + "': " + e.getMessage());
+                }
+            }
+
+            if (transacaoIndex == 0) {
+                erros.add("Nenhuma transação (<STMTTRN>) encontrada no arquivo OFX.");
+            }
+
+        } catch (Exception e) {
+            erros.add("Erro ao processar arquivo OFX: " + e.getMessage());
+        }
+
+        return new ImportResultDto(importados.size(), importados, erros);
+    }
+
+    /**
+     * Extrai o valor de uma tag OFX, suportando tanto OFX 1.x (sem closing tag)
+     * quanto OFX 2.x (com closing tag).
+     */
+    private String ofxExtractTagValue(String content, String tagName) {
+        // OFX 2.x: <TAG>value</TAG>
+        Pattern withClose = Pattern.compile(
+                "<" + tagName + ">([^<]+)</" + tagName + ">",
+                Pattern.CASE_INSENSITIVE
+        );
+        Matcher m = withClose.matcher(content);
+        if (m.find()) return m.group(1).trim();
+
+        // OFX 1.x: <TAG>value  (sem closing tag — valor termina na próxima tag ou EOL)
+        Pattern withoutClose = Pattern.compile(
+                "<" + tagName + ">([^\r\n<]+)",
+                Pattern.CASE_INSENSITIVE
+        );
+        m = withoutClose.matcher(content);
+        if (m.find()) return m.group(1).trim();
+
+        return null;
+    }
+
+    /**
+     * Converte a string de data no formato OFX (YYYYMMDDHHMMSS[offset:TZ] ou YYYYMMDD) para LocalDate.
+     */
+    private LocalDate ofxParseDate(String dtPosted) {
+        // Mantém apenas os dígitos iniciais
+        String digits = dtPosted.replaceAll("[^0-9].*$", "").replaceAll("[^0-9]", "");
+        if (digits.length() < 8) {
+            throw new IllegalArgumentException("Data OFX inválida: " + dtPosted);
+        }
+        int year  = Integer.parseInt(digits.substring(0, 4));
+        int month = Integer.parseInt(digits.substring(4, 6));
+        int day   = Integer.parseInt(digits.substring(6, 8));
+        return LocalDate.of(year, month, day);
+    }
+
+    /**
+     * Mapeia o TRNTYPE do OFX e o sinal do valor para o enum {@link Tipo}.
+     */
+    private Tipo ofxMapTrnType(String trnType, double amount) {
+        if (trnType != null) {
+            return switch (trnType.toUpperCase().trim()) {
+                case "CREDIT", "INT", "DIV", "DIRECTDEP" -> Tipo.Recebimento;
+                case "DEBIT", "CHECK", "PAYMENT", "ATM", "FEE", "SRVCHG" -> Tipo.Gasto;
+                case "XFER" -> Tipo.Transferencia;
+                default -> amount >= 0 ? Tipo.Recebimento : Tipo.Gasto;
+            };
+        }
+        return amount >= 0 ? Tipo.Recebimento : Tipo.Gasto;
+    }
+
+    // =====================================================================
     // HELPERS
     // =====================================================================
 
@@ -584,7 +774,6 @@ public class UploadService {
                     yield cell.getLocalDateTimeCellValue().toLocalDate().toString();
                 }
                 double val = cell.getNumericCellValue();
-                // Return as integer string if whole number, otherwise decimal
                 if (val == Math.floor(val) && !Double.isInfinite(val)) {
                     yield String.valueOf((long) val);
                 }
@@ -594,6 +783,392 @@ public class UploadService {
             case BLANK -> "";
             default -> cell.getStringCellValue();
         };
+    }
+
+    // =====================================================================
+    // CSV EXTRATO BANCARIO IMPORT
+    // =====================================================================
+
+    /**
+     * Importa transacoes a partir de um extrato bancario em CSV.
+     * Suporta o formato do Banco Inter e outros bancos brasileiros com layout similar:
+     * cabecalho com metadados, seguido de linha "Data Lancamento;Descricao;Valor;Saldo".
+     * Separadores aceitos: ponto-e-virgula ou virgula.
+     * Datas: DD/MM/YYYY ou YYYY-MM-DD. Valores no padrao brasileiro (-1.234,56).
+     *
+     * @param bancoNome nome (parcial) do banco para vincular a instituicao cadastrada
+     */
+    public ImportResultDto importFromBankStatementCsv(UUID userId, byte[] content, String bancoNome) {
+        List<RegistroResponseDto> importados = new ArrayList<>();
+        List<String> erros = new ArrayList<>();
+
+        try {
+            String csvContent = new String(content, StandardCharsets.UTF_8);
+            if (csvContent.startsWith("\uFEFF")) csvContent = csvContent.substring(1);
+
+            String[] lines = csvContent.split("\r?\n", -1);
+
+            // Localiza cabecalho de dados (linha que comeca com "Data" e contem separador)
+            int dataStartIndex = -1;
+            for (int i = 0; i < lines.length; i++) {
+                String lower = lines[i].trim().toLowerCase();
+                if (lower.startsWith("data") && (lower.contains(";") || lower.contains(","))) {
+                    dataStartIndex = i + 1;
+                    break;
+                }
+            }
+            if (dataStartIndex < 0) {
+                erros.add("Formato CSV nao reconhecido: linha de cabecalho com 'Data' nao encontrada.");
+                return new ImportResultDto(0, importados, erros);
+            }
+
+            InstituicaoUsuario matchedInstituicao = resolveInstituicao(userId, bancoNome);
+
+            for (int i = dataStartIndex; i < lines.length; i++) {
+                String line = lines[i].trim();
+                if (line.isBlank()) continue;
+
+                String sep = line.contains(";") ? ";" : ",";
+                String[] parts = line.split(sep, -1);
+                if (parts.length < 3) continue;
+
+                String dateStr   = parts[0].trim();
+                String descricao = parts[1].trim();
+                String valorStr  = parts[2].trim();
+
+                if (!dateStr.matches("\\d{2}/\\d{2}/\\d{4}") && !dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) continue;
+
+                try {
+                    LocalDate data   = parseBrDate(dateStr);
+                    double amount    = Double.parseDouble(valorStr.replaceAll("\\.", "").replace(",", "."));
+                    double absAmount = Math.abs(amount);
+                    Tipo tipo        = amount >= 0 ? Tipo.Recebimento : Tipo.Gasto;
+                    TipoMovimento mov = detectTipoMovimento(descricao, amount);
+
+                    EventoFinanceiro financeiro = new EventoFinanceiro();
+                    financeiro.setUsuario(getUsuario(userId));
+                    financeiro.setTipo(tipo);
+                    financeiro.setValor(absAmount);
+                    financeiro.setDescricao(descricao.length() > 500 ? descricao.substring(0, 500) : descricao);
+                    financeiro.setDataEvento(data);
+
+                    List<EventoInstituicao> instituicoes = new ArrayList<>();
+                    if (matchedInstituicao != null) {
+                        EventoInstituicao ei = new EventoInstituicao();
+                        ei.setInstituicaoUsuario(matchedInstituicao);
+                        ei.setTipoMovimento(mov);
+                        ei.setValor(absAmount);
+                        ei.setParcelas(1);
+                        instituicoes.add(ei);
+                    }
+
+                    EventoDetalhe detalhe = new EventoDetalhe();
+                    detalhe.setTituloGasto(extractBankTitulo(descricao));
+                    detalhe.setCategoriaUsuario(new ArrayList<>());
+
+                    RegistroResponseDto dto = persistirRegistro(financeiro, instituicoes, detalhe);
+                    if (dto != null) importados.add(dto);
+
+                } catch (Exception e) {
+                    erros.add("Linha " + (i + 1) + " [" + dateStr + "]: " + e.getMessage());
+                }
+            }
+
+            if (importados.isEmpty() && erros.isEmpty()) {
+                erros.add("Nenhum registro encontrado no CSV.");
+            }
+        } catch (Exception e) {
+            erros.add("Erro ao processar CSV bancario: " + e.getMessage());
+        }
+
+        return new ImportResultDto(importados.size(), importados, erros);
+    }
+
+    // =====================================================================
+    // PDF EXTRATO BANCARIO IMPORT
+    // =====================================================================
+
+    /**
+     * Importa transacoes a partir de um extrato bancario em PDF.
+     * Detecta linhas no formato DD/MM/YYYY descricao valor[,saldo] tipico de bancos brasileiros.
+     * Nota: PDFs nao sao padronizados entre bancos; prefira OFX ou CSV quando disponivel.
+     */
+    public ImportResultDto importFromBankStatementPdf(UUID userId, byte[] content, String bancoNome) {
+        List<RegistroResponseDto> importados = new ArrayList<>();
+        List<String> erros = new ArrayList<>();
+
+        try {
+            InstituicaoUsuario matchedInstituicao = resolveInstituicao(userId, bancoNome);
+            int currentYear = LocalDate.now().getYear();
+
+            // Padrao: DD/MM/YYYY descricao -1.234,56 [saldo]
+            Pattern fullLine = Pattern.compile(
+                "^(\\d{2}/\\d{2}/\\d{4})\\s+(.+?)\\s+([-]?\\d{1,3}(?:\\.\\d{3})*,\\d{2})" +
+                "(?:\\s+[-]?[\\d,.]+)?\\s*$");
+            // Padrao sem ano: DD/MM
+            Pattern shortLine = Pattern.compile(
+                "^(\\d{2}/\\d{2})\\s+(.+?)\\s+([-]?\\d{1,3}(?:\\.\\d{3})*,\\d{2})" +
+                "(?:\\s+[-]?[\\d,.]+)?\\s*$");
+
+            try (PdfDocument pdfDoc = new PdfDocument(new PdfReader(new ByteArrayInputStream(content)))) {
+                for (int page = 1; page <= pdfDoc.getNumberOfPages(); page++) {
+                    String pageText = PdfTextExtractor.getTextFromPage(pdfDoc.getPage(page));
+                    for (String rawLine : pageText.split("\n")) {
+                        String line = rawLine.trim();
+                        if (line.isBlank()) continue;
+
+                        Matcher m = fullLine.matcher(line);
+                        if (m.find()) {
+                            processarLinhaBancaria(userId, m.group(1), m.group(2), m.group(3),
+                                    matchedInstituicao, importados, erros, "PDF p." + page);
+                            continue;
+                        }
+                        Matcher ms = shortLine.matcher(line);
+                        if (ms.find()) {
+                            processarLinhaBancaria(userId, ms.group(1) + "/" + currentYear,
+                                    ms.group(2), ms.group(3),
+                                    matchedInstituicao, importados, erros, "PDF p." + page);
+                        }
+                    }
+                }
+            }
+
+            if (importados.isEmpty() && erros.isEmpty()) {
+                erros.add("Nenhum registro reconhecido no PDF bancario. Use OFX ou CSV para maior confiabilidade.");
+            }
+        } catch (Exception e) {
+            erros.add("Erro ao processar PDF bancario: " + e.getMessage());
+        }
+
+        return new ImportResultDto(importados.size(), importados, erros);
+    }
+
+    private void processarLinhaBancaria(UUID userId, String dateStr, String descricao, String valorStr,
+            InstituicaoUsuario matchedInstituicao,
+            List<RegistroResponseDto> importados, List<String> erros, String ctx) {
+        try {
+            LocalDate data   = parseBrDate(dateStr);
+            double amount    = Double.parseDouble(valorStr.replaceAll("\\.", "").replace(",", "."));
+            double absAmount = Math.abs(amount);
+            Tipo tipo        = amount >= 0 ? Tipo.Recebimento : Tipo.Gasto;
+            TipoMovimento mov = detectTipoMovimento(descricao, amount);
+
+            EventoFinanceiro financeiro = new EventoFinanceiro();
+            financeiro.setUsuario(getUsuario(userId));
+            financeiro.setTipo(tipo);
+            financeiro.setValor(absAmount);
+            financeiro.setDescricao(descricao.length() > 500 ? descricao.substring(0, 500) : descricao);
+            financeiro.setDataEvento(data);
+
+            List<EventoInstituicao> instituicoes = new ArrayList<>();
+            if (matchedInstituicao != null) {
+                EventoInstituicao ei = new EventoInstituicao();
+                ei.setInstituicaoUsuario(matchedInstituicao);
+                ei.setTipoMovimento(mov);
+                ei.setValor(absAmount);
+                ei.setParcelas(1);
+                instituicoes.add(ei);
+            }
+
+            EventoDetalhe detalhe = new EventoDetalhe();
+            detalhe.setTituloGasto(extractBankTitulo(descricao));
+            detalhe.setCategoriaUsuario(new ArrayList<>());
+
+            RegistroResponseDto dto = persistirRegistro(financeiro, instituicoes, detalhe);
+            if (dto != null) importados.add(dto);
+        } catch (Exception e) {
+            erros.add(ctx + " [" + dateStr + "]: " + e.getMessage());
+        }
+    }
+
+    // =====================================================================
+    // HELPERS COMPARTILHADOS — extrato bancario (CSV / OFX / PDF)
+    // =====================================================================
+
+    /**
+     * Busca a InstituicaoUsuario ativa cujo nome corresponda (contains) a qualquer dos candidatos.
+     * Util para OFX (usa tag ORG), CSV e PDF (usa parametro bancoNome).
+     */
+    private InstituicaoUsuario resolveInstituicao(UUID userId, String... candidateNames) {
+        List<InstituicaoUsuario> userInst =
+                instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
+        for (String candidate : candidateNames) {
+            if (candidate == null || candidate.isBlank()) continue;
+            final String lower = candidate.toLowerCase();
+            for (InstituicaoUsuario iu : userInst) {
+                String nome = iu.getInstituicao().getNome().toLowerCase();
+                if (nome.contains(lower) || lower.contains(nome)) return iu;
+            }
+        }
+        return null;
+    }
+
+    /** Converte DD/MM/YYYY (formato BR) ou YYYY-MM-DD (ISO) para LocalDate. */
+    private LocalDate parseBrDate(String dateStr) {
+        if (dateStr.matches("\\d{2}/\\d{2}/\\d{4}")) {
+            String[] p = dateStr.split("/");
+            return LocalDate.of(Integer.parseInt(p[2]), Integer.parseInt(p[1]), Integer.parseInt(p[0]));
+        }
+        return LocalDate.parse(dateStr);
+    }
+
+    /**
+     * Infere TipoMovimento a partir da descricao e sinal do valor.
+     * Reconhece padroes do Inter, Nubank, Itau, Bradesco etc.
+     */
+    private TipoMovimento detectTipoMovimento(String desc, double amount) {
+        if (desc != null) {
+            String lower = desc.toLowerCase();
+            if (lower.contains("pix"))                                  return TipoMovimento.Pix;
+            if (lower.contains("debito") || lower.contains("d\u00e9bito")) return TipoMovimento.Debito;
+            if (lower.contains("credito") || lower.contains("cr\u00e9dito")) return TipoMovimento.Credito;
+            if (lower.contains("boleto"))                               return TipoMovimento.Boleto;
+            if (lower.contains("voucher"))                              return TipoMovimento.Voucher;
+            if (lower.contains("dinheiro"))                             return TipoMovimento.Dinheiro;
+        }
+        return amount < 0 ? TipoMovimento.Debito : TipoMovimento.Credito;
+    }
+
+    /**
+     * Extrai titulo curto (max 50 chars) de descricoes bancarias brasileiras.
+     * Reconhece os padroes do Inter:
+     *   "Pix enviado: \"Cp :CNPJ-NOME\""          -> Nome
+     *   "Compra no debito: \"No estabelecimento LOJA CIDADE PAIS\""  -> Loja
+     */
+    private String extractBankTitulo(String descricao) {
+        if (descricao == null || descricao.isBlank()) return "Extrato Importado";
+
+        // Extrai conteudo entre aspas
+        Matcher qm = Pattern.compile("\"([^\"]+)\"").matcher(descricao);
+        String inner = qm.find() ? qm.group(1).trim() : descricao;
+
+        // Padrao "Cp :XXXXXXXX-NOME"
+        Matcher cpM = Pattern.compile("Cp\\s*:\\s*\\d+-(.+)", Pattern.CASE_INSENSITIVE).matcher(inner);
+        if (cpM.find()) return sanitizeMerchant(cpM.group(1));
+
+        // Padrao "No estabelecimento LOJA CIDADE PAIS" (Inter/Visa/Mastercard)
+        Matcher estM = Pattern.compile("No\\s+estabelecimento\\s+(.+)", Pattern.CASE_INSENSITIVE).matcher(inner);
+        if (estM.find()) {
+            // OFX usa espacos multiplos para separar cidade; CSV usa espaco simples
+            String[] parts = estM.group(1).split("\\s{2,}");
+            return sanitizeMerchant(parts[0]);
+        }
+
+        return sanitizeMerchant(inner);
+    }
+
+    /** Remove CPF/CNPJ no final, normaliza espacos, aplica Title Case e trunca em 50 chars. */
+    private String sanitizeMerchant(String name) {
+        if (name == null || name.isBlank()) return "Extrato Importado";
+        name = name.replaceAll("\\s+\\d{8,14}$", "").trim();
+        name = name.replaceAll("\\s+", " ").trim();
+        // Title Case
+        String[] words = name.toLowerCase().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String w : words) {
+            if (sb.length() > 0) sb.append(" ");
+            if (!w.isEmpty()) sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
+        }
+        name = sb.toString();
+        return name.length() > 50 ? name.substring(0, 50) : name;
+    }
+
+    /** Sobrecarga de importFromOfx aceitando nome do banco para fallback de instituicao. */
+    public ImportResultDto importFromOfxWithBank(UUID userId, byte[] content, String bancoNome) {
+        // Delega para o metodo principal; a logica de resolucao usa ORG + bancoNome via resolveInstituicao
+        return importFromOfx(userId, content, bancoNome);
+    }
+
+    /**
+     * importFromOfx com suporte a bancoNome como fallback quando a tag ORG nao casa.
+     * Mantido aqui como sobrecarga privada interna; o controller usa importFromOfxWithBank.
+     */
+    private ImportResultDto importFromOfx(UUID userId, byte[] content, String bancoNome) {
+        List<RegistroResponseDto> importados = new ArrayList<>();
+        List<String> erros = new ArrayList<>();
+
+        try {
+            String rawHeader = new String(content, 0, Math.min(content.length, 512), StandardCharsets.ISO_8859_1).toUpperCase();
+            java.nio.charset.Charset charset = rawHeader.contains("CHARSET:1252") || rawHeader.contains("CHARSET:ISO")
+                    ? StandardCharsets.ISO_8859_1 : StandardCharsets.UTF_8;
+            String ofxContent = new String(content, charset);
+
+            int ofxStart = ofxContent.indexOf("<OFX>");
+            if (ofxStart < 0) ofxStart = ofxContent.toUpperCase().indexOf("<OFX>");
+            if (ofxStart < 0) {
+                erros.add("Arquivo OFX invalido: tag <OFX> nao encontrada.");
+                return new ImportResultDto(0, importados, erros);
+            }
+            String body = ofxContent.substring(ofxStart);
+
+            // Resolve instituicao: tag <ORG> tem prioridade, bancoNome e fallback
+            String orgName = ofxExtractTagValue(body, "ORG");
+            InstituicaoUsuario matchedInstituicao = resolveInstituicao(userId, orgName, bancoNome);
+
+            Pattern trnPattern = Pattern.compile("<STMTTRN>(.+?)</STMTTRN>",
+                    Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+            Matcher trnMatcher = trnPattern.matcher(body);
+            int transacaoIndex = 0;
+
+            while (trnMatcher.find()) {
+                transacaoIndex++;
+                String trn = trnMatcher.group(1);
+                String fitId = ofxExtractTagValue(trn, "FITID");
+                String id = fitId != null ? fitId : "transacao-" + transacaoIndex;
+
+                try {
+                    String trnType  = ofxExtractTagValue(trn, "TRNTYPE");
+                    String dtPosted = ofxExtractTagValue(trn, "DTPOSTED");
+                    String amtStr   = ofxExtractTagValue(trn, "TRNAMT");
+                    String name     = ofxExtractTagValue(trn, "NAME");
+                    String memo     = ofxExtractTagValue(trn, "MEMO");
+
+                    if (amtStr == null || dtPosted == null) {
+                        erros.add("Transacao '" + id + "': TRNAMT ou DTPOSTED ausentes.");
+                        continue;
+                    }
+
+                    double amount    = Double.parseDouble(amtStr.replace(",", "."));
+                    double absAmount = Math.abs(amount);
+                    Tipo tipo        = ofxMapTrnType(trnType, amount);
+                    LocalDate data   = ofxParseDate(dtPosted);
+
+                    EventoFinanceiro financeiro = new EventoFinanceiro();
+                    financeiro.setUsuario(getUsuario(userId));
+                    financeiro.setTipo(tipo);
+                    financeiro.setValor(absAmount);
+                    String descricao = memo != null && !memo.isBlank() ? memo : (name != null ? name : "Importado via OFX");
+                    financeiro.setDescricao(descricao.length() > 500 ? descricao.substring(0, 500) : descricao);
+                    financeiro.setDataEvento(data);
+
+                    List<EventoInstituicao> instituicoes = new ArrayList<>();
+                    if (matchedInstituicao != null) {
+                        EventoInstituicao ei = new EventoInstituicao();
+                        ei.setInstituicaoUsuario(matchedInstituicao);
+                        ei.setTipoMovimento(detectTipoMovimento(memo != null ? memo : "", amount));
+                        ei.setValor(absAmount);
+                        ei.setParcelas(1);
+                        instituicoes.add(ei);
+                    }
+
+                    EventoDetalhe detalhe = new EventoDetalhe();
+                    // Campo NAME do OFX pode conter "Loja     Cidade     Pais" com espacos duplos
+                    detalhe.setTituloGasto(sanitizeMerchant(name != null && !name.isBlank() ? name : "Registro OFX"));
+                    detalhe.setCategoriaUsuario(new ArrayList<>());
+
+                    RegistroResponseDto dto = persistirRegistro(financeiro, instituicoes, detalhe);
+                    if (dto != null) importados.add(dto);
+
+                } catch (Exception e) {
+                    erros.add("Transacao '" + id + "': " + e.getMessage());
+                }
+            }
+            if (transacaoIndex == 0) erros.add("Nenhuma transacao encontrada no OFX.");
+
+        } catch (Exception e) {
+            erros.add("Erro ao processar OFX: " + e.getMessage());
+        }
+        return new ImportResultDto(importados.size(), importados, erros);
     }
 }
 
