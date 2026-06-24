@@ -8,9 +8,8 @@ import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.eventoFinanceiro.*;
 import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
-import controle.api.back_end.model.usuario.Usuario;
+import controle.api.back_end.service.RegistroExportacaoService;
 import controle.api.back_end.service.RegistroService;
-import controle.api.back_end.service.UsuarioService;
 import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,8 +25,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -35,287 +32,242 @@ import java.util.UUID;
 @CrossOrigin
 @RestController
 @RequestMapping("/registros")
-@Tag(name = "Registros", description = "Endpoints referentes aos registros, onde se é feito o registro de todos os eventos financeiros do usuário.")
+@Tag(name = "Registros",
+     description = "Gerenciamento de eventos financeiros: gastos, recebimentos, transferências, " +
+                   "poupança e empréstimos. Suporta múltiplas instituições (meios de pagamento) " +
+                   "e múltiplas categorias por evento.")
 public class RegistrosController {
-    private final RegistroService registroService;
-    private final UsuarioService usuarioService;
 
-    public RegistrosController(RegistroService registroService, UsuarioService usuarioService) {
-        this.registroService = registroService;
-        this.usuarioService = usuarioService;
+    private final RegistroService registroService;
+    private final RegistroExportacaoService exportacaoService;
+
+    public RegistrosController(RegistroService registroService,
+                               RegistroExportacaoService exportacaoService) {
+        this.registroService  = registroService;
+        this.exportacaoService = exportacaoService;
     }
 
+    // =========================================================================
+    // CONSULTAS
+    // =========================================================================
+
     @GetMapping("/{user_id}")
-    @Operation(summary =
-            "Buscar registros associados ao ID de um usuário",
-            description =
-                    "Busca todos os eventos financeiros associados ao usuário com o id especificado.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description =
-                    "Busca de dados feita com sucesso e retornou dados!",
+    @Operation(summary = "Listar todos os registros do usuário")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Registros encontrados.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = RegistroResponseDto.class))),
-            @ApiResponse(responseCode = "204", description =
-                    "Busca de dados feita com sucesso e não retornou dados!",
-            content = @Content),
-            @ApiResponse(responseCode = "404", description =
-                    "Dados inválidos!",
-            content = @Content)
+            @ApiResponse(responseCode = "204", description = "Nenhum registro encontrado.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.", content = @Content)
     })
-    public ResponseEntity<List<RegistroResponseDto>> getRegistrosByUser(@PathVariable UUID user_id){
-        List<EventoFinanceiro> eventoFinanceiros = registroService
-                .getEventosFinanceirosByUser(user_id);
+    public ResponseEntity<List<RegistroResponseDto>> listarRegistros(@PathVariable UUID user_id) {
+        List<EventoFinanceiro> eventos = registroService.getEventosFinanceirosByUser(user_id);
 
-        List<List<EventoInstituicao>> eventosInstituicoes = registroService
-                .getEventosInstituicoesByEventoFinanceiro(eventoFinanceiros);
-
-        List<EventoDetalhe> gastosDetalhes = registroService
-                .getGastosDetalhesByEventoFinanceiro(eventoFinanceiros);
-
-        List<RegistroResponseDto> response = RegistrosMapper
-                .toResponse(
-                        eventoFinanceiros,
-                        eventosInstituicoes,
-                        gastosDetalhes);
-
-        if (response.isEmpty()){
-            return ResponseEntity.status(204).body(response);
+        if (eventos.isEmpty()) {
+            return ResponseEntity.noContent().build();
         }
-        return ResponseEntity.status(200).body(response);
+
+        List<List<EventoInstituicao>> instituicoes = registroService.getEventosInstituicoesByEventoFinanceiro(eventos);
+        List<EventoDetalhe> detalhes               = registroService.getGastosDetalhesByEventoFinanceiro(eventos);
+        List<RegistroResponseDto> resposta         = RegistrosMapper.toResponse(eventos, instituicoes, detalhes);
+
+        return ResponseEntity.ok(resposta);
     }
 
     @GetMapping("/saldo-poupanca/usuarios/{user_id}")
-    public ResponseEntity<Double> getSaldoPoupanca(@PathVariable UUID user_id){
-        Double saldo = registroService.getSaldoPoupanca(user_id);
-
-        return ResponseEntity.status(200).body(saldo);
+    @Operation(summary = "Consultar saldo acumulado na poupança do usuário")
+    public ResponseEntity<Double> getSaldoPoupanca(@PathVariable UUID user_id) {
+        return ResponseEntity.ok(registroService.getSaldoPoupanca(user_id));
     }
 
     @GetMapping("/filtro/usuarios/{user_id}")
-    @Operation(summary =
-            "Buscar os registros com um filtro",
-            description =
-                    "Busca os registros se baseando no filtro passado.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description =
-                    "Busca de dados feita com sucesso e retornou dados!",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = RegistroResponseDto.class))),
-            @ApiResponse(responseCode = "204", description =
-                    "Busca de dados feita com sucesso e não retornou dados!"),
-            @ApiResponse(responseCode = "404", description =
-                    "Dados inválidos!",
-                    content = @Content)
+    @Operation(summary = "Buscar registros com filtros",
+               description = "Todos os filtros são opcionais e podem ser combinados.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = RegistroResponseDto.class))),
+            @ApiResponse(responseCode = "204", description = "Nenhum registro para os filtros.", content = @Content),
+            @ApiResponse(responseCode = "404", content = @Content)
     })
-    public ResponseEntity<List<RegistroResponseDto>> getByFilter(
+    public ResponseEntity<List<RegistroResponseDto>> buscarComFiltro(
             @PathVariable UUID user_id,
-            @RequestParam(required = false)Double valor,
-            @RequestParam(required = false)List<TipoMovimento> tipoMovimento,
-            @RequestParam(required = false)List<Tipo> tipo,
-            @RequestParam(required = false)LocalDate dataEvento,
-            @RequestParam(required = false)List<InstituicaoUsuario> instituicaoUsuario,
-            @RequestParam(required = false)List<CategoriaUsuario> categoriaUsuario,
+            @RequestParam(required = false) Double valor,
+            @RequestParam(required = false) List<TipoMovimento> tipoMovimento,
+            @RequestParam(required = false) List<Tipo> tipo,
+            @RequestParam(required = false) LocalDate dataEvento,
+            @RequestParam(required = false) List<InstituicaoUsuario> instituicaoUsuario,
+            @RequestParam(required = false) List<CategoriaUsuario> categoriaUsuario,
             @RequestParam(required = false) String descricao,
-            @RequestParam(required = false) String titulo
-            ){
+            @RequestParam(required = false) String titulo) {
 
-        List<RegistroResponseDto> responses = registroService.getByFilter(user_id,valor,
-                tipoMovimento,
-                tipo,
-                dataEvento,
-                instituicaoUsuario,
-                categoriaUsuario,
-                descricao,
-                titulo);
-        if (responses.isEmpty()){
-            return ResponseEntity.status(204).build();
-        }
-        return ResponseEntity.status(200).body(responses);
+        List<RegistroResponseDto> resposta = registroService.getByFilter(
+                user_id, valor, tipoMovimento, tipo, dataEvento,
+                instituicaoUsuario, categoriaUsuario, descricao, titulo);
+
+        return resposta.isEmpty()
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(resposta);
     }
+
+    // =========================================================================
+    // EXPORTAÇÃO
+    // =========================================================================
 
     @GetMapping("/download/{user_id}")
-    @Operation(summary = "Download de registros do usuário")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Arquivo gerado com sucesso",
-            content = @Content(mediaType = "application/octet-stream",
-                    schema = @Schema(type = "string", format = "binary"))),
-                    @ApiResponse(responseCode = "404", description = "Dados inválidos!",
-                            content = @Content)
+    @Operation(summary = "Exportar registros do usuário",
+               description = "Gera um arquivo com todos os registros. Formatos: json | sql | excel | pdf")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Arquivo gerado.",
+                    content = @Content(mediaType = "application/octet-stream",
+                            schema = @Schema(type = "string", format = "binary"))),
+            @ApiResponse(responseCode = "400", description = "Formato não suportado.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.", content = @Content)
     })
-    public ResponseEntity<Resource> downloadFile(@PathVariable UUID user_id,
-                                                 @RequestParam String tipo)  throws IOException {
-        byte[] conteudo;
-        String nomeArquivo;
-        String contentType;
-
-        Usuario usuario = usuarioService.getUsuarioById(user_id);
-        switch(tipo.toLowerCase()){
-            case "json":
-                conteudo = registroService.createJson(user_id).getBytes(StandardCharsets.UTF_8);
-                nomeArquivo = "registros_"+usuario.getNome()+"_"+LocalDate.now() +".json";
-                contentType = "application/json";
-                break;
-
-            case "sql":
-                conteudo = registroService.createSql(user_id).getBytes(StandardCharsets.UTF_8);
-                nomeArquivo = "registros_"+usuario.getNome()+"_"+LocalDate.now() +".sql";
-                contentType = "application/sql";
-                break;
-
-            case "excel":
-                conteudo = registroService.createExcel(user_id);
-                nomeArquivo = "registros_"+usuario.getNome()+"_"+LocalDate.now() +".xlsx";
-                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                break;
-
-            case "pdf":
-                conteudo = registroService.createPdf(user_id);
-                nomeArquivo = "registros_"+usuario.getNome()+"_"+LocalDate.now() +".pdf";
-                contentType = "application/pdf";
-                break;
-
-            default:
-                return ResponseEntity.badRequest().body(new ByteArrayResource("Formato não suportado".getBytes()));
-        }
-        ByteArrayResource resource = new ByteArrayResource(conteudo);
+    public ResponseEntity<Resource> exportarRegistros(@PathVariable UUID user_id,
+                                                       @RequestParam String tipo) {
+        RegistroExportacaoService.ExportacaoResultado resultado = exportacaoService.exportar(user_id, tipo);
+        ByteArrayResource arquivo = new ByteArrayResource(resultado.conteudo());
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + nomeArquivo)
-                .contentType(MediaType.parseMediaType(contentType))
-                .body(resource);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + resultado.nomeArquivo())
+                .contentType(MediaType.parseMediaType(resultado.contentType()))
+                .body(arquivo);
     }
 
+    // =========================================================================
+    // CRIAR
+    // =========================================================================
+
     @PostMapping
-    @Operation(summary = "Criar um novo registro",
-            description = "Cria um novo evento financeiro adicionando o ao banco de dados.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Registro criado com sucesso",
+    @Operation(summary = "Criar um registro financeiro",
+               description = "Cria um evento com um ou mais meios de pagamento (instituições) " +
+                             "e uma ou mais categorias. O tipo do evento define as regras aplicadas.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Registro criado.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = RegistroUsuarioResponseDto.class))),
-            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
-            content = @Content)
+            @ApiResponse(responseCode = "400", description = "Dados inválidos.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Usuário, instituição ou categoria não encontrados.", content = @Content)
     })
-    public ResponseEntity<RegistroUsuarioResponseDto> createRegistroCompleto(
-            @RequestBody @Valid RegistroCompletoCreateDto dto){
-        EventoFinanceiro  eventoFinanceiro = RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro());
-        List<EventoInstituicao> eventoInstituicao = RegistrosMapper.toEntityEvento(dto.getInstituicao());
-        EventoDetalhe eventoDetalhe = RegistrosMapper.toEntityGasto(dto.getDetalhe());
-        Registro registro = registroService.createEventoFinanceiro(eventoFinanceiro,eventoInstituicao,eventoDetalhe);
-        RegistroUsuarioResponseDto response = RegistrosMapper.toResponseUser(registro);
+    public ResponseEntity<RegistroUsuarioResponseDto> criarRegistro(
+            @RequestBody @Valid RegistroCompletoCreateDto dto) {
 
-        return ResponseEntity.status(201).body(response);
+        EventoFinanceiro financeiro           = RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro());
+        List<EventoInstituicao> instituicoes  = RegistrosMapper.toEntityEvento(dto.getInstituicao());
+        EventoDetalhe detalhe                 = RegistrosMapper.toEntityGasto(dto.getDetalhe());
+
+        Registro registro = registroService.createEventoFinanceiro(financeiro, instituicoes, detalhe);
+        return ResponseEntity.status(201).body(RegistrosMapper.toResponseUser(registro));
     }
 
     @PostMapping("/recorrente")
-    @Operation(summary = "Criar um novo registro recorrente",
-            description = "Cria um novo evento financeiro recorrente adicionando o ao banco de dados.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Recorrencia criado com sucesso",
+    @Operation(summary = "Criar um registro recorrente",
+               description = "Gera automaticamente múltiplos eventos com base na periodicidade " +
+                             "e no intervalo informados. Permitido apenas para Gasto e Recebimento. " +
+                             "Exemplo: salário todo dia 15, almoço todo dia útil.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Eventos recorrentes criados.",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = RegistroUsuarioResponseDto.class))),
-            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
-                    content = @Content)
+                            schema = @Schema(implementation = RegistroResponseDto.class))),
+            @ApiResponse(responseCode = "400", description = "Tipo inválido para recorrência.", content = @Content),
+            @ApiResponse(responseCode = "404", content = @Content)
     })
-    public ResponseEntity<List<RegistroResponseDto>> createRecorrencia(@Valid @RequestBody RegistroCompletoCreateDto dto){
-        if (dto.getFinanceiro().getTipo() == Tipo.Gasto
-                || dto.getFinanceiro().getTipo() == Tipo.Recebimento) {
+    public ResponseEntity<List<RegistroResponseDto>> criarRegistroRecorrente(
+            @Valid @RequestBody RegistroCompletoCreateDto dto) {
 
-            RecorrenciaFinanceira recorrencia = RegistrosMapper.toEntityRecorrencia(dto.getFinanceiro());
-            List<RegistroResponseDto> responses = registroService.createEventosRecorrentes(recorrencia, dto);
-            return ResponseEntity.status(201).body(responses);
-
+        Tipo tipo = dto.getFinanceiro().getTipo();
+        if (tipo != Tipo.Gasto && tipo != Tipo.Recebimento) {
+            return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.status(400).build();
+
+        // Mapeamento feito na camada do controller — service recebe entidades prontas
+        RecorrenciaFinanceira recorrencia    = RegistrosMapper.toEntityRecorrencia(dto.getFinanceiro());
+        List<EventoInstituicao> instituicoes = RegistrosMapper.toEntityEvento(dto.getInstituicao());
+        EventoDetalhe detalhe                = RegistrosMapper.toEntityGasto(dto.getDetalhe());
+
+        List<RegistroResponseDto> resposta = registroService.createEventosRecorrentes(
+                recorrencia, instituicoes, detalhe);
+
+        return ResponseEntity.status(201).body(resposta);
     }
 
     @PostMapping("/lote")
-    @Operation(summary = "Criar uma lista de novos registros.",
-            description = "Cria uma lista de novos registros do mesmo dia.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Registros criados com sucesso!",
+    @Operation(summary = "Criar múltiplos registros de uma vez",
+               description = "Cria todos os eventos da lista em uma única requisição.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Registros criados.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = RegistroResponseDto.class))),
-            @ApiResponse(responseCode = "404", description = "Dados inválidos!",
-            content = @Content)
+            @ApiResponse(responseCode = "404", content = @Content)
     })
-    public ResponseEntity<List<RegistroResponseDto>> createListaRegistrosCompletos(
+    public ResponseEntity<List<RegistroResponseDto>> criarRegistrosEmLote(
             @RequestBody @Valid List<RegistroCompletoCreateDto> dtos) {
 
-        List<RegistroResponseDto> responses = dtos.stream()
+        List<RegistroResponseDto> resposta = dtos.stream()
                 .map(dto -> {
-                    EventoFinanceiro eventoCreated = registroService.createEventoFinanceiro(
-                            RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro()));
+                    EventoFinanceiro financeiro          = RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro());
+                    List<EventoInstituicao> instituicoes = RegistrosMapper.toEntityEvento(dto.getInstituicao());
+                    EventoDetalhe detalhe                = RegistrosMapper.toEntityGasto(dto.getDetalhe());
 
-                    List<EventoInstituicao> instituicoesCreated = registroService.createEventoInstituicao(
-                            RegistrosMapper.toEntityEvento(dto.getInstituicao()), eventoCreated);
+                    Registro registro = registroService.createEventoFinanceiro(financeiro, instituicoes, detalhe);
 
-                    EventoDetalhe gastoCreated = registroService.createGastoDetalhe(
-                            RegistrosMapper.toEntityGasto(dto.getDetalhe()), eventoCreated);
-
-                    return RegistrosMapper
-                            .toResponse(
-                                    eventoCreated,
-                                    instituicoesCreated,
-                                    gastoCreated
-                            );
+                    // Para o lote, retorna a visão do primeiro evento (Gasto / Recebimento)
+                    EventoFinanceiro ev = registro.getEventosFinanceiros().getFirst();
+                    return RegistrosMapper.toResponse(
+                            ev,
+                            registro.getInstituicoesPorEvento().getOrDefault(ev, List.of()),
+                            registro.getDetalhePorEvento().get(ev));
                 })
                 .toList();
 
-        return ResponseEntity.status(201).body(responses);
+        return ResponseEntity.status(201).body(resposta);
     }
 
+    // =========================================================================
+    // EDITAR
+    // =========================================================================
 
     @PutMapping("/{evento_id}")
-    @Operation(summary =
-            "Edita um registro buscando o id do evento financeiro associado ao registro",
-            description =
-                    "Edita os dados de um registro, para achar este registro usa o ID do evento financeiro que é unico, após isso edita os dados.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description =
-                    "Registro editado com sucesso!",
+    @Operation(summary = "Editar um registro completo",
+               description = "Atualiza o evento financeiro, os meios de pagamento e as categorias.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Registro atualizado.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = RegistroUsuarioResponseDto.class))),
-            @ApiResponse(responseCode = "404", description =
-                    "Dados inválidos!",
-                    content = @Content)
+            @ApiResponse(responseCode = "404", description = "Registro não encontrado.", content = @Content)
     })
-    public ResponseEntity<RegistroUsuarioResponseDto> editRegistroByEventoFinanceiro_Id(
+    public ResponseEntity<RegistroUsuarioResponseDto> editarRegistro(
             @PathVariable UUID evento_id,
-            @RequestBody RegistroCompletoCreateDto dto){
+            @RequestBody RegistroCompletoCreateDto dto) {
 
-        EventoFinanceiro entityFinanceiro = RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro());
-        EventoFinanceiro financeiroEdited = registroService.editEventoFinanceiro(evento_id, entityFinanceiro);
+        EventoFinanceiro financeiroEditado = registroService.editEventoFinanceiro(
+                evento_id, RegistrosMapper.toEntityFinanceiro(dto.getFinanceiro()));
 
-        List<EventoInstituicao> entityInstituicoes = RegistrosMapper.toEntityEvento(dto.getInstituicao());
-        List<EventoInstituicao> instituicoesEdited = registroService.editEventoInstituicao(evento_id, entityInstituicoes);
+        List<EventoInstituicao> instituicoesEditadas = registroService.editEventoInstituicao(
+                evento_id, RegistrosMapper.toEntityEvento(dto.getInstituicao()));
 
-        EventoDetalhe entityGasto = RegistrosMapper.toEntityGasto(dto.getDetalhe());
-        EventoDetalhe gastoEdited = registroService.editGastoDetalhe(evento_id, entityGasto);
+        EventoDetalhe detalheEditado = registroService.editGastoDetalhe(
+                evento_id, RegistrosMapper.toEntityGasto(dto.getDetalhe()));
 
-        RegistroUsuarioResponseDto response = RegistrosMapper.toResponseUser(financeiroEdited, instituicoesEdited, gastoEdited);
+        RegistroUsuarioResponseDto resposta = RegistrosMapper.toResponseUser(
+                financeiroEditado, instituicoesEditadas, detalheEditado);
 
-        return ResponseEntity.status(200).body(response);
+        return ResponseEntity.ok(resposta);
     }
 
+    // =========================================================================
+    // DELETAR
+    // =========================================================================
 
     @DeleteMapping("/{evento_id}")
-    @Operation(summary =
-            "deleta um registro buscando o id do evento financeiro associado ao registro",
-            description =
-                    "Deleta os dados de um registro, para achar este registro usa o ID do evento financeiro que é unico, após isso deleta os dados.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description =
-                    "Registro deletado com sucesso!",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description =
-                    "Dados inválidos!",
-                    content = @Content)
+    @Operation(summary = "Deletar um registro",
+               description = "Remove o evento financeiro e todos os dados vinculados a ele.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Registro removido.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Registro não encontrado.", content = @Content)
     })
-    public ResponseEntity<Void> deleteRegistroByEventoFinanceiro_Id(
-            @PathVariable UUID evento_id
-    ){
+    public ResponseEntity<Void> deletarRegistro(@PathVariable UUID evento_id) {
         registroService.deleteRegistroByEventoFinanceiro_Id(evento_id);
-        return ResponseEntity.status(204).build();
+        return ResponseEntity.noContent().build();
     }
 }
-
