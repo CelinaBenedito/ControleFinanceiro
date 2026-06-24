@@ -4,6 +4,7 @@ import controle.api.back_end.model.categoria.CategoriaUsuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface CategoriaUsuarioRepository extends JpaRepository<CategoriaUsuario, Integer> {
@@ -16,4 +17,6 @@ public interface CategoriaUsuarioRepository extends JpaRepository<CategoriaUsuar
     CategoriaUsuario findByUsuario_idAndCategoria_id(UUID usuarioId, Integer categoriaId);
 
     List<CategoriaUsuario> findAllByUsuario_IdAndIsAtivoIsTrue(UUID userId);
+
+    Optional<CategoriaUsuario> findByUsuario_IdAndCategoria_Titulo(UUID userId, String titulo);
 }

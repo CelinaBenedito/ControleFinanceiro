@@ -4,13 +4,14 @@ import controle.api.back_end.dto.configuracoes.in.*;
 import controle.api.back_end.dto.configuracoes.mapper.ConfiguracoesMapper;
 import controle.api.back_end.dto.configuracoes.out.ConfiguracaoUsuarioResponseDTO;
 import controle.api.back_end.dto.configuracoes.out.ConfiguracoesResponsesDTO;
-import controle.api.back_end.dto.usuario.out.UsuarioResponseDTO;
+import controle.api.back_end.dto.upload.ImportResultDto;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.service.ConfiguracoesService;
+import controle.api.back_end.service.UploadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -23,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -34,9 +36,12 @@ import java.util.UUID;
 public class ConfiguracoesController {
 
     private final ConfiguracoesService configuracoesService;
+    private final UploadService uploadService;
 
-    public ConfiguracoesController(ConfiguracoesService configuracoesService) {
+    public ConfiguracoesController(ConfiguracoesService configuracoesService,
+                                   UploadService uploadService) {
         this.configuracoesService = configuracoesService;
+        this.uploadService = uploadService;
     }
 
     @GetMapping
@@ -161,17 +166,66 @@ public class ConfiguracoesController {
         return ResponseEntity.status(200).body(response);
     }
 
-    @PostMapping(value ="/upload-arquivo/usuarios/{user_id}",
+    @PostMapping(value = "/upload-arquivo/usuarios/{user_id}",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> postArquivo(@PathVariable UUID user_id,
-                                            @RequestParam MultipartFile arquivo){
-        if (arquivo.isEmpty()){
-            return ResponseEntity.badRequest().body("Nenhum arquivo enviado.");
-        }
-        String nomeArquivo = arquivo.getOriginalFilename();
-        String tipoArquivo = arquivo.getContentType();
+    @Operation(summary = "Importar registros a partir de um arquivo",
+            description = "Recebe um arquivo nos formatos JSON, SQL, Excel (.xlsx) ou PDF " +
+                    "gerado pelo endpoint /download do módulo de registros e importa " +
+                    "os eventos financeiros para o banco de dados do usuário informado.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Importação concluída (verifique o campo 'erros' para falhas parciais).",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImportResultDto.class))),
+            @ApiResponse(responseCode = "400", description = "Arquivo vazio ou formato não suportado.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
+                    content = @Content)
+    })
+    public ResponseEntity<ImportResultDto> postArquivo(
+            @PathVariable UUID user_id,
+            @RequestParam MultipartFile arquivo) throws IOException {
 
-        return ResponseEntity.status(200).build();
+        if (arquivo.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        String contentType = arquivo.getContentType() != null
+                ? arquivo.getContentType().toLowerCase() : "";
+        String nomeArquivo = arquivo.getOriginalFilename() != null
+                ? arquivo.getOriginalFilename().toLowerCase() : "";
+
+        byte[] bytes = arquivo.getBytes();
+        ImportResultDto resultado;
+
+        if (contentType.contains("json") || nomeArquivo.endsWith(".json")) {
+            resultado = uploadService.importFromJson(user_id, bytes);
+
+        } else if (contentType.contains("sql") || nomeArquivo.endsWith(".sql")
+                || contentType.contains("plain")) {
+            resultado = uploadService.importFromSql(user_id, bytes);
+
+        } else if (contentType.contains("spreadsheetml") || contentType.contains("excel")
+                || nomeArquivo.endsWith(".xlsx") || nomeArquivo.endsWith(".xls")) {
+            resultado = uploadService.importFromExcel(user_id, bytes);
+
+        } else if (contentType.contains("pdf") || nomeArquivo.endsWith(".pdf")) {
+            resultado = uploadService.importFromPdf(user_id, bytes);
+
+        } else {
+            // Tenta inferir o tipo pelo conteúdo
+            String preview = new String(bytes, 0, Math.min(bytes.length, 20)).trim();
+            if (preview.startsWith("{") || preview.startsWith("[")) {
+                resultado = uploadService.importFromJson(user_id, bytes);
+            } else if (preview.startsWith("--") || preview.toUpperCase().startsWith("INSERT")) {
+                resultado = uploadService.importFromSql(user_id, bytes);
+            } else if (preview.startsWith("PK")) { // xlsx magic bytes
+                resultado = uploadService.importFromExcel(user_id, bytes);
+            } else {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+
+        return ResponseEntity.ok(resultado);
     }
 
     @PutMapping("/edit/{id}")
