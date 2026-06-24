@@ -169,9 +169,14 @@ public class ConfiguracoesController {
     @PostMapping(value = "/upload-arquivo/usuarios/{user_id}",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Importar registros a partir de um arquivo",
-            description = "Recebe um arquivo nos formatos JSON, SQL, Excel (.xlsx) ou PDF " +
-                    "gerado pelo endpoint /download do módulo de registros e importa " +
-                    "os eventos financeiros para o banco de dados do usuário informado.")
+            description = "Importa eventos financeiros a partir de arquivos nos formatos:\n" +
+                    "- **JSON / SQL / Excel (.xlsx)**: gerados pelo endpoint `/download` da aplicação\n" +
+                    "- **OFX / QFX**: extrato bancário padrão Open Financial Exchange (todos os bancos)\n" +
+                    "- **CSV**: extrato bancário CSV (Inter e bancos com layout Data;Descrição;Valor;Saldo)\n" +
+                    "- **PDF**: extrato bancário PDF (melhor esforço — prefira OFX ou CSV)\n\n" +
+                    "Para formatos de extrato bancário (OFX, CSV, PDF), use o parâmetro `bancoNome` " +
+                    "para vincular as transações à instituição cadastrada do usuário " +
+                    "(ex: `bancoNome=Inter`). No OFX, a tag `<ORG>` é usada automaticamente.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Importação concluída (verifique o campo 'erros' para falhas parciais).",
                     content = @Content(mediaType = "application/json",
@@ -183,7 +188,8 @@ public class ConfiguracoesController {
     })
     public ResponseEntity<ImportResultDto> postArquivo(
             @PathVariable UUID user_id,
-            @RequestParam MultipartFile arquivo) throws IOException {
+            @RequestParam MultipartFile arquivo,
+            @RequestParam(required = false) String bancoNome) throws IOException {
 
         if (arquivo.isEmpty()) {
             return ResponseEntity.badRequest().build();
@@ -200,26 +206,50 @@ public class ConfiguracoesController {
         if (contentType.contains("json") || nomeArquivo.endsWith(".json")) {
             resultado = uploadService.importFromJson(user_id, bytes);
 
-        } else if (contentType.contains("sql") || nomeArquivo.endsWith(".sql")
-                || contentType.contains("plain")) {
+        } else if (contentType.contains("sql") || nomeArquivo.endsWith(".sql")) {
             resultado = uploadService.importFromSql(user_id, bytes);
 
         } else if (contentType.contains("spreadsheetml") || contentType.contains("excel")
                 || nomeArquivo.endsWith(".xlsx") || nomeArquivo.endsWith(".xls")) {
             resultado = uploadService.importFromExcel(user_id, bytes);
 
+        } else if (nomeArquivo.endsWith(".ofx") || nomeArquivo.endsWith(".qfx")
+                || contentType.contains("ofx") || contentType.contains("x-ofx")) {
+            // OFX: usa <ORG> internamente + bancoNome como fallback
+            resultado = uploadService.importFromOfxWithBank(user_id, bytes, bancoNome);
+
+        } else if (nomeArquivo.endsWith(".csv")
+                || contentType.contains("csv") || contentType.contains("comma-separated")) {
+            resultado = uploadService.importFromBankStatementCsv(user_id, bytes, bancoNome);
+
         } else if (contentType.contains("pdf") || nomeArquivo.endsWith(".pdf")) {
-            resultado = uploadService.importFromPdf(user_id, bytes);
+            // PDF: se bancoNome fornecido ou nome do arquivo sugere extrato → trata como bancário
+            boolean isBankStatement = (bancoNome != null && !bancoNome.isBlank())
+                    || nomeArquivo.contains("extrato") || nomeArquivo.contains("statement");
+            if (isBankStatement) {
+                resultado = uploadService.importFromBankStatementPdf(user_id, bytes, bancoNome);
+            } else {
+                // Tenta como exportação da própria aplicação
+                resultado = uploadService.importFromPdf(user_id, bytes);
+                // Fallback: se não importou nada, tenta como extrato bancário
+                if (resultado.getTotalImportados() == 0 && resultado.getErros().isEmpty()) {
+                    resultado = uploadService.importFromBankStatementPdf(user_id, bytes, bancoNome);
+                }
+            }
 
         } else {
-            // Tenta inferir o tipo pelo conteúdo
-            String preview = new String(bytes, 0, Math.min(bytes.length, 20)).trim();
+            // Inferência pelo conteúdo
+            String preview = new String(bytes, 0, Math.min(bytes.length, 200)).trim();
             if (preview.startsWith("{") || preview.startsWith("[")) {
                 resultado = uploadService.importFromJson(user_id, bytes);
             } else if (preview.startsWith("--") || preview.toUpperCase().startsWith("INSERT")) {
                 resultado = uploadService.importFromSql(user_id, bytes);
-            } else if (preview.startsWith("PK")) { // xlsx magic bytes
+            } else if (preview.startsWith("PK")) {
                 resultado = uploadService.importFromExcel(user_id, bytes);
+            } else if (preview.toUpperCase().contains("OFXHEADER") || preview.toUpperCase().contains("<OFX>")) {
+                resultado = uploadService.importFromOfxWithBank(user_id, bytes, bancoNome);
+            } else if (preview.toLowerCase().contains("data") && preview.contains(";")) {
+                resultado = uploadService.importFromBankStatementCsv(user_id, bytes, bancoNome);
             } else {
                 return ResponseEntity.badRequest().build();
             }
