@@ -1,0 +1,7 @@
+fastapi==0.138.1
+uvicorn==0.32.1
+playwright==1.60.0
+python-dotenv==1.0.1
+pydantic==2.13.4
+
+
