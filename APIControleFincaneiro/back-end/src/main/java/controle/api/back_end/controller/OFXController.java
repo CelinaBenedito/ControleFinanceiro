@@ -1,5 +1,7 @@
 package controle.api.back_end.controller;
 
+import controle.api.back_end.dto.ofx.in.AleloSyncRequestDTO;
+import controle.api.back_end.dto.ofx.in.NavigationStepDTO;
 import controle.api.back_end.dto.ofx.in.OFXInstituicaoSyncDTO;
 import controle.api.back_end.dto.ofx.in.OFXSyncLoteRequestDTO;
 import controle.api.back_end.dto.ofx.in.OFXSyncRequestDTO;
@@ -245,15 +247,35 @@ public class OFXController {
                     2. Montar o array navigationSteps com os passos de login + download
                     3. Enviar o payload com todas as instituicoes
 
-                    **Estrutura de navigationSteps:**
+                    **Para Alelo (pythonEndpoint = /capture/alelo):**
+                    Use selector={{CPF}} e selector={{SENHA}} — o Python extrai os valores automaticamente.
                     ```json
-                    [
-                      { "action": "fill", "selector": "input[name='cpf']", "text": "credencial_do_localstorage" },
-                      { "action": "fill", "selector": "input[name='senha']", "text": "senha_do_localstorage" },
-                      { "action": "click", "selector": "button[type='submit']" },
-                      { "action": "wait_for_selector", "selector": "a[href*='ofx']", "timeout": 30000 },
-                      { "action": "click", "selector": "a[href*='ofx']" }
-                    ]
+                    {
+                      "instituicaoUsuarioId": 2,
+                      "bankUrl": "https://www.meualelo.com.br/",
+                      "pythonEndpoint": "/capture/alelo",
+                      "navigationSteps": [
+                        { "action": "fill", "selector": "{{CPF}}",   "text": "12345678900" },
+                        { "action": "fill", "selector": "{{SENHA}}", "text": "minhasenha" }
+                      ]
+                    }
+                    ```
+
+                    **Para bancos genericos (pythonEndpoint = /capture ou null):**
+                    Use seletores CSS reais — o Python segue os steps sequencialmente.
+                    ```json
+                    {
+                      "instituicaoUsuarioId": 3,
+                      "bankUrl": "https://www.bancogenerico.com.br/login",
+                      "pythonEndpoint": "/capture",
+                      "navigationSteps": [
+                        { "action": "fill", "selector": "input[name='cpf']",   "text": "12345678900" },
+                        { "action": "fill", "selector": "input[name='senha']", "text": "minhasenha" },
+                        { "action": "click", "selector": "button[type='submit']" },
+                        { "action": "wait_for_selector", "selector": "a[href*='ofx']", "timeout": 30000 },
+                        { "action": "click", "selector": "a[href*='ofx']" }
+                      ]
+                    }
                     ```
 
                     **Credenciais:** trafegam apenas em memoria e nunca sao persistidas.
@@ -299,6 +321,67 @@ public class OFXController {
     }
 
     /**
+     * Sincroniza OFX do Alelo de forma simples.
+     *
+     * <p>Endpoint dedicado ao Alelo — aceita CPF e senha diretamente,
+     * sem precisar montar navigationSteps manualmente.
+     *
+     * <p>Use este endpoint no Swagger para testar a integracao Alelo.
+     */
+    @PostMapping("/sync/alelo/{userId}")
+    @Operation(
+            summary = "Sincronizar OFX do Alelo (endpoint simples)",
+            description = """
+                    Endpoint dedicado ao Alelo. Basta informar CPF e senha.
+
+                    **CPF:** apenas os 11 digitos, sem pontos ou traco.
+                    Exemplo: `55082364812`
+
+                    **Funcionamento:**
+                    1. Abre o browser automaticamente
+                    2. Navega para meualelo.com.br
+                    3. Preenche CPF e senha
+                    4. Clica em Entrar
+                    5. Captura as transacoes via API interna
+                    6. Gera o arquivo OFX e importa os registros
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OFX sincronizado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "CPF ou senha invalidos"),
+            @ApiResponse(responseCode = "500", description = "Erro no scraping")
+    })
+    public ResponseEntity<OFXSyncResponseDTO> sincronizarAlelo(
+            @PathVariable java.util.UUID userId,
+            @Valid @RequestBody AleloSyncRequestDTO req) {
+
+        log.info("[OFXController] Sync Alelo — usuario: " + userId +
+                " | CPF: ***" + req.cpf().substring(Math.max(0, req.cpf().length() - 4)));
+
+        OFXInstituicaoSyncDTO inst = new OFXInstituicaoSyncDTO(
+                req.instituicaoUsuarioId(),
+                "https://www.meualelo.com.br/",
+                "/capture/alelo",
+                java.util.List.of(
+                        new NavigationStepDTO("fill", "{{CPF}}",   req.cpf(),   null),
+                        new NavigationStepDTO("fill", "{{SENHA}}", req.senha(), null)
+                ),
+                "Sync Alelo automatico"
+        );
+
+        OFXInstituicaoResultadoDTO resultado = processarInstituicao(userId, inst);
+
+        return resultado.sucesso()
+                ? ResponseEntity.ok(new OFXSyncResponseDTO(
+                        true, resultado.mensagem(),
+                        resultado.transacoesImportadas(),
+                        resultado.transacoesDuplicadas(),
+                        resultado.erros()))
+                : ResponseEntity.internalServerError().body(new OFXSyncResponseDTO(
+                        false, resultado.mensagem(), 0, 0, resultado.erros()));
+    }
+
+    /**
      * Sincroniza OFX de uma unica instituicao.
      * Mantido para compatibilidade e testes individuais.
      */
@@ -320,9 +403,14 @@ public class OFXController {
     public ResponseEntity<OFXSyncResponseDTO> sincronizar(@Valid @RequestBody OFXSyncRequestDTO req) {
         log.info("[OFXController] Sync individual — usuario: " + req.userId());
 
+        // Usa o pythonEndpoint informado (ex: /capture/alelo) ou o padrao /capture
+        String endpoint = (req.pythonEndpoint() != null && !req.pythonEndpoint().isBlank())
+                ? req.pythonEndpoint()
+                : "/capture";
         OFXInstituicaoSyncDTO inst = new OFXInstituicaoSyncDTO(
                 req.instituicaoUsuarioId(),
                 req.bankUrl(),
+                endpoint,
                 req.navigationSteps(),
                 req.description()
         );

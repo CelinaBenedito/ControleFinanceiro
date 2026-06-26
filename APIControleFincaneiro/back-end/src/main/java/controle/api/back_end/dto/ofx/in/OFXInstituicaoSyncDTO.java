@@ -17,12 +17,15 @@ public record OFXInstituicaoSyncDTO(
         @NotBlank String bankUrl,
 
         /**
-         * Passos de navegação que o browser executará automaticamente.
-         *
-         * Se null, o browser abrirá em modo MANUAL — o usuário deverá
-         * fazer o login e o download do OFX manualmente dentro do timeout.
-         *
-         * Acoes disponíveis: click | fill | wait | wait_for_selector | navigate | download
+         * Endpoint Python a chamar. Padrao: /capture.
+         * Alelo usa /capture/alelo, Nubank usa /capture/nubank/sync.
+         * O JS busca este valor via GET /instituicoes/{id}/ofx-config.
+         */
+        String pythonEndpoint,
+
+        /**
+         * Passos de navegacao. null = modo manual.
+         * Para Alelo/Nubank com endpoint proprio: os steps carregam cpf/senha via fill.
          */
         List<NavigationStepDTO> navigationSteps,
 

@@ -45,25 +45,28 @@ public class OFXWatcherService {
 
     @PostConstruct
     public void iniciar() {
-        try {
-            Path pasta = Paths.get(ofxOutputDir).toAbsolutePath();
-            pasta.toFile().mkdirs();
+        // Executa em thread separada para nao bloquear o startup do Spring
+        new Thread(() -> {
+            try {
+                Path pasta = Paths.get(ofxOutputDir).toAbsolutePath();
+                pasta.toFile().mkdirs();
 
-            watchService = FileSystems.getDefault().newWatchService();
-            pasta.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+                watchService = FileSystems.getDefault().newWatchService();
+                pasta.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
 
-            executor = Executors.newSingleThreadExecutor(r -> {
-                Thread t = new Thread(r, "ofx-watcher");
-                t.setDaemon(true);
-                return t;
-            });
+                executor = Executors.newSingleThreadExecutor(r -> {
+                    Thread t = new Thread(r, "ofx-watcher");
+                    t.setDaemon(true);
+                    return t;
+                });
 
-            executor.submit(this::loop);
-            log.info("[OFXWatcherService] Monitorando pasta: " + pasta);
+                executor.submit(this::loop);
+                log.info("[OFXWatcherService] Monitorando pasta: " + pasta);
 
-        } catch (IOException e) {
-            log.warning("[OFXWatcherService] Não foi possível iniciar o watcher: " + e.getMessage());
-        }
+            } catch (IOException e) {
+                log.warning("[OFXWatcherService] Nao foi possivel iniciar o watcher: " + e.getMessage());
+            }
+        }, "ofx-watcher-init").start();
     }
 
     @PreDestroy

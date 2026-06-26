@@ -24,6 +24,96 @@ VALUES ('itau'),
         ('Vale Refeição'),
         ('Vale Alimentação');
 
+-- ============================================================
+-- OFX Config por instituicao
+-- Placeholders substituidos pelo JS via localStorage:
+--   {{CPF}}      → CPF do usuario (somente digitos)
+--   {{CNPJ}}     → CNPJ da empresa
+--   {{SENHA}}    → senha do internet banking
+--   {{AGENCIA}}  → numero da agencia
+--   {{CONTA}}    → numero da conta
+--   {{DIGITO}}   → digito verificador da conta
+--   {{TOKEN}}    → codigo do token/MFA (para bancos sem MFA automatico)
+--
+-- navigation_steps_json = null → modo MANUAL (browser abre, usuario navega sozinho)
+-- ofx_supported = true         → banco suporta exportacao OFX
+-- ============================================================
+
+-- Itau: MANUAL (iToken push no app)
+UPDATE instituicao SET
+    ofx_supported = true, login_mode = 'MANUAL', python_endpoint = '/capture',
+    bank_url = 'https://www.itau.com.br/', navigation_steps_json = null
+WHERE id = 1;
+
+-- Nubank: MANUAL (autentica pelo app - API so para PJ)
+UPDATE instituicao SET
+    ofx_supported = true, login_mode = 'MANUAL', python_endpoint = '/capture/nubank/sync',
+    bank_url = 'https://app.nubank.com.br/', navigation_steps_json = null
+WHERE id = 2;
+
+-- Santander: AUTOMATED (sem MFA para a maioria dos usuarios)
+UPDATE instituicao SET
+    ofx_supported = true, login_mode = 'AUTOMATED', python_endpoint = '/capture',
+    bank_url = 'https://www.santander.com.br/',
+    navigation_steps_json = '[{"action":"wait_for_selector","selector":"input[id*=cpf]","timeout":15000},{"action":"fill","selector":"input[id*=cpf]","text":"{{CPF}}"},{"action":"click","selector":"button[type=submit]"},{"action":"wait_for_selector","selector":"input[type=password]","timeout":15000},{"action":"fill","selector":"input[type=password]","text":"{{SENHA}}"},{"action":"click","selector":"button[type=submit]"},{"action":"wait_for_selector","selector":"a[href*=extrato]","timeout":30000},{"action":"click","selector":"a[href*=extrato]"},{"action":"wait_for_selector","selector":"a[href*=ofx]","timeout":30000},{"action":"download","selector":"a[href*=ofx]","timeout":30000}]'
+WHERE id = 3;
+
+-- Bradesco: AUTOMATED
+UPDATE instituicao SET
+    ofx_supported = true, login_mode = 'AUTOMATED', python_endpoint = '/capture',
+    bank_url = 'https://banco.bradesco/',
+    navigation_steps_json = '[{"action":"wait_for_selector","selector":"input[id*=agencia]","timeout":15000},{"action":"fill","selector":"input[id*=agencia]","text":"{{AGENCIA}}"},{"action":"fill","selector":"input[id*=conta]","text":"{{CONTA}}"},{"action":"click","selector":"button[type=submit]"},{"action":"wait_for_selector","selector":"input[type=password]","timeout":20000},{"action":"fill","selector":"input[type=password]","text":"{{SENHA}}"},{"action":"click","selector":"button[type=submit]"},{"action":"wait_for_selector","selector":"a[href*=extrato]","timeout":30000},{"action":"click","selector":"a[href*=extrato]"},{"action":"wait_for_selector","selector":"a[href*=ofx]","timeout":30000},{"action":"download","selector":"a[href*=ofx]","timeout":30000}]'
+WHERE id = 4;
+
+-- Banco do Brasil: AUTOMATED
+UPDATE instituicao SET
+    ofx_supported = true, login_mode = 'AUTOMATED', python_endpoint = '/capture',
+    bank_url = 'https://www2.bancobrasil.com.br/aapf/login.jsp',
+    navigation_steps_json = '[{"action":"wait_for_selector","selector":"input[id*=cpf]","timeout":15000},{"action":"fill","selector":"input[id*=cpf]","text":"{{CPF}}"},{"action":"click","selector":"button[type=submit]"},{"action":"wait_for_selector","selector":"input[type=password]","timeout":15000},{"action":"fill","selector":"input[type=password]","text":"{{SENHA}}"},{"action":"click","selector":"button[type=submit]"},{"action":"wait_for_selector","selector":"a[href*=extrato]","timeout":30000},{"action":"click","selector":"a[href*=extrato]"},{"action":"wait_for_selector","selector":"a[href*=ofx]","timeout":30000},{"action":"download","selector":"a[href*=ofx]","timeout":30000}]'
+WHERE id = 5;
+
+-- Inter: MANUAL (QR Code com celular - confirmar se necessario)
+UPDATE instituicao SET
+    ofx_supported = true, login_mode = 'MANUAL', python_endpoint = '/capture',
+    bank_url = 'https://internetbanking.bancointer.com.br/login',
+    navigation_steps_json = null
+WHERE id = 6;
+
+-- Safra: MANUAL
+UPDATE instituicao SET
+    ofx_supported = true, login_mode = 'MANUAL', python_endpoint = '/capture',
+    bank_url = 'https://www.safra.com.br/pessoa-fisica/internet-banking/',
+    navigation_steps_json = null
+WHERE id = 7;
+
+-- Alelo Alimentacao: AUTOMATED via interceptacao de API
+-- Nao tem OFX nativo — o Python intercepta o XHR e gera OFX
+UPDATE instituicao SET
+    ofx_supported = true, login_mode = 'AUTOMATED', python_endpoint = '/capture/alelo',
+    bank_url = 'https://www.meualelo.com.br/',
+    navigation_steps_json = '[{"action":"fill","selector":"input[id=username]","text":"{{CPF}}"},{"action":"fill","selector":"input[id=password]","text":"{{SENHA}}"}]'
+WHERE id = 8;
+
+-- Alelo Refeicao: mesmo endpoint do Alelo
+UPDATE instituicao SET
+    ofx_supported = true, login_mode = 'AUTOMATED', python_endpoint = '/capture/alelo',
+    bank_url = 'https://www.meualelo.com.br/',
+    navigation_steps_json = '[{"action":"fill","selector":"input[id=username]","text":"{{CPF}}"},{"action":"fill","selector":"input[id=password]","text":"{{SENHA}}"}]'
+WHERE id = 9;
+
+-- Alelo Multibeneficios: mesmo endpoint do Alelo
+UPDATE instituicao SET
+    ofx_supported = true, login_mode = 'AUTOMATED', python_endpoint = '/capture/alelo',
+    bank_url = 'https://www.meualelo.com.br/',
+    navigation_steps_json = '[{"action":"fill","selector":"input[id=username]","text":"{{CPF}}"},{"action":"fill","selector":"input[id=password]","text":"{{SENHA}}"}]'
+WHERE id = 10;
+
+-- Pluxee, Ticket, Vale: MANUAL (validar suporte a OFX)
+UPDATE instituicao SET ofx_supported = false, login_mode = 'MANUAL', python_endpoint = '/capture', bank_url = 'https://www.pluxee.com.br/' WHERE id = 11;
+UPDATE instituicao SET ofx_supported = false, login_mode = 'MANUAL', python_endpoint = '/capture', bank_url = 'https://www.ticket.com.br/' WHERE id = 12;
+UPDATE instituicao SET ofx_supported = false, login_mode = 'MANUAL', python_endpoint = '/capture' WHERE id = 13;
+UPDATE instituicao SET ofx_supported = false, login_mode = 'MANUAL', python_endpoint = '/capture' WHERE id = 14;
+
 INSERT INTO instituicao_usuario(usuario_id, instituicao_id, is_ativo)
 VALUES ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58', '13',true),
        ('21eb5d2f-3fd8-439e-b647-5cc1f753ae58','1',true),

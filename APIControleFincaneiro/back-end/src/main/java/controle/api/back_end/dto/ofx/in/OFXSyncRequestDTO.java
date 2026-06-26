@@ -20,9 +20,24 @@ public record OFXSyncRequestDTO(
         @NotBlank String bankUrl,
 
         /**
+         * Endpoint Python a chamar. Padrao: /capture.
+         * Alelo usa /capture/alelo, Nubank usa /capture/nubank/sync.
+         * Para Alelo/Nubank, os navigationSteps devem usar selector={{CPF}} e selector={{SENHA}}
+         * com os valores reais no campo text.
+         */
+        String pythonEndpoint,
+
+        /**
          * Passos de navegação que o Python executará no browser.
          * Se null, o browser abrirá a página de login e aguardará o usuário fazer
          * o login manualmente (modo interativo — recomendado para bancos com MFA).
+         *
+         * Para Alelo e Nubank (pythonEndpoint especializado):
+         *   { "action": "fill", "selector": "{{CPF}}",   "text": "12345678900" }
+         *   { "action": "fill", "selector": "{{SENHA}}", "text": "minhasenha" }
+         *
+         * Para bancos genéricos (/capture):
+         *   { "action": "fill", "selector": "input[name='cpf']", "text": "12345678900" }
          */
         List<NavigationStepDTO> navigationSteps,
 

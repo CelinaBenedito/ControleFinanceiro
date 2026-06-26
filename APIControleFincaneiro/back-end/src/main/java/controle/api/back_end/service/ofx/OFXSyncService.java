@@ -45,44 +45,68 @@ public class OFXSyncService {
      * Dispara a captura OFX para a instituição especificada (versão OFXSyncRequestDTO).
      */
     public String dispararCaptura(OFXSyncRequestDTO req) {
-        return dispararCaptura(req.bankUrl(), req.navigationSteps(),
-                req.description() != null ? req.description() : "Sync automatico");
+        return dispararCaptura(
+                "/capture",
+                req.bankUrl(), req.navigationSteps(),
+                req.description() != null ? req.description() : "Sync automatico"
+        );
     }
 
     /**
-     * Dispara a captura OFX para uma entrada de lote (OFXInstituicaoSyncDTO).
+     * Dispara a captura OFX para uma entrada de lote.
+     * Usa o pythonEndpoint da instituicao (ex: /capture/alelo para o Alelo).
      */
     public String dispararCaptura(OFXInstituicaoSyncDTO inst) {
-        return dispararCaptura(inst.bankUrl(), inst.navigationSteps(),
-                inst.descricao() != null ? inst.descricao() : "Sync automatico lote");
+        String endpoint = inst.pythonEndpoint() != null ? inst.pythonEndpoint() : "/capture";
+        return dispararCaptura(
+                endpoint,
+                inst.bankUrl(), inst.navigationSteps(),
+                inst.descricao() != null ? inst.descricao() : "Sync automatico lote"
+        );
     }
 
     /**
-     * Implementacao interna comum a todos os overloads.
+     * Implementacao interna.
+     * Para endpoints especializados (/capture/alelo, /capture/nubank/sync),
+     * o body e adaptado para o schema esperado por cada endpoint Python.
      */
-    private String dispararCaptura(String bankUrl, java.util.List<NavigationStepDTO> steps, String description) {
+    private String dispararCaptura(String pythonEndpoint, String bankUrl,
+                                   java.util.List<NavigationStepDTO> steps, String description) {
         pythonProcessManager.garantirRodando();
 
+        // Endpoints especializados usam schema proprio (cpf/senha no body)
+        // O OFXInstituicaoSyncDTO ja trata isso — aqui apenas passamos o que veio
         Map<String, Object> body = new HashMap<>();
-        body.put("bank_url", bankUrl);
-        body.put("description", description);
 
-        if (steps != null && !steps.isEmpty()) {
-            body.put("navigation_steps", steps.stream().map(this::stepParaMap).toList());
+        if (pythonEndpoint.startsWith("/capture/alelo")) {
+            // Alelo: cpf e senha extraidos dos navigationSteps (tipo fill com placeholders)
+            body.put("cpf",   extrairPlaceholderDeStep(steps, "{{CPF}}"));
+            body.put("senha", extrairPlaceholderDeStep(steps, "{{SENHA}}"));
+        } else if (pythonEndpoint.startsWith("/capture/nubank")) {
+            body.put("userId", description);
+            body.put("cpf",   extrairPlaceholderDeStep(steps, "{{CPF}}"));
+            body.put("senha", extrairPlaceholderDeStep(steps, "{{SENHA}}"));
         } else {
-            body.put("navigation_steps", null);
+            // Endpoint padrao /capture
+            body.put("bank_url", bankUrl);
+            body.put("description", description);
+            if (steps != null && !steps.isEmpty()) {
+                body.put("navigation_steps", steps.stream().map(this::stepParaMap).toList());
+            } else {
+                body.put("navigation_steps", null);
+            }
         }
 
         try {
             String jsonBody = objectMapper.writeValueAsString(body);
-            log.info("[OFXSyncService] Chamando Python /capture para: " + bankUrl);
+            log.info("[OFXSyncService] Chamando Python " + pythonEndpoint);
 
             HttpClient client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(10))
                     .build();
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(pythonApiUrl + "/capture"))
+                    .uri(URI.create(pythonApiUrl + pythonEndpoint))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                     .timeout(Duration.ofMinutes(10))
@@ -125,6 +149,21 @@ public class OFXSyncService {
         m.put("text",     step.text());
         m.put("timeout",  step.timeout());
         return m;
+    }
+
+    /**
+     * Extrai o valor de um placeholder dos steps.
+     * O front-end envia steps de fill com selector="{{CPF}}" e text="12345678900" (valor real).
+     * Este metodo encontra o step pelo selector (placeholder) e retorna o text (valor real).
+     * Usado para endpoints que recebem cpf/senha diretamente (Alelo, Nubank).
+     */
+    private String extrairPlaceholderDeStep(java.util.List<NavigationStepDTO> steps, String placeholder) {
+        if (steps == null) return "";
+        return steps.stream()
+                .filter(s -> "fill".equals(s.action()) && placeholder.equals(s.selector()))
+                .map(NavigationStepDTO::text)
+                .findFirst()
+                .orElse("");
     }
 }
 

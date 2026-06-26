@@ -22,7 +22,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-# Garante que imports relativos funcionem tanto em dev quanto no .exe do PyInstaller
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from automation import NavigationStep, capturar_ofx
@@ -171,6 +170,111 @@ def list_files():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Endpoints Nubank (pynubank com fallback para Playwright manual)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class NubankSyncDTO(BaseModel):
+    userId:   str = Field(..., description="ID do usuario (para armazenar certificado)")
+    cpf:      str = Field(..., description="CPF sem formatacao")
+    senha:    str = Field(..., description="Senha do app Nubank")
+
+
+class NubankQRConfirmDTO(BaseModel):
+    userId: str
+    cpf:    str
+    senha:  str
+
+
+@app.post("/capture/nubank/sync", tags=["Nubank"])
+async def nubank_sync(req: NubankSyncDTO):
+    """
+    Tenta buscar extrato Nubank via pynubank.
+    Se pynubank falhar (API quebrada) → abre browser em modo manual automaticamente.
+
+    Retorna:
+    - success=true + file_name  → OFX gerado via API
+    - success=false + message='QR_CODE_REQUIRED' → precisa escanear QR Code primeiro
+    - success=false + file_name → fallback para Playwright manual (browser abriu)
+    """
+    from nubank_capture import tentar_via_api, ResultadoNubank
+    from config import BASE_DIR
+
+    cert_dir = BASE_DIR / "certs"
+    cert_dir.mkdir(parents=True, exist_ok=True)
+
+    resultado: ResultadoNubank = tentar_via_api(req.cpf, req.senha, cert_dir, req.userId)
+
+    if resultado.sucesso:
+        return {"success": True, "message": "OFX gerado via pynubank",
+                "file_name": resultado.ofx_path.name}
+
+    if resultado.mensagem == "QR_CODE_REQUIRED":
+        return {"success": False, "message": "QR_CODE_REQUIRED",
+                "qr_code_base64": resultado.qr_code_base64,
+                "instrucao": "Escaneie o QR Code com o app Nubank e depois chame POST /capture/nubank/confirm"}
+
+    # pynubank falhou → fallback Playwright manual
+    log.warning(f"[main] pynubank indisponivel ({resultado.mensagem}) — usando Playwright manual")
+    try:
+        caminho = await capturar_ofx(
+            bank_url="https://app.nubank.com.br/",
+            navigation_steps=None,
+            description="Nubank manual (fallback pynubank)",
+        )
+        return {"success": True, "message": "OFX capturado via Playwright (modo manual)",
+                "file_name": caminho.name,
+                "aviso": "pynubank indisponivel: " + resultado.mensagem}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/capture/nubank/confirm", tags=["Nubank"])
+def nubank_confirm_qr(req: NubankQRConfirmDTO):
+    """
+    Confirma o QR Code apos usuario escanear com o app Nubank.
+    Salva o certificado para logins futuros sem QR Code.
+    """
+    from nubank_capture import confirmar_qr_code
+    from config import BASE_DIR
+
+    cert_dir = BASE_DIR / "certs"
+    ok = confirmar_qr_code(req.cpf, req.senha, cert_dir, req.userId)
+    if ok:
+        return {"success": True, "message": "Certificado salvo. Proximas sincronizacoes serao automaticas."}
+    return {"success": False, "message": "Falha ao confirmar QR Code. Tente iniciar o processo novamente."}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Endpoints Alelo (interceptacao de API — nao tem exportacao OFX nativa)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AleloSyncDTO(BaseModel):
+    cpf:   str = Field(..., description="CPF sem formatacao")
+    senha: str = Field(..., description="Senha do Alelo")
+
+
+@app.post("/capture/alelo", tags=["Alelo"])
+async def alelo_sync(req: AleloSyncDTO):
+    """
+    Captura extrato do Alelo via Playwright + interceptacao de API XHR.
+    O Alelo nao oferece exportacao OFX — a pagina so tem PDF via impressao.
+    Este endpoint intercepta a chamada de API que o SPA faz e converte para OFX.
+    """
+    from alelo_capture import capturar_alelo
+    try:
+        caminho = await capturar_alelo(req.cpf, req.senha)
+        return {
+            "success": True,
+            "message": "OFX gerado via interceptacao de API Alelo",
+            "file_name": caminho.name,
+            "file_path": str(caminho),
+        }
+    except Exception as e:
+        log.error(f"[main] Erro na captura Alelo: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Entry-point
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -184,4 +288,6 @@ if __name__ == "__main__":
         log_level="warning",  # Uvicorn silencioso — logs próprios via logger.py
         reload=False,
     )
+
+
 
