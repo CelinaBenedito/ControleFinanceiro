@@ -17,6 +17,7 @@ import java.util.UUID;
 
         @NotBlank
         @Size(max = 30)
+        @Column(unique = true)
         private String titulo;
 
 

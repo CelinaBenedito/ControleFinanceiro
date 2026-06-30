@@ -1,5 +1,6 @@
 package controle.api.back_end.model.instituicao;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +16,7 @@ public class Instituicao {
 
     @Size(max = 50)
     @NotBlank
+    @Column(unique = true)
     private String nome;
 
     public Instituicao() {
