@@ -31,6 +31,22 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
+
+	<!--
+		Sobrescreve versoes de dependencias transitivas vulneraveis.
+		Fix CVE-2024-25710, CVE-2021-35515, CVE-2021-35516, CVE-2021-35517, CVE-2021-36090
+		(commons-compress via poi-ooxml:4.1.2 usava 1.19 — atualizado para 1.27.1)
+	-->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-compress</artifactId>
+				<version>1.27.1</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -78,12 +94,12 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-        <!-- Driver JDBC nativo para MariaDB (substitui mysql-connector-j que e incompativel com MariaDB 11.x) -->
-        <dependency>
-            <groupId>org.mariadb.jdbc</groupId>
-            <artifactId>mariadb-java-client</artifactId>
-            <version>3.5.3</version>
-        </dependency>
+		<!-- Driver JDBC nativo para MariaDB (substitui mysql-connector-j que e incompativel com MariaDB 11.x) -->
+		<dependency>
+			<groupId>org.mariadb.jdbc</groupId>
+			<artifactId>mariadb-java-client</artifactId>
+			<version>3.5.3</version>
+		</dependency>
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-controls</artifactId>
@@ -93,12 +109,6 @@
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-web</artifactId>
 			<version>21</version>
-		</dependency>
-		<!-- Jackson para JSON -->
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>2.17.0</version>
 		</dependency>
 
 		<!-- OpenCSV para arquivos CSV -->
@@ -146,9 +156,7 @@
 			<version>7.2.5</version>
 		</dependency>
 
-
 	</dependencies>
-
 
 	<build>
 		<plugins>
@@ -156,15 +164,15 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>21</source>
-                    <target>21</target>
-                </configuration>
-            </plugin>
-        </plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>21</source>
+					<target>21</target>
+				</configuration>
+			</plugin>
+		</plugins>
 	</build>
 
 </project>

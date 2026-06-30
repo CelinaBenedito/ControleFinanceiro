@@ -4,16 +4,17 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 
 /**
  * Popula as tabelas de referencia (instituicao, categoria) na inicializacao da aplicacao.
- *
+ * <p>
  * Executa DEPOIS que o Hibernate ja criou/atualizou as tabelas (ddl-auto=update),
  * garantindo que o script nao falhe por tabelas inexistentes.
- *
+ * <p>
  * Usa setContinueOnError(true) para que erros de chave duplicada (INSERT IGNORE)
  * sejam ignorados silenciosamente nas inicializacoes subsequentes.
  */
@@ -27,7 +28,7 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
     }
 
     @Override
-    public void onApplicationEvent(ApplicationReadyEvent event) {
+    public void onApplicationEvent(@NonNull ApplicationReadyEvent event) {
         try {
             ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
             populator.addScript(new ClassPathResource("data.sql"));
@@ -40,5 +41,6 @@ public class DataInitializer implements ApplicationListener<ApplicationReadyEven
         }
     }
 }
+
 
 

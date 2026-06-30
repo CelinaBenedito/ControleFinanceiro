@@ -1,0 +1,23 @@
+{
+  "properties": [
+    {
+      "name": "app.database.embedded",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "Habilita o banco de dados MariaDB4j embutido. Defina como false nos testes (usa H2 em memoria)."
+    },
+    {
+      "name": "app.database.port",
+      "type": "java.lang.Integer",
+      "defaultValue": 13306,
+      "description": "Porta TCP usada pelo MariaDB4j embutido."
+    },
+    {
+      "name": "app.database.name",
+      "type": "java.lang.String",
+      "defaultValue": "controle_financeiro",
+      "description": "Nome do schema (database) criado automaticamente pelo MariaDB4j embutido."
+    }
+  ]
+}
+
