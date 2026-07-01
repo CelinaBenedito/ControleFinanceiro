@@ -1,6 +1,8 @@
 package controle.api.back_end.controller;
 
 import controle.api.back_end.dto.instituicao.in.InstituicaoCreateDTO;
+import controle.api.back_end.dto.instituicao.in.InstituicaoOFXConfigUpdateDTO;
+import controle.api.back_end.dto.instituicao.out.InstituicaoOFXConfigDTO;
 import controle.api.back_end.dto.instituicao.out.InstituicaoResponseDTO;
 import controle.api.back_end.dto.instituicao.out.InstituicaoUsuarioResponseDTO;
 import controle.api.back_end.dto.instituicao.mapper.InstituicaoMapper;
@@ -186,6 +188,53 @@ public class InstituicaoController {
     public ResponseEntity<Void> deleteInstituicao(@PathVariable Integer id){
         instituicaoService.deleteInstituicao(id);
         return ResponseEntity.status(204).build();
+    }
+
+    // =========================================================================
+    // OFX Config
+    // =========================================================================
+
+    @GetMapping("/ofx-config")
+    @Operation(
+            summary = "Listar config OFX de todas as instituicoes",
+            description = """
+                    Retorna bankUrl, navigationSteps e placeholders de todas as instituicoes.
+                    O JS usa para saber quais bancos suportam OFX e quais steps usar.
+                    """
+    )
+    public ResponseEntity<List<InstituicaoOFXConfigDTO>> getTodasOFXConfigs() {
+        return ResponseEntity.ok(instituicaoService.getTodasOFXConfigs());
+    }
+
+    @GetMapping("/{id}/ofx-config")
+    @Operation(
+            summary = "Buscar config OFX de uma instituicao",
+            description = """
+                    Retorna bankUrl, navigationSteps com placeholders e lista dos placeholders necessarios.
+
+                    **Como o JS deve usar:**
+                    1. Buscar esta config
+                    2. Se ofxSupported = false, nao acionar o scraper
+                    3. Substituir {{PLACEHOLDER}} pelos valores do localStorage
+                    4. Enviar para POST /ofx/sync/usuario/{userId}
+                    """
+    )
+    public ResponseEntity<InstituicaoOFXConfigDTO> getOFXConfig(@PathVariable Integer id) {
+        return ResponseEntity.ok(instituicaoService.getOFXConfig(id));
+    }
+
+    @PutMapping("/{id}/ofx-config")
+    @Operation(
+            summary = "Atualizar config OFX de uma instituicao",
+            description = """
+                    Atualiza bankUrl, navigationSteps e ofxSupported.
+                    Use null em navigationSteps para modo manual (browser abre, usuario navega sozinho).
+                    """
+    )
+    public ResponseEntity<InstituicaoOFXConfigDTO> updateOFXConfig(
+            @PathVariable Integer id,
+            @RequestBody InstituicaoOFXConfigUpdateDTO dto) {
+        return ResponseEntity.ok(instituicaoService.updateOFXConfig(id, dto));
     }
 
 }

@@ -285,7 +285,7 @@ public class RegistroService {
      * Cria uma série de eventos recorrentes a partir de uma regra de recorrência.
      *
      * <p>Cada ocorrência recebe as mesmas instituições e o mesmo detalhe da requisição original.
-     * Exemplo de uso: "Todo dia 15 recebo meu salário" ou "Todo dia compro almoço".
+     * Exemplo de uso: "To-do dia 15 recebo meu salário" ou "Todo dia compro almoço".
      *
      * @param recorrencia regra com periodicidade, datas e dados do evento.
      * @param instituicoes meios de pagamento (já mapeados do DTO).

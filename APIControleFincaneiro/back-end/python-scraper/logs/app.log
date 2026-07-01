@@ -1,0 +1,390 @@
+2026-06-25 12:52:32 [INFO] main — Iniciando MyFinance OFX Scraper em http://127.0.0.1:8000
+2026-06-25 12:52:32 [INFO] main — OFX output dir: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx
+2026-06-25 13:37:08 [INFO] main — Iniciando MyFinance OFX Scraper em http://127.0.0.1:8000
+2026-06-25 13:37:08 [INFO] main — OFX output dir: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx
+2026-06-25 14:11:11 [INFO] main — Iniciando MyFinance OFX Scraper em http://127.0.0.1:8000
+2026-06-25 14:11:11 [INFO] main — OFX output dir: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx
+2026-06-25 14:20:48 [INFO] main — [POST /capture] banco=https://www.itau.com.br/ | desc=Teste manual Itáu- Marcio
+2026-06-25 14:20:48 [INFO] automation — Iniciando captura OFX — Teste manual Itáu- Marcio
+2026-06-25 14:20:56 [INFO] automation — Navegando para: https://www.itau.com.br/
+2026-06-25 14:20:59 [INFO] automation — Modo manual: aguardando login do usuário (timeout: 300s)
+2026-06-25 14:21:29 [INFO] automation — Login detectado — nova URL: https://www.itau.com.br/contas/conta-corrente
+2026-06-25 14:21:29 [INFO] automation — Aguardando download OFX (timeout: 60s)…
+2026-06-25 14:22:30 [ERROR] main — Erro durante captura OFX: Nenhum arquivo OFX foi baixado em 60 segundos. Verifique se a página oferece um botão/link de download de OFX.
+Traceback (most recent call last):
+  File "C:\Users\celina.benedito\AppData\Local\Programs\Python\Python314\Lib\asyncio\tasks.py", line 488, in wait_for
+    return await fut
+           ^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\automation.py", line 102, in capturar_ofx
+    download: Download = await asyncio.wait_for(
+                         ^^^^^^^^^^^^^^^^^^^^^^^
+        download_future, timeout=DOWNLOAD_TIMEOUT
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\celina.benedito\AppData\Local\Programs\Python\Python314\Lib\asyncio\tasks.py", line 487, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\celina.benedito\AppData\Local\Programs\Python\Python314\Lib\asyncio\timeouts.py", line 114, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\main.py", line 138, in capture
+    caminho: Path = await capturar_ofx(
+                    ^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\automation.py", line 107, in capturar_ofx
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: Nenhum arquivo OFX foi baixado em 60 segundos. Verifique se a página oferece um botão/link de download de OFX.
+2026-06-26 11:11:10 [INFO] main — Iniciando MyFinance OFX Scraper em http://127.0.0.1:8000
+2026-06-26 11:11:10 [INFO] main — OFX output dir: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx
+2026-06-26 11:13:32 [INFO] main — [POST /capture] banco=https://www.meualelo.com.br/ | desc=string
+2026-06-26 11:13:32 [INFO] automation — Iniciando captura OFX — string
+2026-06-26 11:13:35 [INFO] automation — Navegando para: https://www.meualelo.com.br/
+2026-06-26 11:13:36 [INFO] automation — Modo manual: aguardando login do usuário (timeout: 300s)
+2026-06-26 11:13:44 [INFO] automation — Login detectado — nova URL: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=1e84272e-81d9-4d51-8fe1-b687b756e2a9&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL
+2026-06-26 11:13:44 [INFO] automation — Aguardando download OFX (timeout: 60s)…
+2026-06-26 11:14:44 [ERROR] main — Erro durante captura OFX: Nenhum arquivo OFX foi baixado em 60 segundos. Verifique se a página oferece um botão/link de download de OFX.
+Traceback (most recent call last):
+  File "C:\Users\celina.benedito\AppData\Local\Programs\Python\Python314\Lib\asyncio\tasks.py", line 488, in wait_for
+    return await fut
+           ^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\automation.py", line 102, in capturar_ofx
+    download: Download = await asyncio.wait_for(
+                         ^^^^^^^^^^^^^^^^^^^^^^^
+        download_future, timeout=DOWNLOAD_TIMEOUT
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\celina.benedito\AppData\Local\Programs\Python\Python314\Lib\asyncio\tasks.py", line 487, in wait_for
+    async with timeouts.timeout(timeout):
+               ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\celina.benedito\AppData\Local\Programs\Python\Python314\Lib\asyncio\timeouts.py", line 114, in __aexit__
+    raise TimeoutError from exc_val
+TimeoutError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\main.py", line 137, in capture
+    caminho: Path = await capturar_ofx(
+                    ^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\automation.py", line 107, in capturar_ofx
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: Nenhum arquivo OFX foi baixado em 60 segundos. Verifique se a página oferece um botão/link de download de OFX.
+2026-06-26 14:30:29 [INFO] main — Iniciando MyFinance OFX Scraper em http://127.0.0.1:8000
+2026-06-26 14:30:29 [INFO] main — OFX output dir: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx
+2026-06-26 14:30:29 [INFO] alelo-capture — [AleloCapture] Iniciando captura via interceptacao de API
+2026-06-26 14:30:34 [INFO] alelo-capture — [AleloCapture] Navegando para https://www.meualelo.com.br/
+2026-06-26 14:30:36 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/auth-config
+2026-06-26 14:30:36 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/firebase-config
+2026-06-26 14:30:38 [INFO] alelo-capture — [AleloCapture] URL atual apos redirect: https://www.meualelo.com.br/
+2026-06-26 14:30:39 [INFO] alelo-capture — [AleloCapture] Pagina de login carregada: https://www.meualelo.com.br/
+2026-06-26 14:30:39 [INFO] alelo-capture — [AleloCapture] Preenchendo CPF...
+2026-06-26 14:30:46 [DEBUG] alelo-capture — [AleloCapture] Seletor encontrado: input[name="username"]
+2026-06-26 14:30:46 [INFO] alelo-capture — [AleloCapture] CPF preenchido.
+2026-06-26 14:30:46 [INFO] alelo-capture — [AleloCapture] Preenchendo senha...
+2026-06-26 14:30:46 [DEBUG] alelo-capture — [AleloCapture] Seletor encontrado: input[name="password"]
+2026-06-26 14:30:46 [INFO] alelo-capture — [AleloCapture] Senha preenchida.
+2026-06-26 14:30:46 [INFO] alelo-capture — [AleloCapture] Clicando em login...
+2026-06-26 14:30:48 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/logincontext?sessionDataKey=0ffc9fa6-ec6a-4001-9c6d-b0ef2bb002e5&application=81c425d1-7d8d-435b-b24f-97064db915c9&tenantDomain=carbon.super&_=1782495045842
+2026-06-26 14:30:56 [DEBUG] alelo-capture — [AleloCapture] Elemento clicavel encontrado: button[type="submit"]
+2026-06-26 14:30:56 [INFO] alelo-capture — [AleloCapture] Botao de login clicado, aguardando redirect...
+2026-06-26 14:31:12 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/logincontext?sessionDataKey=0ffc9fa6-ec6a-4001-9c6d-b0ef2bb002e5&application=81c425d1-7d8d-435b-b24f-97064db915c9&tenantDomain=carbon.super&_=1782495045843
+2026-06-26 14:31:12 [INFO] alelo-capture — [AleloCapture] Login bem-sucedido! URL: https://www.meualelo.com.br/?code=f876d786-de2a-39ed-ad7d-460211f4ecff&session_state=d4634afff29065c04db8fb00c5cedc314317a57edf0fb14bf62958500f8b5728.dtls0m8sU2dLTTrYgXKOwQ&state=request_0
+2026-06-26 14:31:12 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/auth-config
+2026-06-26 14:31:12 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/firebase-config
+2026-06-26 14:31:12 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/oauth2/token
+2026-06-26 14:31:13 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/oauth2/jwks
+2026-06-26 14:31:13 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-operations/v1/cards
+2026-06-26 14:31:13 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v1/users/me
+2026-06-26 14:31:13 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 14:31:14 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v1/users/me
+2026-06-26 14:31:14 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 14:31:15 [INFO] alelo-capture — [AleloCapture] Pos-login — URL: https://www.meualelo.com.br/home
+2026-06-26 14:31:16 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 14:31:18 [INFO] alelo-capture — [AleloCapture] Procurando botao de Saldo e Extrato...
+2026-06-26 14:31:18 [DEBUG] alelo-capture — [AleloCapture] Elemento clicavel encontrado: button:has-text("SALDO E EXTRATO")
+2026-06-26 14:31:18 [INFO] alelo-capture — [AleloCapture] Botao de extrato encontrado, clicando...
+2026-06-26 14:31:19 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-financial/v2/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/statement
+2026-06-26 14:31:19 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-financial/v1/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/balance
+2026-06-26 14:31:19 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-financial/v2/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/transactions?period=LAST_FIVE&cardType=MULTIUSO_REFEICAO
+2026-06-26 14:31:23 [INFO] alelo-capture — [AleloCapture] Tentando selecionar periodo maximo...
+2026-06-26 14:31:28 [WARNING] alelo-capture — [AleloCapture] Filtro de periodo nao encontrado
+2026-06-26 14:31:28 [INFO] alelo-capture — [AleloCapture] Aguardando respostas de API...
+2026-06-26 14:31:37 [INFO] alelo-capture — [AleloCapture] 17 respostas salvas em C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo\respostas_api.json
+2026-06-26 14:31:38 [INFO] alelo-capture — [AleloCapture] Total de respostas interceptadas: 17
+2026-06-26 14:31:38 [INFO] alelo-capture — [AleloCapture] 5 transacoes extraidas de https://www.meualelo.com.br/api-s/cardholders-cards-financial/v2/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/transactions?period=LAST_FIVE&cardType=MULTIUSO_REFEICAO
+2026-06-26 14:31:38 [INFO] alelo-capture — [AleloCapture] OFX gerado: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx\ofx_20260626_143138_alelo_.ofx (5 transacoes)
+2026-06-26 14:56:34 [INFO] main — Iniciando MyFinance OFX Scraper em http://127.0.0.1:8000
+2026-06-26 14:56:34 [INFO] main — OFX output dir: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx
+2026-06-26 14:56:35 [INFO] alelo-capture — [AleloCapture] Iniciando captura via interceptacao de API
+2026-06-26 14:56:37 [INFO] alelo-capture — [AleloCapture] Navegando para https://www.meualelo.com.br/
+2026-06-26 14:56:38 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/auth-config
+2026-06-26 14:56:38 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/firebase-config
+2026-06-26 14:56:40 [INFO] alelo-capture — [AleloCapture] URL atual apos redirect: https://www.meualelo.com.br/
+2026-06-26 14:56:42 [INFO] alelo-capture — [AleloCapture] Pagina de login carregada: https://www.meualelo.com.br/
+2026-06-26 14:56:42 [INFO] alelo-capture — [AleloCapture] Aguardando pagina de login ficar pronta...
+2026-06-26 14:56:47 [INFO] alelo-capture — [AleloCapture] Preenchendo CPF...
+2026-06-26 14:56:52 [DEBUG] alelo-capture — [AleloCapture] Seletor encontrado: input[id="username"]
+2026-06-26 14:56:53 [INFO] alelo-capture — [AleloCapture] CPF preenchido.
+2026-06-26 14:56:54 [INFO] alelo-capture — [AleloCapture] Preenchendo senha...
+2026-06-26 14:56:54 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/logincontext?sessionDataKey=5a2a5c48-49cf-49e2-9db7-8f16eb5f35d8&application=81c425d1-7d8d-435b-b24f-97064db915c9&tenantDomain=carbon.super&_=1782496611447
+2026-06-26 14:56:54 [DEBUG] alelo-capture — [AleloCapture] Seletor encontrado: input[name="password"]
+2026-06-26 14:56:55 [INFO] alelo-capture — [AleloCapture] Senha preenchida.
+2026-06-26 14:56:56 [INFO] alelo-capture — [AleloCapture] Clicando em login...
+2026-06-26 14:57:00 [DEBUG] alelo-capture — [AleloCapture] Elemento clicavel encontrado: button[type="submit"]
+2026-06-26 14:57:00 [INFO] alelo-capture — [AleloCapture] Botao de login clicado, aguardando redirect...
+2026-06-26 14:57:17 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/logincontext?sessionDataKey=5a2a5c48-49cf-49e2-9db7-8f16eb5f35d8&application=81c425d1-7d8d-435b-b24f-97064db915c9&tenantDomain=carbon.super&_=1782496611448
+2026-06-26 14:57:17 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/auth-config
+2026-06-26 14:57:17 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/firebase-config
+2026-06-26 14:57:18 [INFO] alelo-capture — [AleloCapture] Login bem-sucedido! URL: https://www.meualelo.com.br/
+2026-06-26 14:57:18 [INFO] alelo-capture — [AleloCapture] Aguardando SPA carregar pos-login...
+2026-06-26 14:57:18 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/oauth2/token
+2026-06-26 14:57:18 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/oauth2/jwks
+2026-06-26 14:57:19 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-operations/v1/cards
+2026-06-26 14:57:19 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v1/users/me
+2026-06-26 14:57:19 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 14:57:20 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 14:57:20 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v1/users/me
+2026-06-26 14:57:21 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 14:57:27 [INFO] alelo-capture — [AleloCapture] Pos-login — URL: https://www.meualelo.com.br/extrato/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU
+2026-06-26 14:57:27 [INFO] alelo-capture — [AleloCapture] Buscando cartoes via API direta...
+2026-06-26 14:57:27 [WARNING] alelo-capture — [AleloCapture] Nao foi possivel buscar cartoes via API direta
+2026-06-26 14:57:27 [INFO] alelo-capture — [AleloCapture] 0 transacoes brutas salvas em C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo\transacoes_diretas.json
+2026-06-26 14:57:27 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-financial/v2/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/statement
+2026-06-26 14:57:28 [INFO] alelo-capture — [AleloCapture] Transacoes obtidas: 0 diretas, 15 respostas interceptadas
+2026-06-26 14:57:28 [WARNING] alelo-capture — [AleloCapture] Tentando extracr transacoes das respostas interceptadas...
+2026-06-26 14:57:28 [ERROR] main — [main] Erro na captura Alelo: Nenhuma transacao encontrada. Obtidas direto: 0, interceptadas: 15. Debug em: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo
+Traceback (most recent call last):
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\main.py", line 265, in alelo_sync
+    caminho = await capturar_alelo(req.cpf, req.senha)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\alelo_capture.py", line 351, in capturar_alelo
+    raise RuntimeError(
+    ...<3 lines>...
+    )
+RuntimeError: Nenhuma transacao encontrada. Obtidas direto: 0, interceptadas: 15. Debug em: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo
+2026-06-26 15:02:53 [INFO] main — Iniciando MyFinance OFX Scraper em http://127.0.0.1:8000
+2026-06-26 15:02:53 [INFO] main — OFX output dir: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx
+2026-06-26 15:02:54 [INFO] alelo-capture — [AleloCapture] Iniciando captura via interceptacao de API
+2026-06-26 15:02:57 [INFO] alelo-capture — [AleloCapture] Navegando para https://www.meualelo.com.br/
+2026-06-26 15:02:57 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/auth-config
+2026-06-26 15:02:57 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/firebase-config
+2026-06-26 15:02:58 [INFO] alelo-capture — [AleloCapture] URL apos goto: https://www.meualelo.com.br/
+2026-06-26 15:02:58 [INFO] alelo-capture — [AleloCapture] Aguardando redirect para pagina de login...
+2026-06-26 15:03:08 [INFO] alelo-capture — [AleloCapture] Redirect detectado: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=c48460e7-d66c-490c-9203-67ec382b5a80&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL
+2026-06-26 15:03:08 [INFO] alelo-capture — [AleloCapture] Aguardando React montar a pagina de login...
+2026-06-26 15:03:08 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/logincontext?sessionDataKey=c48460e7-d66c-490c-9203-67ec382b5a80&application=81c425d1-7d8d-435b-b24f-97064db915c9&tenantDomain=carbon.super&_=1782496986404
+2026-06-26 15:03:12 [INFO] alelo-capture — [AleloCapture] Pagina de login pronta: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=c48460e7-d66c-490c-9203-67ec382b5a80&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL
+2026-06-26 15:03:12 [INFO] alelo-capture — [AleloCapture] Aguardando campo de CPF aparecer...
+2026-06-26 15:03:12 [DEBUG] alelo-capture — [AleloCapture] Seletor encontrado: [data-testid="login-page-username-input"]
+2026-06-26 15:03:13 [INFO] alelo-capture — [AleloCapture] CPF preenchido (0 digitos).
+2026-06-26 15:03:14 [INFO] alelo-capture — [AleloCapture] Preenchendo senha...
+2026-06-26 15:03:15 [DEBUG] alelo-capture — [AleloCapture] Seletor encontrado: [data-testid="login-page-password-input"]
+2026-06-26 15:03:16 [INFO] alelo-capture — [AleloCapture] Senha preenchida.
+2026-06-26 15:03:17 [INFO] alelo-capture — [AleloCapture] Clicando no botao Entrar...
+2026-06-26 15:03:20 [DEBUG] alelo-capture — [AleloCapture] Elemento clicavel encontrado: button:has-text("Entrar")
+2026-06-26 15:03:20 [INFO] alelo-capture — [AleloCapture] Botao Entrar clicado, aguardando redirect...
+2026-06-26 15:03:50 [WARNING] alelo-capture — [AleloCapture] Redirect pos-login nao detectado. URL atual: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=c48460e7-d66c-490c-9203-67ec382b5a80&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL. Screenshot salvo em C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo\07_erro_login.png
+2026-06-26 15:03:50 [INFO] alelo-capture — [AleloCapture] Aguardando SPA carregar pos-login...
+2026-06-26 15:03:59 [INFO] alelo-capture — [AleloCapture] Pos-login — URL: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=c48460e7-d66c-490c-9203-67ec382b5a80&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL
+2026-06-26 15:03:59 [INFO] alelo-capture — [AleloCapture] Buscando cartoes via API direta...
+2026-06-26 15:03:59 [WARNING] alelo-capture — [AleloCapture] Nao foi possivel buscar cartoes via API direta
+2026-06-26 15:03:59 [INFO] alelo-capture — [AleloCapture] 0 transacoes brutas salvas em C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo\transacoes_diretas.json
+2026-06-26 15:04:00 [INFO] alelo-capture — [AleloCapture] Transacoes obtidas: 0 diretas, 3 respostas interceptadas
+2026-06-26 15:04:00 [WARNING] alelo-capture — [AleloCapture] Tentando extracr transacoes das respostas interceptadas...
+2026-06-26 15:04:00 [ERROR] main — [main] Erro na captura Alelo: Nenhuma transacao encontrada. Obtidas direto: 0, interceptadas: 3. Debug em: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo
+Traceback (most recent call last):
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\main.py", line 265, in alelo_sync
+    caminho = await capturar_alelo(req.cpf, req.senha)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\alelo_capture.py", line 355, in capturar_alelo
+    raise RuntimeError(
+    ...<3 lines>...
+    )
+RuntimeError: Nenhuma transacao encontrada. Obtidas direto: 0, interceptadas: 3. Debug em: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo
+2026-06-26 15:10:22 [INFO] main — Iniciando MyFinance OFX Scraper em http://127.0.0.1:8000
+2026-06-26 15:10:22 [INFO] main — OFX output dir: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx
+2026-06-26 15:10:23 [INFO] alelo-capture — [AleloCapture] Iniciando captura via interceptacao de API
+2026-06-26 15:10:26 [INFO] alelo-capture — [AleloCapture] Navegando para https://www.meualelo.com.br/
+2026-06-26 15:10:27 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/auth-config
+2026-06-26 15:10:27 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/firebase-config
+2026-06-26 15:10:29 [INFO] alelo-capture — [AleloCapture] URL inicial: https://www.meualelo.com.br/
+2026-06-26 15:10:29 [INFO] alelo-capture — [AleloCapture] Aguardando redirect para login.alelo.com.br...
+2026-06-26 15:10:47 [INFO] alelo-capture — [AleloCapture] Redirect detectado: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=c2443716-590a-491b-bc2a-b07dbc1e050e&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL
+2026-06-26 15:10:47 [INFO] alelo-capture — [AleloCapture] Aguardando pagina de login (React/MUI) carregar...
+2026-06-26 15:10:47 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/logincontext?sessionDataKey=c2443716-590a-491b-bc2a-b07dbc1e050e&application=81c425d1-7d8d-435b-b24f-97064db915c9&tenantDomain=carbon.super&_=1782497445316
+2026-06-26 15:10:49 [INFO] alelo-capture — [AleloCapture] URL pagina login: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=c2443716-590a-491b-bc2a-b07dbc1e050e&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL
+2026-06-26 15:10:49 [INFO] alelo-capture — [AleloCapture] Aguardando campo CPF aparecer...
+2026-06-26 15:10:49 [INFO] alelo-capture — [AleloCapture] Preenchendo CPF (0 digitos) via JS...
+2026-06-26 15:10:50 [INFO] alelo-capture — [AleloCapture] CPF preenchido.
+2026-06-26 15:10:50 [INFO] alelo-capture — [AleloCapture] Preenchendo senha via JS...
+2026-06-26 15:10:51 [INFO] alelo-capture — [AleloCapture] Senha preenchida.
+2026-06-26 15:10:51 [INFO] alelo-capture — [AleloCapture] Clicando no botao Entrar...
+2026-06-26 15:11:01 [WARNING] alelo-capture — [AleloCapture] Clique normal falhou, tentando via JS...
+2026-06-26 15:11:02 [ERROR] main — [main] Erro na captura Alelo: [AleloCapture] Botao Entrar nao encontrado. URL: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=c2443716-590a-491b-bc2a-b07dbc1e050e&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL. Screenshot: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo\06_erro_btn.png
+Traceback (most recent call last):
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\alelo_capture.py", line 169, in capturar_alelo
+    await btn.wait_for(state="visible", timeout=10000)
+  File "C:\Users\celina.benedito\AppData\Local\Programs\Python\Python314\Lib\site-packages\playwright\async_api\_generated.py", line 20025, in wait_for
+    await self._impl_obj.wait_for(timeout=to_milliseconds(timeout), state=state)
+  File "C:\Users\celina.benedito\AppData\Local\Programs\Python\Python314\Lib\site-packages\playwright\_impl\_locator.py", line 741, in wait_for
+    await self._frame.wait_for_selector(
+        self._selector, strict=True, timeout=timeout, state=state
+    )
+  File "C:\Users\celina.benedito\AppData\Local\Programs\Python\Python314\Lib\site-packages\playwright\_impl\_frame.py", line 372, in wait_for_selector
+    await self._channel.send(
+        "waitForSelector", self._timeout, locals_to_params(locals())
+    )
+  File "C:\Users\celina.benedito\AppData\Local\Programs\Python\Python314\Lib\site-packages\playwright\_impl\_connection.py", line 69, in send
+    return await self._connection.wrap_api_call(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\celina.benedito\AppData\Local\Programs\Python\Python314\Lib\site-packages\playwright\_impl\_connection.py", line 559, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("button[data-testid=\"login\"]") to be visible
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\main.py", line 265, in alelo_sync
+    caminho = await capturar_alelo(req.cpf, req.senha)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\alelo_capture.py", line 185, in capturar_alelo
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: [AleloCapture] Botao Entrar nao encontrado. URL: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=c2443716-590a-491b-bc2a-b07dbc1e050e&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL. Screenshot: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo\06_erro_btn.png
+2026-06-26 15:26:11 [INFO] main — Iniciando MyFinance OFX Scraper em http://127.0.0.1:8000
+2026-06-26 15:26:11 [INFO] main — OFX output dir: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx
+2026-06-26 15:26:41 [INFO] alelo-capture — [AleloCapture] Iniciando captura — CPF: ***4812
+2026-06-26 15:26:43 [INFO] alelo-capture — [AleloCapture] Navegando para https://www.meualelo.com.br/
+2026-06-26 15:26:44 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/auth-config
+2026-06-26 15:26:44 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/firebase-config
+2026-06-26 15:26:46 [INFO] alelo-capture — [AleloCapture] URL inicial: https://www.meualelo.com.br/
+2026-06-26 15:26:46 [INFO] alelo-capture — [AleloCapture] Aguardando redirect para login.alelo.com.br...
+2026-06-26 15:26:53 [INFO] alelo-capture — [AleloCapture] Redirect detectado: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=b64c6a99-6b04-4e0b-a5cd-98984c936fe9&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL
+2026-06-26 15:26:53 [INFO] alelo-capture — [AleloCapture] Aguardando pagina de login (React/MUI) carregar...
+2026-06-26 15:26:53 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/logincontext?sessionDataKey=b64c6a99-6b04-4e0b-a5cd-98984c936fe9&application=81c425d1-7d8d-435b-b24f-97064db915c9&tenantDomain=carbon.super&_=1782498410998
+2026-06-26 15:26:55 [INFO] alelo-capture — [AleloCapture] URL pagina login: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=b64c6a99-6b04-4e0b-a5cd-98984c936fe9&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL
+2026-06-26 15:26:55 [INFO] alelo-capture — [AleloCapture] Aguardando campo CPF aparecer...
+2026-06-26 15:26:55 [INFO] alelo-capture — [AleloCapture] Preenchendo CPF (11 digitos)...
+2026-06-26 15:26:58 [INFO] alelo-capture — [AleloCapture] CPF preenchido (valor no campo: '550.823.648-12').
+2026-06-26 15:26:58 [INFO] alelo-capture — [AleloCapture] Preenchendo senha...
+2026-06-26 15:27:00 [INFO] alelo-capture — [AleloCapture] Senha preenchida.
+2026-06-26 15:27:01 [INFO] alelo-capture — [AleloCapture] Clicando no botao Entrar...
+2026-06-26 15:27:14 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/logincontext?sessionDataKey=b64c6a99-6b04-4e0b-a5cd-98984c936fe9&application=81c425d1-7d8d-435b-b24f-97064db915c9&tenantDomain=carbon.super&_=1782498410999
+2026-06-26 15:27:14 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/auth-config
+2026-06-26 15:27:14 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/firebase-config
+2026-06-26 15:27:14 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/oauth2/token
+2026-06-26 15:27:14 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/oauth2/jwks
+2026-06-26 15:27:15 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-operations/v1/cards
+2026-06-26 15:27:15 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v1/users/me
+2026-06-26 15:27:15 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 15:27:16 [WARNING] alelo-capture — [AleloCapture] Clique Playwright falhou (Locator.wait_for: Timeout 15000ms exceeded.
+Call log:
+  - waiting for locator("button[data-testid=\"login\"]")
+    - waiting for" https://login.alelo.com.br/commonauth" navigation to finish...
+    - navigated to "https://www.meualelo.com.br/?code=bcd7e2fb-d5b7-397c-9a90-9bc9a8609cef&session_state=6b827696916b5bbdf86afac5e23765e0ea358a94145a422ad140396bbea0fc39.ZvuEFHld-E1LF4pZt4YdxQ&state=request_0"
+), tentando via JS...
+2026-06-26 15:27:16 [INFO] alelo-capture — [AleloCapture] Login bem-sucedido! URL: https://www.meualelo.com.br/home
+2026-06-26 15:27:16 [INFO] alelo-capture — [AleloCapture] Aguardando SPA carregar pos-login...
+2026-06-26 15:27:16 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 15:27:16 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v1/users/me
+2026-06-26 15:27:17 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 15:27:20 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-financial/v2/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/statement
+2026-06-26 15:27:20 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-financial/v1/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/balance
+2026-06-26 15:27:20 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-financial/v2/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/transactions?period=LAST_FIVE&cardType=MULTIUSO_REFEICAO
+2026-06-26 15:27:25 [INFO] alelo-capture — [AleloCapture] Pos-login — URL: https://www.meualelo.com.br/
+2026-06-26 15:27:25 [INFO] alelo-capture — [AleloCapture] Buscando cartoes via API direta...
+2026-06-26 15:27:25 [WARNING] alelo-capture — [AleloCapture] Nao foi possivel buscar cartoes via API direta
+2026-06-26 15:27:25 [INFO] alelo-capture — [AleloCapture] 0 transacoes brutas salvas em C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo\transacoes_diretas.json
+2026-06-26 15:27:26 [INFO] alelo-capture — [AleloCapture] Transacoes obtidas: 0 diretas, 17 respostas interceptadas
+2026-06-26 15:27:26 [WARNING] alelo-capture — [AleloCapture] Tentando extracr transacoes das respostas interceptadas...
+2026-06-26 15:27:26 [INFO] alelo-capture — [AleloCapture] 5 transacoes extraidas de https://www.meualelo.com.br/api-s/cardholders-cards-financial/v2/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/transactions?period=LAST_FIVE&cardType=MULTIUSO_REFEICAO
+2026-06-26 15:27:26 [INFO] alelo-capture — [AleloCapture] OFX gerado: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx\ofx_20260626_152726_alelo_4812.ofx (5 transacoes)
+2026-06-26 15:28:45 [ERROR] main — [main] Erro na captura Alelo: CPF invalido: deve ter exatamente 11 digitos numericos. Recebido: '' (0 digitos). No Swagger, preencha o campo 'cpf' com os 11 digitos sem pontos ou traco.
+Traceback (most recent call last):
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\main.py", line 265, in alelo_sync
+    caminho = await capturar_alelo(req.cpf, req.senha)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\python-scraper\src\alelo_capture.py", line 50, in capturar_alelo
+    raise RuntimeError(
+    ...<3 lines>...
+    )
+RuntimeError: CPF invalido: deve ter exatamente 11 digitos numericos. Recebido: '' (0 digitos). No Swagger, preencha o campo 'cpf' com os 11 digitos sem pontos ou traco.
+2026-06-26 15:37:09 [INFO] main — Iniciando MyFinance OFX Scraper em http://127.0.0.1:8000
+2026-06-26 15:37:09 [INFO] main — OFX output dir: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx
+2026-06-26 15:37:10 [INFO] alelo-capture — [AleloCapture] Iniciando captura — CPF: ***4812
+2026-06-26 15:37:13 [INFO] alelo-capture — [AleloCapture] Navegando para https://www.meualelo.com.br/
+2026-06-26 15:37:14 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/auth-config
+2026-06-26 15:37:14 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/firebase-config
+2026-06-26 15:37:16 [INFO] alelo-capture — [AleloCapture] URL inicial: https://www.meualelo.com.br/
+2026-06-26 15:37:16 [INFO] alelo-capture — [AleloCapture] Aguardando redirect para login.alelo.com.br...
+2026-06-26 15:37:29 [INFO] alelo-capture — [AleloCapture] Redirect detectado: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=89891cd8-a7a8-415f-bf80-8c3a0d64783f&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL
+2026-06-26 15:37:29 [INFO] alelo-capture — [AleloCapture] Aguardando pagina de login (React/MUI) carregar...
+2026-06-26 15:37:29 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/logincontext?sessionDataKey=89891cd8-a7a8-415f-bf80-8c3a0d64783f&application=81c425d1-7d8d-435b-b24f-97064db915c9&tenantDomain=carbon.super&_=1782499047542
+2026-06-26 15:37:31 [INFO] alelo-capture — [AleloCapture] URL pagina login: https://login.alelo.com.br/authenticationendpoint/login.do?tenantDomain=carbon.super&sessionDataKey=89891cd8-a7a8-415f-bf80-8c3a0d64783f&relyingParty=81c425d1-7d8d-435b-b24f-97064db915c9&authenticators=BasicAuthenticator%3ALOCAL
+2026-06-26 15:37:31 [INFO] alelo-capture — [AleloCapture] Aguardando campo CPF aparecer...
+2026-06-26 15:37:31 [INFO] alelo-capture — [AleloCapture] Preenchendo CPF (11 digitos)...
+2026-06-26 15:37:34 [INFO] alelo-capture — [AleloCapture] CPF preenchido (valor no campo: '550.823.648-12').
+2026-06-26 15:37:34 [INFO] alelo-capture — [AleloCapture] Preenchendo senha...
+2026-06-26 15:37:36 [INFO] alelo-capture — [AleloCapture] Senha preenchida.
+2026-06-26 15:37:37 [INFO] alelo-capture — [AleloCapture] Clicando no botao Entrar...
+2026-06-26 15:37:46 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/logincontext?sessionDataKey=89891cd8-a7a8-415f-bf80-8c3a0d64783f&application=81c425d1-7d8d-435b-b24f-97064db915c9&tenantDomain=carbon.super&_=1782499047543
+2026-06-26 15:37:47 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/auth-config
+2026-06-26 15:37:47 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/firebase-config
+2026-06-26 15:37:47 [WARNING] alelo-capture — [AleloCapture] page.click() falhou: Page.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("button[data-testid=\"login\"]")
+
+2026-06-26 15:37:47 [WARNING] alelo-capture — [AleloCapture] Tentando clique via JavaScript...
+2026-06-26 15:37:47 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/oauth2/token
+2026-06-26 15:37:47 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://login.alelo.com.br/oauth2/jwks
+2026-06-26 15:37:47 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-operations/v1/cards
+2026-06-26 15:37:48 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 15:37:48 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v1/users/me
+2026-06-26 15:37:48 [INFO] alelo-capture — [AleloCapture] Login bem-sucedido! URL: https://www.meualelo.com.br/home
+2026-06-26 15:37:48 [INFO] alelo-capture — [AleloCapture] Aguardando SPA carregar pos-login...
+2026-06-26 15:37:48 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v1/users/me
+2026-06-26 15:37:48 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 15:37:49 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-profile/v2/users/me
+2026-06-26 15:37:50 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-financial/v2/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/statement
+2026-06-26 15:37:50 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-financial/v1/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/balance
+2026-06-26 15:37:51 [INFO] alelo-capture — [AleloCapture] JSON interceptado (200): https://www.meualelo.com.br/api-s/cardholders-cards-financial/v2/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/transactions?period=LAST_FIVE&cardType=MULTIUSO_REFEICAO
+2026-06-26 15:37:57 [INFO] alelo-capture — [AleloCapture] Pos-login — URL: https://www.meualelo.com.br/
+2026-06-26 15:37:57 [INFO] alelo-capture — [AleloCapture] Buscando cartoes via API direta...
+2026-06-26 15:37:57 [WARNING] alelo-capture — [AleloCapture] Nao foi possivel buscar cartoes via API direta
+2026-06-26 15:37:57 [INFO] alelo-capture — [AleloCapture] 0 transacoes brutas salvas em C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\debug_alelo\transacoes_diretas.json
+2026-06-26 15:37:58 [INFO] alelo-capture — [AleloCapture] Transacoes obtidas: 0 diretas, 17 respostas interceptadas
+2026-06-26 15:37:58 [WARNING] alelo-capture — [AleloCapture] Tentando extracr transacoes das respostas interceptadas...
+2026-06-26 15:37:58 [INFO] alelo-capture — [AleloCapture] 5 transacoes extraidas de https://www.meualelo.com.br/api-s/cardholders-cards-financial/v2/cards/EzZJoNliwZpUeSbivO3OXvvjtWA1ZjSXIN8YzO44TeU/transactions?period=LAST_FIVE&cardType=MULTIUSO_REFEICAO
+2026-06-26 15:37:58 [INFO] alelo-capture — [AleloCapture] OFX gerado: C:\Users\celina.benedito\Documents\projetos\APIControleFincaneiro\back-end\uploads\ofx\ofx_20260626_153758_alelo_4812.ofx (5 transacoes)
