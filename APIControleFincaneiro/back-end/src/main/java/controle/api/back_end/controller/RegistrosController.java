@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -50,6 +51,80 @@ public class RegistrosController {
     // =========================================================================
     // CONSULTAS
     // =========================================================================
+
+    /**
+     * PASSO 1 — retorna os anos em que o usuário possui registros (mais recente primeiro).
+     * O front-end usa essa lista para montar o seletor de ano.
+     */
+    @GetMapping("/anos/usuarios/{user_id}")
+    @Operation(summary = "Listar anos com registros",
+               description = "Retorna os anos distintos em que o usuário possui registros financeiros, " +
+                             "em ordem decrescente. Use o ano escolhido para buscar os meses disponíveis.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Anos encontrados.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(example = "[2026, 2025, 2024]"))),
+            @ApiResponse(responseCode = "204", description = "Nenhum registro encontrado.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.", content = @Content)
+    })
+    public ResponseEntity<List<Integer>> listarAnos(@PathVariable UUID user_id) {
+        List<Integer> anos = registroService.getAnosByUserId(user_id);
+        return anos.isEmpty()
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(anos);
+    }
+
+    /**
+     * PASSO 2 — retorna os meses (1–12) com registros no ano escolhido.
+     * O front-end usa essa lista para montar o seletor de mês.
+     */
+    @GetMapping("/meses/usuarios/{user_id}")
+    @Operation(summary = "Listar meses com registros em um ano",
+               description = "Retorna os meses distintos (1–12) que possuem registros no ano informado. " +
+                             "Use o mês escolhido para buscar os registros paginados.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Meses encontrados.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(example = "[1, 3, 6, 12]"))),
+            @ApiResponse(responseCode = "204", description = "Nenhum registro para o ano informado.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.", content = @Content)
+    })
+    public ResponseEntity<List<Integer>> listarMeses(
+            @PathVariable UUID user_id,
+            @RequestParam int ano) {
+        List<Integer> meses = registroService.getMesesByUserIdAndAno(user_id, ano);
+        return meses.isEmpty()
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(meses);
+    }
+
+    /**
+     * PASSO 3 — retorna os registros do mês de forma paginada,
+     * ordenados por: dia ASC → tipo (Recebimento primeiro) → título ASC.
+     */
+    @GetMapping("/mes/usuarios/{user_id}")
+    @Operation(summary = "Listar registros de um mês (paginado)",
+               description = "Retorna os registros do mês/ano informados com paginação configurável.\n\n" +
+                             "**Ordenação:** dia → tipo (Recebimento, Gasto, Transferência, Poupança, Empréstimo) → título A–Z.\n\n" +
+                             "Use `pagina=0` para a primeira página. O parâmetro `tamanho` define quantos itens são retornados por página (mínimo: 5, máximo: 100, padrão: 20).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Registros encontrados.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = RegistroResponseDto.class))),
+            @ApiResponse(responseCode = "204", description = "Nenhum registro para o período.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.", content = @Content)
+    })
+    public ResponseEntity<Page<RegistroResponseDto>> listarPorMes(
+            @PathVariable UUID user_id,
+            @RequestParam int ano,
+            @RequestParam int mes,
+            @RequestParam(defaultValue = "0")  int pagina,
+            @RequestParam(defaultValue = "20") int tamanho) {
+        Page<RegistroResponseDto> resultado = registroService.getRegistrosByMes(user_id, ano, mes, pagina, tamanho);
+        return resultado.isEmpty()
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(resultado);
+    }
 
     @GetMapping("/{user_id}")
     @Operation(summary = "Listar todos os registros do usuário")
