@@ -25,6 +25,10 @@ import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import controle.api.back_end.strategy.movimento.MovimentoResultado;
 import controle.api.back_end.strategy.movimento.MovimentoStrategy;
 import controle.api.back_end.strategy.recorrenciaFinanceira.RecorrenciaStrategy;
+import controle.api.back_end.model.configuracoes.TipoAlertaEmail;
+import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -58,6 +62,8 @@ import java.util.Locale;
 @Transactional
 public class RegistroService {
 
+    private static final Logger log = LoggerFactory.getLogger(RegistroService.class);
+
     // Ordem de exibição dos tipos: Recebimento → Gasto → Transferencia → Poupanca → Emprestimo
     private static final Map<Tipo, Integer> TIPO_ORDEM = Map.of(
             Tipo.Recebimento, 0,
@@ -80,6 +86,8 @@ public class RegistroService {
     private final EventoFinanceiroFactory eventoFinanceiroFactory;
     private final RecorrenciaFactory recorrenciaFactory;
     private final InstituicaoService instituicaoService;
+    private final ConfiguracoesRepository configuracoesRepository;
+    private final EmailService emailService;
 
     public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository,
                            EventoInstituicaoRepository eventoInstituicaoRepository,
@@ -90,7 +98,9 @@ public class RegistroService {
                            MovimentoFactory movimentoFactory,
                            EventoFinanceiroFactory eventoFinanceiroFactory,
                            RecorrenciaFactory recorrenciaFactory,
-                           InstituicaoService instituicaoService) {
+                           InstituicaoService instituicaoService,
+                           ConfiguracoesRepository configuracoesRepository,
+                           EmailService emailService) {
         this.eventoFinanceiroRepository  = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoDetalheRepository     = eventoDetalheRepository;
@@ -101,6 +111,8 @@ public class RegistroService {
         this.eventoFinanceiroFactory     = eventoFinanceiroFactory;
         this.recorrenciaFactory          = recorrenciaFactory;
         this.instituicaoService          = instituicaoService;
+        this.configuracoesRepository     = configuracoesRepository;
+        this.emailService                = emailService;
     }
 
     // =========================================================================
@@ -492,7 +504,61 @@ public class RegistroService {
             }
         }
 
-        return new Registro(eventosSalvos, instituicoesMap, detalheMap);
+        Registro resultado = new Registro(eventosSalvos, instituicoesMap, detalheMap);
+
+        // Verifica alerta de limite mensal apos salvar
+        eventosSalvos.stream()
+                .filter(ev -> ev.getTipo() == Tipo.Gasto)
+                .findFirst()
+                .ifPresent(ev -> verificarEEnviarAlertaLimite(ev.getUsuario()));
+
+        return resultado;
+    }
+
+    /**
+     * Verifica se o gasto mensal do usuario cruzou o percentual de alerta configurado
+     * e, se sim, envia o e-mail de alerta (uma vez por mes por usuario).
+     */
+    private void verificarEEnviarAlertaLimite(Usuario usuario) {
+        try {
+            configuracoesRepository.findConfiguracoesByUsuario_Id(usuario.getId())
+                    .ifPresent(config -> {
+                        if (!config.getAlertasEmailAtivos().contains(TipoAlertaEmail.ALERTA_LIMITE_MENSAL)) return;
+                        if (config.getLimiteDesejadoMensal() == null || config.getLimiteDesejadoMensal() <= 0) return;
+
+                        // Ja enviou alerta este mes?
+                        LocalDate hoje = LocalDate.now();
+                        if (config.getUltimoAlertaGastoEnviado() != null
+                                && config.getUltimoAlertaGastoEnviado().getMonth() == hoje.getMonth()
+                                && config.getUltimoAlertaGastoEnviado().getYear() == hoje.getYear()) {
+                            return;
+                        }
+
+                        // Soma os gastos do mes atual
+                        LocalDate inicioMes = hoje.withDayOfMonth(1);
+                        double gastoMes = eventoFinanceiroRepository
+                                .findEventoFinanceiroByUsuario_IdAndDataEventoBetween(
+                                        usuario.getId(), inicioMes, hoje)
+                                .stream()
+                                .filter(e -> e.getTipo() == Tipo.Gasto)
+                                .mapToDouble(EventoFinanceiro::getValor)
+                                .sum();
+
+                        double limite = config.getLimiteDesejadoMensal();
+                        double percentualReal = (gastoMes / limite) * 100.0;
+                        int threshold = config.getPercentualAlertaGasto() != null
+                                ? config.getPercentualAlertaGasto() : 80;
+
+                        if (percentualReal >= threshold) {
+                            emailService.enviarAlertaLimiteMensal(
+                                    usuario, gastoMes, limite, threshold, percentualReal);
+                            config.setUltimoAlertaGastoEnviado(hoje);
+                            configuracoesRepository.save(config);
+                        }
+                    });
+        } catch (Exception e) {
+            log.warn("[RegistroService] Erro ao verificar alerta de limite: {}", e.getMessage());
+        }
     }
 
     /**

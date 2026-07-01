@@ -57,6 +57,9 @@ public class ConfiguracoesMapper {
         dto.setInicioMesFiscal(model.getInicioMesFiscal());
         dto.setLimiteDesejadoMensal(model.getLimiteDesejadoMensal());
         dto.setUltimaAtualizacao(model.getUltimaAtualizacao());
+        dto.setAlertasEmailAtivos(model.getAlertasEmailAtivos());
+        dto.setPercentualAlertaGasto(model.getPercentualAlertaGasto());
+        dto.setPercentualAlertaMeta(model.getPercentualAlertaMeta());
 
         // LIMITE POR CATEGORIA (lista)
         List<LimitePorCategoriaResponseDto> limitesCategoriaDTO = new ArrayList<>();
@@ -132,12 +135,20 @@ public class ConfiguracoesMapper {
         }
 
         Configuracoes entity = new Configuracoes();
-        if (dto.getInicioMesFiscal()!= null){
+        if (dto.getInicioMesFiscal() != null) {
             entity.setInicioMesFiscal(dto.getInicioMesFiscal());
         }
-
-        if(dto.getLimiteDesejadoMensal()!= null){
+        if (dto.getLimiteDesejadoMensal() != null) {
             entity.setLimiteDesejadoMensal(dto.getLimiteDesejadoMensal());
+        }
+        if (dto.getAlertasEmailAtivos() != null) {
+            entity.setAlertasEmailAtivos(dto.getAlertasEmailAtivos());
+        }
+        if (dto.getPercentualAlertaGasto() != null) {
+            entity.setPercentualAlertaGasto(dto.getPercentualAlertaGasto());
+        }
+        if (dto.getPercentualAlertaMeta() != null) {
+            entity.setPercentualAlertaMeta(dto.getPercentualAlertaMeta());
         }
 
         return entity;

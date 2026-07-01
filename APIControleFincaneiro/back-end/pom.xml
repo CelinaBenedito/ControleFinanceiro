@@ -123,6 +123,14 @@
 			<version>7.2.5</version>
 		</dependency>
 
+		<!--
+		  E-mail (SMTP) - descomente quando configurar o SMTP no application.properties.
+		  Requer acesso ao Maven Central (ja configurado via .mvn/settings.xml).
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 
 	</dependencies>
 
