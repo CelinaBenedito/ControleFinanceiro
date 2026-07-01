@@ -37,4 +37,21 @@ public interface EventoFinanceiroRepository extends JpaRepository<EventoFinancei
     List<EventoFinanceiro> findAllByUsuario_Id(UUID usuarioId);
 
     List<EventoFinanceiro> findEventoFinanceiroByUsuario_IdAndDataEventoBetween(UUID usuarioId, LocalDate inicio, LocalDate fim);
+
+    // ── Navegação por calendário ──────────────────────────────────────────────
+
+    /** Anos distintos que o usuário possui registros (mais recente primeiro). */
+    @Query("SELECT DISTINCT YEAR(e.dataEvento) FROM EventoFinanceiro e WHERE e.usuario.id = :userId ORDER BY YEAR(e.dataEvento) DESC")
+    List<Integer> findDistinctAnosByUserId(@Param("userId") UUID userId);
+
+    /** Meses distintos que o usuário possui registros em determinado ano (ordem crescente). */
+    @Query("SELECT DISTINCT MONTH(e.dataEvento) FROM EventoFinanceiro e WHERE e.usuario.id = :userId AND YEAR(e.dataEvento) = :ano ORDER BY MONTH(e.dataEvento) ASC")
+    List<Integer> findDistinctMesesByUserIdAndAno(@Param("userId") UUID userId, @Param("ano") int ano);
+
+    /**
+     * Todos os eventos de um mês/ano com EventoDetalhe pré-carregado (JOIN FETCH),
+     * evitando N+1 na ordenação por título.
+     */
+    @Query("SELECT e FROM EventoFinanceiro e LEFT JOIN FETCH e.eventoDetalhe WHERE e.usuario.id = :userId AND YEAR(e.dataEvento) = :ano AND MONTH(e.dataEvento) = :mes")
+    List<EventoFinanceiro> findByUserIdAndAnoAndMes(@Param("userId") UUID userId, @Param("ano") int ano, @Param("mes") int mes);
 }

@@ -9,6 +9,8 @@ import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -28,8 +30,8 @@ public class CategoriaService {
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
     }
 
-    public List<Categoria> getCategorias() {
-        return categoriaRepository.findAll();
+    public Page<Categoria> getCategorias(Pageable pageable) {
+        return categoriaRepository.findAll(pageable);
     }
 
     public Categoria getById(Integer id) {
@@ -40,14 +42,14 @@ public class CategoriaService {
                 );
     }
 
-    public List<CategoriaUsuario> getByUserId(UUID userId) {
+    public Page<CategoriaUsuario> getByUserId(UUID userId, Pageable pageable) {
         if(!usuarioRepository.existsById(userId)){
             throw new EntidadeNaoEncontradaException(
                     "Usuario de id: %s não encontrado"
                             .formatted(userId)
             );
         }
-        return categoriaUsuarioRepository.findAllByUsuario_IdAndIsAtivoIsTrue(userId);
+        return categoriaUsuarioRepository.findAllByUsuario_IdAndIsAtivoIsTrue(userId, pageable);
     }
 
     public Categoria createCategoria(Categoria entity) {

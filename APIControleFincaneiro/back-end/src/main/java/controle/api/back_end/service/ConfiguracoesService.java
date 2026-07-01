@@ -28,6 +28,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class ConfiguracoesService {
@@ -62,8 +64,8 @@ public class ConfiguracoesService {
         this.eventoDetalheRepository = eventoDetalheRepository;
     }
 
-    public List<Configuracoes> getConfiguracoes() {
-        return configuracoesRepository.findAll();
+    public Page<Configuracoes> getConfiguracoes(Pageable pageable) {
+        return configuracoesRepository.findAll(pageable);
     }
 
 

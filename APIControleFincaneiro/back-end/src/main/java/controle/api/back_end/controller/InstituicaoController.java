@@ -15,6 +15,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,12 +47,14 @@ public class InstituicaoController {
             @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e não retornou dados",
             content = @Content)
     })
-    public ResponseEntity<List<InstituicaoResponseDTO>> getInstituicoes(){
-        List<Instituicao> all = instituicaoService.getInstituicoes();
-        if(all.isEmpty()){
+    public ResponseEntity<Page<InstituicaoResponseDTO>> getInstituicoes(
+            @RequestParam(defaultValue = "0") int pagina){
+        Page<InstituicaoResponseDTO> response = instituicaoService
+                .getInstituicoes(PageRequest.of(pagina, 5))
+                .map(InstituicaoMapper::toDto);
+        if(response.isEmpty()){
             return ResponseEntity.noContent().build();
         }
-        List<InstituicaoResponseDTO> response = InstituicaoMapper.toDto(all);
         return ResponseEntity.ok(response);
     }
 
@@ -152,12 +156,15 @@ public class InstituicaoController {
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado",
                     content = @Content)
     })
-    public ResponseEntity<List<InstituicaoUsuarioResponseDTO>> getInstituicoesByUserId(@PathVariable UUID user_id){
-        List<InstituicaoUsuario> instituicoes = instituicaoService.getInstituicoesByUserId(user_id);
-        if (instituicoes.isEmpty()){
+    public ResponseEntity<Page<InstituicaoUsuarioResponseDTO>> getInstituicoesByUserId(
+            @PathVariable UUID user_id,
+            @RequestParam(defaultValue = "0") int pagina){
+        Page<InstituicaoUsuarioResponseDTO> response = instituicaoService
+                .getInstituicoesByUserId(user_id, PageRequest.of(pagina, 5))
+                .map(InstituicaoUsuarioMapper::toDto);
+        if (response.isEmpty()){
             return ResponseEntity.status(204).build();
         }
-        List<InstituicaoUsuarioResponseDTO> response = InstituicaoMapper.instituicaoUsuarioResponseDTO(instituicoes);
         return ResponseEntity.status(200).body(response);
     }
 

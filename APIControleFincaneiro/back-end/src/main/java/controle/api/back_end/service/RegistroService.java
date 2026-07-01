@@ -25,6 +25,9 @@ import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import controle.api.back_end.strategy.movimento.MovimentoResultado;
 import controle.api.back_end.strategy.movimento.MovimentoStrategy;
 import controle.api.back_end.strategy.recorrenciaFinanceira.RecorrenciaStrategy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +38,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.Locale;
 
 /**
  * Serviço principal de registros financeiros.
@@ -53,6 +57,18 @@ import java.util.stream.IntStream;
 @Service
 @Transactional
 public class RegistroService {
+
+    // Ordem de exibição dos tipos: Recebimento → Gasto → Transferencia → Poupanca → Emprestimo
+    private static final Map<Tipo, Integer> TIPO_ORDEM = Map.of(
+            Tipo.Recebimento, 0,
+            Tipo.Gasto, 1,
+            Tipo.Transferencia, 2,
+            Tipo.Poupanca, 3,
+            Tipo.Emprestimo, 4
+    );
+    private static final int REGISTROS_POR_PAGINA_PADRAO = 20;
+    private static final int REGISTROS_POR_PAGINA_MINIMO  = 5;
+    private static final int REGISTROS_POR_PAGINA_MAXIMO  = 100;
 
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
     private final EventoInstituicaoRepository eventoInstituicaoRepository;
@@ -136,6 +152,73 @@ public class RegistroService {
         buscarUsuarioOuErro(userId); // valida existência
         // TODO: implementar cálculo real com base nos eventos de poupança
         return 0.0;
+    }
+
+    /**
+     * Retorna os anos distintos em que o usuário possui registros (mais recente primeiro).
+     */
+    @Transactional(readOnly = true)
+    public List<Integer> getAnosByUserId(UUID userId) {
+        buscarUsuarioOuErro(userId);
+        return eventoFinanceiroRepository.findDistinctAnosByUserId(userId);
+    }
+
+    /**
+     * Retorna os meses distintos em que o usuário possui registros no ano informado (1–12).
+     */
+    @Transactional(readOnly = true)
+    public List<Integer> getMesesByUserIdAndAno(UUID userId, int ano) {
+        buscarUsuarioOuErro(userId);
+        return eventoFinanceiroRepository.findDistinctMesesByUserIdAndAno(userId, ano);
+    }
+
+    /**
+     * Retorna os registros do mês/ano de forma paginada,
+     * ordenados por: dia ASC → tipo (Recebimento primeiro) → título ASC.
+     *
+     * @param tamanho itens por página; limitado entre {@value #REGISTROS_POR_PAGINA_MINIMO}
+     *                e {@value #REGISTROS_POR_PAGINA_MAXIMO}. Padrão: {@value #REGISTROS_POR_PAGINA_PADRAO}.
+     */
+    @Transactional(readOnly = true)
+    public Page<RegistroResponseDto> getRegistrosByMes(UUID userId, int ano, int mes, int pagina, int tamanho) {
+        buscarUsuarioOuErro(userId);
+
+        // Garante que o tamanho esteja dentro dos limites permitidos
+        int tamanhoPagina = Math.max(REGISTROS_POR_PAGINA_MINIMO,
+                            Math.min(tamanho, REGISTROS_POR_PAGINA_MAXIMO));
+
+        // Busca todos os eventos do mês com EventoDetalhe pré-carregado via JOIN FETCH
+        List<EventoFinanceiro> todos =
+                eventoFinanceiroRepository.findByUserIdAndAnoAndMes(userId, ano, mes);
+
+        // Ordena: dia → tipo customizado → título alfabético
+        List<EventoFinanceiro> ordenados = todos.stream()
+                .sorted(Comparator
+                        .comparing(EventoFinanceiro::getDataEvento)
+                        .thenComparingInt(e -> TIPO_ORDEM.getOrDefault(e.getTipo(), 99))
+                        .thenComparing(e -> {
+                            EventoDetalhe d = e.getGastoDetalhe();
+                            return (d != null && d.getTituloGasto() != null)
+                                    ? d.getTituloGasto().toLowerCase(Locale.ROOT) : "";
+                        }))
+                .toList();
+
+        int total = ordenados.size();
+        int start = pagina * tamanhoPagina;
+
+        if (start >= total) {
+            return new PageImpl<>(List.of(), PageRequest.of(pagina, tamanhoPagina), total);
+        }
+
+        int end = Math.min(start + tamanhoPagina, total);
+
+        // Mapeia apenas os itens da página atual — instituicoes são lazy mas a sessão está aberta
+        List<RegistroResponseDto> dtos = ordenados.subList(start, end).stream()
+                .map(ev -> RegistrosMapper.toResponse(ev, ev.getEventoInstituicoes(), ev.getGastoDetalhe()))
+                .filter(Objects::nonNull)
+                .toList();
+
+        return new PageImpl<>(dtos, PageRequest.of(pagina, tamanhoPagina), total);
     }
 
     /**
