@@ -54,4 +54,11 @@ public interface EventoFinanceiroRepository extends JpaRepository<EventoFinancei
      */
     @Query("SELECT e FROM EventoFinanceiro e LEFT JOIN FETCH e.eventoDetalhe WHERE e.usuario.id = :userId AND YEAR(e.dataEvento) = :ano AND MONTH(e.dataEvento) = :mes")
     List<EventoFinanceiro> findByUserIdAndAnoAndMes(@Param("userId") UUID userId, @Param("ano") int ano, @Param("mes") int mes);
+
+    /** Soma dos valores de eventos do tipo Poupança vinculados a uma caixinha específica. */
+    @Query("SELECT COALESCE(SUM(e.valor), 0) FROM EventoFinanceiro e WHERE e.caixinha.id = :caixinhaId AND e.tipo = controle.api.back_end.model.eventoFinanceiro.Tipo.Poupanca")
+    java.math.BigDecimal sumValorByCaixinha(@Param("caixinhaId") java.util.UUID caixinhaId);
+
+    /** Eventos do tipo Poupança vinculados a uma caixinha. */
+    List<EventoFinanceiro> findAllByCaixinha_Id(java.util.UUID caixinhaId);
 }

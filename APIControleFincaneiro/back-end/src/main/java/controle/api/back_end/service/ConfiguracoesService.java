@@ -99,8 +99,25 @@ public class ConfiguracoesService {
 
         entity.setId(configuracao.getId());
         entity.setUsuario(configuracao.getUsuario());
-
         entity.setUltimaAtualizacao(LocalDate.now());
+
+        // Preserva campos de e-mail existentes se nao forem sobrescritos
+        entity.setAlertasEmailAtivos(
+                editDTO.getAlertasEmailAtivos() != null
+                        ? editDTO.getAlertasEmailAtivos()
+                        : configuracao.getAlertasEmailAtivos());
+        entity.setPercentualAlertaGasto(
+                editDTO.getPercentualAlertaGasto() != null
+                        ? editDTO.getPercentualAlertaGasto()
+                        : configuracao.getPercentualAlertaGasto());
+        entity.setPercentualAlertaMeta(
+                editDTO.getPercentualAlertaMeta() != null
+                        ? editDTO.getPercentualAlertaMeta()
+                        : configuracao.getPercentualAlertaMeta());
+
+        // Preserva datas de controle de envio
+        entity.setUltimoAlertaGastoEnviado(configuracao.getUltimoAlertaGastoEnviado());
+        entity.setUltimoAlertaMetaEnviado(configuracao.getUltimoAlertaMetaEnviado());
         // Limites por categoria
         if (editDTO.getLimitesCategoria() != null) {
             List<LimitePorCategoria> limitesCategoria = new ArrayList<>();

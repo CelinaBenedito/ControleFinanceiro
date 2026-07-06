@@ -8,10 +8,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import java.sql.SQLException;
 
 @SpringBootApplication
 @EntityScan(basePackages = "controle.api.back_end.model")
+@EnableScheduling
 public class BackEndApplication {
 
 	public static void main(String[] args) {
