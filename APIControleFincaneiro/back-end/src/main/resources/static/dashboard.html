@@ -8,11 +8,12 @@
     <title>Dashboard</title>
     <link href='https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="styles/Estilos.css">
+    <link rel="stylesheet" href="styles/root.css">
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body onload="gerarInformações()">
+<body data-tema="padrao" data-mode="light" onload="gerarInformações()">
     <div class="containerGeral">
         <nav class="side-bar" id="navbar">
             <ul>
@@ -48,7 +49,7 @@
         <div id="main" class="main">
 
             <div class="page-title-row">
-                <h1>Bem Vindo!</h1>
+                <h1>Boas Vindas!</h1>
                 <!-- User widget -->
                 <a href="meuPerfil.html" class="user-widget" id="userWidget">
                     <div class="uw-info">
@@ -59,17 +60,17 @@
                         </div>
                     </div>
                     <div class="uw-avatar">
-                        <i class='bx bx-user' style="font-size:1.6rem; color:#367373;"></i>
+                        <i class='bx bx-user' style="font-size:1.6rem; color:var(--cor-principal);"></i>
                     </div>
                 </a>
             </div>
             <button>Ver instituições</button>
             <!-- TEMP: botão de deslogar para testes -->
-            <button onclick="localStorage.removeItem('usuarioLogado'); window.location.href='index.html'"
+            <!-- <button onclick="localStorage.removeItem('usuarioLogado'); window.location.href='index.html'"
                 style="background:transparent; border:1px solid currentColor; color:inherit; opacity:0.5; font-size:0.75rem; padding:4px 10px; cursor:pointer;">
                 <i class='bx bx-log-out'></i> Deslogar
-            </button>
-            <p>Período analisado: <span>20/12/2025 - 19/01/2026</span></p>
+            </button> -->
+            <strong><p>Período analisado: <span>20/12/2025 - 19/01/2026</span></p></strong>
             <div id="filtros" class="filtros">
                 <div class="campo">
                     <select id="select_tempo" onchange="tempo()">
@@ -197,33 +198,6 @@
                 <div id="graficoComparacao" class="grafico"></div>
             </div>
         </div>
-        <footer>
-            <div class="footer-conteudo">
-                <div class="footer-desenvolvedores">
-                    <p>
-                        <strong>Desenvolvido Por:</strong> <br>
-                        Celina dos Santos Benedito <br>
-                        Isaak Guilherme Menezes <br>
-                        Leticia da Silva Santos
-                    </p>
-                </div>
-                <div>
-                    <p>
-                        <strong>Idealizado Por:</strong><br>
-                        Celina dos Santos Benedito
-                    </p>
-                </div>
-                <div>
-                    <p>Celina dos Santos Benedito</p>
-                </div>
-                <div>
-                    <p>Isaak Guilheme Menezes</p>
-                </div>
-                <div>
-                    <p>Leticia da Silva Santos</p>
-                </div>
-            </div>
-        </footer>
     </div>
     <script src="js/main.js"></script>
     <script src="js/index.js"></script>

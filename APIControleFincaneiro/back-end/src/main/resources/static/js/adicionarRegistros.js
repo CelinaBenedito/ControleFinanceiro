@@ -58,7 +58,7 @@ async function atualizarSaldoDisplay(instituicaoUsuarioId) {
         const saldo = await res.json();
         const valor = Number(saldo);
         el.textContent = `Saldo disponível: R$ ${valor.toFixed(2)}`;
-        el.style.color = valor <= 0 ? '#e53e3e' : '#367373';
+        el.style.color = valor <= 0 ? '#e53e3e' : 'var(--cor-principal)';
         el.style.display = '';
     } catch (e) {
         el.style.display = 'none';
@@ -417,7 +417,7 @@ confirmar.onclick = () => {
     if (modalAbertoPor === 'multi') {
         const label = document.getElementById('multi_data_label');
         const hidden = document.getElementById('multi_data');
-        if (label) { label.textContent = dataFormatada; label.classList.remove('hidden'); label.style.display = ''; }
+        if (label) { label.textContent = "Dia: " + dataFormatada; label.classList.remove('hidden'); label.style.display = ''; }
         if (hidden) hidden.value = dataSelecionada;
     } else {
         const dataEl = document.getElementById('data');

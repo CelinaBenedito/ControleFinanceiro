@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import controle.api.back_end.service.CategoriaService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,12 +44,14 @@ public class CategoriaController {
             @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e retornou sem dados.",
             content = @Content)
     })
-    public ResponseEntity<List<CategoriaResponseDTO>> getCategorias(){
-        List<Categoria> all = categoriaService.getCategorias();
-        if(all.isEmpty()){
+    public ResponseEntity<Page<CategoriaResponseDTO>> getCategorias(
+            @RequestParam(defaultValue = "0") int pagina){
+        Page<CategoriaResponseDTO> response = categoriaService
+                .getCategorias(PageRequest.of(pagina, 5))
+                .map(CategoriaMapper::toDto);
+        if(response.isEmpty()){
             return ResponseEntity.noContent().build();
         }
-        List<CategoriaResponseDTO> response = CategoriaMapper.toDto(all);
         return ResponseEntity.ok(response);
     }
 
@@ -79,12 +83,15 @@ public class CategoriaController {
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
             content = @Content)
     })
-    public ResponseEntity<List<CategoriaUsuarioResponseDTO>> getByUserId(@PathVariable UUID user_id){
-        List<CategoriaUsuario> byUserId = categoriaService.getByUserId(user_id);
-        if(byUserId.isEmpty()){
+    public ResponseEntity<Page<CategoriaUsuarioResponseDTO>> getByUserId(
+            @PathVariable UUID user_id,
+            @RequestParam(defaultValue = "0") int pagina){
+        Page<CategoriaUsuarioResponseDTO> response = categoriaService
+                .getByUserId(user_id, PageRequest.of(pagina, 5))
+                .map(CategoriaMapper::toDtoUser);
+        if(response.isEmpty()){
             return ResponseEntity.status(204).build();
         }
-        List<CategoriaUsuarioResponseDTO> response = CategoriaMapper.toDtoUser(byUserId);
         return ResponseEntity.status(200).body(response);
     }
 

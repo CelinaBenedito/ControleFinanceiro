@@ -7,13 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu Perfil</title>
     <link href='https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css' rel='stylesheet'>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/Estilos.css">
     <link rel="stylesheet" href="styles/perfil.css">
     <link rel="stylesheet" href="styles/root.css">
 </head>
 
-<body>
+<body data-tema="padrao" data-mode="light">
     <div class="alerta" id="div_alerta" style="display:none;">
         <div class="conteudoAlerta" id="conteudoAlerta"></div>
     </div>
@@ -285,7 +284,7 @@
                 </div>
             </div>
         </div>
-        <footer>
+        <!-- <footer>
             <div class="footer-conteudo">
                 <div class="footer-desenvolvedores">
                     <p>
@@ -311,7 +310,7 @@
                     <p>Leticia da Silva Santos</p>
                 </div>
             </div>
-        </footer>
+        </footer> -->
     </div>
     <script src="js/main.js"></script>
     <script src="js/meuPerfil.js"></script>
@@ -324,6 +323,16 @@
         document.getElementById("toggleVidro").addEventListener("change", function () {
             document.getElementById("estadoVidro").textContent = this.checked ? "ON" : "OFF";
         });
+
+        btnEscolher.addEventListener("click", () => {
+
+            document.body.setAttribute("data-tema", temaSelecionado);
+
+            localStorage.setItem("tema", temaSelecionado);
+            console.log("mudei 3")
+
+        });
+
 
         // ── Theme swatch selection ──
         document.querySelectorAll(".pf-tema-item").forEach(item => {

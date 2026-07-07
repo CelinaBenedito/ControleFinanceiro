@@ -1,20 +1,8 @@
 @import "root.css"; 
 
-/* ── Configurações page overrides ── */
-.cfg-page {
-    font-family: 'Inter', sans-serif;
-}
-
-.cfg-page h1 {
-    color: #004C58;
-    font-size: 2.8rem;
-    font-weight: 400;
-    margin-bottom: 28px;
-}
-
 /* Cards */
 .cfg-card {
-    background: #FAFFFF;
+    background: var(--cor-fundo-card);
     border-radius: 30px;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
     padding: 32px 28px;
@@ -24,13 +12,9 @@
     gap: 28px;
 }
 
-body.dark-mode .cfg-card {
-    background: #0f172a;
-}
-
 /* Section headings */
 .cfg-card h2 {
-    color: #004C58;
+    color: var(--cor-titulo);
     font-size: 1.8rem;
     font-weight: 600;
     display: flex;
@@ -39,9 +23,6 @@ body.dark-mode .cfg-card {
     margin: 0;
 }
 
-body.dark-mode .cfg-card h2 {
-    color: #7dd3fc;
-}
 
 /* Field wrapper — floating label (espelha exatamente .campo do Estilos.css) */
 .cfg-field {
@@ -58,17 +39,12 @@ body.dark-mode .cfg-card h2 {
     font-size: 15px;
     font-weight: 600;
     color: var(--cor-texto-secundario);
-    background-color: #FAFFFF;
+    background-color: var(--cor-fundo-card);
     /* cobre a borda ao flutuar */
     padding: 0 4px;
     pointer-events: none;
     transition: 0.2s ease-in-out;
     z-index: 1;
-}
-
-body.dark-mode .cfg-field label {
-    color: var(--cor-texto-secundario);
-    background-color: #0f172a;
 }
 
 /* Estado flutuante: top -1px = label assenta EM CIMA da borda (igual .campo) */
@@ -78,14 +54,7 @@ body.dark-mode .cfg-field label {
 .cfg-field input:not(:placeholder-shown)+label {
     top: -1px;
     font-size: 12px;
-    color: #367373;
-}
-
-body.dark-mode .cfg-field select:focus+label,
-body.dark-mode .cfg-field select:not([value=""]):valid+label,
-body.dark-mode .cfg-field input:focus+label,
-body.dark-mode .cfg-field input:not(:placeholder-shown)+label {
-    color: #7dd3fc;
+    color: var(--cor-principal);
 }
 
 /* Seta do select */
@@ -95,14 +64,10 @@ body.dark-mode .cfg-field input:not(:placeholder-shown)+label {
     right: 16px;
     top: 50%;
     transform: translateY(-50%);
-    color: #367373;
+    color: var(--cor-principal);
     pointer-events: none;
     font-size: 0.9rem;
     z-index: 1;
-}
-
-body.dark-mode .cfg-field:has(select)::after {
-    color: #7dd3fc;
 }
 
 .cfg-field select,
@@ -111,11 +76,10 @@ body.dark-mode .cfg-field:has(select)::after {
 .cfg-field input[type="date"] {
     height: 58px;
     border-radius: 10px;
-    border: 2px solid #367373;
+    border: 2px solid var(--cor-principal);
     padding: 0 18px;
     font-size: 17px;
-    font-family: 'Inter', sans-serif;
-    color: #367373;
+    color: var(--cor-principal);
     background: transparent;
     font-weight: 600;
     width: 100%;
@@ -126,14 +90,8 @@ body.dark-mode .cfg-field:has(select)::after {
 .cfg-field select:focus,
 .cfg-field input:focus {
     outline: none;
-    border-color: #004C58;
+    border-color: var(--cor-hover);
     transition: border-color 0.2s ease-in-out;
-}
-
-body.dark-mode .cfg-field select,
-body.dark-mode .cfg-field input {
-    border-color: #7dd3fc;
-    color: #7dd3fc;
 }
 
 /* Row of fields */
@@ -188,14 +146,10 @@ body.dark-mode .cfg-field input {
     cursor: pointer;
 }
 
-body.dark-mode .cfg-check-label {
-    color: #e5f6ff;
-}
-
 .cfg-check-label input[type="checkbox"] {
     width: 22px;
     height: 22px;
-    accent-color: #367373;
+    accent-color: var(--cor-principal);
     cursor: pointer;
     flex-shrink: 0;
 }
@@ -211,11 +165,7 @@ body.dark-mode .cfg-check-label {
 .cfg-switch-text {
     font-size: 16px;
     font-weight: 600;
-    color: #1A1A1A;
-}
-
-body.dark-mode .cfg-switch-text {
-    color: #e5f6ff;
+    color: var(--cor-texto-principal);
 }
 
 .cfg-switch {
@@ -254,19 +204,11 @@ body.dark-mode .cfg-switch-text {
 }
 
 .cfg-switch input:checked+.cfg-switch-slider {
-    background: #367373;
+    background: var(--cor-principal);
 }
 
 .cfg-switch input:checked+.cfg-switch-slider:before {
     transform: translateX(24px);
-}
-
-body.dark-mode .cfg-switch-slider {
-    background: #314a5a;
-}
-
-body.dark-mode .cfg-switch input:checked+.cfg-switch-slider {
-    background: #5cc9d8;
 }
 
 /* Buttons */
@@ -277,12 +219,11 @@ body.dark-mode .cfg-switch input:checked+.cfg-switch-slider {
     height: 52px;
     padding: 0 24px;
     min-width: 130px;
-    background: #367373;
+    background: var(--cor-principal);
     color: #fff;
     border: none;
     border-radius: 10px;
     font-size: 17px;
-    font-family: 'Inter', sans-serif;
     font-weight: 400;
     cursor: pointer;
     transition: background 0.2s;
@@ -291,7 +232,7 @@ body.dark-mode .cfg-switch input:checked+.cfg-switch-slider {
 }
 
 .cfg-btn:hover {
-    background: #004C58;
+    background: var(--cor-hover);
 }
 
 .cfg-btn.danger {
@@ -313,12 +254,8 @@ body.dark-mode .cfg-switch input:checked+.cfg-switch-slider {
 /* List container */
 .cfg-list-box {
     border-radius: 15px;
-    border: 2px solid #367373;
+    border: 2px solid var(--cor-principal);
     overflow: hidden;
-}
-
-body.dark-mode .cfg-list-box {
-    border-color: #7dd3fc;
 }
 
 .cfg-list-item {
@@ -326,12 +263,8 @@ body.dark-mode .cfg-list-box {
     align-items: center;
     justify-content: space-between;
     padding: 14px 18px;
-    border-bottom: 1px solid #367373;
+    border-bottom: 1px solid var(--cor-principal);
     font-size: 16px;
-}
-
-body.dark-mode .cfg-list-item {
-    border-color: #335566;
 }
 
 .cfg-list-item:last-child {
@@ -348,24 +281,22 @@ body.dark-mode .cfg-list-item {
 .cfg-delete-label {
     font-size: 17px;
     font-weight: 600;
-    color: #1A1A1A;
-}
-
-body.dark-mode .cfg-delete-label {
-    color: #e5f6ff;
+    color: var(--cor-texto-principal);
 }
 
 /* Table inside cards */
-.cfg-table {
-    width: 100%;
-    border-collapse: collapse;
-    border-radius: 15px;
-    overflow: hidden;
-    outline: 2px solid #367373;
+.tabela-config {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
-body.dark-mode .cfg-table {
-    outline-color: #7dd3fc;
+.cfg-table {
+    width: 100%;
+    border-collapse: separate;
+    border-radius: 15px;
+    overflow: hidden;
+    border-spacing: 0;
+    border: 2px solid var(--cor-principal);
 }
 
 .cfg-table th {
@@ -373,29 +304,16 @@ body.dark-mode .cfg-table {
     padding: 12px 18px;
     font-size: 0.95rem;
     font-weight: 600;
-    color: #367373;
-    border-bottom: 1px solid #367373;
-    font-family: 'Inter', sans-serif;
-    background: #EBF4F4;
-}
-
-body.dark-mode .cfg-table th {
-    color: #7dd3fc;
-    border-color: #7dd3fc;
-    background: #0a0f1e;
+    color: var(--cor-principal);
+    border-bottom: 1px solid var(--cor-principal);
+    background: var(--cor-fundo-pagina);
 }
 
 .cfg-table td {
     padding: 12px 18px;
     font-size: 0.95rem;
-    color: #367373;
+    color: var(--cor-principal);
     border-bottom: 1px solid rgba(54, 115, 115, 0.2);
-    font-family: 'Inter', sans-serif;
-}
-
-body.dark-mode .cfg-table td {
-    color: #7dd3fc;
-    border-color: rgba(125, 211, 252, 0.15);
 }
 
 .cfg-table tr:last-child td {

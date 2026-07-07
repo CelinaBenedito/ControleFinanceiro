@@ -1,7 +1,7 @@
 const semDados =
   `
         <div class="aviso">
-        <h1>Sem Dados</h1>
+        <h3>Sem Dados</h3>
         <i class='bx  bx-alert-triangle'></i> 
         <p>Selecionar outra data para visualizar o gráfico<p>
         </div>

@@ -1,11 +1,14 @@
 package controle.api.back_end.dto.configuracoes.out;
 
+import controle.api.back_end.model.configuracoes.TipoAlertaEmail;
+
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
-//DTO que retorna as configurações em conjunto com o usuário e informações mais detalhadas.
 public class ConfiguracaoUsuarioResponseDTO {
+
     private UUID id;
     private ConfiguracaoUsuarioDTO usuario;
     private Integer inicioMesFiscal;
@@ -13,62 +16,39 @@ public class ConfiguracaoUsuarioResponseDTO {
     private Double limiteDesejadoMensal;
     private List<LimitePorInstituicaoResponseDto> limiteInstituicao;
     private List<LimitePorCategoriaResponseDto> limitePorCategoria;
+    private Set<TipoAlertaEmail> alertasEmailAtivos;
+    private Integer percentualAlertaGasto;
+    private Integer percentualAlertaMeta;
 
-    public UUID getId() {
-        return id;
-    }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public ConfiguracaoUsuarioDTO getUsuario() { return usuario; }
+    public void setUsuario(ConfiguracaoUsuarioDTO usuario) { this.usuario = usuario; }
 
-    public ConfiguracaoUsuarioDTO getUsuario() {
-        return usuario;
-    }
+    public Integer getInicioMesFiscal() { return inicioMesFiscal; }
+    public void setInicioMesFiscal(Integer inicioMesFiscal) { this.inicioMesFiscal = inicioMesFiscal; }
 
-    public void setUsuario(ConfiguracaoUsuarioDTO usuario) {
-        this.usuario = usuario;
-    }
+    public LocalDate getUltimaAtualizacao() { return ultimaAtualizacao; }
+    public void setUltimaAtualizacao(LocalDate ultimaAtualizacao) { this.ultimaAtualizacao = ultimaAtualizacao; }
 
-    public Integer getInicioMesFiscal() {
-        return inicioMesFiscal;
-    }
+    public Double getLimiteDesejadoMensal() { return limiteDesejadoMensal; }
+    public void setLimiteDesejadoMensal(Double limiteDesejadoMensal) { this.limiteDesejadoMensal = limiteDesejadoMensal; }
 
-    public void setInicioMesFiscal(Integer inicioMesFiscal) {
-        this.inicioMesFiscal = inicioMesFiscal;
-    }
+    public List<LimitePorCategoriaResponseDto> getLimitePorCategoria() { return limitePorCategoria; }
+    public void setLimitePorCategoria(List<LimitePorCategoriaResponseDto> limitePorCategoria) { this.limitePorCategoria = limitePorCategoria; }
 
-    public LocalDate getUltimaAtualizacao() {
-        return ultimaAtualizacao;
-    }
+    public List<LimitePorInstituicaoResponseDto> getLimiteInstituicao() { return limiteInstituicao; }
+    public void setLimiteInstituicao(List<LimitePorInstituicaoResponseDto> limiteInstituicao) { this.limiteInstituicao = limiteInstituicao; }
 
-    public void setUltimaAtualizacao(LocalDate ultimaAtualizacao) {
-        this.ultimaAtualizacao = ultimaAtualizacao;
-    }
+    public Set<TipoAlertaEmail> getAlertasEmailAtivos() { return alertasEmailAtivos; }
+    public void setAlertasEmailAtivos(Set<TipoAlertaEmail> alertasEmailAtivos) { this.alertasEmailAtivos = alertasEmailAtivos; }
 
-    public Double getLimiteDesejadoMensal() {
-        return limiteDesejadoMensal;
-    }
+    public Integer getPercentualAlertaGasto() { return percentualAlertaGasto; }
+    public void setPercentualAlertaGasto(Integer percentualAlertaGasto) { this.percentualAlertaGasto = percentualAlertaGasto; }
 
-    public void setLimiteDesejadoMensal(Double limiteDesejadoMensal) {
-        this.limiteDesejadoMensal = limiteDesejadoMensal;
-    }
-
-    public List<LimitePorCategoriaResponseDto> getLimitePorCategoria() {
-        return limitePorCategoria;
-    }
-
-    public void setLimitePorCategoria(List<LimitePorCategoriaResponseDto> limitePorCategoria) {
-        this.limitePorCategoria = limitePorCategoria;
-    }
-
-    public List<LimitePorInstituicaoResponseDto> getLimiteInstituicao() {
-        return limiteInstituicao;
-    }
-
-    public void setLimiteInstituicao(List<LimitePorInstituicaoResponseDto> limiteInstituicao) {
-        this.limiteInstituicao = limiteInstituicao;
-    }
+    public Integer getPercentualAlertaMeta() { return percentualAlertaMeta; }
+    public void setPercentualAlertaMeta(Integer percentualAlertaMeta) { this.percentualAlertaMeta = percentualAlertaMeta; }
 
     public static class ConfiguracaoUsuarioDTO {
         private UUID id;
@@ -76,37 +56,13 @@ public class ConfiguracaoUsuarioResponseDTO {
         private String sobrenome;
         private String email;
 
-        public UUID getId() {
-            return id;
-        }
-
-        public void setId(UUID id) {
-            this.id = id;
-        }
-
-        public String getNome() {
-            return nome;
-        }
-
-        public void setNome(String nome) {
-            this.nome = nome;
-        }
-
-        public String getSobrenome() {
-            return sobrenome;
-        }
-
-        public void setSobrenome(String sobrenome) {
-            this.sobrenome = sobrenome;
-        }
-
-        public String getEmail() {
-            return email;
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
-        }
-
+        public UUID getId() { return id; }
+        public void setId(UUID id) { this.id = id; }
+        public String getNome() { return nome; }
+        public void setNome(String nome) { this.nome = nome; }
+        public String getSobrenome() { return sobrenome; }
+        public void setSobrenome(String sobrenome) { this.sobrenome = sobrenome; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
     }
 }

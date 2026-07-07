@@ -1,73 +1,81 @@
 package controle.api.back_end.service;
 
-import com.alibaba.excel.write.metadata.style.WriteCellStyle;
-import com.alibaba.excel.write.metadata.style.WriteFont;
-import com.alibaba.excel.write.style.HorizontalCellStyleStrategy;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.itextpdf.kernel.colors.DeviceRgb;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfPage;
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.kernel.pdf.action.PdfAction;
-import com.itextpdf.kernel.pdf.navigation.PdfExplicitDestination;
-import com.itextpdf.layout.Document;
-import com.itextpdf.layout.element.*;
-
-import com.itextpdf.layout.properties.UnitValue;
-import controle.api.back_end.dto.registros.in.TransferenciaDTO;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.exception.InstituicaoInativaException;
 import controle.api.back_end.exception.SaldoInsuficienteException;
+import controle.api.back_end.factory.EventoFinanceiroFactory;
 import controle.api.back_end.factory.MovimentoFactory;
+import controle.api.back_end.factory.RecorrenciaFactory;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
-import controle.api.back_end.model.configuracoes.Configuracoes;
-import controle.api.back_end.model.configuracoes.LimitePorCategoria;
-import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.*;
+import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.repository.categoria.CategoriaRepository;
 import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
-import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
-import controle.api.back_end.repository.configuracoes.LimitePorCategoriaRepository;
-import controle.api.back_end.repository.configuracoes.LimitePorInstituicaoRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoDetalheRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
-import controle.api.back_end.repository.instituicao.InstituicaoRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import controle.api.back_end.specifications.EventoFinanceiroSpecifications;
-import controle.api.back_end.strategy.eventoFinanceiro.TransferenciaEvento;
+import controle.api.back_end.strategy.eventoFinanceiro.EventoFinanceiroStrategy;
+import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import controle.api.back_end.strategy.movimento.MovimentoResultado;
 import controle.api.back_end.strategy.movimento.MovimentoStrategy;
-import com.alibaba.excel.EasyExcel;
-import com.alibaba.excel.ExcelWriter;
-import com.alibaba.excel.write.metadata.WriteSheet;
-
-import java.io.ByteArrayOutputStream;
-
-import java.time.LocalDate;
-
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.usermodel.VerticalAlignment;
+import controle.api.back_end.strategy.recorrenciaFinanceira.RecorrenciaStrategy;
+import controle.api.back_end.model.configuracoes.TipoAlertaEmail;
+import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.TextStyle;
 import java.util.*;
-import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.Locale;
 
+/**
+ * Serviço principal de registros financeiros.
+ *
+ * <p>Responsabilidades:
+ * <ul>
+ *   <li>Consultar registros do usuário (com ou sem filtros)</li>
+ *   <li>Criar eventos únicos, em lote ou recorrentes</li>
+ *   <li>Editar eventos já existentes</li>
+ *   <li>Excluir eventos</li>
+ * </ul>
+ *
+ * <p>Exportação de arquivos (JSON, SQL, Excel, PDF) é responsabilidade de
+ * {@link RegistroExportacaoService}.
+ */
 @Service
+@Transactional
 public class RegistroService {
+
+    private static final Logger log = LoggerFactory.getLogger(RegistroService.class);
+
+    // Ordem de exibição dos tipos: Recebimento → Gasto → Transferencia → Poupanca → Emprestimo
+    private static final Map<Tipo, Integer> TIPO_ORDEM = Map.of(
+            Tipo.Recebimento, 0,
+            Tipo.Gasto, 1,
+            Tipo.Transferencia, 2,
+            Tipo.Poupanca, 3,
+            Tipo.Emprestimo, 4
+    );
+    private static final int REGISTROS_POR_PAGINA_PADRAO = 20;
+    private static final int REGISTROS_POR_PAGINA_MINIMO  = 5;
+    private static final int REGISTROS_POR_PAGINA_MAXIMO  = 100;
+
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
     private final EventoInstituicaoRepository eventoInstituicaoRepository;
     private final EventoDetalheRepository eventoDetalheRepository;
@@ -75,1012 +83,584 @@ public class RegistroService {
     private final UsuarioRepository usuarioRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final MovimentoFactory movimentoFactory;
-    private final InstituicaoRepository instituicaoRepository;
-    private final CategoriaRepository categoriaRepository;
+    private final EventoFinanceiroFactory eventoFinanceiroFactory;
+    private final RecorrenciaFactory recorrenciaFactory;
     private final InstituicaoService instituicaoService;
-    private final LimitePorInstituicaoRepository limitePorInstituicaoRepository;
-    private final LimitePorCategoriaRepository limitePorCategoriaRepository;
     private final ConfiguracoesRepository configuracoesRepository;
-    private final TransferenciaEvento transferenciaEvento;
-    private final UsuarioService usuarioService;
+    private final EmailService emailService;
 
-    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoDetalheRepository eventoDetalheRepository, CategoriaUsuarioRepository categoriaUsuarioRepository, UsuarioRepository usuarioRepository, InstituicaoUsuarioRepository instituicaoUsuarioRepository, MovimentoFactory movimentoFactory, InstituicaoRepository instituicaoRepository, CategoriaRepository categoriaRepository, InstituicaoService instituicaoService, LimitePorInstituicaoRepository limitePorInstituicaoRepository, LimitePorCategoriaRepository limitePorCategoriaRepository, ConfiguracoesRepository configuracoesRepository, TransferenciaEvento transferenciaEvento, UsuarioService usuarioService) {
-        this.eventoFinanceiroRepository = eventoFinanceiroRepository;
+    public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository,
+                           EventoInstituicaoRepository eventoInstituicaoRepository,
+                           EventoDetalheRepository eventoDetalheRepository,
+                           CategoriaUsuarioRepository categoriaUsuarioRepository,
+                           UsuarioRepository usuarioRepository,
+                           InstituicaoUsuarioRepository instituicaoUsuarioRepository,
+                           MovimentoFactory movimentoFactory,
+                           EventoFinanceiroFactory eventoFinanceiroFactory,
+                           RecorrenciaFactory recorrenciaFactory,
+                           InstituicaoService instituicaoService,
+                           ConfiguracoesRepository configuracoesRepository,
+                           EmailService emailService) {
+        this.eventoFinanceiroRepository  = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
-        this.eventoDetalheRepository = eventoDetalheRepository;
-        this.categoriaUsuarioRepository = categoriaUsuarioRepository;
-        this.usuarioRepository = usuarioRepository;
+        this.eventoDetalheRepository     = eventoDetalheRepository;
+        this.categoriaUsuarioRepository  = categoriaUsuarioRepository;
+        this.usuarioRepository           = usuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
-        this.movimentoFactory = movimentoFactory;
-        this.instituicaoRepository = instituicaoRepository;
-        this.categoriaRepository = categoriaRepository;
-        this.instituicaoService = instituicaoService;
-        this.limitePorInstituicaoRepository = limitePorInstituicaoRepository;
-        this.limitePorCategoriaRepository = limitePorCategoriaRepository;
-        this.configuracoesRepository = configuracoesRepository;
-        this.transferenciaEvento = transferenciaEvento;
-        this.usuarioService = usuarioService;
+        this.movimentoFactory            = movimentoFactory;
+        this.eventoFinanceiroFactory     = eventoFinanceiroFactory;
+        this.recorrenciaFactory          = recorrenciaFactory;
+        this.instituicaoService          = instituicaoService;
+        this.configuracoesRepository     = configuracoesRepository;
+        this.emailService                = emailService;
     }
 
-    public EventoFinanceiro createEventoFinanceiro(EventoFinanceiro entity) {
+    // =========================================================================
+    // CONSULTAS
+    // =========================================================================
 
-        Usuario user = usuarioRepository
-                .findById(entity.getUsuario().getId())
-                        .orElseThrow(() ->
-                                new EntidadeNaoEncontradaException(
-                                        "Usuário de id: %s não encontrado."
-                                        .formatted(entity.getUsuario().getId()
-                                        )
-                                )
-                        );
-
-        entity.setUsuario(user);
-        entity.setDataRegistro(LocalDateTime.now());
-        return eventoFinanceiroRepository.save(entity);
-    }
-
-    public List<EventoInstituicao> createEventoInstituicaoTransferencia(EventoInstituicao eventoInstituicao,
-                                                                        EventoFinanceiro eventoFinanceiro,
-                                                                        Integer destino_id){
-
-        if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())) {
-            throw new EntidadeNaoEncontradaException(
-                    "Evento Financeiro de id: %s não encontrado"
-                            .formatted(eventoFinanceiro.getId())
-            );
-        }
-        List<InstituicaoUsuario> instituicaoUsuario = instituicaoUsuarioRepository.findInstituicaoUsuarioByEventoInstituicao_Id(eventoInstituicao.getId());
-        eventoInstituicao.setInstituicaoUsuario(instituicaoUsuario.getFirst());
-
-
-        InstituicaoUsuario destino = instituicaoUsuarioRepository.findById(destino_id)
-                .orElseThrow(() ->
-                        new EntidadeNaoEncontradaException("Instituição usuario de id: %d não encontrado."
-                                .formatted(destino_id)
-                        )
-                );
-
-        //TransferenciaDTO processar = transferenciaEvento.processar(eventoFinanceiro, eventoInstituicao, destino);
-        List<EventoInstituicao> listaRecebedora = new ArrayList<>();
-
-        //EventoInstituicao recebedora = processar.getEventoInstituicao();
-        //EventoFinanceiro eventoRecebedora = processar.getEventoFinanceiro();
-
-//        recebedora.setTipoMovimento(eventoInstituicao.getTipoMovimento());
-//        recebedora.setEventoFinanceiro(eventoRecebedora);
-//        recebedora.setParcelas(1);
-//        recebedora.setValor(eventoInstituicao.getValor());
-//        recebedora.setInstituicaoUsuario(destino);
-//        listaRecebedora.add(recebedora);
-//        eventoFinanceiroRepository.save(eventoRecebedora);
-//        eventoInstituicaoRepository.save(recebedora);
-//        eventoInstituicao.setEventoFinanceiro(eventoFinanceiro);
-//        eventoInstituicaoRepository.save(eventoInstituicao);
-
-        return listaRecebedora;
-    }
-
-    public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> entities,
-                                                           EventoFinanceiro eventoFinanceiro) {
-        if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())) {
-            throw new EntidadeNaoEncontradaException(
-                    "Evento Financeiro de id: %s não encontrado"
-                            .formatted(eventoFinanceiro.getId())
-            );
-        }
-
-        List<EventoInstituicao> savedInstituicoes = new ArrayList<>();
-
-        for (EventoInstituicao entity : entities) {
-            InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository
-                    .findById(entity.getInstituicaoUsuario().getId())
-                    .orElseThrow(() ->
-                            new EntidadeNaoEncontradaException(
-                                    "Instituição associada ao Usuário não encontrada."
-                            )
-                    );
-
-            if (!instituicaoUsuario.getIsAtivo()) {
-                throw new InstituicaoInativaException("Instituição %s está inativa"
-                        .formatted(instituicaoUsuario.getInstituicao().getNome()));
-            }
-
-            Map<String, Object> params = new HashMap<>();
-            params.put("parcelas", entity.getParcelas());
-
-            MovimentoStrategy strategy = movimentoFactory.getStrategy(entity.getTipoMovimento(), params);
-            strategy.validar(instituicaoUsuario);
-            MovimentoResultado resultado = strategy.processar(entity);
-
-            BigDecimal saldoByInstituicao = instituicaoService.getSaldoByInstituicao(instituicaoUsuario.getId());
-
-            if ((eventoFinanceiro.getTipo() == Tipo.Gasto
-                    || eventoFinanceiro.getTipo() == Tipo.Transferencia)
-                    && BigDecimal.valueOf(resultado.getValorParcela()).compareTo(saldoByInstituicao) > 0) {
-                throw new SaldoInsuficienteException("Saldo insuficiente para realizar a operação.");
-            }
-
-            if (resultado.getParcelas() > 1) {
-                for (int i = 1; i <= resultado.getParcelas(); i++) {
-                    EventoInstituicao parcelaEvento = new EventoInstituicao();
-                    parcelaEvento.setParcelas(i);
-                    parcelaEvento.setEventoFinanceiro(eventoFinanceiro);
-                    parcelaEvento.setInstituicaoUsuario(instituicaoUsuario);
-                    parcelaEvento.setTipoMovimento(entity.getTipoMovimento());
-                    parcelaEvento.setValor(resultado.getValorParcela());
-
-                    savedInstituicoes.add(eventoInstituicaoRepository.save(parcelaEvento));
-                }
-            } else {
-                entity.setParcelas(resultado.getParcelas());
-                entity.setInstituicaoUsuario(instituicaoUsuario);
-                entity.setEventoFinanceiro(eventoFinanceiro);
-                savedInstituicoes.add(eventoInstituicaoRepository.save(entity));
-            }
-        }
-
-        return savedInstituicoes;
-    }
-
-    public EventoDetalhe createGastoDetalhe(EventoDetalhe entity,
-                                            EventoFinanceiro eventoFinanceiro) {
-        if (!eventoFinanceiroRepository.existsById(eventoFinanceiro.getId())) {
-            throw new EntidadeNaoEncontradaException(
-                    "Evento Financeiro de id: %s não encontrado"
-                            .formatted(eventoFinanceiro.getId())
-            );
-        }
-
-        List<CategoriaUsuario> categorias = entity.getCategoriaUsuario().stream()
-                .map(cu -> categoriaUsuarioRepository.findById(cu.getId())
-                        .orElseThrow(() ->
-                                new EntidadeNaoEncontradaException("Categoria Usuário de id: %d não encontrada."
-                                        .formatted(cu.getId()))
-                        ))
-                .toList();
-
-        entity.setEventoFinanceiro(eventoFinanceiro);
-        entity.setCategoriaUsuario(categorias);
-
-        return eventoDetalheRepository.save(entity);
-    }
-
+    /**
+     * Retorna todos os eventos financeiros do usuário, ordenados por data.
+     */
+    @Transactional(readOnly = true)
     public List<EventoFinanceiro> getEventosFinanceirosByUser(UUID userId) {
-        if(!usuarioRepository.existsById(userId)){
-            throw new EntidadeNaoEncontradaException("Usuário de id: %s não encontrado."
-                    .formatted(userId)
-            );
+        if (!usuarioRepository.existsById(userId)) {
+            throw new EntidadeNaoEncontradaException("Usuário de id: %s não encontrado.".formatted(userId));
         }
-
         return eventoFinanceiroRepository.getEventoFinanceirosByUsuario_id(userId);
     }
 
+    /**
+     * Para cada evento da lista, retorna suas instituições vinculadas (mesma ordem).
+     */
+    @Transactional(readOnly = true)
     public List<List<EventoInstituicao>> getEventosInstituicoesByEventoFinanceiro(List<EventoFinanceiro> eventos) {
         return eventos.stream()
-                .map(evento -> eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(evento.getId()))
+                .map(ev -> eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(ev.getId()))
                 .toList();
     }
 
-    public List<EventoDetalhe> getGastosDetalhesByEventoFinanceiro(
-            List<EventoFinanceiro> eventosFinanceiros) {
-        List<EventoDetalhe> eventoDetalhes = new ArrayList<>();
-        for (EventoFinanceiro evento : eventosFinanceiros){
-            if(!eventoFinanceiroRepository.existsById(evento.getId())){
-                throw new EntidadeNaoEncontradaException("Evento financeiro de id: %s não encontrado."
-                        .formatted(evento.getId()
-                        )
-                );
-            }
-            EventoDetalhe eventoDetalheByEventoFinanceiro = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro(evento);
-
-            eventoDetalhes.add(eventoDetalheByEventoFinanceiro);
-        }
-        return eventoDetalhes;
+    /**
+     * Para cada evento da lista, retorna seu detalhe (título + categorias) (mesma ordem).
+     */
+    @Transactional(readOnly = true)
+    public List<EventoDetalhe> getGastosDetalhesByEventoFinanceiro(List<EventoFinanceiro> eventos) {
+        return eventos.stream()
+                .map(ev -> {
+                    if (!eventoFinanceiroRepository.existsById(ev.getId())) {
+                        throw new EntidadeNaoEncontradaException(
+                                "Evento financeiro de id: %s não encontrado.".formatted(ev.getId()));
+                    }
+                    return eventoDetalheRepository.findGastoDetalheByEventoFinanceiro(ev);
+                })
+                .toList();
     }
 
-    public List<RegistroResponseDto> getByFilter(UUID userId, Double valor, List<TipoMovimento> tipoMovimento, List<Tipo> tipo,
-                                                 LocalDate dataEvento, List<InstituicaoUsuario> instituicao,
-                                                 List<CategoriaUsuario> categoria, String descricao, String titulo){
+    /**
+     * Retorna o saldo acumulado na poupança do usuário.
+     */
+    @Transactional(readOnly = true)
+    public Double getSaldoPoupanca(UUID userId) {
+        buscarUsuarioOuErro(userId); // valida existência
+        // TODO: implementar cálculo real com base nos eventos de poupança
+        return 0.0;
+    }
 
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
-                new EntidadeNaoEncontradaException(
-                        "Usuario de id: %s não encontrado"
-                                .formatted(userId)
-                )
-        );
+    /**
+     * Retorna os anos distintos em que o usuário possui registros (mais recente primeiro).
+     */
+    @Transactional(readOnly = true)
+    public List<Integer> getAnosByUserId(UUID userId) {
+        buscarUsuarioOuErro(userId);
+        return eventoFinanceiroRepository.findDistinctAnosByUserId(userId);
+    }
+
+    /**
+     * Retorna os meses distintos em que o usuário possui registros no ano informado (1–12).
+     */
+    @Transactional(readOnly = true)
+    public List<Integer> getMesesByUserIdAndAno(UUID userId, int ano) {
+        buscarUsuarioOuErro(userId);
+        return eventoFinanceiroRepository.findDistinctMesesByUserIdAndAno(userId, ano);
+    }
+
+    /**
+     * Retorna os registros do mês/ano de forma paginada,
+     * ordenados por: dia ASC → tipo (Recebimento primeiro) → título ASC.
+     *
+     * @param tamanho itens por página; limitado entre {@value #REGISTROS_POR_PAGINA_MINIMO}
+     *                e {@value #REGISTROS_POR_PAGINA_MAXIMO}. Padrão: {@value #REGISTROS_POR_PAGINA_PADRAO}.
+     */
+    @Transactional(readOnly = true)
+    public Page<RegistroResponseDto> getRegistrosByMes(UUID userId, int ano, int mes, int pagina, int tamanho) {
+        buscarUsuarioOuErro(userId);
+
+        // Garante que o tamanho esteja dentro dos limites permitidos
+        int tamanhoPagina = Math.max(REGISTROS_POR_PAGINA_MINIMO,
+                            Math.min(tamanho, REGISTROS_POR_PAGINA_MAXIMO));
+
+        // Busca todos os eventos do mês com EventoDetalhe pré-carregado via JOIN FETCH
+        List<EventoFinanceiro> todos =
+                eventoFinanceiroRepository.findByUserIdAndAnoAndMes(userId, ano, mes);
+
+        // Ordena: dia → tipo customizado → título alfabético
+        List<EventoFinanceiro> ordenados = todos.stream()
+                .sorted(Comparator
+                        .comparing(EventoFinanceiro::getDataEvento)
+                        .thenComparingInt(e -> TIPO_ORDEM.getOrDefault(e.getTipo(), 99))
+                        .thenComparing(e -> {
+                            EventoDetalhe d = e.getGastoDetalhe();
+                            return (d != null && d.getTituloGasto() != null)
+                                    ? d.getTituloGasto().toLowerCase(Locale.ROOT) : "";
+                        }))
+                .toList();
+
+        int total = ordenados.size();
+        int start = pagina * tamanhoPagina;
+
+        if (start >= total) {
+            return new PageImpl<>(List.of(), PageRequest.of(pagina, tamanhoPagina), total);
+        }
+
+        int end = Math.min(start + tamanhoPagina, total);
+
+        // Mapeia apenas os itens da página atual — instituicoes são lazy mas a sessão está aberta
+        List<RegistroResponseDto> dtos = ordenados.subList(start, end).stream()
+                .map(ev -> RegistrosMapper.toResponse(ev, ev.getEventoInstituicoes(), ev.getGastoDetalhe()))
+                .filter(Objects::nonNull)
+                .toList();
+
+        return new PageImpl<>(dtos, PageRequest.of(pagina, tamanhoPagina), total);
+    }
+
+    /**
+     * Busca registros aplicando filtros dinâmicos. Todos os parâmetros são opcionais.
+     */
+    @Transactional(readOnly = true)
+    public List<RegistroResponseDto> getByFilter(UUID userId,
+                                                  Double valor,
+                                                  List<TipoMovimento> tiposMovimento,
+                                                  List<Tipo> tipos,
+                                                  LocalDate dataEvento,
+                                                  List<InstituicaoUsuario> instituicoes,
+                                                  List<CategoriaUsuario> categorias,
+                                                  String descricao,
+                                                  String titulo) {
+        Usuario usuario = buscarUsuarioOuErro(userId);
 
         Specification<EventoFinanceiro> filtroUsuario =
                 (root, query, cb) -> cb.equal(root.get("usuario"), usuario);
 
-        Specification<EventoFinanceiro> spec = EventoFinanceiroSpecifications.porFiltros(
-                valor, tipo, dataEvento, descricao, tipoMovimento, instituicao, categoria, titulo
-        );
+        Specification<EventoFinanceiro> filtros = EventoFinanceiroSpecifications.porFiltros(
+                valor, tipos, dataEvento, descricao, tiposMovimento, instituicoes, categorias, titulo);
 
-        List<EventoFinanceiro> eventos = eventoFinanceiroRepository.findAll(
-                filtroUsuario.and(spec)
-        );
-
-
-        return eventos.stream()
-                .map(e -> RegistrosMapper.toResponse(e, e.getEventoInstituicao(), e.getGastoDetalhe()))
+        return eventoFinanceiroRepository.findAll(filtroUsuario.and(filtros)).stream()
+                .map(ev -> RegistrosMapper.toResponse(ev, ev.getEventoInstituicoes(), ev.getGastoDetalhe()))
                 .collect(Collectors.toList());
-
     }
 
-    public EventoFinanceiro editEventoFinanceiro(UUID eventoId, EventoFinanceiro entity) {
-        EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
-                .orElseThrow(() ->
-                        new EntidadeNaoEncontradaException(
-                                "Evento financeiro de id: %s não encontrado"
-                                        .formatted(eventoId))
-                );
+    // =========================================================================
+    // CRIAR
+    // =========================================================================
 
-        if(entity.getDataEvento() != financeiro.getDataEvento()){
-            financeiro.setDataEvento(entity.getDataEvento());
-        }
-        if (!Objects.equals(entity.getDescricao(), financeiro.getDescricao())){
-            financeiro.setDescricao(entity.getDescricao());
-        }
-        if (entity.getTipo() != financeiro.getTipo()){
-            financeiro.setTipo(entity.getTipo());
-        }
-        return eventoFinanceiroRepository.save(financeiro);
+    /**
+     * Cria um registro financeiro completo (evento + meios de pagamento + detalhe).
+     *
+     * <p>As regras de cada tipo são aplicadas via Strategy:
+     * <ul>
+     *   <li><b>Gasto</b> → debita da(s) instituição(ões); valida saldo.</li>
+     *   <li><b>Recebimento</b> → credita na(s) instituição(ões).</li>
+     *   <li><b>Transferência</b> → gera evento de saída + evento de recebimento interno.</li>
+     *   <li><b>Poupança</b> → debita e registra rendimento projetado.</li>
+     *   <li><b>Empréstimo</b> → credita com taxa de juros registrada.</li>
+     * </ul>
+     *
+     * <p>Um evento pode ter <b>múltiplas instituições</b> (ex.: compra paga metade no débito,
+     * metade no Pix) e <b>múltiplas categorias</b> (ex.: iFood → "Aplicativo" + "Alimentação").
+     */
+    public Registro createEventoFinanceiro(EventoFinanceiro financeiro,
+                                           List<EventoInstituicao> instituicoes,
+                                           EventoDetalhe detalhe) {
+        // Valida e vincula o usuário real ao evento
+        Usuario usuario = buscarUsuarioOuErro(financeiro.getUsuario().getId());
+        financeiro.setUsuario(usuario);
+
+        // Aplica as regras de negócio do tipo de evento via Strategy
+        EventoFinanceiroStrategy strategy = eventoFinanceiroFactory.getStrategy(financeiro.getTipo());
+        Registro registroProcessado = strategy.processar(financeiro, instituicoes, detalhe);
+
+        // Persiste todos os eventos gerados pela strategy (pode ser 1 ou mais)
+        return persistirRegistro(registroProcessado);
     }
 
-    public List<EventoInstituicao> editEventoInstituicao(UUID eventoId, List<EventoInstituicao> novasInstituicoes) {
-        EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
-                .orElseThrow(() ->
-                        new EntidadeNaoEncontradaException(
-                                "Evento financeiro de id: %s não encontrado"
-                                        .formatted(eventoId))
-                );
+    /**
+     * Cria uma série de eventos recorrentes a partir de uma regra de recorrência.
+     *
+     * <p>Cada ocorrência recebe as mesmas instituições e o mesmo detalhe da requisição original.
+     * Exemplo de uso: "Todo dia 15 recebo meu salário" ou "Todo dia compro almoço".
+     *
+     * @param recorrencia regra com periodicidade, datas e dados do evento.
+     * @param instituicoes meios de pagamento (já mapeados do DTO).
+     * @param detalhe título e categorias (já mapeados do DTO).
+     */
+    public List<RegistroResponseDto> createEventosRecorrentes(RecorrenciaFinanceira recorrencia,
+                                                               List<EventoInstituicao> instituicoes,
+                                                               EventoDetalhe detalhe) {
+        Usuario usuario = buscarUsuarioOuErro(recorrencia.getUsuario().getId());
+        recorrencia.setUsuario(usuario);
 
-        // Busca todas as instituições já associadas ao evento
+        RecorrenciaStrategy strategy = recorrenciaFactory.getStrategy(recorrencia.getPeriodicidade());
+        List<EventoFinanceiro> eventosGerados = strategy.gerarEventos(recorrencia, recorrencia.getDataFim());
+
+        return eventosGerados.stream()
+                .map(evento -> {
+                    evento.setDataRegistro(LocalDateTime.now());
+                    EventoFinanceiro salvo         = eventoFinanceiroRepository.save(evento);
+                    List<EventoInstituicao> insts  = createEventoInstituicao(instituicoes, salvo);
+                    EventoDetalhe detalheSalvo     = createGastoDetalhe(detalhe, salvo);
+                    return RegistrosMapper.toResponse(salvo, insts, detalheSalvo);
+                })
+                .toList();
+    }
+
+    /**
+     * Valida e persiste os meios de pagamento de um evento.
+     *
+     * <p>Regras aplicadas por tipo de movimento:
+     * <ul>
+     *   <li><b>Débito / Pix / Dinheiro</b> → pagamento à vista (1 parcela).</li>
+     *   <li><b>Voucher</b> → pagamento à vista; apenas instituições aceitas pelo tipo.</li>
+     *   <li><b>Crédito / Boleto</b> → parcelado; cria um {@link EventoInstituicao} por parcela.</li>
+     * </ul>
+     * Para Gasto e Transferência, verifica se há saldo suficiente na instituição.
+     */
+    public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> instituicoes,
+                                                            EventoFinanceiro evento) {
+        if (!eventoFinanceiroRepository.existsById(evento.getId())) {
+            throw new EntidadeNaoEncontradaException(
+                    "Evento Financeiro de id: %s não encontrado.".formatted(evento.getId()));
+        }
+
+        // Cada instituição pode gerar 1 ou N registros (parcelamento)
+        return instituicoes.stream()
+                .flatMap(inst -> processarPagamento(inst, evento).stream())
+                .toList();
+    }
+
+    /**
+     * Valida e persiste o detalhe de um evento (título + categorias).
+     *
+     * <p>Um evento pode ter <b>múltiplas categorias</b> — por exemplo, um pedido no iFood
+     * pode ser categorizado como "Aplicativo" e "Alimentação" ao mesmo tempo.
+     */
+    public EventoDetalhe createGastoDetalhe(EventoDetalhe detalhe, EventoFinanceiro evento) {
+        if (!eventoFinanceiroRepository.existsById(evento.getId())) {
+            throw new EntidadeNaoEncontradaException(
+                    "Evento Financeiro de id: %s não encontrado.".formatted(evento.getId()));
+        }
+
+        // Verifica se todas as categorias existem antes de salvar
+        List<CategoriaUsuario> categorias = detalhe.getCategoriaUsuario().stream()
+                .map(cu -> buscarCategoriaOuErro(cu.getId()))
+                .toList();
+
+        detalhe.setEventoFinanceiro(evento);
+        detalhe.setCategoriaUsuario(categorias);
+        return eventoDetalheRepository.save(detalhe);
+    }
+
+    // =========================================================================
+    // EDITAR
+    // =========================================================================
+
+    /**
+     * Atualiza os campos básicos de um evento: tipo, data e descrição.
+     */
+    public EventoFinanceiro editEventoFinanceiro(UUID eventoId, EventoFinanceiro novosDados) {
+        EventoFinanceiro existente = buscarEventoOuErro(eventoId);
+
+        if (!novosDados.getDataEvento().equals(existente.getDataEvento())) {
+            existente.setDataEvento(novosDados.getDataEvento());
+        }
+        if (!Objects.equals(novosDados.getDescricao(), existente.getDescricao())) {
+            existente.setDescricao(novosDados.getDescricao());
+        }
+        if (novosDados.getTipo() != existente.getTipo()) {
+            existente.setTipo(novosDados.getTipo());
+        }
+        return eventoFinanceiroRepository.save(existente);
+    }
+
+    /**
+     * Sincroniza os meios de pagamento de um evento com a nova lista recebida.
+     * Remove os que saíram, atualiza os que ficaram e cria os novos.
+     */
+    public List<EventoInstituicao> editEventoInstituicao(UUID eventoId, List<EventoInstituicao> novas) {
+        EventoFinanceiro evento = buscarEventoOuErro(eventoId);
+
         List<EventoInstituicao> existentes = eventoInstituicaoRepository
                 .findEventoInstituicaoByEventoFinanceiro_Id(eventoId);
 
-        // IDs das novas instituições enviadas pelo usuário
-        Set<Integer> novosIds = novasInstituicoes.stream()
+        // IDs que vieram na nova lista
+        Set<Integer> novosIds = novas.stream()
                 .map(e -> e.getInstituicaoUsuario().getId())
                 .collect(Collectors.toSet());
 
-        // Remove instituições que não estão mais na lista enviada
-        for (EventoInstituicao existente : existentes) {
-            if (!novosIds.contains(existente.getInstituicaoUsuario().getId())) {
-                eventoInstituicaoRepository.delete(existente);
-            }
-        }
+        // Remove as que não estão mais na lista
+        existentes.stream()
+                .filter(ex -> !novosIds.contains(ex.getInstituicaoUsuario().getId()))
+                .forEach(eventoInstituicaoRepository::delete);
 
-        List<EventoInstituicao> atualizados = new ArrayList<>();
-
-        // Atualiza ou cria instituições conforme necessário
-        for (EventoInstituicao nova : novasInstituicoes) {
-            EventoInstituicao existente = existentes.stream()
-                    .filter(e -> Objects.equals(e.getInstituicaoUsuario().getId(), nova.getInstituicaoUsuario().getId()))
+        // Atualiza ou insere cada item da nova lista
+        return novas.stream().map(nova -> {
+            EventoInstituicao alvo = existentes.stream()
+                    .filter(ex -> Objects.equals(ex.getInstituicaoUsuario().getId(),
+                            nova.getInstituicaoUsuario().getId()))
                     .findFirst()
                     .orElse(new EventoInstituicao());
-            InstituicaoUsuario instituicaoUsuario = instituicaoUsuarioRepository.findById(nova.getInstituicaoUsuario().getId())
-                    .orElseThrow(() -> new EntidadeNaoEncontradaException("Instituição Usuário não encontrada"));
 
-            existente.setInstituicaoUsuario(instituicaoUsuario);
-            existente.setValor(nova.getValor());
-            existente.setParcelas(nova.getParcelas());
-            existente.setTipoMovimento(nova.getTipoMovimento());
-            existente.setEventoFinanceiro(financeiro);
-
-            atualizados.add(eventoInstituicaoRepository.save(existente));
-        }
-
-        return atualizados;
+            InstituicaoUsuario instUsuario = buscarInstituicaoAtivaOuErro(nova.getInstituicaoUsuario().getId());
+            alvo.setInstituicaoUsuario(instUsuario);
+            alvo.setValor(nova.getValor());
+            alvo.setParcelas(nova.getParcelas());
+            alvo.setTipoMovimento(nova.getTipoMovimento());
+            alvo.setEventoFinanceiro(evento);
+            return eventoInstituicaoRepository.save(alvo);
+        }).toList();
     }
 
-    public EventoDetalhe editGastoDetalhe(UUID eventoId, EventoDetalhe entity) {
-        EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
-                .orElseThrow(() ->
-                        new EntidadeNaoEncontradaException(
-                                "Evento financeiro de id: %s não encontrado"
-                                        .formatted(eventoId))
-                );
+    /**
+     * Atualiza título e categorias do detalhe de um evento.
+     */
+    public EventoDetalhe editGastoDetalhe(UUID eventoId, EventoDetalhe novosDados) {
+        EventoFinanceiro evento = buscarEventoOuErro(eventoId);
+        EventoDetalhe detalhe  = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
 
-        EventoDetalhe eventoDetalhe = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
-
-        // Atualiza título se mudou
-        if (!Objects.equals(entity.getTituloGasto(), eventoDetalhe.getTituloGasto())) {
-            eventoDetalhe.setTituloGasto(entity.getTituloGasto());
+        if (!Objects.equals(novosDados.getTituloGasto(), detalhe.getTituloGasto())) {
+            detalhe.setTituloGasto(novosDados.getTituloGasto());
         }
 
-        // Atualiza categorias (adiciona novas e remove as que não estão mais)
-        List<CategoriaUsuario> categoriasExistentes = eventoDetalhe.getCategoriaUsuario();
-        List<CategoriaUsuario> categoriasNovas = entity.getCategoriaUsuario();
-
-        // IDs das novas categorias
-        Set<Integer> novosIds = categoriasNovas.stream()
+        // Sincroniza categorias: remove as que saíram, adiciona as novas
+        Set<Integer> novosIds = novosDados.getCategoriaUsuario().stream()
                 .map(CategoriaUsuario::getId)
                 .collect(Collectors.toSet());
 
-        // Remove categorias que não estão mais na lista enviada
-        categoriasExistentes.removeIf(c -> !novosIds.contains(c.getId()));
+        List<CategoriaUsuario> categoriasAtuais = new ArrayList<>(detalhe.getCategoriaUsuario());
+        categoriasAtuais.removeIf(c -> !novosIds.contains(c.getId()));
 
-        // Adiciona ou atualiza categorias novas
-        for (CategoriaUsuario nova : categoriasNovas) {
-            boolean jaExiste = categoriasExistentes.stream()
-                    .anyMatch(c -> Objects.equals(c.getId(), nova.getId()));
+        novosDados.getCategoriaUsuario().forEach(nova -> {
+            boolean jaExiste = categoriasAtuais.stream().anyMatch(c -> Objects.equals(c.getId(), nova.getId()));
             if (!jaExiste) {
-                CategoriaUsuario categoria = categoriaUsuarioRepository.findById(nova.getId())
-                        .orElseThrow(() ->
-                                new EntidadeNaoEncontradaException(
-                                        "Categoria Usuário de id: %d não encontrada."
-                                                .formatted(nova.getId()))
-                        );
-                categoriasExistentes.add(categoria);
+                categoriasAtuais.add(buscarCategoriaOuErro(nova.getId()));
             }
-        }
+        });
 
-        eventoDetalhe.setCategoriaUsuario(categoriasExistentes);
-        eventoDetalhe.setEventoFinanceiro(financeiro);
-
-        return eventoDetalheRepository.save(eventoDetalhe);
+        detalhe.setCategoriaUsuario(categoriasAtuais);
+        detalhe.setEventoFinanceiro(evento);
+        return eventoDetalheRepository.save(detalhe);
     }
 
+    // =========================================================================
+    // DELETAR
+    // =========================================================================
+
+    /**
+     * Remove um registro completo. As sub-entidades (instituições e detalhe) são removidas
+     * automaticamente pelo JPA via {@code CascadeType.ALL + orphanRemoval = true}.
+     */
     public void deleteRegistroByEventoFinanceiro_Id(UUID eventoId) {
-        EventoFinanceiro financeiro = eventoFinanceiroRepository.findById(eventoId)
-                .orElseThrow(() ->
-                        new EntidadeNaoEncontradaException(
-                                "Evento Financeiro de id: %s não encontrado"
-                                        .formatted(eventoId)
-                        )
-                );
-
-        EventoDetalhe gastos = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(eventoId);
-        eventoDetalheRepository.delete(gastos);
-
-        // Deleta todas as instituições associadas ao evento
-        List<EventoInstituicao> instituicoes = eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(eventoId);
-        if (instituicoes.isEmpty()) {
-            throw new EntidadeNaoEncontradaException("Evento Instituição não encontrado.");
-        }
-        instituicoes.forEach(instituicao -> eventoInstituicaoRepository.delete(instituicao));
-
-        // Finalmente, deleta o evento financeiro
-        eventoFinanceiroRepository.delete(financeiro);
+        EventoFinanceiro evento = buscarEventoOuErro(eventoId);
+        eventoFinanceiroRepository.delete(evento);
     }
 
-    public String createJson(UUID userId) {
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
-                new EntidadeNaoEncontradaException(
-                        "Usuário de id: %s não encontrado.".formatted(userId)
-                )
-        );
+    // =========================================================================
+    // PRIVADOS — persistência
+    // =========================================================================
 
-        Map<String, Object> jsonMap = new LinkedHashMap<>();
+    /**
+     * Percorre todos os eventos gerados pela Strategy, salva cada um e vincula
+     * as respectivas instituições e detalhes.
+     */
+    private Registro persistirRegistro(Registro registroProcessado) {
+        List<EventoFinanceiro> eventosSalvos             = new ArrayList<>();
+        Map<EventoFinanceiro, List<EventoInstituicao>> instituicoesMap = new HashMap<>();
+        Map<EventoFinanceiro, EventoDetalhe> detalheMap  = new HashMap<>();
 
-        // Informações básicas do usuário
-        Map<String, Object> userInfo = new LinkedHashMap<>();
-        userInfo.put("id", usuario.getId().toString());
-        userInfo.put("nome", usuario.getNome());
-        userInfo.put("sobrenome", usuario.getSobrenome());
-        userInfo.put("data_nascimento", usuario.getDataNascimento().toString());
-        userInfo.put("sexo", usuario.getSexo().toString());
-        userInfo.put("email", usuario.getEmail());
+        for (EventoFinanceiro ev : registroProcessado.getEventosFinanceiros()) {
+            ev.setDataRegistro(LocalDateTime.now());
+            EventoFinanceiro evSalvo = eventoFinanceiroRepository.save(ev);
+            eventosSalvos.add(evSalvo);
 
-        jsonMap.put("usuario", userInfo);
-
-        // Eventos financeiros
-        List<EventoFinanceiro> eventos = eventoFinanceiroRepository.findAllByUsuario_Id(userId);
-        List<Map<String, Object>> eventosList = new ArrayList<>();
-
-        for (EventoFinanceiro e : eventos) {
-            Map<String, Object> eventoMap = new LinkedHashMap<>();
-            eventoMap.put("id", e.getId().toString());
-            eventoMap.put("tipo", e.getTipo().toString());
-            eventoMap.put("valor", e.getValor());
-            eventoMap.put("descricao", e.getDescricao());
-            eventoMap.put("data_evento", e.getDataEvento().toString());
-            eventoMap.put("data_registro", e.getDataRegistro().toString());
-
-            // Instituições vinculadas ao evento
-            List<EventoInstituicao> insts = eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(e.getId());
-            List<Map<String, Object>> instList = new ArrayList<>();
-            for (EventoInstituicao ei : insts) {
-                Map<String, Object> instMap = new LinkedHashMap<>();
-                instMap.put("id", ei.getId().toString());
-                instMap.put("instituicao_usuario_id", ei.getInstituicaoUsuario().getId());
-                instMap.put("tipo_movimento", ei.getTipoMovimento().toString());
-                instMap.put("valor", ei.getValor());
-                instMap.put("parcelas", ei.getParcelas());
-                instList.add(instMap);
-            }
-            eventoMap.put("instituicoes", instList);
-
-            // Detalhes de gasto
-            EventoDetalhe gasto = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro(e);
-            if (gasto != null) {
-                Map<String, Object> gastoMap = new LinkedHashMap<>();
-                gastoMap.put("id", gasto.getId().toString());
-                gastoMap.put("titulo_gasto", gasto.getTituloGasto());
-
-                List<Map<String, Object>> categoriasList = new ArrayList<>();
-                for (CategoriaUsuario cat : gasto.getCategoriaUsuario()) {
-                    Map<String, Object> catMap = new LinkedHashMap<>();
-                    catMap.put("id", cat.getId());
-                    catMap.put("categoria", cat.getCategoria().getTitulo());
-                    categoriasList.add(catMap);
-                }
-                gastoMap.put("categorias", categoriasList);
-
-                eventoMap.put("gasto_detalhe", gastoMap);
+            // Vincula meios de pagamento (pode ser mais de um)
+            List<EventoInstituicao> insts = registroProcessado.getInstituicoesPorEvento().get(ev);
+            if (insts != null) {
+                instituicoesMap.put(evSalvo, createEventoInstituicao(insts, evSalvo));
             }
 
-            eventosList.add(eventoMap);
+            // Vincula detalhe (título + categorias)
+            EventoDetalhe det = registroProcessado.getDetalhePorEvento().get(ev);
+            if (det != null) {
+                detalheMap.put(evSalvo, createGastoDetalhe(det, evSalvo));
+            }
         }
 
-        jsonMap.put("eventos_financeiros", eventosList);
+        Registro resultado = new Registro(eventosSalvos, instituicoesMap, detalheMap);
 
-        // Serializar para JSON
+        // Verifica alerta de limite mensal apos salvar
+        eventosSalvos.stream()
+                .filter(ev -> ev.getTipo() == Tipo.Gasto)
+                .findFirst()
+                .ifPresent(ev -> verificarEEnviarAlertaLimite(ev.getUsuario()));
+
+        return resultado;
+    }
+
+    /**
+     * Verifica se o gasto mensal do usuario cruzou o percentual de alerta configurado
+     * e, se sim, envia o e-mail de alerta (uma vez por mes por usuario).
+     */
+    private void verificarEEnviarAlertaLimite(Usuario usuario) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.enable(SerializationFeature.INDENT_OUTPUT); // deixa bonito
-            return mapper.writeValueAsString(jsonMap);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Erro ao gerar JSON", e);
-        }
-    }
-
-    public String createSql(UUID userId) {
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
-                new EntidadeNaoEncontradaException(
-                        "Usuário de id: %s não encontrado.".formatted(userId)
-                )
-        );
-
-        StringBuilder sql = new StringBuilder();
-
-        // Usuário
-        sql.append("-- Usuário\n");
-        sql.append("INSERT INTO usuario (id, nome, sobrenome, data_nascimento, sexo, imagem, email, senha) VALUES (")
-                .append("'").append(usuario.getId()).append("', ")
-                .append("'").append(usuario.getNome()).append("', ")
-                .append("'").append(usuario.getSobrenome()).append("', ")
-                .append("'").append(usuario.getDataNascimento()).append("', ")
-                .append("'").append(usuario.getSexo()).append("', ")
-                .append(usuario.getImagem() == null ? "null" : "'" + usuario.getImagem() + "'").append(", ")
-                .append("'").append(usuario.getEmail()).append("', ")
-                .append("'").append(usuario.getSenha()).append("');\n\n");
-
-        // Instituições do usuário
-        List<InstituicaoUsuario> instUsuarios = instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
-        sql.append("-- Instituições do usuário\n");
-        for (InstituicaoUsuario iu : instUsuarios) {
-            sql.append("INSERT INTO instituicao_usuario (id, usuario_id, instituicao_id, is_ativo) VALUES (")
-                    .append("'").append(iu.getId()).append("', ")
-                    .append("'").append(userId).append("', ")
-                    .append("'").append(iu.getInstituicao().getId()).append("', ")
-                    .append(iu.getIsAtivo()).append(");\n");
-        }
-        sql.append("\n");
-
-        // Categorias do usuário
-        List<CategoriaUsuario> catUsuarios = categoriaUsuarioRepository.findAllByUsuario_Id(userId);
-        sql.append("-- Categorias do usuário\n");
-        for (CategoriaUsuario cu : catUsuarios) {
-            sql.append("INSERT INTO categoria_usuario (id, usuario_id, categoria_id, is_ativo) VALUES (")
-                    .append("'").append(cu.getId()).append("', ")
-                    .append("'").append(userId).append("', ")
-                    .append("'").append(cu.getCategoria().getId()).append("', ")
-                    .append(cu.getAtivo()).append(");\n");
-        }
-        sql.append("\n");
-
-        // Configurações do usuário
-        List<Configuracoes> configs = configuracoesRepository.findAllByUsuario_Id(userId);
-        sql.append("-- Configurações do usuário\n");
-        for (Configuracoes conf : configs) {
-            sql.append("INSERT INTO configuracoes (id, usuario_id, inicio_mes_fiscal, ultima_atualizacao, limite_desejado_mensal) VALUES (")
-                    .append("'").append(conf.getId()).append("', ")
-                    .append("'").append(userId).append("', ")
-                    .append(conf.getInicioMesFiscal()).append(", ")
-                    .append("'").append(conf.getUltimaAtualizacao()).append("', ")
-                    .append(conf.getLimiteDesejadoMensal())
-                    .append(");\n");
-        }
-        sql.append("\n");
-
-        // Limites por instituição
-        List<LimitePorInstituicao> limitesInst = limitePorInstituicaoRepository.findByInstituicaoUsuario_Usuario_Id(userId);
-        sql.append("-- Limites por instituição\n");
-        for (LimitePorInstituicao li : limitesInst) {
-            sql.append("INSERT INTO limite_por_instituicao (id, institucao_usuario_id, limite_desejado, configuracoes_id) VALUES (")
-                    .append("'").append(li.getId()).append("', ")
-                    .append(li.getInstituicaoUsuario().getId()).append(", ")
-                    .append(li.getLimiteDesejado()).append(", ")
-                    .append("'").append(li.getConfiguracoes().getId()).append("');\n");
-        }
-        sql.append("\n");
-
-        // Limites por categoria
-        List<LimitePorCategoria> limitesCat = limitePorCategoriaRepository.findByCategoriaUsuario_Usuario_Id(userId);
-        sql.append("-- Limites por categoria\n");
-        for (LimitePorCategoria lc : limitesCat) {
-            sql.append("INSERT INTO limite_por_categoria (id, categoria_usuario_id, limite_desejado, configuracoes_id) VALUES (")
-                    .append("'").append(lc.getId()).append("', ")
-                    .append(lc.getCategoriaUsuario().getId()).append(", ")
-                    .append(lc.getLimiteDesejado()).append(", ")
-                    .append("'").append(lc.getConfiguracoes().getId()).append("');\n");
-        }
-        sql.append("\n");
-
-        // Eventos financeiros do usuário
-        List<EventoFinanceiro> eventos = eventoFinanceiroRepository.findAllByUsuario_Id(userId);
-        sql.append("-- Eventos financeiros\n");
-        for (EventoFinanceiro e : eventos) {
-            sql.append("INSERT INTO evento_financeiro (id, usuario_id, tipo, valor, descricao, data_evento, data_registro) VALUES (")
-                    .append("'").append(e.getId()).append("', ")
-                    .append("'").append(userId).append("', ")
-                    .append("'").append(e.getTipo()).append("', ")
-                    .append(e.getValor()).append(", ")
-                    .append("'").append(e.getDescricao().replace("'", "''")).append("', ")
-                    .append("'").append(e.getDataEvento()).append("', ")
-                    .append("'").append(e.getDataRegistro()).append("');\n");
-
-            // Instituições vinculadas ao evento
-            List<EventoInstituicao> insts = eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(e.getId());
-            for (EventoInstituicao ei : insts) {
-                sql.append("INSERT INTO evento_instituicao (id, fk_evento, instituicao_usuario_id, tipo_movimento, valor, parcelas) VALUES (")
-                        .append("'").append(ei.getId()).append("', ")
-                        .append("'").append(e.getId()).append("', ")
-                        .append(ei.getInstituicaoUsuario().getId()).append(", ")
-                        .append("'").append(ei.getTipoMovimento()).append("', ")
-                        .append(ei.getValor()).append(", ")
-                        .append(ei.getParcelas()).append(");\n");
-            }
-
-            // Detalhes de gasto
-            EventoDetalhe gasto = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro(e);
-            if (gasto != null) {
-                sql.append("INSERT INTO gasto_detalhe (id, fk_evento, titulo_gasto) VALUES (")
-                        .append("'").append(gasto.getId()).append("', ")
-                        .append("'").append(e.getId()).append("', ")
-                        .append("'").append(gasto.getTituloGasto().replace("'", "''")).append("');\n");
-
-                for (CategoriaUsuario cat : gasto.getCategoriaUsuario()) {
-                    sql.append("INSERT INTO gasto_detalhe_categoria (gasto_detalhe_id, categoria_usuario_id) VALUES (")
-                            .append("'").append(gasto.getId()).append("', ")
-                            .append("'").append(cat.getId()).append("');\n");
-                }
-            }
-            sql.append("\n");
-        }
-
-        return sql.toString();
-    }
-
-    public byte[] createExcel(UUID userId) {
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
-                new EntidadeNaoEncontradaException(
-                        "Usuário de id: %s não encontrado.".formatted(userId)
-                )
-        );
-
-        List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository
-                .findEventoFinanceiroByUsuarioOrderByDataEventoDesc(usuario);
-
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-
-            // ===== Estilos =====
-            WriteCellStyle headStyle = new WriteCellStyle();
-            headStyle.setFillForegroundColor(IndexedColors.TEAL.getIndex()); // fundo teal escuro
-            WriteFont headFont = new WriteFont();
-            headFont.setBold(true);
-            headFont.setColor(IndexedColors.WHITE.getIndex()); // texto branco
-            headStyle.setWriteFont(headFont);
-
-            WriteCellStyle contentStyle = new WriteCellStyle();
-            contentStyle.setWrapped(true);
-            contentStyle.setVerticalAlignment(VerticalAlignment.CENTER);
-            contentStyle.setHorizontalAlignment(HorizontalAlignment.CENTER);
-
-            HorizontalCellStyleStrategy styleStrategy = new HorizontalCellStyleStrategy(headStyle, contentStyle);
-
-            // ===== Writer =====
-            ExcelWriter writer = EasyExcel.write(out)
-                    .registerWriteHandler(styleStrategy) // aplica estilos
-                    .build();
-
-            // ===== Sheet 1: Informações básicas =====
-            List<List<String>> headInfo = Arrays.asList(
-                    List.of("Campo"),
-                    List.of("Valor")
-            );
-
-            List<List<String>> infoSheet = new ArrayList<>();
-            infoSheet.add(Arrays.asList("Nome", usuario.getNome() + " " + usuario.getSobrenome()));
-            infoSheet.add(Arrays.asList("Data de Nascimento", usuario.getDataNascimento().toString()));
-            infoSheet.add(Arrays.asList("Sexo", usuario.getSexo().toString()));
-            infoSheet.add(Arrays.asList("Email", usuario.getEmail()));
-
-            BigDecimal ganhosTotais = BigDecimal.ZERO;
-            BigDecimal gastosTotais = BigDecimal.ZERO;
-            BigDecimal transferenciasTotais = BigDecimal.ZERO;
-
-            for (EventoFinanceiro evento : eventosFinanceiros) {
-                if (evento.getTipo() == Tipo.Recebimento) {
-                    ganhosTotais = ganhosTotais.add(BigDecimal.valueOf(evento.getValor()));
-                } else if (evento.getTipo() == Tipo.Gasto) {
-                    gastosTotais = gastosTotais.add(BigDecimal.valueOf(evento.getValor()));
-                } else if (evento.getTipo() == Tipo.Transferencia) {
-                    transferenciasTotais = transferenciasTotais.add(BigDecimal.valueOf(evento.getValor()));
-                }
-            }
-
-            infoSheet.add(Arrays.asList("Resumo Geral", ""));
-            infoSheet.add(Arrays.asList("Ganhos", "R$ " + ganhosTotais));
-            infoSheet.add(Arrays.asList("Gastos", "R$ " + gastosTotais));
-            infoSheet.add(Arrays.asList("Transferências", "R$ " + transferenciasTotais));
-            infoSheet.add(Arrays.asList("Saldo", "R$ " + ganhosTotais.subtract(gastosTotais.add(transferenciasTotais))));
-
-            WriteSheet sheetInfo = EasyExcel.writerSheet("Informações Básicas")
-                    .head(headInfo) // cabeçalho explícito
-                    .build();
-            writer.write(infoSheet, sheetInfo);
-
-            // ===== Sheets mensais =====
-            Map<String, List<List<String>>> dadosPorMes = new LinkedHashMap<>();
-
-            for (EventoFinanceiro evento : eventosFinanceiros) {
-                LocalDate data = evento.getDataEvento();
-                String nomeSheet = data.getMonth().toString().substring(0,3).toLowerCase() + "-" + data.getYear();
-
-                dadosPorMes.putIfAbsent(nomeSheet, new ArrayList<>());
-
-                List<String> linha = new ArrayList<>();
-                linha.add(data.toString());
-                linha.add(evento.getGastoDetalhe().getTituloGasto());
-                linha.add(evento.getValor().toString());
-                linha.add(evento.getTipo().toString());
-                linha.add(evento.getDescricao());
-
-                List<EventoInstituicao> instituicoes = eventoInstituicaoRepository
-                        .findEventoInstituicaoByEventoFinanceiro_Id(evento.getId());
-
-                if (!instituicoes.isEmpty()) {
-                    EventoInstituicao inst = instituicoes.get(0);
-                    linha.add(inst.getInstituicaoUsuario().getInstituicao().getNome());
-                    linha.add(inst.getTipoMovimento().toString());
-                    linha.add(String.valueOf(inst.getParcelas()));
-                } else {
-                    linha.add("-");
-                    linha.add("-");
-                    linha.add("-");
-                }
-
-                if (!evento.getGastoDetalhe().getCategoriaUsuario().isEmpty()) {
-                    linha.add(evento.getGastoDetalhe().getCategoriaUsuario().get(0).getCategoria().getTitulo());
-                } else {
-                    linha.add("-");
-                }
-
-                dadosPorMes.get(nomeSheet).add(linha);
-            }
-
-            for (Map.Entry<String, List<List<String>>> entry : dadosPorMes.entrySet()) {
-                List<List<String>> headMes = Arrays.asList(
-                        List.of("Data"),
-                        List.of("Título"),
-                        List.of("Valor"),
-                        List.of("Tipo"),
-                        List.of("Descrição"),
-                        List.of("Instituição"),
-                        List.of("Movimentação"),
-                        List.of("Parcelas"),
-                        List.of("Categoria")
-                );
-
-                List<List<String>> linhasMes = new ArrayList<>(entry.getValue());
-
-                // Resumo do mês
-                BigDecimal ganhosMes = BigDecimal.ZERO;
-                BigDecimal gastosMes = BigDecimal.ZERO;
-                for (List<String> linha : entry.getValue()) {
-                    String tipo = linha.get(3);
-                    BigDecimal valor = new BigDecimal(linha.get(2));
-                    if ("Recebimento".equals(tipo)) ganhosMes = ganhosMes.add(valor);
-                    else if ("Gasto".equals(tipo)) gastosMes = gastosMes.add(valor);
-                }
-                linhasMes.add(List.of(""));
-                linhasMes.add(Arrays.asList("Resumo do Mês", ""));
-                linhasMes.add(Arrays.asList("Ganhos", "R$ " + ganhosMes));
-                linhasMes.add(Arrays.asList("Gastos", "R$ " + gastosMes));
-                linhasMes.add(Arrays.asList("Saldo", "R$ " + ganhosMes.subtract(gastosMes)));
-
-                WriteSheet sheetMes = EasyExcel.writerSheet(entry.getKey())
-                        .head(headMes) // cabeçalho explícito
-                        .build();
-                writer.write(linhasMes, sheetMes);
-            }
-
-            writer.finish();
-            return out.toByteArray();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public byte[] createPdf(UUID userId) {
-        DeviceRgb tealEscuro = new DeviceRgb(54, 115, 115);
-        DeviceRgb tealClaro = new DeviceRgb(180, 217, 213);
-        DeviceRgb fundoPagina = new DeviceRgb(235, 244, 244);
-        DeviceRgb textoEscuro = new DeviceRgb(26, 26, 26);
-        DeviceRgb textoClaro = new DeviceRgb(255, 255, 255);
-
-        Usuario usuario = usuarioRepository.findById(userId).orElseThrow(() ->
-                new EntidadeNaoEncontradaException(
-                        "Usuário de id: %s não encontrado."
-                                .formatted(userId)
-                )
-        );
-
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-        try {
-            // Cria o writer e documento
-            PdfWriter escritor = new PdfWriter(out);
-            PdfDocument pdf = new PdfDocument(escritor);
-            Document documento = new Document(pdf);
-
-            // Título
-            Paragraph titulo = new Paragraph("MyFinance - Registros")
-                    .setBold()
-                    .setFontSize(20)
-                    .setFontColor(tealEscuro)
-                    .setBackgroundColor(tealClaro);
-            documento.add(titulo);
-
-
-            // Dados do usuário
-            documento.add(new Paragraph("Nome: " + usuario.getNome() + " Sobrenome: " + usuario.getSobrenome()));
-            documento.add(new Paragraph("Data de Nascimento: " + usuario.getDataNascimento() +
-                    " Sexo: " + usuario.getSexo().toString()));
-            documento.add(new Paragraph("Email: " + usuario.getEmail()));
-            List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository
-                    .findEventoFinanceiroByUsuarioOrderByDataEventoDesc(usuario);
-
-            Paragraph sumarioTitulo = new Paragraph("Sumário")
-                    .setBold()
-                    .setFontSize(18)
-                    .setFontColor(tealEscuro)
-                    .setMarginBottom(10);
-            documento.add(sumarioTitulo);
-
-            int anoAnterior = -1;
-            Set<String> mesesAdicionados = new HashSet<>();
-
-            //FOR DO SUMÁRIO
-            for (EventoFinanceiro evento : eventosFinanceiros) {
-                LocalDate data = evento.getDataEvento();
-                String nomeMes = data.getMonth().getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
-                nomeMes = nomeMes.substring(0,1).toUpperCase() + nomeMes.substring(1);
-
-                // Se mudou o ano, adiciona título de ano
-                if (data.getYear() != anoAnterior) {
-                    anoAnterior = data.getYear();
-                    Link linkAno = new Link(String.valueOf(anoAnterior), PdfAction.createGoTo("ano_" + anoAnterior));
-                    documento.add(new Paragraph(linkAno)
-                            .setBold()
-                            .setFontSize(14)
-                            .setFontColor(tealEscuro)
-                            .setMarginTop(10));
-                }
-
-                String chaveMes = anoAnterior + "-" + data.getMonthValue();
-
-                if (!mesesAdicionados.contains(chaveMes)) {
-                    mesesAdicionados.add(chaveMes);
-
-                    // Link para o mês
-                    Link linkMes = new Link("   " + nomeMes, PdfAction.createGoTo("mes_" + data.getYear() + "_" + data.getMonthValue()));
-                    documento.add(new Paragraph(linkMes)
-                            .setFontSize(12)
-                            .setFontColor(textoEscuro)
-                            .setMarginLeft(20));
-
-                    // Link para resumo do mês
-                    Link linkResumoMes = new Link("      Resumo de " + nomeMes, PdfAction.createGoTo("resumo_mes_" + data.getYear() + "_" + data.getMonthValue()));
-                    documento.add(new Paragraph(linkResumoMes)
-                            .setFontSize(11)
-                            .setFontColor(textoEscuro)
-                            .setMarginLeft(25));
-                }
-            }
-
-            documento.add(new AreaBreak());
-                // Ordena os eventos por data
-            eventosFinanceiros.sort(Comparator.comparing(EventoFinanceiro::getDataEvento).reversed());
-
-            int anoAtual = -1;
-            int mesAtual = -1;
-
-            Table tabela = new Table(9);
-
-            BigDecimal ganhosMes = BigDecimal.ZERO;
-            BigDecimal gastosMes = BigDecimal.ZERO;
-
-            BigDecimal ganhosAno = BigDecimal.ZERO;
-            BigDecimal gastosAno = BigDecimal.ZERO;
-
-
-                for (EventoFinanceiro evento : eventosFinanceiros) {
-                    LocalDate data = evento.getDataEvento();
-
-                    // Se mudou o ano
-                    if (data.getYear() != anoAtual) {
-                        anoAtual = data.getYear();
-                        documento.add(new Paragraph(String.valueOf(anoAtual))
-                                .setBold()
-                                .setFontSize(18)
-                                .setFontColor(tealEscuro)
-                                .setMarginTop(20));
-
-                        // Define destino para o ano
-                        PdfPage paginaAno = pdf.getLastPage();
-                        PdfExplicitDestination destinoAno = PdfExplicitDestination.createFit(paginaAno);
-                        pdf.addNamedDestination("ano_" + anoAtual, destinoAno.getPdfObject());
-
-
-                    }
-
-                    // Se mudou o mês
-                    if (data.getMonthValue() != mesAtual) {
-                        ganhosMes = BigDecimal.ZERO;
-                        gastosMes = BigDecimal.ZERO;
-
-                        mesAtual = data.getMonthValue();
-                        documento.add(new Paragraph(data.getMonth()
-                                .getDisplayName(TextStyle.FULL, new Locale("pt", "BR")))
-                                .setBold()
-                                .setFontSize(14)
-                                .setFontColor(textoEscuro)
-                                .setMarginLeft(20));
-
-                        // Define destino para o mês
-                        PdfPage paginaMes = pdf.getLastPage();
-                        PdfExplicitDestination destinoMes = PdfExplicitDestination.createFit(paginaMes);
-                        pdf.addNamedDestination("mes_" + anoAtual + "_" + data.getMonthValue(), destinoMes.getPdfObject());
-
-
-                        // Cria tabela para o mês
-                        tabela = new Table(9);
-                        String[] headers = {"Dia", "Título", "Valor", "Tipo", "Descrição", "Instituições", "Movimentação", "Parcelas", "Categorias"};
-                        for (String h : headers) {
-                            Cell cell = new Cell().add(new Paragraph(h).setBold().setFontColor(textoClaro));
-                            cell.setBackgroundColor(tealEscuro);
-                            tabela.addCell(cell);
+            configuracoesRepository.findConfiguracoesByUsuario_Id(usuario.getId())
+                    .ifPresent(config -> {
+                        if (!config.getAlertasEmailAtivos().contains(TipoAlertaEmail.ALERTA_LIMITE_MENSAL)) return;
+                        if (config.getLimiteDesejadoMensal() == null || config.getLimiteDesejadoMensal() <= 0) return;
+
+                        // Ja enviou alerta este mes?
+                        LocalDate hoje = LocalDate.now();
+                        if (config.getUltimoAlertaGastoEnviado() != null
+                                && config.getUltimoAlertaGastoEnviado().getMonth() == hoje.getMonth()
+                                && config.getUltimoAlertaGastoEnviado().getYear() == hoje.getYear()) {
+                            return;
                         }
-                    }
 
-                    // Adiciona linha do evento na tabela atual
-                    tabela.addCell(String.valueOf(data.getDayOfMonth()));
-                    tabela.addCell(evento.getGastoDetalhe().getTituloGasto());
-                    tabela.addCell(evento.getValor().toString());
-                    tabela.addCell(evento.getTipo().toString());
-                    tabela.addCell(evento.getDescricao());
+                        // Soma os gastos do mes atual
+                        LocalDate inicioMes = hoje.withDayOfMonth(1);
+                        double gastoMes = eventoFinanceiroRepository
+                                .findEventoFinanceiroByUsuario_IdAndDataEventoBetween(
+                                        usuario.getId(), inicioMes, hoje)
+                                .stream()
+                                .filter(e -> e.getTipo() == Tipo.Gasto)
+                                .mapToDouble(EventoFinanceiro::getValor)
+                                .sum();
 
-                    List<EventoInstituicao> instituicoes = eventoInstituicaoRepository
-                            .findEventoInstituicaoByEventoFinanceiro_Id(evento.getId());
+                        double limite = config.getLimiteDesejadoMensal();
+                        double percentualReal = (gastoMes / limite) * 100.0;
+                        int threshold = config.getPercentualAlertaGasto() != null
+                                ? config.getPercentualAlertaGasto() : 80;
 
-                    if (!instituicoes.isEmpty()) {
-                        EventoInstituicao inst = instituicoes.get(0);
-                        tabela.addCell(inst.getInstituicaoUsuario().getInstituicao().getNome());
-                        tabela.addCell(inst.getTipoMovimento().toString());
-                        tabela.addCell(String.valueOf(inst.getParcelas()));
-                    } else {
-                        tabela.addCell("-");
-                        tabela.addCell("-");
-                        tabela.addCell("-");
-                    }
-
-                    if (!evento.getGastoDetalhe().getCategoriaUsuario().isEmpty()) {
-                        tabela.addCell(evento.getGastoDetalhe().getCategoriaUsuario().get(0).getCategoria().getTitulo());
-                    } else {
-                        tabela.addCell("-");
-                    }
-                    if (evento.getTipo() == Tipo.Recebimento) {
-                        ganhosMes = ganhosMes.add(BigDecimal.valueOf(evento.getValor()));
-                    } else if (evento.getTipo() == Tipo.Gasto || evento.getTipo() == Tipo.Transferencia) {
-                        gastosMes = gastosMes.add(BigDecimal.valueOf(evento.getValor()));
-                    }
-                    ganhosAno = ganhosAno.add(ganhosMes);
-                    gastosAno = gastosAno.add(gastosMes);
-
-
-                    // Quando chegar no último evento do mês, adiciona a tabela ao documento
-                    if (evento.equals(eventosFinanceiros.get(eventosFinanceiros.size() - 1)) ||
-                            evento.getDataEvento().getMonthValue() != eventosFinanceiros.get(eventosFinanceiros.indexOf(evento) + 1).getDataEvento().getMonthValue()) {
-                        documento.add(tabela);
-
-                        //Tabelinha de gastos e ganhos.
-                        BigDecimal saldoMes = ganhosMes.subtract(gastosMes);
-
-                        Table resumoMes = new Table(3);
-                        resumoMes.setWidth(UnitValue.createPercentValue(100));
-                        resumoMes.addCell(new Cell().add(new Paragraph("Ganhos"))
-                                .setBackgroundColor(tealClaro)
-                                .setFontColor(tealEscuro)
-                                .setBold());
-
-                        resumoMes.addCell(new Cell().add(new Paragraph("Gastos"))
-                                .setBackgroundColor(new DeviceRgb(255, 226, 226)) // vermelho claro
-                                .setFontColor(new DeviceRgb(185, 28, 28)) // vermelho-escuro
-                                .setBold());
-
-                        resumoMes.addCell(new Cell().add(new Paragraph("Saldo"))
-                                .setBackgroundColor(new DeviceRgb(209, 250, 229)) // verde claro
-                                .setFontColor(new DeviceRgb(21, 128, 61)) // verde-escuro
-                                .setBold());
-
-                        resumoMes.addCell(new Cell().add(new Paragraph("R$ " + ganhosMes)));
-                        resumoMes.addCell(new Cell().add(new Paragraph("R$ " + gastosMes)));
-                        resumoMes.addCell(new Cell().add(new Paragraph("R$ " + saldoMes)));
-
-                        documento.add(new Paragraph("Resumo do mês de " + data.getMonth()
-                                .getDisplayName(TextStyle.FULL, new Locale("pt", "BR")))
-                                .setBold().setFontSize(12).setFontColor(tealEscuro).setMarginTop(10));
-
-                        PdfPage paginaResumoMes = pdf.getLastPage();
-                        PdfExplicitDestination destinoResumoMes = PdfExplicitDestination.createFit(paginaResumoMes);
-                        pdf.addNamedDestination("resumo_mes_" + anoAtual + "_" + data.getMonthValue(), destinoResumoMes.getPdfObject());
-
-                        documento.add(resumoMes);
-                        documento.add(new AreaBreak());
-                    }
-
-                }
-            BigDecimal saldoAno = ganhosAno.subtract(gastosAno);
-
-            documento.add(new Paragraph("Resumo do Ano " + anoAtual)
-                    .setBold().setFontSize(14).setFontColor(tealEscuro).setMarginTop(15));
-
-            Table resumoAno = new Table(3);
-            resumoAno.setWidth(UnitValue.createPercentValue(100));
-
-            resumoAno.addCell(new Cell()
-                    .add(new Paragraph("Ganhos"))
-                    .setBackgroundColor(tealClaro)
-                    .setFontColor(tealEscuro)
-                    .setBold());
-
-            resumoAno.addCell(new Cell()
-                    .add(new Paragraph("Gastos"))
-                    .setBackgroundColor(new DeviceRgb(255,226,226))
-                    .setFontColor(new DeviceRgb(185,28,28))
-                    .setBold());
-
-            resumoAno.addCell(new Cell()
-                    .add(new Paragraph("Saldo"))
-                    .setBackgroundColor(new DeviceRgb(209,250,229))
-                    .setFontColor(new DeviceRgb(21,128,61))
-                    .setBold());
-
-            resumoAno.addCell(new Cell().add(new Paragraph("R$ " + ganhosAno)));
-            resumoAno.addCell(new Cell().add(new Paragraph("R$ " + gastosAno)));
-            resumoAno.addCell(new Cell().add(new Paragraph("R$ " + saldoAno)));
-            documento.add(resumoAno);
-
-            // Fecha o documento
-            documento.close();
-
+                        if (percentualReal >= threshold) {
+                            emailService.enviarAlertaLimiteMensal(
+                                    usuario, gastoMes, limite, threshold, percentualReal);
+                            config.setUltimoAlertaGastoEnviado(hoje);
+                            configuracoesRepository.save(config);
+                        }
+                    });
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("[RegistroService] Erro ao verificar alerta de limite: {}", e.getMessage());
         }
-        return out.toByteArray();
     }
 
-    public Double getSaldoPoupanca(UUID userId) {
-        Usuario usuario = usuarioService.getUsuario(userId);
+    /**
+     * Valida uma instituição, aplica as regras do tipo de movimento (Strategy),
+     * confere o saldo quando necessário e persiste as parcelas.
+     */
+    private List<EventoInstituicao> processarPagamento(EventoInstituicao pagamento,
+                                                        EventoFinanceiro evento) {
+        InstituicaoUsuario instUsuario = buscarInstituicaoAtivaOuErro(pagamento.getInstituicaoUsuario().getId());
 
-        List<EventoFinanceiro> eventosFinanceiros = eventoFinanceiroRepository
-                .getEventoFinanceirosByUsuario_id(usuario.getId());
+        Map<String, Object> params = Map.of("parcelas", pagamento.getParcelas());
+        MovimentoStrategy movimentoStrategy = movimentoFactory.getStrategy(pagamento.getTipoMovimento(), params);
+        movimentoStrategy.validar(instUsuario);
+        MovimentoResultado resultado = movimentoStrategy.processar(pagamento);
 
-        return 0.0;
+        // Gastos e transferências requerem saldo suficiente na instituição
+        if (tipoRequerValidacaoSaldo(evento.getTipo())) {
+            BigDecimal saldoDisponivel = instituicaoService.getSaldoByInstituicao(instUsuario.getId());
+            if (BigDecimal.valueOf(resultado.getValorParcela()).compareTo(saldoDisponivel) > 0) {
+                throw new SaldoInsuficienteException(
+                        "Saldo insuficiente na instituição %s para realizar a operação."
+                                .formatted(instUsuario.getInstituicao().getNome()));
+            }
+        }
+
+        return salvarParcelas(resultado, pagamento, instUsuario, evento);
+    }
+
+    /**
+     * Salva os registros de parcelas de um pagamento.
+     *
+     * <ul>
+     *   <li><b>À vista (1 parcela)</b>: salva um único {@link EventoInstituicao}.</li>
+     *   <li><b>Parcelado (N parcelas)</b>: salva um registro por parcela com o valor fracionado.
+     *       Ex.: R$ 300 em 3x → três registros de R$ 100.</li>
+     * </ul>
+     */
+    private List<EventoInstituicao> salvarParcelas(MovimentoResultado resultado,
+                                                    EventoInstituicao pagamento,
+                                                    InstituicaoUsuario instUsuario,
+                                                    EventoFinanceiro evento) {
+        if (resultado.getParcelas() == 1) {
+            pagamento.setInstituicaoUsuario(instUsuario);
+            pagamento.setEventoFinanceiro(evento);
+            pagamento.setParcelas(1);
+            return List.of(eventoInstituicaoRepository.save(pagamento));
+        }
+
+        // Parcelado: cria um registro por número de parcela
+        return IntStream.rangeClosed(1, resultado.getParcelas())
+                .mapToObj(numeroParcela -> {
+                    EventoInstituicao parcela = new EventoInstituicao();
+                    parcela.setParcelas(numeroParcela);
+                    parcela.setEventoFinanceiro(evento);
+                    parcela.setInstituicaoUsuario(instUsuario);
+                    parcela.setTipoMovimento(pagamento.getTipoMovimento());
+                    parcela.setValor(resultado.getValorParcela());
+                    return eventoInstituicaoRepository.save(parcela);
+                })
+                .toList();
+    }
+
+    // =========================================================================
+    // PRIVADOS — validação e busca
+    // =========================================================================
+
+    /**
+     * Tipos que exigem verificação de saldo antes de processar o pagamento.
+     * Recebimento, Poupança e Empréstimo são entradas — não consomem saldo.
+     */
+    private boolean tipoRequerValidacaoSaldo(Tipo tipo) {
+        return tipo == Tipo.Gasto || tipo == Tipo.Transferencia;
+    }
+
+    private Usuario buscarUsuarioOuErro(UUID id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Usuário de id: %s não encontrado.".formatted(id)));
+    }
+
+    private EventoFinanceiro buscarEventoOuErro(UUID eventoId) {
+        return eventoFinanceiroRepository.findById(eventoId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Evento financeiro de id: %s não encontrado.".formatted(eventoId)));
+    }
+
+    /** Busca e valida que a instituição existe e está ativa. */
+    private InstituicaoUsuario buscarInstituicaoAtivaOuErro(Integer id) {
+        InstituicaoUsuario inst = instituicaoUsuarioRepository.findById(id)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Instituição associada ao usuário não encontrada."));
+        if (!inst.getIsAtivo()) {
+            throw new InstituicaoInativaException(
+                    "Instituição '%s' está inativa e não pode ser utilizada."
+                            .formatted(inst.getInstituicao().getNome()));
+        }
+        return inst;
+    }
+
+    private CategoriaUsuario buscarCategoriaOuErro(Integer id) {
+        return categoriaUsuarioRepository.findById(id)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Categoria Usuário de id: %d não encontrada.".formatted(id)));
     }
 }

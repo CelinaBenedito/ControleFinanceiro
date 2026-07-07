@@ -5,11 +5,15 @@ import javafx.application.Application;
 import org.h2.tools.Server;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import java.sql.SQLException;
 
 @SpringBootApplication
+@EntityScan(basePackages = "controle.api.back_end.model")
+@EnableScheduling
 public class BackEndApplication {
 
 	public static void main(String[] args) {
@@ -18,6 +22,7 @@ public class BackEndApplication {
 	}
 
 	@Bean(initMethod = "start", destroyMethod = "stop")
+	@ConditionalOnProperty(name = "h2.tcp.enabled", havingValue = "true", matchIfMissing = true)
 	public Server h2Server() throws SQLException {
 		return Server.createTcpServer("-tcp", "-tcpAllowOthers", "-tcpPort", "9092");
 	}

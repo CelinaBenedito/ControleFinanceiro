@@ -14,6 +14,8 @@ import controle.api.back_end.repository.instituicao.InstituicaoRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -42,8 +44,8 @@ public class InstituicaoService {
         this.usuarioService = usuarioService;
     }
 
-    public List<Instituicao> getInstituicoes() {
-        return instituicaoRepository.findAll();
+    public Page<Instituicao> getInstituicoes(Pageable pageable) {
+        return instituicaoRepository.findAll(pageable);
     }
 
     public Instituicao getInstituicaoById(Integer id) {
@@ -95,11 +97,11 @@ public class InstituicaoService {
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
     }
 
-    public List<InstituicaoUsuario> getInstituicoesByUserId(UUID idUser) {
+    public Page<InstituicaoUsuario> getInstituicoesByUserId(UUID idUser, Pageable pageable) {
         if (!usuarioRepository.existsById(idUser)) {
             throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado".formatted(idUser));
         }
-        return instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(idUser);
+        return instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(idUser, pageable);
     }
 
     public InstituicaoUsuario detachUserFromInstituicao(Integer instituicaoId, UUID userId) {

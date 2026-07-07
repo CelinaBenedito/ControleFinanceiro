@@ -1,24 +1,10 @@
 @import "root.css";
 
 /* ── Meu Perfil page ── */
-.pf-page {
-    font-family: 'Inter', sans-serif;
-}
-
-.pf-page h1 {
-    color: #004C58;
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 28px;
-}
-
-body.dark-mode .pf-page h1 {
-    color: #7dd3fc;
-}
 
 /* ── Shared card ── */
 .pf-card {
-    background: #FAFFFF;
+    background: var(--cor-fundo-card);
     border-radius: 30px;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
     padding: 28px 24px;
@@ -28,19 +14,11 @@ body.dark-mode .pf-page h1 {
     gap: 20px;
 }
 
-body.dark-mode .pf-card {
-    background: #0f172a;
-}
-
 .pf-card h2 {
-    color: #004C58;
+    color: var(--cor-titulo);
     font-size: 2rem;
     font-weight: 700;
     margin: 0;
-}
-
-body.dark-mode .pf-card h2 {
-    color: #7dd3fc;
 }
 
 /* ── Profile hero ── */
@@ -57,7 +35,7 @@ body.dark-mode .pf-card h2 {
     width: 200px;
     height: 200px;
     border-radius: 9999px;
-    border: 2px solid #367373;
+    border: 2px solid var(--cor-principal);
     background: #FAFFFF;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
     display: flex;
@@ -66,18 +44,9 @@ body.dark-mode .pf-card h2 {
     flex-shrink: 0;
 }
 
-body.dark-mode .pf-avatar {
-    background: #0f172a;
-    border-color: #7dd3fc;
-}
-
 .pf-avatar i {
     font-size: 5rem;
-    color: #367373;
-}
-
-body.dark-mode .pf-avatar i {
-    color: #7dd3fc;
+    color: var(--cor-principal);
 }
 
 /* XP bar */
@@ -93,14 +62,10 @@ body.dark-mode .pf-avatar i {
     position: relative;
 }
 
-body.dark-mode .pf-xp-wrap {
-    background: #1e293b;
-}
-
 .pf-xp-bar {
     height: 100%;
     width: 30%;
-    background: #367373;
+    background: var(--cor-principal);
     border-radius: 100px;
     transition: width 0.4s ease;
 }
@@ -109,12 +74,8 @@ body.dark-mode .pf-xp-wrap {
     position: absolute;
     right: 12px;
     font-size: 11px;
-    color: #0E5454;
+    color: var(--cor-texto-secundario);
     font-weight: 200;
-}
-
-body.dark-mode .pf-xp-label {
-    color: #7dd3fc;
 }
 
 /* Name row */
@@ -125,15 +86,11 @@ body.dark-mode .pf-xp-label {
 }
 
 .pf-nome {
-    color: #004C58;
+    color: var(--cor-titulo);
     font-size: 2.2rem;
     font-weight: 600;
     text-align: center;
     line-height: 1.15;
-}
-
-body.dark-mode .pf-nome {
-    color: #7dd3fc;
 }
 
 .pf-edit-btn {
@@ -147,10 +104,6 @@ body.dark-mode .pf-nome {
     line-height: 1;
     display: flex;
     align-items: center;
-}
-
-body.dark-mode .pf-edit-btn {
-    color: #7dd3fc;
 }
 
 /* Info row */
@@ -170,17 +123,12 @@ body.dark-mode .pf-edit-btn {
 
 .pf-info-item strong {
     font-weight: 700;
-    color: #1A1A1A;
+    color: var(--cor-texto-principal);
 }
 
 .pf-info-item span {
     font-weight: 500;
-    color: #1A1A1A;
-}
-
-body.dark-mode .pf-info-item strong,
-body.dark-mode .pf-info-item span {
-    color: #e5f6ff;
+    color: var(--cor-texto-principal);
 }
 
 /* ── Temas ── */
@@ -211,20 +159,15 @@ body.dark-mode .pf-info-item span {
 }
 
 .pf-tema-item.ativo .pf-tema-swatch {
-    border: 3px solid #004C58;
+    border: 3px solid var(--cor-para-destacar);
 }
 
 .pf-tema-label {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #1A1A1A;
+    color: var(--cor-texto-principal);
     text-align: center;
 }
-
-body.dark-mode .pf-tema-label {
-    color: #e5f6ff;
-}
-
 /* Toggles */
 .pf-toggles {
     display: flex;
@@ -238,11 +181,7 @@ body.dark-mode .pf-tema-label {
     gap: 14px;
     font-size: 1rem;
     font-weight: 400;
-    color: #1A1A1A;
-}
-
-body.dark-mode .pf-toggle-row {
-    color: #e5f6ff;
+    color: var(--cor-texto-principal);
 }
 
 .pf-toggle {
@@ -282,23 +221,19 @@ body.dark-mode .pf-toggle-row {
 
 .pf-toggle input:checked+.pf-toggle-slider {
     background: #EBF4F4;
-    outline-color: #367373;
+    outline-color: var(--cor-principal);
 }
 
 .pf-toggle input:checked+.pf-toggle-slider::after {
-    background: #367373;
+    background: var(--cor-principal);
     transform: translateX(22px);
 }
 
 .pf-toggle-state {
     font-size: 0.7rem;
     font-weight: 400;
-    color: #1A1A1A;
+    color: var(--cor-texto-principal);
     min-width: 24px;
-}
-
-body.dark-mode .pf-toggle-state {
-    color: #e5f6ff;
 }
 
 /* ── Shared btn (same as cfg-btn) ── */
@@ -309,12 +244,11 @@ body.dark-mode .pf-toggle-state {
     height: 52px;
     padding: 0 24px;
     min-width: 130px;
-    background: #367373;
+    background: var(--cor-principal);
     color: #fff;
     border: none;
     border-radius: 10px;
     font-size: 17px;
-    font-family: 'Inter', sans-serif;
     font-weight: 400;
     cursor: pointer;
     transition: background 0.2s;
@@ -323,7 +257,7 @@ body.dark-mode .pf-toggle-state {
 }
 
 .pf-btn:hover {
-    background: #004C58;
+    background: var(--cor-hover);
 }
 
 .pf-btn.danger {
@@ -350,18 +284,13 @@ body.dark-mode .pf-toggle-state {
 .pf-resumo-label {
     font-size: 1rem;
     font-weight: 600;
-    color: #1A1A1A;
+    color: var(--cor-texto-principal);
 }
 
 .pf-resumo-valor {
     font-size: 1rem;
     font-weight: 400;
-    color: #1A1A1A;
-}
-
-body.dark-mode .pf-resumo-label,
-body.dark-mode .pf-resumo-valor {
-    color: #e5f6ff;
+    color: var(--cor-texto-principal);
 }
 
 /* ── Tables (institutions / categories) ── */
@@ -370,11 +299,7 @@ body.dark-mode .pf-resumo-valor {
     border-collapse: collapse;
     border-radius: 15px;
     overflow: hidden;
-    outline: 2px solid #367373;
-}
-
-body.dark-mode .pf-table {
-    outline-color: #7dd3fc;
+    outline: 2px solid var(--cor-principal);
 }
 
 .pf-table th {
@@ -383,13 +308,8 @@ body.dark-mode .pf-table {
     padding: 12px 16px;
     font-size: 1rem;
     font-weight: 600;
-    color: #1A1A1A;
-    border-bottom: 1px solid #367373;
-}
-
-body.dark-mode .pf-table th {
-    color: #e5f6ff;
-    border-color: #7dd3fc;
+    color: var(--cor-texto-principal);
+    border-bottom: 1px solid var(--cor-principal);
 }
 
 .pf-table td {
@@ -398,11 +318,6 @@ body.dark-mode .pf-table th {
     color: #0E5454;
     border-bottom: 1px solid rgba(54, 115, 115, 0.2);
     vertical-align: middle;
-}
-
-body.dark-mode .pf-table td {
-    color: #7dd3fc;
-    border-color: rgba(125, 211, 252, 0.2);
 }
 
 .pf-table tr:last-child td {
@@ -437,7 +352,7 @@ body.dark-mode .pf-table td {
     background: rgba(0, 187, 221, 0.1);
 }
 
-.pf-icon-btn.delete {
+.pf-icon-btn.delete {   
     color: #e53e3e;
 }
 
@@ -452,11 +367,10 @@ body.dark-mode .pf-table td {
 
 .pf-campo label {
     margin-bottom: 20px;
-    font-family: 'Inter', sans-serif;
 }
 
 .pf-campo input {
-    border: 1px solid #367373;
+    border: 1px solid var(--cor-principal);
     padding: 10px 20px;
     height: 50px;
     width: 500px;
@@ -466,7 +380,6 @@ body.dark-mode .pf-table td {
 
 .btn-criticos .btn-urgente {
     background-color: var(--red-700);
-    font-family: 'Inter', sans-serif;
     padding: 15px;
     margin: 0 10px;
 }

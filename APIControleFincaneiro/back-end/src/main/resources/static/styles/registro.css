@@ -1,18 +1,6 @@
+@import "root.css";
+
 /* ── Adicionar Registros page ── */
-.ar-page {
-    font-family: 'Inter', sans-serif;
-}
-
-.ar-page h1 {
-    color: #004C58;
-    font-size: 2.8rem;
-    font-weight: 400;
-    margin-bottom: 28px;
-}
-
-body.dark-mode .ar-page h1 {
-    color: #7dd3fc;
-}
 
 /* ── Tab header ── */
 .ar-tabs {
@@ -26,10 +14,9 @@ body.dark-mode .ar-page h1 {
     font-size: 1rem;
     font-weight: 600;
     color: #004C58;
-    font-family: 'Inter', sans-serif;
     cursor: pointer;
     background: #FAFFFF;
-    border: 2px solid #367373;
+    border: 2px solid var(--cor-principal);
     border-bottom: none;
     border-radius: 2px 2px 0 0;
     position: relative;
@@ -41,47 +28,26 @@ body.dark-mode .ar-page h1 {
 
 .ar-tab.ativo {
     background: #FAFFFF;
-    color: #004C58;
+    color: var(--cor-hover);
     z-index: 1;
 }
 
 .ar-tab:not(.ativo) {
     background: #d4e8e8;
-    color: #367373;
-}
-
-body.dark-mode .ar-tab {
-    background: #0f172a;
-    color: #7dd3fc;
-    border-color: #7dd3fc;
-}
-
-body.dark-mode .ar-tab:not(.ativo) {
-    background: #0a0f1e;
-    color: #5bb3c4;
-}
-
-body.dark-mode .ar-tab.ativo {
-    background: #0f172a;
-    color: #7dd3fc;
+    color: var(--cor-principal);
 }
 
 /* ── Main form card ── */
 .ar-card {
-    background: #FAFFFF;
+    background: var(--cor-fundo-card);
     border-radius: 0 20px 20px 20px;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-    border-left: 2px solid #367373;
+    border-left: 2px solid var(--cor-principal);
     padding: 28px 24px;
     display: flex;
     gap: 32px;
     align-items: flex-start;
     flex-wrap: wrap;
-}
-
-body.dark-mode .ar-card {
-    background: #0f172a;
-    border-color: #7dd3fc;
 }
 
 /* Mascot column */
@@ -110,10 +76,24 @@ body.dark-mode .ar-card {
     gap: 14px;
 }
 
+.formulario-adicionar-gasto {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.botao-formulario {
+    display: flex;
+    align-items: end;
+    gap: 1rem;
+}
+
 /* Field wrapper — floating label (espelha .campo do Estilos.css) */
 .ar-field-wrap {
     position: relative;
     margin: 4px 0;
+    flex: 1;
 }
 
 /* Label repousa no centro do input (top 21px = (58px - ~16px) / 2) */
@@ -123,26 +103,21 @@ body.dark-mode .ar-card {
     top: 21px;
     font-size: 15px;
     color: var(--cor-texto-secundario);
-    background-color: #FAFFFF;
+    background-color: var(--cor-fundo-card);
     padding: 0 4px;
     pointer-events: none;
     transition: 0.2s ease-in-out;
     z-index: 1;
 }
 
-body.dark-mode .ar-field-wrap label {
-    background-color: #0f172a;
-}
-
 .ar-field-wrap input {
     height: 58px;
     border-radius: 10px;
-    border: 2px solid #367373;
+    border: 2px solid var(--cor-principal);
     padding: 0 18px;
     font-size: 1rem;
-    font-family: 'Inter', sans-serif;
     font-weight: 600;
-    color: #367373;
+    color: var(--cor-principal);
     background: transparent;
     width: 100%;
     box-sizing: border-box;
@@ -152,12 +127,11 @@ body.dark-mode .ar-field-wrap label {
 .ar-field-wrap select {
     height: 58px;
     border-radius: 10px;
-    border: 2px solid #367373;
+    border: 2px solid var(--cor-principal);
     padding: 0 18px;
     font-size: 1rem;
-    font-family: 'Inter', sans-serif;
     font-weight: 600;
-    color: #367373;
+    color: var(--cor-principal);
     background: transparent;
     width: 100%;
     box-sizing: border-box;
@@ -172,31 +146,19 @@ body.dark-mode .ar-field-wrap label {
     border-color: #004C58;
 }
 
-body.dark-mode .ar-field-wrap input,
-body.dark-mode .ar-field-wrap select {
-    border-color: #7dd3fc;
-    color: #7dd3fc;
-}
-
 /* Inputs: label flutua para top:-1px (assenta na borda) ao focar ou ter valor */
 .ar-field-wrap input:focus+label,
 .ar-field-wrap input:not(:placeholder-shown)+label {
     top: -1px;
     font-size: 12px;
-    color: #367373;
+    color: var(--cor-principal);
 }
 
 /* Selects: label sempre flutua — select exibe o valor selecionado */
 .ar-field-wrap select+label {
     top: -1px;
     font-size: 12px;
-    color: #367373;
-}
-
-body.dark-mode .ar-field-wrap input:focus+label,
-body.dark-mode .ar-field-wrap input:not(:placeholder-shown)+label,
-body.dark-mode .ar-field-wrap select+label {
-    color: #7dd3fc;
+    color: var(--cor-principal);
 }
 
 /* Seta para selects */
@@ -206,14 +168,10 @@ body.dark-mode .ar-field-wrap select+label {
     right: 16px;
     top: 50%;
     transform: translateY(-50%);
-    color: #367373;
+    color: var(--cor-principal);
     pointer-events: none;
     font-size: 0.9rem;
     z-index: 1;
-}
-
-body.dark-mode .ar-field-wrap:has(select)::after {
-    color: #7dd3fc;
 }
 
 /* Date display + button row */
@@ -225,13 +183,9 @@ body.dark-mode .ar-field-wrap:has(select)::after {
 }
 
 .ar-date-display {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #0E5454;
-}
-
-body.dark-mode .ar-date-display {
-    color: #7dd3fc;
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--cor-principal);
 }
 
 /* Buttons */
@@ -242,12 +196,11 @@ body.dark-mode .ar-date-display {
     height: 52px;
     padding: 0 24px;
     min-width: 130px;
-    background: #367373;
+    background: var(--cor-principal);
     color: #fff;
     border: none;
     border-radius: 10px;
     font-size: 1rem;
-    font-family: 'Inter', sans-serif;
     font-weight: 400;
     cursor: pointer;
     transition: background 0.2s;
@@ -255,7 +208,7 @@ body.dark-mode .ar-date-display {
 }
 
 .ar-btn:hover {
-    background: #004C58;
+    background: var(--cor-hover);
 }
 
 /* Fix: .containerGeral button (especificidade 11) sobrescreve .ar-btn (10).
@@ -268,18 +221,13 @@ body.dark-mode .ar-date-display {
 
 .ar-btn.secondary {
     background: transparent;
-    border: 2px solid #367373;
-    color: #367373;
+    border: 2px solid var(--cor-principal);
+    color: var(--cor-principal);
 }
 
 .ar-btn.secondary:hover {
-    background: #367373;
+    background: var(--cor-principal);
     color: #fff;
-}
-
-body.dark-mode .ar-btn.secondary {
-    border-color: #7dd3fc;
-    color: #7dd3fc;
 }
 
 .ar-btns-row {
@@ -293,12 +241,8 @@ body.dark-mode .ar-btn.secondary {
 .label-data {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #367373;
+    color: var(--cor-principal);
     margin: 0;
-}
-
-body.dark-mode .label-data {
-    color: #7dd3fc;
 }
 
 /* Gestão de Conta section */
@@ -318,32 +262,28 @@ body.dark-mode .label-data {
     margin: 0;
 }
 
-body.dark-mode .ar-gestao-info h3 {
-    color: #7dd3fc;
-}
-
 #ValorTotal {
     font-size: 1.4rem;
     font-weight: 700;
-    color: #367373;
+    color: var(--cor-principal);
     margin: 0;
 }
 
-body.dark-mode #ValorTotal {
-    color: #7dd3fc;
+/* ── Múltiplos Registros table ── */
+.tabela-registro {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
-/* ── Múltiplos Registros table ── */
 .ar-multi-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
     border-radius: 15px;
     overflow: hidden;
-    outline: 2px solid #367373;
-}
-
-body.dark-mode .ar-multi-table {
-    outline-color: #7dd3fc;
+    border-spacing: 0;
+    /* outline: 2px solid var(--cor-principal); */
+    /* overflow-x: auto; */
+    border: 2px solid var(--cor-principal);
 }
 
 .ar-multi-table th {
@@ -351,31 +291,56 @@ body.dark-mode .ar-multi-table {
     padding: 10px 14px;
     font-size: 0.95rem;
     font-weight: 600;
-    color: #367373;
-    border-bottom: 1px solid #367373;
-    font-family: 'Inter', sans-serif;
-    background: #EBF4F4;
-}
-
-body.dark-mode .ar-multi-table th {
-    color: #7dd3fc;
-    border-color: #7dd3fc;
-    background: #0a0f1e;
+    color: var(--cor-principal);
+    border-bottom: 1px solid var(--cor-principal);
+    background: var(--cor-fundo-pagina);
 }
 
 .ar-multi-table td {
     padding: 10px 14px;
     font-size: 0.9rem;
-    color: #367373;
+    color: var(--cor-principal);
     border-bottom: 1px solid rgba(54, 115, 115, 0.2);
-    font-family: 'Inter', sans-serif;
-}
-
-body.dark-mode .ar-multi-table td {
-    color: #7dd3fc;
-    border-color: rgba(125, 211, 252, 0.15);
 }
 
 .ar-multi-table tr:last-child td {
     border-bottom: none;
+}
+
+.ar-multi-table th:last-child,
+.ar-multi-table td:last-child {
+    border-right: none;
+}
+
+/* FORMULÁRIO */
+.multi-form {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.field-default {
+    flex: 1;
+    min-width: 160px;
+}
+
+.field-small {
+    display: none;
+    flex: 1;
+    min-width: 130px;
+}
+
+.field-value {
+    flex: 1;
+    min-width: 140px;
+}
+
+.field-description {
+    flex: 2;
+    min-width: 200px;
+}
+
+.btn-add {
+    flex-shrink: 0;
 }

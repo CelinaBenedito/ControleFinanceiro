@@ -15,6 +15,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -47,12 +49,14 @@ public class UsuarioController {
             @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e não retornou dados",
                     content = @Content)
     })
-    public ResponseEntity<List<UsuarioResponseDTO>> getUsuarios() {
-        List<Usuario> all = usuarioService.getUsuarios();
-        if (all.isEmpty()) {
+    public ResponseEntity<Page<UsuarioResponseDTO>> getUsuarios(
+            @RequestParam(defaultValue = "0") int pagina) {
+        Page<UsuarioResponseDTO> response = usuarioService
+                .getUsuarios(PageRequest.of(pagina, 10))
+                .map(UsuarioMappper::toDto);
+        if (response.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
-        List<UsuarioResponseDTO> response = UsuarioMappper.toDto(all);
         return ResponseEntity.ok(response);
     }
 

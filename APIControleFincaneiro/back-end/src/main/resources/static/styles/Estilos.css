@@ -1,42 +1,19 @@
-:root {
-    --teal-claro: #B4D9D5;
-    --teal-escuro: #367373;
-    --cor-fundo-pagina: #EBF4F4;
-    --cor-fundo-card: #FFFFFF;
-    --cor-texto-claro: #FFFFFF;
-    --cor-texto-escuro: #1A1A1A;
-    --cor-texto-secundario: #4A4A4A;
-    --cor-texto-alternativo: #367373;
-    --sombra-card: rgba(54, 115, 115, 0.099);
-    --red-700: #b91c1c;
-    --red-100: #fee2e2;
-    --green-700: #15803d;
-    --green-100: #d1fae5;
-}
-
-body.dark-mode {
-    --cor-fundo-pagina: #020617;
-    --cor-fundo-card: #020617;
-
-    --cor-texto-escuro: #e5f6ff;
-    --cor-texto-secundario: #94a3b8;
-    --cor-texto-alternativo: #7dd3fc;
-
-    --sombra-card: rgba(15, 23, 42, 0.9);
-
-    --red-700: #f87171;
-    --red-100: #450a0a;
-
-    --green-700: #4ade80;
-    --green-100: #052e16;
-}
-
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+@import "root.css";
 
 * {
     margin: 0;
     padding: 0;
     border: 0;
     box-sizing: border-box;
+    font-family: "Open Sans", sans-serif;;
+}
+
+h1 {
+    color: var(--cor-titulo);
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 28px;
 }
 
 .adicionarTipo {
@@ -86,7 +63,7 @@ body.dark-mode {
 .conteudoAlerta button {
     padding: 10px;
     border-radius: 10px;
-    background-color: var(--teal-escuro);
+    background-color: var(--cor-principal);
     color: var(--cor-texto-claro);
     margin: 20px 0px;
 }
@@ -103,15 +80,14 @@ body.dark-mode {
     flex-direction: column;
     gap: 15px;
     background-color: var(--cor-fundo-pagina);
-    color: var(--cor-texto-escuro);
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    color: var(--cor-texto-principal);
     min-height: 100vh;
 }
 
 .containerGeral button {
     padding: 10px;
     border-radius: 10px;
-    background-color: var(--teal-escuro);
+    background-color: var(--cor-principal);
     color: var(--cor-texto-claro);
     margin: 10px 0px;
 }
@@ -119,12 +95,11 @@ body.dark-mode {
 .side-bar {
     padding: 20px;
     gap: 10px;
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     font-weight: bolder;
     font-size: 23px;
     display: flex;
     flex-direction: column;
-    background-color: var(--teal-escuro);
+    background-color: var(--cor-principal);
     height: 100vh;
     position: fixed;
     overflow-x: hidden;
@@ -166,7 +141,7 @@ body.dark-mode {
     display: flex;
     text-decoration: none;
     transition: 0.3s;
-    color: var(--cor-texto);
+    color: var(--cor-texto-claro);
 }
 
 .side-bar a span {
@@ -205,7 +180,7 @@ body.dark-mode {
 
 .gasto-valor {
     font-size: 1.875rem;
-    font-weight: 800;
+    font-weight: 600;
     display: block;
 }
 
@@ -246,7 +221,7 @@ body.dark-mode {
 }
 
 .impactoKPI {
-    background: var(--teal-escuro);
+    background: var(--cor-principal);
     color: var(--cor-texto-claro);
     padding: 0.25rem 0.75rem;
     border-radius: 0.5rem;
@@ -319,15 +294,15 @@ body.dark-mode {
 .campo input {
     padding: 10px;
     border-radius: 10px;
-    color: var(--teal-escuro);
+    color: var(--cor-principal);
     transition: 0.2s;
-    border: solid 1px var(--teal-escuro);
+    border: solid 1px var(--cor-principal);
     background-color: transparent;
 }
 
 .campo input:focus {
     outline: none;
-    border: solid 2px var(--teal-escuro);
+    border: solid 2px var(--cor-principal);
 }
 
 .campo label {
@@ -346,15 +321,15 @@ body.dark-mode {
 .campo input:not(:placeholder-shown)+label {
     top: -1px;
     font-size: 12px;
-    color: var(--teal-escuro);
+    color: var(--cor-principal);
 }
 
 .campo select {
     padding: 10px;
     border-radius: 10px;
-    color: var(--teal-escuro);
+    color: var(--cor-principal);
     transition: 0.2s;
-    border: solid 1px var(--teal-escuro);
+    border: solid 1px var(--cor-principal);
     background-color: transparent;
     /* Para manter a transparência do fundo */
     appearance: none;
@@ -365,7 +340,7 @@ body.dark-mode {
 
 .campo select:focus {
     outline: none;
-    border: solid 2px var(--teal-escuro);
+    border: solid 2px var(--cor-principal);
 }
 
 .campo label {
@@ -384,7 +359,7 @@ body.dark-mode {
 .campo select:not([value=""]):valid+label {
     top: -1px;
     font-size: 12px;
-    color: var(--teal-escuro);
+    color: var(--cor-principal);
 }
 
 .modal {
@@ -394,6 +369,7 @@ body.dark-mode {
     background: rgba(0, 0, 0, 0.5);
     justify-content: center;
     align-items: center;
+    z-index: 1;
 }
 
 .conteudoModal {
@@ -417,12 +393,12 @@ body.dark-mode {
 }
 
 .dias span:hover {
-    background: var(--teal-claro);
+    background: var(--cor-hover);
 }
 
 .diaSelecionado {
-    background: var(--teal-escuro);
-    color: var(--cor-texto-escuro);
+    background: var(--cor-principal);
+    color: var(--cor-texto-principal);
     border-radius: 5px;
 }
 
@@ -451,7 +427,7 @@ body.dark-mode {
 
 .headerFormulario .titulo {
     text-decoration: none;
-    color: var(--teal-escuro);
+    color: var(--cor-principal);
     padding: 8px 0;
     position: relative;
 
@@ -469,7 +445,7 @@ body.dark-mode {
     left: 0;
     width: 100%;
     height: 3px;
-    background-color: var(--teal-escuro);
+    background-color: var(--cor-principal);
     border-radius: 2px;
     transition: all 0.3s ease;
 }
@@ -495,7 +471,7 @@ body.dark-mode {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     text-align: center;
-    background-color: var(--teal-escuro);
+    background-color: var(--cor-principal);
     color: var(--cor-texto-claro);
     padding: 10px;
     border-top-left-radius: 10px;
@@ -513,7 +489,7 @@ body.dark-mode {
 
 .cardRegistro {
     display: grid;
-    grid-template-columns: 70px 1fr auto auto;
+    grid-template-columns: 1fr 100px 1fr 1fr 1fr auto;
     gap: 16px;
     align-items: center;
 
@@ -527,9 +503,12 @@ body.dark-mode {
 /* Botões de ação do card de registro */
 .registroAcoes {
     display: flex;
-    flex-direction: column;
     gap: 6px;
     align-items: center;
+}
+
+.registroInfo {
+    text-align: center;
 }
 
 .reg-icon-btn {
@@ -572,13 +551,12 @@ body.dark-mode {
 .er-field-wrap select {
     height: 52px;
     width: 100%;
-    border: 2px solid #367373;
+    border: 2px solid var(--cor-principal);
     border-radius: 10px;
     padding: 0 16px;
     font-size: 1rem;
-    font-family: 'Inter', sans-serif;
     font-weight: 600;
-    color: #367373;
+    color: var(--cor-principal);
     background: transparent;
     box-sizing: border-box;
     appearance: none;
@@ -588,7 +566,7 @@ body.dark-mode {
 .er-field-wrap input:focus,
 .er-field-wrap select:focus {
     outline: none;
-    border-color: #004C58;
+    border-color: var(--cor-hover);
 }
 
 .er-field-wrap label {
@@ -607,13 +585,13 @@ body.dark-mode {
 .er-field-wrap input:not(:placeholder-shown)+label {
     top: -1px;
     font-size: 12px;
-    color: #367373;
+    color: var(--cor-principal);
 }
 
 .er-field-wrap select+label {
     top: -1px;
     font-size: 12px;
-    color: #367373;
+    color: var(--cor-principal);
 }
 
 .ano {
@@ -649,11 +627,11 @@ body.dark-mode {
 .registroValor {
     font-weight: 700;
     font-size: 1.1rem;
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
 }
 
 .registroTipo {
-    background: var(--teal-claro);
+    background: var(--cor-hover);
     padding: 4px 8px;
     border-radius: 8px;
     font-size: 1.0rem;
@@ -721,7 +699,7 @@ body.dark-mode {
 
 .ano-header.open,
 .mes-header.open {
-    color: var(--teal-escuro);
+    color: var(--cor-principal);
 }
 
 .botoes {
@@ -735,10 +713,10 @@ body.dark-mode {
     display: none;
 }
 
-footer {
+/* footer {
     margin-top: 15px;
     display: flex;
-    background-color: var(--teal-escuro);
+    background-color: var(--cor-principal);
     padding: 10px;
 }
 
@@ -758,11 +736,11 @@ footer {
 footer a {
     text-decoration: none;
     color: var(--cor-texto-claro);
-}
+} */
 
 .containerRegistros {
     display: grid;
-    grid-template-columns: 130px 10% 10%;
+    grid-template-columns: 250px 10% 10%;
     gap: 5px;
     align-items: center;
 }
@@ -807,11 +785,11 @@ footer a {
 
     font-size: 15px;
     font-weight: 600;
-    color: var(--teal-escuro);
+    color: var(--cor-principal);
 
     background-color: var(--cor-fundo-card);
-    border: 1px solid var(--teal-claro);
-    border-left: 5px solid var(--teal-escuro);
+    border: 1px solid var(--cor-hover);
+    border-left: 5px solid var(--cor-principal);
     border-radius: 10px;
 
     box-shadow: 0 6px 16px var(--sombra-card);
@@ -855,10 +833,10 @@ footer a {
     opacity: 0.9;
 }
 
-.aviso h1 {
+.aviso h3 {
     font-size: 1.4rem;
     font-weight: 800;
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
 }
 
 .aviso p {
@@ -883,7 +861,7 @@ footer a {
 
     font-size: 0.95rem;
     font-weight: 700;
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
 }
 
 .titulo-grafico span {
@@ -899,7 +877,7 @@ footer a {
 }
 
 .tooltip-icon:hover {
-    color: var(--teal-escuro);
+    color: var(--cor-principal);
 }
 
 /* Tooltip */
@@ -938,7 +916,6 @@ footer a {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     background-color: var(--cor-fundo-pagina);
 }
 
@@ -969,7 +946,7 @@ footer a {
     width: 90px;
     height: 90px;
 
-    background-color: var(--teal-escuro);
+    background-color: var(--cor-principal);
     border-radius: 50%;
 
     display: flex;
@@ -996,13 +973,13 @@ footer a {
 
 .usuario-card span {
     font-size: 14px;
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
 }
 
 .usuario:hover,
 .addUsuario:hover {
     transform: scale(1.08);
-    background-color: var(--teal-claro);
+    background-color: var(--cor-hover);
 }
 
 .containerCadastro {
@@ -1041,15 +1018,6 @@ footer a {
     max-width: 700px;
 }
 
-body.dark-mode .card-formulario {
-    background-color: rgba(2, 6, 23, 0.75);
-    backdrop-filter: blur(10px);
-}
-
-body.dark-mode .card-formulario .campo label {
-    background-color: rgba(2, 6, 23, 0.4);
-}
-
 .campo.full {
     align-self: center;
     text-align: center;
@@ -1062,12 +1030,12 @@ body.dark-mode .card-formulario .campo label {
 
 .containerCadastro h1 {
     font-size: 32px;
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
     font-weight: 600;
 }
 
 .containerCadastro p {
-    color: var(--cor-texto-escuro);
+    color: var(--cor-texto-principal);
     opacity: 0.9;
 }
 
@@ -1126,7 +1094,7 @@ body.dark-mode .card-formulario .campo label {
 }
 
 .user-widget:focus-visible {
-    outline: 2px solid #367373 !important;
+    outline: 2px solid var(--cor-principal) !important;
     outline-offset: 3px;
     border: none !important;
     box-shadow: 0 0 0 4px rgba(54, 115, 115, 0.2) !important;
@@ -1140,14 +1108,9 @@ body.dark-mode .card-formulario .campo label {
 }
 
 .uw-nome {
-    color: #367373;
+    color: var(--cor-principal);
     font-size: 12px;
-    font-family: 'Inter', sans-serif;
     font-weight: 600;
-}
-
-body.dark-mode .uw-nome {
-    color: #7dd3fc;
 }
 
 .uw-xp-track {
@@ -1163,14 +1126,10 @@ body.dark-mode .uw-nome {
     box-sizing: border-box;
 }
 
-body.dark-mode .uw-xp-track {
-    background: #0f172a;
-}
-
 .uw-xp-fill {
     width: 33%;
     height: 14px;
-    background: #367373;
+    background: var(--cor-principal);
     border-radius: 100px;
     flex-shrink: 0;
 }
@@ -1180,10 +1139,9 @@ body.dark-mode .uw-xp-track {
     font-weight: 200;
     color: #0E5454;
     white-space: nowrap;
-}
-
-body.dark-mode .uw-lvl {
-    color: #7dd3fc;
+    position: absolute;
+    z-index: 2;
+    margin-left: 10px;
 }
 
 .uw-avatar {
@@ -1192,7 +1150,7 @@ body.dark-mode .uw-lvl {
     background: #FAFFFF;
     border-radius: 50%;
     /* box-shadow used instead of outline so the ring follows border-radius */
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px #367373;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px var(--cor-principal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1201,10 +1159,5 @@ body.dark-mode .uw-lvl {
 }
 
 .user-widget:hover .uw-avatar {
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px #004C58;
-}
-
-body.dark-mode .uw-avatar {
-    background: #0f172a;
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px #7dd3fc;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px var(--cor-hover);
 }

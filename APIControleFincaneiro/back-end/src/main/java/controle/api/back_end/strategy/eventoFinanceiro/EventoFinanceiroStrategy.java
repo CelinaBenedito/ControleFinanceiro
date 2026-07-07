@@ -1,10 +1,12 @@
 package controle.api.back_end.strategy.eventoFinanceiro;
 
-import controle.api.back_end.dto.registros.in.TransferenciaDTO;
+import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
-import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+
+import java.util.List;
 
 public interface EventoFinanceiroStrategy {
-    Registro processar(EventoFinanceiro evento, EventoInstituicao eventoInstituicao, InstituicaoUsuario destino);
+    Registro processar(EventoFinanceiro evento, List<EventoInstituicao> instituicoes, EventoDetalhe detalhe);
 }
+

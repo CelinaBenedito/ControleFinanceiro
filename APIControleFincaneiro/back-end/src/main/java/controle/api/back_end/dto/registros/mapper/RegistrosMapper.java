@@ -9,19 +9,21 @@ import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.Periodicidade;
+import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
+import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import jakarta.validation.Valid;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class RegistrosMapper {
 
     public static EventoFinanceiro toEntityFinanceiro(@Valid EventoFinanceiroCreateDto dto){
-        if (dto == null){
-            return null;
-        }
+        if (dto == null) return null;
 
         EventoFinanceiro entity = new EventoFinanceiro();
         Usuario user = new Usuario();
@@ -33,14 +35,45 @@ public class RegistrosMapper {
         entity.setDescricao(dto.getDescricao());
         entity.setDataEvento(dto.getDataEvento());
 
+        // Campos de poupança
+        entity.setTaxaRendimento(dto.getTaxaRendimento());
+        entity.setTempoAplicacao(dto.getTempoAplicacao());
+        entity.setTempoProjecao(dto.getTempoProjecao());
+
         return entity;
     }
+
 
     public static List<EventoFinanceiro> toEntityFinanceiro(@Valid List<EventoFinanceiroCreateDto> dtos){
         return dtos.stream()
                 .map(RegistrosMapper::toEntityFinanceiro)
                 .toList();
     }
+
+    public static RecorrenciaFinanceira toEntityRecorrencia(@Valid EventoFinanceiroCreateDto dto) {
+        if (dto == null) return null;
+
+        RecorrenciaFinanceira entity = new RecorrenciaFinanceira();
+        Usuario user = new Usuario();
+        user.setId(dto.getUsuario_id());
+
+        entity.setUsuario(user);
+        entity.setTipo(dto.getTipo());
+        entity.setValor(dto.getValor());
+        entity.setDescricao(dto.getDescricao());
+        entity.setDataInicio(dto.getDataEvento());
+        entity.setDataFim(dto.getDataFim());
+        entity.setIntervalo(dto.getIntervalo());
+        entity.setDia(dto.getDia());
+
+        if (dto.getPeriodicidade() != null) {
+            entity.setPeriodicidade(Periodicidade.valueOf(dto.getPeriodicidade()));
+        }
+        entity.setDiasDaSemana(dto.getDiasDaSemana());
+
+        return entity;
+    }
+
 
     public static EventoInstituicao toEntityEvento(@Valid EventoInstituicaoCreateDto dto){
         if (dto == null){
@@ -249,5 +282,30 @@ public class RegistrosMapper {
         return responses;
     }
 
+    public static RegistroUsuarioResponseDto toResponseUser(Registro registro) {
+        if (registro == null || registro.getEventosFinanceiros() == null) {
+            return null;
+        }
+
+        // Pega o primeiro evento como referência
+        EventoFinanceiro eventoFinanceiro = registro.getEventosFinanceiros().getFirst();
+
+        // Recupera TODAS as instituições vinculadas ao registro
+        List<EventoInstituicao> eventoInstituicoes = registro.getInstituicoesPorEvento()
+                .values()
+                .stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
+
+        // Recupera detalhe único vinculado ao primeiro evento
+        EventoDetalhe eventoDetalhe = registro.getDetalhePorEvento()
+                .getOrDefault(eventoFinanceiro, null);
+
+        if (eventoFinanceiro == null || eventoDetalhe == null) {
+            return null;
+        }
+
+        return toResponseUser(eventoFinanceiro, eventoInstituicoes, eventoDetalhe);
+    }
 
 }

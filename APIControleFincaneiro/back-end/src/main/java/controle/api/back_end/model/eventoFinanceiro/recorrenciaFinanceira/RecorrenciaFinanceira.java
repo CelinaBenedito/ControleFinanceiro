@@ -1,22 +1,23 @@
 package controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira;
 
-import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
-public abstract class RecorrenciaFinanceira {
+public class RecorrenciaFinanceira {
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     private Usuario usuario;
 
     @Enumerated(EnumType.STRING)
@@ -25,13 +26,23 @@ public abstract class RecorrenciaFinanceira {
     @NotNull
     private Double valor;
 
-    @Size(max = 500)
     private String descricao;
+
+    @Enumerated(EnumType.STRING)
+    private Periodicidade periodicidade;
 
     private LocalDate dataInicio;
     private LocalDate dataFim;
 
-    public abstract List<EventoFinanceiro> gerarEventos(LocalDate limite);
+    private Integer intervalo;
+    private Integer dia;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @Enumerated(EnumType.STRING)
+    private List<DayOfWeek> diasDaSemana;
+
+    @OneToMany(mappedBy = "recorrenciaFinanceira", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<EventoInstituicao> eventoInstituicaos;
 
     public UUID getId() {
         return id;
@@ -73,6 +84,14 @@ public abstract class RecorrenciaFinanceira {
         this.descricao = descricao;
     }
 
+    public Periodicidade getPeriodicidade() {
+        return periodicidade;
+    }
+
+    public void setPeriodicidade(Periodicidade periodicidade) {
+        this.periodicidade = periodicidade;
+    }
+
     public LocalDate getDataInicio() {
         return dataInicio;
     }
@@ -87,6 +106,38 @@ public abstract class RecorrenciaFinanceira {
 
     public void setDataFim(LocalDate dataFim) {
         this.dataFim = dataFim;
+    }
+
+    public Integer getIntervalo() {
+        return intervalo;
+    }
+
+    public void setIntervalo(Integer intervalo) {
+        this.intervalo = intervalo;
+    }
+
+    public Integer getDia() {
+        return dia;
+    }
+
+    public void setDia(Integer dia) {
+        this.dia = dia;
+    }
+
+    public List<DayOfWeek> getDiasDaSemana() {
+        return diasDaSemana;
+    }
+
+    public void setDiasDaSemana(List<DayOfWeek> diasDaSemana) {
+        this.diasDaSemana = diasDaSemana;
+    }
+
+    public List<EventoInstituicao> getEventoInstituicaos() {
+        return eventoInstituicaos;
+    }
+
+    public void setEventoInstituicaos(List<EventoInstituicao> eventoInstituicaos) {
+        this.eventoInstituicaos = eventoInstituicaos;
     }
 }
 

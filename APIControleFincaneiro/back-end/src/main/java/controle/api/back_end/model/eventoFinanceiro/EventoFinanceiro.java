@@ -1,5 +1,6 @@
 package controle.api.back_end.model.eventoFinanceiro;
 
+import controle.api.back_end.model.poupanca.Caixinha;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -33,14 +34,28 @@ public class EventoFinanceiro {
     @NotNull
     private LocalDate dataEvento;
 
+    private Double taxaRendimento;
+
+    private Integer tempoAplicacao;
+
+    private Integer tempoProjecao;
+
     @OneToMany(mappedBy = "eventoFinanceiro", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<EventoInstituicao> eventoInstituicao;
+    private List<EventoInstituicao> eventoInstituicoes;
 
     @OneToOne(mappedBy = "eventoFinanceiro", cascade = CascadeType.ALL, orphanRemoval = true)
     private EventoDetalhe eventoDetalhe;
 
     @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime dataRegistro;
+
+    /**
+     * Caixinha de poupança à qual este evento pertence.
+     * Preenchido apenas para eventos do tipo {@link Tipo#Poupanca}.
+     * Nulo = evento avulso (não vinculado a nenhuma caixinha).
+     */
+    @ManyToOne
+    private Caixinha caixinha;
 
     public Usuario getUsuario() {
         return usuario;
@@ -90,6 +105,30 @@ public class EventoFinanceiro {
         this.dataEvento = dataEvento;
     }
 
+    public Double getTaxaRendimento() {
+        return taxaRendimento;
+    }
+
+    public void setTaxaRendimento(Double taxaRendimento) {
+        this.taxaRendimento = taxaRendimento;
+    }
+
+    public Integer getTempoAplicacao() {
+        return tempoAplicacao;
+    }
+
+    public void setTempoAplicacao(Integer tempoAplicacao) {
+        this.tempoAplicacao = tempoAplicacao;
+    }
+
+    public Integer getTempoProjecao() {
+        return tempoProjecao;
+    }
+
+    public void setTempoProjecao(Integer tempoProjecao) {
+        this.tempoProjecao = tempoProjecao;
+    }
+
     public LocalDateTime getDataRegistro() {
         return dataRegistro;
     }
@@ -98,12 +137,12 @@ public class EventoFinanceiro {
         this.dataRegistro = dataRegistro;
     }
 
-    public List<EventoInstituicao> getEventoInstituicao() {
-        return eventoInstituicao;
+    public List<EventoInstituicao> getEventoInstituicoes() {
+        return eventoInstituicoes;
     }
 
-    public void setEventoInstituicao(List<EventoInstituicao> eventoInstituicao) {
-        this.eventoInstituicao = eventoInstituicao;
+    public void setEventoInstituicoes(List<EventoInstituicao> eventoInstituicoes) {
+        this.eventoInstituicoes = eventoInstituicoes;
     }
 
     public EventoDetalhe getGastoDetalhe() {
@@ -113,4 +152,7 @@ public class EventoFinanceiro {
     public void setGastoDetalhe(EventoDetalhe eventoDetalhe) {
         this.eventoDetalhe = eventoDetalhe;
     }
+
+    public Caixinha getCaixinha() { return caixinha; }
+    public void setCaixinha(Caixinha caixinha) { this.caixinha = caixinha; }
 }

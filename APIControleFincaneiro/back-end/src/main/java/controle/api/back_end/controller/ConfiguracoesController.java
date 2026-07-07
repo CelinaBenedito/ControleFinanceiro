@@ -4,13 +4,14 @@ import controle.api.back_end.dto.configuracoes.in.*;
 import controle.api.back_end.dto.configuracoes.mapper.ConfiguracoesMapper;
 import controle.api.back_end.dto.configuracoes.out.ConfiguracaoUsuarioResponseDTO;
 import controle.api.back_end.dto.configuracoes.out.ConfiguracoesResponsesDTO;
-import controle.api.back_end.dto.usuario.out.UsuarioResponseDTO;
+import controle.api.back_end.dto.upload.ImportResultDto;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.service.ConfiguracoesService;
+import controle.api.back_end.service.UploadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -23,9 +24,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 @CrossOrigin
 @RestController
@@ -34,9 +38,12 @@ import java.util.UUID;
 public class ConfiguracoesController {
 
     private final ConfiguracoesService configuracoesService;
+    private final UploadService uploadService;
 
-    public ConfiguracoesController(ConfiguracoesService configuracoesService) {
+    public ConfiguracoesController(ConfiguracoesService configuracoesService,
+                                   UploadService uploadService) {
         this.configuracoesService = configuracoesService;
+        this.uploadService = uploadService;
     }
 
     @GetMapping
@@ -49,13 +56,15 @@ public class ConfiguracoesController {
             @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e não retornou dados!",
                     content = @Content)
     })
-    public ResponseEntity<List<ConfiguracoesResponsesDTO>> getConfiguracoes(){
-        List<Configuracoes> all = configuracoesService.getConfiguracoes();
-        if(all.isEmpty()){
+    public ResponseEntity<Page<ConfiguracoesResponsesDTO>> getConfiguracoes(
+            @RequestParam(defaultValue = "0") int pagina){
+        Page<ConfiguracoesResponsesDTO> response = configuracoesService
+                .getConfiguracoes(PageRequest.of(pagina, 10))
+                .map(ConfiguracoesMapper::toDto);
+        if(response.isEmpty()){
             return ResponseEntity.noContent().build();
         }
-        List<ConfiguracoesResponsesDTO> responses = ConfiguracoesMapper.toDto(all);
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
@@ -161,17 +170,96 @@ public class ConfiguracoesController {
         return ResponseEntity.status(200).body(response);
     }
 
-    @PostMapping(value ="/upload-arquivo/usuarios/{user_id}",
+    @PostMapping(value = "/upload-arquivo/usuarios/{user_id}",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> postArquivo(@PathVariable UUID user_id,
-                                            @RequestParam MultipartFile arquivo){
-        if (arquivo.isEmpty()){
-            return ResponseEntity.badRequest().body("Nenhum arquivo enviado.");
-        }
-        String nomeArquivo = arquivo.getOriginalFilename();
-        String tipoArquivo = arquivo.getContentType();
+    @Operation(summary = "Importar registros a partir de um arquivo",
+            description = "Importa eventos financeiros a partir de arquivos nos formatos:\n" +
+                    "- **JSON / SQL / Excel (.xlsx)**: gerados pelo endpoint `/download` da aplicação\n" +
+                    "- **OFX / QFX**: extrato bancário padrão Open Financial Exchange (todos os bancos)\n" +
+                    "- **CSV**: extrato bancário CSV (Inter e bancos com layout Data;Descrição;Valor;Saldo)\n" +
+                    "- **PDF**: extrato bancário PDF (melhor esforço — prefira OFX ou CSV)\n\n" +
+                    "Para formatos de extrato bancário (OFX, CSV, PDF), use o parâmetro `bancoNome` " +
+                    "para vincular as transações à instituição cadastrada do usuário " +
+                    "(ex: `bancoNome=Inter`). No OFX, a tag `<ORG>` é usada automaticamente.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Importação concluída (verifique o campo 'erros' para falhas parciais).",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImportResultDto.class))),
+            @ApiResponse(responseCode = "400", description = "Arquivo vazio ou formato não suportado.",
+                    content = @Content),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
+                    content = @Content)
+    })
+    public ResponseEntity<ImportResultDto> postArquivo(
+            @PathVariable UUID user_id,
+            @RequestParam MultipartFile arquivo,
+            @RequestParam(required = false) String bancoNome) throws IOException {
 
-        return ResponseEntity.status(200).build();
+        if (arquivo.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        String contentType = arquivo.getContentType() != null
+                ? arquivo.getContentType().toLowerCase() : "";
+        String nomeArquivo = arquivo.getOriginalFilename() != null
+                ? arquivo.getOriginalFilename().toLowerCase() : "";
+
+        byte[] bytes = arquivo.getBytes();
+        ImportResultDto resultado;
+
+        if (contentType.contains("json") || nomeArquivo.endsWith(".json")) {
+            resultado = uploadService.importFromJson(user_id, bytes);
+
+        } else if (contentType.contains("sql") || nomeArquivo.endsWith(".sql")) {
+            resultado = uploadService.importFromSql(user_id, bytes);
+
+        } else if (contentType.contains("spreadsheetml") || contentType.contains("excel")
+                || nomeArquivo.endsWith(".xlsx") || nomeArquivo.endsWith(".xls")) {
+            resultado = uploadService.importFromExcel(user_id, bytes);
+
+        } else if (nomeArquivo.endsWith(".ofx") || nomeArquivo.endsWith(".qfx")
+                || contentType.contains("ofx") || contentType.contains("x-ofx")) {
+            // OFX: usa <ORG> internamente + bancoNome como fallback
+            resultado = uploadService.importFromOfxWithBank(user_id, bytes, bancoNome);
+
+        } else if (nomeArquivo.endsWith(".csv")
+                || contentType.contains("csv") || contentType.contains("comma-separated")) {
+            resultado = uploadService.importFromBankStatementCsv(user_id, bytes, bancoNome);
+
+        } else if (contentType.contains("pdf") || nomeArquivo.endsWith(".pdf")) {
+            // PDF: se bancoNome fornecido ou nome do arquivo sugere extrato → trata como bancário
+            boolean isBankStatement = (bancoNome != null && !bancoNome.isBlank())
+                    || nomeArquivo.contains("extrato") || nomeArquivo.contains("statement");
+            if (isBankStatement) {
+                resultado = uploadService.importFromBankStatementPdf(user_id, bytes, bancoNome);
+            } else {
+                // Tenta como exportação da própria aplicação
+                resultado = uploadService.importFromPdf(user_id, bytes);
+                // Fallback: se não importou nada, tenta como extrato bancário
+                if (resultado.getTotalImportados() == 0 && resultado.getErros().isEmpty()) {
+                    resultado = uploadService.importFromBankStatementPdf(user_id, bytes, bancoNome);
+                }
+            }
+
+        } else {
+            // Inferência pelo conteúdo
+            String preview = new String(bytes, 0, Math.min(bytes.length, 200)).trim();
+            if (preview.startsWith("{") || preview.startsWith("[")) {
+                resultado = uploadService.importFromJson(user_id, bytes);
+            } else if (preview.startsWith("--") || preview.toUpperCase().startsWith("INSERT")) {
+                resultado = uploadService.importFromSql(user_id, bytes);
+            } else if (preview.startsWith("PK")) {
+                resultado = uploadService.importFromExcel(user_id, bytes);
+            } else if (preview.toUpperCase().contains("OFXHEADER") || preview.toUpperCase().contains("<OFX>")) {
+                resultado = uploadService.importFromOfxWithBank(user_id, bytes, bancoNome);
+            } else if (preview.toLowerCase().contains("data") && preview.contains(";")) {
+                resultado = uploadService.importFromBankStatementCsv(user_id, bytes, bancoNome);
+            } else {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+
+        return ResponseEntity.ok(resultado);
     }
 
     @PutMapping("/edit/{id}")

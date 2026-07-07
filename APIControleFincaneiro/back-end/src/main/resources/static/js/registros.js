@@ -99,17 +99,25 @@ function renderizarRegistros(json) {
                             const card = document.createElement("div");
                             card.className = "cardRegistro";
                             card.innerHTML = `
-                                <div class="dataRegistro">${dia}</div>
-
                                 <div class="registroInfo">
+                                    <div class="dataRegistro">${dia}</div>
+                                    <div class="registroTipo">${tipo}</div>
+                                </div>
+                                <div class="registroInfo">
+                                    <div><p>Valor</p></div>
+                                    <div class="registroValor">${formatadorMoeda.format(valor)}</div>
+                                </div>
+                                <div class="registroDetalhes">
                                     <div class="registroTitulo">${titulo}</div>
                                     <div class="registroDescricao">${descricao}</div>
                                 </div>
-
                                 <div class="registroDetalhes">
-                                    <div class="registroValor">${formatadorMoeda.format(valor)}</div>
-                                    <div class="registroTipo">${tipo}</div>
+                                    <div><p>Instituições</p></div>
                                     <div class="registroInstituicao">${instNome}</div>
+                                </div>
+                                <div class="registroDetalhes">
+                                    <div><p>Categoria</p></div>
+                                    <div class="registroInstituicao">{Falta integrar}</div>
                                 </div>
 
                                 <div class="registroAcoes">
@@ -250,64 +258,6 @@ async function abrirModalFiltroRegistros() {
     const opcoesMovimento = ["Debito", "Credito", "Dinheiro", "Pix", "Boleto", "Voucher"];
 
     modal.innerHTML = `
-        <style>
-            .fr-card { width:min(1040px,96vw); max-height:90vh; overflow:auto; padding:28px; background:#FAFFFF; border-radius:30px; border:1px solid #CFE5E5; box-shadow:0 16px 42px rgba(14,84,84,0.22); display:flex; flex-direction:column; gap:24px; font-family:Inter,sans-serif; }
-            .fr-top { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-            .fr-title { margin:0; color:#004C58; font-size:1.9rem; font-weight:800; letter-spacing:0.2px; }
-            .fr-close { width:40px; height:40px; border:1px solid #9cc9c9; border-radius:10px; background:#ffffff; font-size:1.6rem; color:#367373; cursor:pointer; line-height:1; transition:.2s; }
-            .fr-close:hover { background:#EAF6F6; border-color:#367373; }
-            .fr-secao-titulo { margin:0 0 10px; color:#004C58; font-size:1.05rem; font-weight:700; }
-            .fr-box { border:none; border-radius:0; padding:4px 0; max-height:235px; overflow:auto; background:transparent; }
-            .fr-box::-webkit-scrollbar { width:10px; }
-            .fr-box::-webkit-scrollbar-thumb { background:#B8D9D9; border-radius:8px; border:2px solid #fff; }
-            .fr-grid-2 { display:flex; flex-direction:column; gap:18px; }
-            .fr-lista { display:flex; flex-direction:column; gap:8px; }
-            .fr-check { display:flex; align-items:center; gap:10px; font-size:1rem; color:#1f2b2b; padding:6px 8px; border-radius:8px; transition:background .15s; }
-            .fr-check:hover { background:#F0F9F9; }
-            .fr-check input { width:18px; height:18px; accent-color:#367373; }
-            .fr-date-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-            .fr-date-display { font-size:1rem; font-weight:700; color:#0E5454; margin:0; padding:10px 12px; background:#F0F9F9; border:1px solid #BFDDDD; border-radius:10px; }
-            .fr-btn { display:inline-flex; align-items:center; justify-content:center; height:50px; padding:0 18px; border-radius:10px; font-size:1rem; font-weight:700; cursor:pointer; transition:.2s; }
-            .fr-btn.primary { background:#367373; color:#fff; border:none; box-shadow:0 6px 18px rgba(54,115,115,.26); }
-            .fr-btn.primary:hover { background:#0E5454; }
-            .fr-btn.secondary { background:transparent; color:#367373; border:2px solid #367373; }
-            .fr-btn.secondary:hover { background:#EAF6F6; }
-            .fr-actions { display:flex; justify-content:flex-end; gap:10px; }
-            .fr-busca-grid { display:flex; gap:12px; align-items:end; }
-            .fr-busca-grow { flex:1; min-width:220px; }
-            .fr-select-wrap { position:relative; }
-            .fr-select-wrap::after { content:'▾'; position:absolute; right:14px; top:50%; transform:translateY(-44%); color:#367373; pointer-events:none; font-size:.9rem; }
-            .fr-select {
-                width:100%; height:58px; border-radius:10px; border:2px solid #367373; padding:0 38px 0 14px; font-size:1rem; font-weight:600;
-                color:#367373; background:#FAFFFF; appearance:none; outline:none; transition:border-color .2s, box-shadow .2s;
-            }
-            .fr-select:focus { border-color:#004C58; box-shadow:0 0 0 3px rgba(54,115,115,.15); }
-
-            body.dark-mode #modalFiltroRegistros .fr-card { background:#0f172a; border-color:#24455c; box-shadow:0 14px 32px rgba(0,0,0,.55); }
-            body.dark-mode #modalFiltroRegistros .fr-title,
-            body.dark-mode #modalFiltroRegistros .fr-secao-titulo { color:#7dd3fc; }
-            body.dark-mode #modalFiltroRegistros .fr-box { background:transparent; border:none; }
-            body.dark-mode #modalFiltroRegistros .fr-check { color:#d6f0ff; }
-            body.dark-mode #modalFiltroRegistros .fr-check:hover { background:#13243a; }
-            body.dark-mode #modalFiltroRegistros .fr-date-display { background:#13243a; border-color:#31556c; color:#b9e8ff; }
-            body.dark-mode #modalFiltroRegistros .fr-close { background:#13243a; border-color:#31556c; color:#9bdfff; }
-            body.dark-mode #modalFiltroRegistros .fr-close:hover { background:#1a3050; }
-            body.dark-mode #modalFiltroRegistros .fr-btn.secondary { color:#9bdfff; border-color:#5ca7d1; }
-            body.dark-mode #modalFiltroRegistros .fr-btn.secondary:hover { background:#1a3050; }
-            body.dark-mode #modalFiltroRegistros .fr-select { background:#0f172a; color:#9bdfff; border-color:#5ca7d1; }
-            body.dark-mode #modalFiltroRegistros .fr-select-wrap::after { color:#9bdfff; }
-
-            @media (max-width: 760px) {
-                .fr-card { width:96vw; padding:16px; border-radius:20px; gap:16px; }
-                .fr-title { font-size:1.45rem; }
-                .fr-busca-grid { width:100%; flex-direction:column; align-items:stretch; }
-                .fr-box { max-height:190px; }
-                .fr-actions { flex-direction:column-reverse; }
-                .fr-actions .fr-btn { width:100%; }
-                .fr-date-row { align-items:stretch; }
-            }
-        </style>
-
         <div class="fr-card">
             <div class="fr-top">
                 <h2 class="fr-title">Filtro de Registros</h2>
@@ -516,7 +466,7 @@ async function abrirEdicaoRegistro(registro) {
     modal.innerHTML = `
         <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(520px,92vw);
                     display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,0.25);
-                    max-height:90vh;overflow-y:auto;font-family:'Inter',sans-serif;">
+                    max-height:90vh;overflow-y:auto;">
             <h2 style="color:#004C58;margin:0;font-size:1.4rem;">Editar Registro</h2>
 
             <div class="er-field-wrap">
@@ -536,7 +486,7 @@ async function abrirEdicaoRegistro(registro) {
                     <option value="Transferencia"${ef.tipo === 'Transferencia' ? ' selected' : ''}>Transferência</option>
                 </select>
                 <label for="erTipo">Tipo do Evento</label>
-                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#367373;pointer-events:none;">▾</span>
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--cor-principal);pointer-events:none;">▾</span>
             </div>
 
             <div class="er-field-wrap">
@@ -554,7 +504,7 @@ async function abrirEdicaoRegistro(registro) {
                     <option value="Voucher"${ei.tipoMovimento === 'Voucher' ? ' selected' : ''}>Voucher</option>
                 </select>
                 <label for="erMovimento">Movimento</label>
-                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#367373;pointer-events:none;">▾</span>
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--cor-principal);pointer-events:none;">▾</span>
             </div>
 
             <div id="erWrapParcelas" class="er-field-wrap" style="${mostrarParcelas ? '' : 'display:none;'}">
@@ -565,13 +515,13 @@ async function abrirEdicaoRegistro(registro) {
             <div class="er-field-wrap" style="position:relative;">
                 <select id="erInstituicao">${instOpts}</select>
                 <label for="erInstituicao">Instituição</label>
-                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#367373;pointer-events:none;">▾</span>
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--cor-principal);pointer-events:none;">▾</span>
             </div>
 
             <div class="er-field-wrap" style="position:relative;">
                 <select id="erCategoria">${catOpts}</select>
                 <label for="erCategoria">Categoria</label>
-                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#367373;pointer-events:none;">▾</span>
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--cor-principal);pointer-events:none;">▾</span>
             </div>
 
             <div class="er-field-wrap">
@@ -583,12 +533,12 @@ async function abrirEdicaoRegistro(registro) {
 
             <div style="display:flex;gap:12px;">
                 <button id="erBtnCancelar"
-                    style="flex:1;height:52px;background:transparent;color:#367373;border:2px solid #367373;
+                    style="flex:1;height:52px;background:transparent;color:var(--cor-principal);border:2px solid var(--cor-principal);
                            border-radius:10px;font-size:1rem;cursor:pointer;">
                     Cancelar
                 </button>
                 <button id="erBtnSalvar"
-                    style="flex:1;height:52px;background:#367373;color:#fff;border:none;
+                    style="flex:1;height:52px;background:var(--cor-principal);color:#fff;border:none;
                            border-radius:10px;font-size:1rem;cursor:pointer;">
                     Salvar
                 </button>
@@ -663,7 +613,7 @@ function confirmarRemocaoRegistro(registro) {
         popup.innerHTML = `
             <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(380px,90vw);
                         display:flex;flex-direction:column;gap:20px;box-shadow:0 8px 32px rgba(0,0,0,0.25);
-                        font-family:'Inter',sans-serif;align-items:center;text-align:center;">
+                        align-items:center;text-align:center;">
                 <i class='bx bx-error-circle' style="font-size:3rem;color:#e53e3e;"></i>
                 <div>
                     <p style="font-size:1.1rem;font-weight:600;color:#1A1A1A;margin:0 0 6px;">Remover registro?</p>
@@ -672,7 +622,7 @@ function confirmarRemocaoRegistro(registro) {
                 <p style="font-size:0.85rem;color:#888;margin:0;">Esta ação não pode ser desfeita.</p>
                 <div style="display:flex;gap:12px;width:100%;">
                     <button onclick="document.getElementById('popupConfirmarRemocao').style.display='none'"
-                        style="flex:1;height:48px;background:transparent;color:#367373;border:2px solid #367373;
+                        style="flex:1;height:48px;background:transparent;color:var(--cor-principal);border:2px solid var(--cor-principal);
                                border-radius:10px;font-size:1rem;cursor:pointer;transition:background 0.2s;">
                         Cancelar
                     </button>
