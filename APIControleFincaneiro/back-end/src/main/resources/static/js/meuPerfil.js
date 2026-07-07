@@ -42,7 +42,8 @@
         btnOk.addEventListener("click", () => { div.style.display = "none"; onConfirm(); });
         const btnNo = document.createElement("button");
         btnNo.textContent = "Cancelar";
-        btnNo.style.background = "#888";
+        btnNo.style.background = "var(--cor-toggle-inativo)";
+        btnNo.style.color = "var(--cor-texto-principal)";
         btnNo.addEventListener("click", () => { div.style.display = "none"; });
         divBtns.appendChild(btnNo);
         divBtns.appendChild(btnOk);
@@ -254,21 +255,23 @@
             modal = document.createElement("div");
             modal.id = "modalEdicao";
             modal.style.cssText = `
-                position:fixed;inset:0;background:rgba(0,0,0,0.5);
+                position:fixed;inset:0;background:var(--cor-overlay);
                 display:flex;align-items:center;justify-content:center;z-index:9999;
             `;
             modal.innerHTML = `
-                <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(460px,90vw);display:flex;flex-direction:column;gap:16px;">
-                    <h2 style="color:#004C58;margin:0;font-size:1.4rem;">Editar Perfil</h2>
+                <div style="background:var(--cor-fundo-card);border-radius:20px;padding:32px;width:min(460px,90vw);
+                            color:var(--cor-texto-principal);
+                            display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px var(--sombra-caixa);">
+                    <h2 style="color:var(--cor-titulo);margin:0;font-size:1.4rem;">Editar Perfil</h2>
                     <input id="edNome" type="text" placeholder="Nome"
-                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;">
+                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;background:var(--cor-fundo-campo);color:var(--cor-texto-principal);">
                     <input id="edSobrenome" type="text" placeholder="Sobrenome"
-                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;">
+                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;background:var(--cor-fundo-campo);color:var(--cor-texto-principal);">
                     <input id="edEmail" type="email" placeholder="Email"
-                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;">
+                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;background:var(--cor-fundo-campo);color:var(--cor-texto-principal);">
                     <input id="edNascimento" type="date"
-                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;">
-                    <select id="edSexo" style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;appearance:none;">
+                        style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;background:var(--cor-fundo-campo);color:var(--cor-texto-principal);">
+                    <select id="edSexo" style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;appearance:none;background:var(--cor-fundo-campo);color:var(--cor-texto-principal);">
                         <option value="">Sexo</option>
                         <option value="Masculino">Masculino</option>
                         <option value="Feminino">Feminino</option>
@@ -276,7 +279,7 @@
                     </select>
                     <div style="display:flex;gap:12px;margin-top:4px;">
                         <button onclick="salvarEdicaoPerfil()"
-                            style="flex:1;height:48px;background:var(--cor-principal);color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                            style="flex:1;height:48px;background:var(--cor-principal);color:var(--cor-texto-claro);border:none;border-radius:8px;font-size:16px;cursor:pointer;">
                             Salvar
                         </button>
                         <button onclick="document.getElementById('modalEdicao').style.display='none'"
@@ -396,7 +399,7 @@
             const tr = document.createElement("tr");
             const td = document.createElement("td");
             td.colSpan = 4;
-            td.style.cssText = "padding:16px;text-align:center;color:#888;";
+            td.style.cssText = "padding:16px;text-align:center;color:var(--cor-texto-secundario);";
             td.textContent = "Nenhuma instituição vinculada.";
             tr.appendChild(td);
             tbody.appendChild(tr);
@@ -463,19 +466,21 @@
         const modal = document.createElement("div");
         modal.id = "modalInstituicao";
         modal.style.cssText = `
-            position:fixed;inset:0;background:rgba(0,0,0,0.5);
+            position:fixed;inset:0;background:var(--cor-overlay);
             display:flex;align-items:center;justify-content:center;z-index:9999;
         `;
         modal.innerHTML = `
-            <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(400px,90vw);display:flex;flex-direction:column;gap:16px;">
-                <h2 style="color:#004C58;margin:0;font-size:1.4rem;">Vincular Instituição</h2>
-                <select id="selNovaInst" style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;appearance:none;">
+            <div style="background:var(--cor-fundo-card);border-radius:20px;padding:32px;width:min(400px,90vw);
+                        color:var(--cor-texto-principal);
+                        display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px var(--sombra-caixa);">
+                <h2 style="color:var(--cor-titulo);margin:0;font-size:1.4rem;">Vincular Instituição</h2>
+                <select id="selNovaInst" style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;appearance:none;background:var(--cor-fundo-campo);color:var(--cor-texto-principal);">
                     <option value="">Selecione...</option>
                     ${options}
                 </select>
                 <div style="display:flex;gap:12px;">
                     <button onclick="confirmarAdicionarInst()"
-                        style="flex:1;height:48px;background:var(--cor-principal);color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                        style="flex:1;height:48px;background:var(--cor-principal);color:var(--cor-texto-claro);border:none;border-radius:8px;font-size:16px;cursor:pointer;">
                         Vincular
                     </button>
                     <button onclick="document.getElementById('modalInstituicao').remove()"
@@ -525,7 +530,7 @@
             const tr = document.createElement("tr");
             const td = document.createElement("td");
             td.colSpan = 4;
-            td.style.cssText = "padding:16px;text-align:center;color:#888;";
+            td.style.cssText = "padding:16px;text-align:center;color:var(--cor-texto-secundario);";
             td.textContent = "Nenhuma categoria registrada.";
             tr.appendChild(td);
             tbody.appendChild(tr);
@@ -582,17 +587,19 @@
         const modal = document.createElement("div");
         modal.id = "modalCategoria";
         modal.style.cssText = `
-            position:fixed;inset:0;background:rgba(0,0,0,0.5);
+            position:fixed;inset:0;background:var(--cor-overlay);
             display:flex;align-items:center;justify-content:center;z-index:9999;
         `;
         modal.innerHTML = `
-            <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(400px,90vw);display:flex;flex-direction:column;gap:16px;">
-                <h2 style="color:#004C58;margin:0;font-size:1.4rem;">Nova Categoria</h2>
+            <div style="background:var(--cor-fundo-card);border-radius:20px;padding:32px;width:min(400px,90vw);
+                        color:var(--cor-texto-principal);
+                        display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px var(--sombra-caixa);">
+                <h2 style="color:var(--cor-titulo);margin:0;font-size:1.4rem;">Nova Categoria</h2>
                 <input id="edTituloCategoria" type="text" placeholder="Nome da categoria"
-                    style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;">
+                    style="height:48px;border:2px solid var(--cor-principal);border-radius:8px;padding:0 14px;font-size:16px;background:var(--cor-fundo-campo);color:var(--cor-texto-principal);">
                 <div style="display:flex;gap:12px;">
                     <button onclick="confirmarAdicionarCategoria()"
-                        style="flex:1;height:48px;background:var(--cor-principal);color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                        style="flex:1;height:48px;background:var(--cor-principal);color:var(--cor-texto-claro);border:none;border-radius:8px;font-size:16px;cursor:pointer;">
                         Adicionar
                     </button>
                     <button onclick="document.getElementById('modalCategoria').style.display='none'"

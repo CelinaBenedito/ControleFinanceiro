@@ -27,6 +27,7 @@ h1 {
 .conteudoTipo {
     display: flex;
     background: var(--cor-fundo-card);
+    color: var(--cor-texto-principal);
     padding: 20px;
     border-radius: 10px;
     width: 350px;
@@ -52,6 +53,7 @@ h1 {
 .conteudoAlerta {
     display: flex;
     background: var(--cor-fundo-card);
+    color: var(--cor-texto-principal);
     padding: 20px;
     border-radius: 10px;
     width: 350px;
@@ -374,6 +376,7 @@ h1 {
 
 .conteudoModal {
     background: var(--cor-fundo-card);
+    color: var(--cor-texto-principal);
     padding: 20px;
     border-radius: 10px;
     width: 350px;

@@ -106,14 +106,14 @@ function renderizarRegistros(json) {
 
                             // Badge de tipo com cor
                             const tipoEstilos = {
-                                'Gasto':                { bg: 'var(--red-100)',   color: 'var(--red-700)' },
-                                'Recebimento':          { bg: 'var(--green-100)', color: 'var(--green-700)' },
-                                'Transferencia':        { bg: '#e0f2fe',          color: '#0369a1' },
-                                'Gasto Agendado':       { bg: '#fef9c3',          color: '#854d0e' },
-                                'Recebimento Agendado': { bg: '#d1fae5',          color: '#065f46' },
+                                'Gasto':                { bg: 'var(--red-100)',               color: 'var(--red-700)' },
+                                'Recebimento':          { bg: 'var(--green-100)',             color: 'var(--green-700)' },
+                                'Transferencia':        { bg: 'var(--cor-transferencia-bg)',  color: 'var(--cor-transferencia-texto)' },
+                                'Gasto Agendado':       { bg: 'var(--cor-agendamento-bg)',    color: 'var(--cor-agendamento-texto)' },
+                                'Recebimento Agendado': { bg: 'var(--cor-recebimento-bg)',    color: 'var(--cor-recebimento-texto)' },
                             };
                             const tipoLabel = tipo === 'Transferencia' ? 'Transferência' : tipo;
-                            const est = tipoEstilos[tipo] || { bg: '#f1f5f9', color: '#475569' };
+                            const est = tipoEstilos[tipo] || { bg: 'var(--cor-fundo-inativo)', color: 'var(--cor-texto-secundario)' };
                             const tipoBadge = `<span class="reg-tipo-badge" style="background:${est.bg};color:${est.color};">${tipoLabel}</span>`;
 
                             // Tags de instituições
@@ -494,12 +494,13 @@ async function abrirEdicaoRegistro(registro) {
 
     const modal = document.createElement('div');
     modal.id = 'modalEdicaoRegistro';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+    modal.style.cssText = 'position:fixed;inset:0;background:var(--cor-overlay);display:flex;align-items:center;justify-content:center;z-index:9999;';
     modal.innerHTML = `
-        <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(520px,92vw);
-                    display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,0.25);
+        <div style="background:var(--cor-fundo-card);border-radius:20px;padding:32px;width:min(520px,92vw);
+                    color:var(--cor-texto-principal);
+                    display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px var(--sombra-caixa);
                     max-height:90vh;overflow-y:auto;">
-            <h2 style="color:#004C58;margin:0;font-size:1.4rem;">Editar Registro</h2>
+            <h2 style="color:var(--cor-titulo);margin:0;font-size:1.4rem;">Editar Registro</h2>
 
             <div class="er-field-wrap">
                 <input id="erTitulo" type="text" placeholder=" " value="${(gd.tituloGasto || '').replace(/"/g, '&quot;')}">
@@ -561,7 +562,7 @@ async function abrirEdicaoRegistro(registro) {
                 <label for="erData">Data</label>
             </div>
 
-            <p id="erMsgErro" style="color:#e53e3e;font-size:0.9rem;margin:0;display:none;"></p>
+            <p id="erMsgErro" style="color:var(--red-700);font-size:0.9rem;margin:0;display:none;"></p>
 
             <div style="display:flex;gap:12px;">
                 <button id="erBtnCancelar"
@@ -570,7 +571,7 @@ async function abrirEdicaoRegistro(registro) {
                     Cancelar
                 </button>
                 <button id="erBtnSalvar"
-                    style="flex:1;height:52px;background:var(--cor-principal);color:#fff;border:none;
+                    style="flex:1;height:52px;background:var(--cor-principal);color:var(--cor-texto-claro);border:none;
                            border-radius:10px;font-size:1rem;cursor:pointer;">
                     Salvar
                 </button>
@@ -643,15 +644,16 @@ function confirmarRemocaoRegistro(registro) {
             display:flex;align-items:center;justify-content:center;z-index:9999;
         `;
         popup.innerHTML = `
-            <div style="background:#FAFFFF;border-radius:20px;padding:32px;width:min(380px,90vw);
-                        display:flex;flex-direction:column;gap:20px;box-shadow:0 8px 32px rgba(0,0,0,0.25);
+            <div style="background:var(--cor-fundo-card);border-radius:20px;padding:32px;width:min(380px,90vw);
+                        color:var(--cor-texto-principal);
+                        display:flex;flex-direction:column;gap:20px;box-shadow:0 8px 32px var(--sombra-caixa);
                         align-items:center;text-align:center;">
-                <i class='bx bx-error-circle' style="font-size:3rem;color:#e53e3e;"></i>
+                <i class='bx bx-error-circle' style="font-size:3rem;color:var(--red-700);"></i>
                 <div>
-                    <p style="font-size:1.1rem;font-weight:600;color:#1A1A1A;margin:0 0 6px;">Remover registro?</p>
-                    <p id="popupRemocaoNome" style="font-size:0.95rem;color:#4A4A4A;margin:0;"></p>
+                    <p style="font-size:1.1rem;font-weight:600;color:var(--cor-texto-principal);margin:0 0 6px;">Remover registro?</p>
+                    <p id="popupRemocaoNome" style="font-size:0.95rem;color:var(--cor-texto-secundario);margin:0;"></p>
                 </div>
-                <p style="font-size:0.85rem;color:#888;margin:0;">Esta ação não pode ser desfeita.</p>
+                <p style="font-size:0.85rem;color:var(--cor-texto-secundario);margin:0;">Esta ação não pode ser desfeita.</p>
                 <div style="display:flex;gap:12px;width:100%;">
                     <button onclick="document.getElementById('popupConfirmarRemocao').style.display='none'"
                         style="flex:1;height:48px;background:transparent;color:var(--cor-principal);border:2px solid var(--cor-principal);
@@ -659,7 +661,7 @@ function confirmarRemocaoRegistro(registro) {
                         Cancelar
                     </button>
                     <button id="popupBtnConfirmar"
-                        style="flex:1;height:48px;background:#e53e3e;color:#fff;border:none;border-radius:10px;
+                        style="flex:1;height:48px;background:var(--red-700);color:var(--cor-texto-claro);border:none;border-radius:10px;
                                font-size:1rem;cursor:pointer;transition:background 0.2s;">
                         Remover
                     </button>
@@ -672,8 +674,8 @@ function confirmarRemocaoRegistro(registro) {
             if (e.target === popup) popup.style.display = 'none';
         });
 
-        popup.querySelector('#popupBtnConfirmar').addEventListener('mouseover', e => e.target.style.background = '#c53030');
-        popup.querySelector('#popupBtnConfirmar').addEventListener('mouseout', e => e.target.style.background = '#e53e3e');
+        popup.querySelector('#popupBtnConfirmar').addEventListener('mouseover', e => e.target.style.background = 'var(--red-800)');
+        popup.querySelector('#popupBtnConfirmar').addEventListener('mouseout', e => e.target.style.background = 'var(--red-700)');
 
         document.body.appendChild(popup);
     }

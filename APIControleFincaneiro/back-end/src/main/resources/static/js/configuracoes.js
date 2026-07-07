@@ -46,7 +46,8 @@
         divBtns.style.cssText = "display:flex;gap:8px;margin-top:10px;";
         const btnNo = document.createElement("button");
         btnNo.textContent = "Cancelar";
-        btnNo.style.background = "#888";
+        btnNo.style.background = "var(--cor-toggle-inativo)";
+        btnNo.style.color = "var(--cor-texto-principal)";
         const btnOk = document.createElement("button");
         btnOk.textContent = "Confirmar";
         btnOk.addEventListener("click", () => { div.style.display = "none"; onConfirm(); });
@@ -635,7 +636,7 @@
             "display:none",
             "position:fixed",
             "inset:0",
-            "background:rgba(0,0,0,0.55)",
+            "background:var(--cor-overlay)",
             "z-index:9999",
             "align-items:center",
             "justify-content:center",
@@ -643,56 +644,57 @@
         ].join(";");
 
         modal.innerHTML = `
-            <div style="background:var(--cor-fundo-card,#FAFFFF);border-radius:20px;padding:28px 24px;
+            <div style="background:var(--cor-fundo-card);border-radius:20px;padding:28px 24px;
                         width:min(480px,94vw);display:flex;flex-direction:column;gap:16px;
+                        color:var(--cor-texto-principal);
                         box-shadow:0 8px 32px rgba(0,0,0,0.3);">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <h2 style="margin:0;color:var(--cor-titulo,#004C58);font-size:1.4rem;">Importar dados</h2>
-                    <button id="cfgImportFechar" style="background:none;border:1px solid #9cc9c9;border-radius:8px;
-                            width:36px;height:36px;font-size:1.5rem;cursor:pointer;color:var(--cor-principal,#367373);
+                    <h2 style="margin:0;color:var(--cor-titulo);font-size:1.4rem;">Importar dados</h2>
+                    <button id="cfgImportFechar" style="background:none;border:1px solid var(--cor-tinte-borda);border-radius:8px;
+                            width:36px;height:36px;font-size:1.5rem;cursor:pointer;color:var(--cor-principal);
                             display:flex;align-items:center;justify-content:center;padding:0;margin:0;">&times;</button>
                 </div>
-                <p style="margin:0;color:var(--cor-texto-secundario,#4A4A4A);font-size:0.9rem;">
+                <p style="margin:0;color:var(--cor-texto-secundario);font-size:0.9rem;">
                     Selecione a instituição financeira e o arquivo exportado pelo banco.
                 </p>
 
                 <div style="position:relative;margin:4px 0;">
-                    <select id="cfgImportBanco" style="height:52px;width:100%;border:2px solid var(--cor-principal,#367373);
+                    <select id="cfgImportBanco" style="height:52px;width:100%;border:2px solid var(--cor-principal);
                             border-radius:10px;padding:0 18px;font-size:1rem;font-weight:600;
-                            color:var(--cor-principal,#367373);background:transparent;appearance:none;outline:none;">
+                            color:var(--cor-principal);background:transparent;appearance:none;outline:none;">
                         <option value="" disabled selected>Selecione a instituição</option>
                     </select>
                     <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);
-                                 color:var(--cor-principal,#367373);pointer-events:none;">▾</span>
+                                 color:var(--cor-principal);pointer-events:none;">▾</span>
                 </div>
 
-                <div style="border:2px dashed var(--cor-principal,#367373);border-radius:10px;
+                <div style="border:2px dashed var(--cor-principal);border-radius:10px;
                             padding:16px;text-align:center;cursor:pointer;" id="cfgImportDropArea">
-                    <p style="margin:0 0 8px;color:var(--cor-principal,#367373);font-weight:600;">
+                    <p style="margin:0 0 8px;color:var(--cor-principal);font-weight:600;">
                         Clique para selecionar o arquivo
                     </p>
-                    <p style="margin:0;font-size:0.8rem;color:var(--cor-texto-secundario,#4A4A4A);">
+                    <p style="margin:0;font-size:0.8rem;color:var(--cor-texto-secundario);">
                         Formatos aceitos: .csv, .ofx, .xls, .xlsx, .json, .sql
                     </p>
                     <input type="file" id="cfgImportArquivo"
                            accept=".csv,.ofx,.qfx,.xls,.xlsx,.json,.sql,.pdf"
                            style="display:none;">
                     <p id="cfgImportNomeArquivo" style="margin:8px 0 0;font-size:0.85rem;
-                       color:var(--cor-principal,#367373);font-weight:600;"></p>
+                       color:var(--cor-principal);font-weight:600;"></p>
                 </div>
 
-                <p id="cfgImportMsg" style="color:#e53e3e;font-size:0.85rem;display:none;margin:0;"></p>
+                <p id="cfgImportMsg" style="color:var(--red-700);font-size:0.85rem;display:none;margin:0;"></p>
 
                 <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
                     <button id="cfgImportCancelar"
                         style="height:44px;padding:0 20px;background:transparent;
-                               border:2px solid var(--cor-principal,#367373);color:var(--cor-principal,#367373);
+                               border:2px solid var(--cor-principal);color:var(--cor-principal);
                                border-radius:10px;font-size:1rem;cursor:pointer;margin:0;">
                         Cancelar
                     </button>
                     <button id="cfgImportConfirmar"
-                        style="height:44px;padding:0 20px;background:var(--cor-principal,#367373);
-                               color:#fff;border:none;border-radius:10px;font-size:1rem;cursor:pointer;margin:0;">
+                        style="height:44px;padding:0 20px;background:var(--cor-principal);
+                               color:var(--cor-texto-claro);border:none;border-radius:10px;font-size:1rem;cursor:pointer;margin:0;">
                         Importar
                     </button>
                 </div>
@@ -831,8 +833,8 @@
         modal.innerHTML = `
             <div class="conteudoModal" style="max-width:460px;">
                 <span id="cfgExportFechar" class="fechar" style="cursor:pointer;">&times;</span>
-                <h2 style="margin-top:0; color:#0e5454;">Exportar dados</h2>
-                <p style="margin:0 0 12px 0; color:#486468;">Selecione o formato do arquivo:</p>
+                <h2 style="margin-top:0; color:var(--cor-titulo);">Exportar dados</h2>
+                <p style="margin:0 0 12px 0; color:var(--cor-texto-secundario);">Selecione o formato do arquivo:</p>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                     <select id="cfgExportTipo" class="select_modal"></select>
                     <div style="display:flex; gap:10px; justify-content:flex-end;">
@@ -906,62 +908,63 @@
         const modal = document.createElement("div");
         modal.id = "cfgModalDownload";
         modal.style.cssText = [
-            "position:fixed", "inset:0", "background:rgba(0,0,0,0.55)",
+            "position:fixed", "inset:0", "background:var(--cor-overlay)",
             "z-index:9999", "display:flex", "align-items:center",
             "justify-content:center", "padding:16px"
         ].join(";");
 
         modal.innerHTML = `
-            <div style="background:var(--cor-fundo-card,#FAFFFF);border-radius:20px;padding:28px 24px;
+            <div style="background:var(--cor-fundo-card);border-radius:20px;padding:28px 24px;
                         width:min(520px,96vw);display:flex;flex-direction:column;gap:16px;
-                        box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+                        color:var(--cor-texto-principal);
+                        box-shadow:0 8px 32px var(--sombra-caixa);">
                 <div style="display:flex;align-items:center;gap:10px;">
-                    <i class='bx bx-download' style="font-size:1.8rem;color:var(--cor-principal,#367373);"></i>
-                    <h3 style="margin:0;color:var(--cor-titulo,#004C58);font-size:1.3rem;">
+                    <i class='bx bx-download' style="font-size:1.8rem;color:var(--cor-principal);"></i>
+                    <h3 style="margin:0;color:var(--cor-titulo);font-size:1.3rem;">
                         Exportar ${tipo.toUpperCase()}
                     </h3>
                 </div>
 
-                <p style="margin:0;font-size:0.9rem;color:var(--cor-texto-secundario,#4A4A4A);line-height:1.5;">
+                <p style="margin:0;font-size:0.9rem;color:var(--cor-texto-secundario);line-height:1.5;">
                     Clique em <strong>"Baixar arquivo"</strong> para iniciar o download.
                     Se não funcionar automaticamente, copie o link e abra no navegador do sistema.
                 </p>
 
-                <div style="background:var(--cor-fundo-pagina,#EBF4F4);border-radius:10px;padding:10px 14px;
+                <div style="background:var(--cor-fundo-pagina);border-radius:10px;padding:10px 14px;
                             word-break:break-all;font-size:0.78rem;font-family:monospace;
-                            color:var(--cor-texto-principal,#1A1A1A);border:1px solid var(--cor-hover,#B4D9D5);">
+                            color:var(--cor-texto-principal);border:1px solid var(--cor-hover);">
                     ${url}
                 </div>
 
                 <div style="display:flex;gap:10px;flex-wrap:wrap;">
                     <button id="cfgDlBaixar"
-                        style="flex:2;min-width:140px;height:46px;background:var(--cor-principal,#367373);
-                               color:#fff;border:none;border-radius:10px;font-size:0.95rem;
+                        style="flex:2;min-width:140px;height:46px;background:var(--cor-principal);
+                               color:var(--cor-texto-claro);border:none;border-radius:10px;font-size:0.95rem;
                                cursor:pointer;font-weight:600;margin:0;display:flex;
                                align-items:center;justify-content:center;gap:6px;">
                         <i class='bx bx-download'></i> Baixar arquivo
                     </button>
                     <button id="cfgDlCopiar"
                         style="flex:1;min-width:110px;height:46px;background:transparent;
-                               color:var(--cor-principal,#367373);border:2px solid var(--cor-principal,#367373);
+                               color:var(--cor-principal);border:2px solid var(--cor-principal);
                                border-radius:10px;font-size:0.95rem;cursor:pointer;margin:0;">
                         Copiar link
                     </button>
                     <button id="cfgDlNavegar"
-                        style="height:46px;padding:0 14px;background:transparent;color:#0369a1;
-                               border:1px solid #0369a1;border-radius:10px;font-size:0.85rem;
+                        style="height:46px;padding:0 14px;background:transparent;color:var(--cor-acao-editar);
+                               border:1px solid var(--cor-acao-editar);border-radius:10px;font-size:0.85rem;
                                cursor:pointer;margin:0;" title="Navega direto para a URL de download (pode recarregar a tela)">
                         ↗ Ir para URL
                     </button>
                     <button id="cfgDlFechar"
-                        style="height:46px;padding:0 14px;background:transparent;color:#888;
-                               border:1px solid #ccc;border-radius:10px;font-size:0.9rem;
+                        style="height:46px;padding:0 14px;background:transparent;color:var(--cor-texto-secundario);
+                               border:1px solid var(--cor-borda-divisor);border-radius:10px;font-size:0.9rem;
                                cursor:pointer;margin:0;">
                         Fechar
                     </button>
                 </div>
 
-                <p style="margin:0;font-size:0.78rem;color:#888;line-height:1.4;">
+                <p style="margin:0;font-size:0.78rem;color:var(--cor-texto-secundario);line-height:1.4;">
                     💡 <em>Dica IntelliJ/JavaFX:</em> se o download não abrir automaticamente,
                     copie o link acima e cole em um navegador (Chrome, Firefox etc.).
                 </p>
