@@ -621,7 +621,32 @@
     line-height: 1;
 }
 .ar-pill:hover { background: var(--cor-tinte-medio); }
-.ar-pill.active { background: var(--cor-principal); color: var(--cor-texto-claro); }
+.ar-pill.active {
+    background: var(--cor-principal);
+    color: var(--cor-texto-claro);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.ar-pill.active::before {
+    content: '✓ ';
+    font-weight: 700;
+    font-size: 0.8em;
+}
+
+/* Resumo da recorrência selecionada no toggle */
+.ar-recorrente-resumo {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--cor-principal);
+    background: var(--cor-tinte-suave);
+    border: 1px solid var(--cor-tinte-borda);
+    border-radius: 20px;
+    padding: 2px 10px;
+    margin-left: 6px;
+    white-space: nowrap;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
 .ar-pill-sm { padding: 5px 9px; font-size: 0.78rem; }
 

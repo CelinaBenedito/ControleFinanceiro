@@ -39,6 +39,22 @@
         <div class="conteudoAlerta" id="conteudoAlerta"></div>
     </div>
 
+    <!-- Modal personalizar mês fiscal -->
+    <div id="modalMesFiscalDia" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
+        <div class="cfg-card" style="max-width:420px; width:90%; gap:20px;">
+            <h2 style="font-size:1.4rem; margin:0;">Personalizar Mês Fiscal</h2>
+            <p style="color:var(--cor-texto-secundario); font-size:0.92rem; margin:0;">Digite o dia do mês em que o período fiscal inicia (1 a 31).</p>
+            <div class="cfg-field">
+                <input type="number" id="ipt_dia_fiscal" placeholder=" " min="1" max="31" step="1">
+                <label for="ipt_dia_fiscal">Dia de início (1–31)</label>
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button class="cfg-btn" onclick="salvarDiaFiscalPersonalizado()">Salvar</button>
+                <button class="cfg-btn" style="background:transparent;border:2px solid var(--cor-principal);color:var(--cor-principal);" onclick="fecharModalMesFiscalDia()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal personalizada -->
     <div id="modalPersonalizada" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center;">
         <div class="cfg-card" style="max-width:440px; width:90%; gap:20px;">
@@ -131,8 +147,8 @@
                 <div class="cfg-card">
                     <h2><i class='bx bx-calendar' style="color:var(--cor-principal);font-size:1.6rem;"></i> Mês Fiscal</h2>
 
-                    <div class="cfg-row">
-                        <div class="cfg-field" style="max-width:380px;">
+                    <div class="cfg-row" style="align-items:flex-end; gap:10px; flex-wrap:wrap;">
+                        <div class="cfg-field" style="max-width:280px;">
                             <select id="mesFiscal" required>
                                 <option value="" disabled selected></option>
                                 <option value="1">Dia 1</option>
@@ -142,7 +158,8 @@
                             </select>
                             <label for="mesFiscal">Início do mês fiscal</label>
                         </div>
-                        <div class="cfg-field" style="max-width:380px;">
+                        <button class="cfg-btn" type="button" onclick="abrirModalMesFiscalDia()" style="margin-bottom:2px; white-space:nowrap;">Personalizar</button>
+                        <div class="cfg-field" style="max-width:320px;">
                             <input type="number" id="limiteMensal" placeholder=" " step="0.01" min="0">
                             <label for="limiteMensal">Limite mensal total (R$)</label>
                         </div>

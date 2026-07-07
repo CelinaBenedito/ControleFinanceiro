@@ -247,6 +247,26 @@ let _dataFimRecorrente = null;
 
 // Mapeamento: índice do botão DOM (0=Dom, 1=Seg, …, 6=Sáb) → DayOfWeek do Java
 const _DOW_MAP = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+const _DOW_LABEL = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const _MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+function _atualizarResumoRecorrencia() {
+    const el = document.getElementById('ar-recorrente-resumo');
+    if (!el) return;
+    if (!_isRecorrente || !_periodicidade) { el.style.display = 'none'; el.textContent = ''; return; }
+    const partes = [_periodicidade.charAt(0).toUpperCase() + _periodicidade.slice(1)];
+    if (_periodicidade === 'semanal' && _diasSemana.length > 0)
+        partes.push(_diasSemana.map(d => _DOW_LABEL[d]).join(', '));
+    if (_periodicidade === 'mensal' && _diaMes)
+        partes.push(`Dia ${_diaMes}`);
+    if (_periodicidade === 'anual') {
+        if (_mesAnual) partes.push(_MESES_LABEL[_mesAnual - 1]);
+        if (_diaAnual) partes.push(`Dia ${_diaAnual}`);
+    }
+    if (_dataFimRecorrente) partes.push(`até ${_dataFimRecorrente.split('-').reverse().join('/')}`);
+    el.textContent = partes.join(' · ');
+    el.style.display = '';
+}
 
 function toggleRecorrente() {
     _isRecorrente = !_isRecorrente;
@@ -254,6 +274,7 @@ function toggleRecorrente() {
         _periodicidade = null; _diasSemana = []; _diaMes = null; _mesAnual = null; _diaAnual = null; _dataFimRecorrente = null;
         const fim = document.getElementById('rec-data-fim');
         if (fim) fim.value = '';
+        _atualizarResumoRecorrencia();
     }    const btn  = document.getElementById('ar-recorrente-btn');
     const icon = document.getElementById('ar-recorrente-icon');
     const opts = document.getElementById('recurring-options');
@@ -281,6 +302,7 @@ function setPeriodicity(p) {
     document.querySelectorAll('.ar-pill[data-day]').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('#rec-mensal-days .ar-pill').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('#rec-anual-months .ar-pill').forEach(p => p.classList.remove('active'));
+    _atualizarResumoRecorrencia();
 }
 
 function toggleWeekDay(day) {
@@ -288,6 +310,7 @@ function toggleWeekDay(day) {
     if (idx >= 0) _diasSemana.splice(idx, 1); else _diasSemana.push(day);
     const pill = document.querySelector(`.ar-pill[data-day="${day}"]`);
     if (pill) pill.classList.toggle('active', _diasSemana.includes(day));
+    _atualizarResumoRecorrencia();
 }
 
 function setMonthDay(day) {
@@ -295,6 +318,7 @@ function setMonthDay(day) {
     document.querySelectorAll('#rec-mensal-days .ar-pill').forEach(p =>
         p.classList.toggle('active', Number(p.dataset.monthday) === _diaMes)
     );
+    _atualizarResumoRecorrencia();
 }
 
 function setAnnualMonth(month) {
@@ -302,6 +326,7 @@ function setAnnualMonth(month) {
     document.querySelectorAll('#rec-anual-months .ar-pill').forEach(p =>
         p.classList.toggle('active', Number(p.dataset.annualmonth) === _mesAnual)
     );
+    _atualizarResumoRecorrencia();
 }
 
 function _initRecurringSubOptions() {
@@ -369,6 +394,7 @@ function _initRecurringSubOptions() {
             _dataFimRecorrente = (window.MainAPI && window.MainAPI.dataParaISO)
                 ? window.MainAPI.dataParaISO(this.value)
                 : null;
+            _atualizarResumoRecorrencia();
         });
     }
 } // fim _initRecurringSubOptions

@@ -1302,6 +1302,49 @@
         );
     };
 
+    // ── Modal: Personalizar dia do Mês Fiscal ──────────────────────────────────
+
+    window.abrirModalMesFiscalDia = function () {
+        const modal = document.getElementById('modalMesFiscalDia');
+        const input = document.getElementById('ipt_dia_fiscal');
+        // Pré-preenche com o valor atual do select, se houver
+        const sel = document.getElementById('mesFiscal');
+        if (input && sel?.value) input.value = sel.value;
+        if (modal) modal.style.display = 'flex';
+        if (input) input.focus();
+    };
+
+    window.fecharModalMesFiscalDia = function () {
+        const modal = document.getElementById('modalMesFiscalDia');
+        if (modal) modal.style.display = 'none';
+    };
+
+    window.salvarDiaFiscalPersonalizado = async function () {
+        const input = document.getElementById('ipt_dia_fiscal');
+        const dia = parseInt(input?.value, 10);
+        if (!dia || isNaN(dia) || dia < 1 || dia > 31) {
+            mostrarAlerta('Digite um dia válido entre 1 e 31.');
+            return;
+        }
+
+        // Garante que a opção existe no select
+        const sel = document.getElementById('mesFiscal');
+        if (sel) {
+            let opt = sel.querySelector(`option[value="${dia}"]`);
+            if (!opt) {
+                opt = document.createElement('option');
+                opt.value = dia;
+                opt.textContent = `Dia ${dia}`;
+                sel.appendChild(opt);
+            }
+            sel.value = String(dia);
+        }
+
+        fecharModalMesFiscalDia();
+        // Salva imediatamente
+        await salvarMesFiscal();
+    };
+
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", init);
     } else {
