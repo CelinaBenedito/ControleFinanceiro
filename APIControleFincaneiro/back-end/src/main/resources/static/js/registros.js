@@ -17,6 +17,111 @@ function carregarRegistros() {
     inicializarBotaoFiltro();
 }
 
+// ── Formata moeda ─────────────────────────────────────────────────────────────
+const _fmtMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+// ── Constrói e retorna um elemento card para um registro ──────────────────────
+function criarCardRegistro(registro) {
+    const ef = registro.eventoFinanceiro || {};
+    const gd = registro.gastoDetalhe || {};
+
+    const dataISO = ef.dataEvento;
+    if (!dataISO) return null;
+    const data = new Date(dataISO + "T00:00:00");
+    const dia = String(data.getDate()).padStart(2, "0");
+
+    const titulo    = gd.tituloGasto || "-";
+    const descricao = ef.descricao   || "";
+    const valor     = ef.valor       || 0;
+    const tipo      = ef.tipo        || "";
+    const registroId = ef.id || "";
+
+    const todasInsts = (registro.eventoInstituicao || [])
+        .map(ei => ei.instituicao ? ei.instituicao.nome : null)
+        .filter(Boolean);
+
+    const todasCats = (gd.categoria || [])
+        .map(c => c.titulo || null)
+        .filter(Boolean);
+
+    const tipoEstilos = {
+        'Gasto':                { bg: 'var(--red-100)',               color: 'var(--red-700)' },
+        'Recebimento':          { bg: 'var(--green-100)',             color: 'var(--green-700)' },
+        'Transferencia':        { bg: 'var(--cor-transferencia-bg)',  color: 'var(--cor-transferencia-texto)' },
+        'Gasto Agendado':       { bg: 'var(--cor-agendamento-bg)',    color: 'var(--cor-agendamento-texto)' },
+        'Recebimento Agendado': { bg: 'var(--cor-recebimento-bg)',    color: 'var(--cor-recebimento-texto)' },
+        'Poupanca':             { bg: 'var(--cor-poupanca-bg)',       color: 'var(--cor-poupanca-texto)' },
+        'Emprestimo':           { bg: 'var(--cor-emprestimo-bg)',     color: 'var(--cor-emprestimo-texto)' },
+    };
+    const tipoLabel = tipo === 'Transferencia' ? 'Transferência'
+                    : tipo === 'Poupanca'      ? 'Poupança'
+                    : tipo === 'Emprestimo'    ? 'Empréstimo'
+                    : tipo;
+    const est = tipoEstilos[tipo] || { bg: 'var(--cor-fundo-inativo)', color: 'var(--cor-texto-secundario)' };
+    const tipoBadge = `<span class="reg-tipo-badge" style="background:${est.bg};color:${est.color};">${tipoLabel}</span>`;
+
+    const instTags = todasInsts.length > 0
+        ? todasInsts.map(n => `<span class="reg-tag">${n}</span>`).join("")
+        : '<span class="reg-tag-empty">-</span>';
+
+    const catTags = todasCats.length > 0
+        ? todasCats.map(c => `<span class="reg-tag">${c}</span>`).join("")
+        : '<span class="reg-tag-empty">-</span>';
+
+    const card = document.createElement("div");
+    card.className = "cardRegistro";
+    card.dataset.eventoId = registroId;
+    card.innerHTML = `
+        <div class="registroInfo">
+            <div class="dataRegistro">${dia}</div>
+            ${tipoBadge}
+        </div>
+        <div class="registroInfo">
+            <div><p>Valor</p></div>
+            <div class="registroValor">${_fmtMoeda.format(valor)}</div>
+        </div>
+        <div class="registroDetalhes">
+            <div class="registroTitulo">${titulo}</div>
+            <div class="registroDescricao">${descricao}</div>
+        </div>
+        <div class="registroDetalhes">
+            <div><p>Instituições:</p></div>
+            <div class="reg-tags-row">${instTags}</div>
+        </div>
+        <div class="registroDetalhes">
+            <div><p>Categorias:</p></div>
+            <div class="reg-tags-row">${catTags}</div>
+        </div>
+        <div class="registroAcoes">
+            <button class="reg-icon-btn edit" title="Editar registro"><i class='bx bx-edit'></i></button>
+            <button class="reg-icon-btn delete" title="Remover registro"><i class='bx bx-trash'></i></button>
+        </div>
+    `;
+
+    card.querySelector(".reg-icon-btn.edit").addEventListener("click", () => abrirEdicaoRegistro(registro));
+    card.querySelector(".reg-icon-btn.delete").addEventListener("click", () => confirmarRemocaoRegistro({
+        id: registroId, titulo, descricao, valor, tipo, data: dataISO
+    }));
+
+    return card;
+}
+
+// ── Atualiza apenas o card do registro editado sem recarregar tudo ────────────
+async function atualizarCardRegistro(eventoId, userId) {
+    try {
+        const todos = await MainAPI.carregarRegistros(userId);
+        const regAtualizado = todos.find(r => r.eventoFinanceiro && String(r.eventoFinanceiro.id) === String(eventoId));
+        const cardEl = document.querySelector(`[data-evento-id="${eventoId}"]`);
+        if (!regAtualizado || !cardEl) { carregarRegistros(); return; }
+        const novoCard = criarCardRegistro(regAtualizado);
+        if (novoCard) cardEl.parentNode.replaceChild(novoCard, cardEl);
+        else carregarRegistros();
+    } catch (e) {
+        console.error("Erro ao atualizar card:", e);
+        carregarRegistros();
+    }
+}
+
 function renderizarRegistros(json) {
     registros.innerHTML = "";
 
@@ -24,11 +129,6 @@ function renderizarRegistros(json) {
         registros.innerHTML = `<div class="aviso"><i class='bx bx-search-alt'></i><p>Nenhum registro encontrado para o filtro aplicado.</p></div>`;
         return;
     }
-
-    const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
-        style: "currency",
-        currency: "BRL"
-    });
 
     const agrupado = {};
 
@@ -75,91 +175,8 @@ function renderizarRegistros(json) {
                     agrupado[ano][mes]
                         .sort((a, b) => new Date(a.eventoFinanceiro.dataEvento) - new Date(b.eventoFinanceiro.dataEvento))
                         .forEach(registro => {
-                            const dataISO = registro.eventoFinanceiro.dataEvento;
-                            const data = new Date(dataISO + "T00:00:00");
-                            const dia = String(data.getDate()).padStart(2, "0");
-                            const titulo = registro.gastoDetalhe ? registro.gastoDetalhe.tituloGasto : "-";
-                            const descricao = registro.eventoFinanceiro.descricao || "";
-                            const valor = registro.eventoFinanceiro.valor || 0;
-                            const tipo = registro.eventoFinanceiro.tipo || "";
-                            // Todas as instituições do registro
-                            const todasInsts = (registro.eventoInstituicao || [])
-                                .map(ei => ei.instituicao ? ei.instituicao.nome : null)
-                                .filter(Boolean);
-                            const instNome = todasInsts.length > 0 ? todasInsts[0] : "-";
-
-                            // Todas as categorias do registro
-                            const todasCats = (registro.gastoDetalhe?.categoria || [])
-                                .map(c => c.titulo || null)
-                                .filter(Boolean);
-
-                            const registroId = registro.eventoFinanceiro.id || "";
-                            const registroData = {
-                                id: registroId,
-                                titulo,
-                                descricao,
-                                valor,
-                                tipo,
-                                instituicao: instNome,
-                                data: dataISO
-                            };
-
-                            // Badge de tipo com cor
-                            const tipoEstilos = {
-                                'Gasto':                { bg: 'var(--red-100)',               color: 'var(--red-700)' },
-                                'Recebimento':          { bg: 'var(--green-100)',             color: 'var(--green-700)' },
-                                'Transferencia':        { bg: 'var(--cor-transferencia-bg)',  color: 'var(--cor-transferencia-texto)' },
-                                'Gasto Agendado':       { bg: 'var(--cor-agendamento-bg)',    color: 'var(--cor-agendamento-texto)' },
-                                'Recebimento Agendado': { bg: 'var(--cor-recebimento-bg)',    color: 'var(--cor-recebimento-texto)' },
-                            };
-                            const tipoLabel = tipo === 'Transferencia' ? 'Transferência' : tipo;
-                            const est = tipoEstilos[tipo] || { bg: 'var(--cor-fundo-inativo)', color: 'var(--cor-texto-secundario)' };
-                            const tipoBadge = `<span class="reg-tipo-badge" style="background:${est.bg};color:${est.color};">${tipoLabel}</span>`;
-
-                            // Tags de instituições
-                            const instTags = todasInsts.length > 0
-                                ? todasInsts.map(n => `<span class="reg-tag">${n}</span>`).join("")
-                                : '<span class="reg-tag-empty">-</span>';
-
-                            // Tags de categorias
-                            const catTags = todasCats.length > 0
-                                ? todasCats.map(c => `<span class="reg-tag">${c}</span>`).join("")
-                                : '<span class="reg-tag-empty">-</span>';
-
-                            const card = document.createElement("div");
-                            card.className = "cardRegistro";
-                            card.innerHTML = `
-                                <div class="registroInfo">
-                                    <div class="dataRegistro">${dia}</div>
-                                    ${tipoBadge}
-                                </div>
-                                <div class="registroInfo">
-                                    <div><p>Valor</p></div>
-                                    <div class="registroValor">${formatadorMoeda.format(valor)}</div>
-                                </div>
-                                <div class="registroDetalhes">
-                                    <div class="registroTitulo">${titulo}</div>
-                                    <div class="registroDescricao">${descricao}</div>
-                                </div>
-                                <div class="registroDetalhes">
-                                    <div><p>Instituições:</p></div>
-                                    <div class="reg-tags-row">${instTags}</div>
-                                </div>
-                                <div class="registroDetalhes">
-                                    <div><p>Categorias:</p></div>
-                                    <div class="reg-tags-row">${catTags}</div>
-                                </div>
-
-                                <div class="registroAcoes">
-                                    <button class="reg-icon-btn edit" title="Editar registro"><i class='bx bx-edit'></i></button>
-                                    <button class="reg-icon-btn delete" title="Remover registro"><i class='bx bx-trash'></i></button>
-                                </div>
-                            `;
-
-                            card.querySelector(".reg-icon-btn.edit").addEventListener("click", () => abrirEdicaoRegistro(registro));
-                            card.querySelector(".reg-icon-btn.delete").addEventListener("click", () => confirmarRemocaoRegistro(registroData));
-
-                            cardsDiv.appendChild(card);
+                            const card = criarCardRegistro(registro);
+                            if (card) cardsDiv.appendChild(card);
                         });
 
                     mesContainer.appendChild(mesDiv);
@@ -462,33 +479,50 @@ async function abrirEdicaoRegistro(registro) {
     const ei = (registro.eventoInstituicao && registro.eventoInstituicao[0]) || {};
     const gd = registro.gastoDetalhe || {};
 
-    // Carregar instituições e categorias do usuário em paralelo
+    // Usa MainAPI para buscar todas as páginas corretamente
     let instList = [], catList = [];
     try {
-        const [instRes, catRes] = await Promise.all([
-            fetch(`http://localhost:8080/instituicoes/usuarios/${userId}`),
-            fetch(`http://localhost:8080/categorias/usuario/${userId}`)
+        [instList, catList] = await Promise.all([
+            MainAPI.getInstituicoes(userId),
+            MainAPI.getTipos(userId)
         ]);
-        instList = (instRes.ok && instRes.status !== 204) ? await instRes.json() : [];
-        catList  = (catRes.ok  && catRes.status  !== 204) ? await catRes.json()  : [];
     } catch (e) {
         console.error('Erro ao carregar dados para edição:', e);
     }
 
-    const instAtualId = ei.instituicao ? ei.instituicao.id : null;
-    const catAtualId  = (gd.categoria && gd.categoria[0]) ? gd.categoria[0].id : null;
+    // IDs das instituições Instituicao (entity) atualmente no registro
+    const instAtualInstIds = (registro.eventoInstituicao || [])
+        .map(ei2 => ei2.instituicao ? ei2.instituicao.id : null)
+        .filter(Boolean);
 
-    const instOpts = instList.map(i =>
-        `<option value="${i.id}"${i.intituicao.id === instAtualId ? ' selected' : ''}>${i.intituicao.nome}</option>`
-    ).join('');
+    // IDs das categorias Categoria (entity) atualmente no registro
+    const catAtualIds = (gd.categoria || [])
+        .map(c => c.id)
+        .filter(Boolean);
 
-    const catOpts = catList.map(c =>
-        `<option value="${c.id}"${c.categoria.id === catAtualId ? ' selected' : ''}>${c.categoria.titulo}</option>`
-    ).join('');
+    // Gera HTML dos checkboxes de instituições
+    const instChecksHtml = instList
+        .filter(i => i && i.intituicao)
+        .map(i => {
+            const checked = instAtualInstIds.includes(i.intituicao.id) ? 'checked' : '';
+            return `<label style="display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;color:var(--cor-texto-principal);transition:background .15s;" onmouseover="this.style.background='var(--cor-hover)'" onmouseout="this.style.background=''">`
+                + `<input type="checkbox" class="er-inst-check" value="${i.id}" ${checked} style="accent-color:var(--cor-principal);width:16px;height:16px;">`
+                + `${i.intituicao.nome}</label>`;
+        }).join('') || '<small style="color:var(--cor-texto-secundario)">Nenhuma instituição vinculada.</small>';
+
+    // Gera HTML dos checkboxes de categorias
+    const catChecksHtml = catList
+        .filter(c => c && c.categoria)
+        .map(c => {
+            const checked = catAtualIds.includes(c.categoria.id) ? 'checked' : '';
+            return `<label style="display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;color:var(--cor-texto-principal);transition:background .15s;" onmouseover="this.style.background='var(--cor-hover)'" onmouseout="this.style.background=''">`
+                + `<input type="checkbox" class="er-cat-check" value="${c.id}" ${checked} style="accent-color:var(--cor-principal);width:16px;height:16px;">`
+                + `${c.categoria.titulo}</label>`;
+        }).join('') || '<small style="color:var(--cor-texto-secundario)">Nenhuma categoria vinculada.</small>';
 
     const mostrarParcelas = ei.tipoMovimento === 'Credito' || ei.tipoMovimento === 'Boleto';
 
-    // Remove modal anterior se existir (para sempre refletir dados atualizados)
+    // Remove modal anterior se existir
     const anterior = document.getElementById('modalEdicaoRegistro');
     if (anterior) anterior.remove();
 
@@ -496,7 +530,7 @@ async function abrirEdicaoRegistro(registro) {
     modal.id = 'modalEdicaoRegistro';
     modal.style.cssText = 'position:fixed;inset:0;background:var(--cor-overlay);display:flex;align-items:center;justify-content:center;z-index:9999;';
     modal.innerHTML = `
-        <div style="background:var(--cor-fundo-card);border-radius:20px;padding:32px;width:min(520px,92vw);
+        <div style="background:var(--cor-fundo-card);border-radius:20px;padding:32px;width:min(560px,94vw);
                     color:var(--cor-texto-principal);
                     display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px var(--sombra-caixa);
                     max-height:90vh;overflow-y:auto;">
@@ -517,6 +551,8 @@ async function abrirEdicaoRegistro(registro) {
                     <option value="Gasto"${ef.tipo === 'Gasto' ? ' selected' : ''}>Gasto</option>
                     <option value="Recebimento"${ef.tipo === 'Recebimento' ? ' selected' : ''}>Recebimento</option>
                     <option value="Transferencia"${ef.tipo === 'Transferencia' ? ' selected' : ''}>Transferência</option>
+                    <option value="Poupanca"${ef.tipo === 'Poupanca' ? ' selected' : ''}>Poupança</option>
+                    <option value="Emprestimo"${ef.tipo === 'Emprestimo' ? ' selected' : ''}>Empréstimo</option>
                 </select>
                 <label for="erTipo">Tipo do Evento</label>
                 <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--cor-principal);pointer-events:none;">▾</span>
@@ -545,16 +581,26 @@ async function abrirEdicaoRegistro(registro) {
                 <label for="erParcelas">Parcelas</label>
             </div>
 
-            <div class="er-field-wrap" style="position:relative;">
-                <select id="erInstituicao">${instOpts}</select>
-                <label for="erInstituicao">Instituição</label>
-                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--cor-principal);pointer-events:none;">▾</span>
+            <!-- Multi-select: Instituições -->
+            <div style="display:flex;flex-direction:column;gap:6px;">
+                <span style="font-size:0.82rem;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:0.5px;">
+                    Instituições <span style="font-weight:400;text-transform:none;">(selecione uma ou mais)</span>
+                </span>
+                <div style="border:1px solid var(--cor-tinte-borda);border-radius:10px;padding:8px 10px;max-height:130px;overflow-y:auto;
+                            background:var(--cor-fundo-campo,var(--cor-fundo-card));display:flex;flex-direction:column;gap:2px;">
+                    ${instChecksHtml}
+                </div>
             </div>
 
-            <div class="er-field-wrap" style="position:relative;">
-                <select id="erCategoria">${catOpts}</select>
-                <label for="erCategoria">Categoria</label>
-                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--cor-principal);pointer-events:none;">▾</span>
+            <!-- Multi-select: Categorias -->
+            <div style="display:flex;flex-direction:column;gap:6px;">
+                <span style="font-size:0.82rem;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:0.5px;">
+                    Categorias <span style="font-weight:400;text-transform:none;">(selecione uma ou mais)</span>
+                </span>
+                <div style="border:1px solid var(--cor-tinte-borda);border-radius:10px;padding:8px 10px;max-height:130px;overflow-y:auto;
+                            background:var(--cor-fundo-campo,var(--cor-fundo-card));display:flex;flex-direction:column;gap:2px;">
+                    ${catChecksHtml}
+                </div>
             </div>
 
             <div class="er-field-wrap">
@@ -589,15 +635,18 @@ async function abrirEdicaoRegistro(registro) {
         const valor     = Number(modal.querySelector('#erValor').value);
         const movimento = modal.querySelector('#erMovimento').value;
         const parcelas  = Number(modal.querySelector('#erParcelas').value) || 1;
-        const instId    = Number(modal.querySelector('#erInstituicao').value);
-        const catId     = Number(modal.querySelector('#erCategoria').value);
         const data      = modal.querySelector('#erData').value;
         const msgErro   = modal.querySelector('#erMsgErro');
         const btn       = modal.querySelector('#erBtnSalvar');
 
-        if (!titulo)                 { msgErro.textContent = 'Título obrigatório.'; msgErro.style.display = ''; return; }
-        if (valor <= 0 || isNaN(valor)) { msgErro.textContent = 'Valor inválido.';  msgErro.style.display = ''; return; }
-        if (!data)                   { msgErro.textContent = 'Data obrigatória.';  msgErro.style.display = ''; return; }
+        // Lê instituições e categorias selecionadas
+        const instIds = Array.from(modal.querySelectorAll('.er-inst-check:checked')).map(i => Number(i.value));
+        const catIds  = Array.from(modal.querySelectorAll('.er-cat-check:checked')).map(i => Number(i.value));
+
+        if (!titulo)                    { msgErro.textContent = 'Título obrigatório.';   msgErro.style.display = ''; return; }
+        if (valor <= 0 || isNaN(valor)) { msgErro.textContent = 'Valor inválido.';        msgErro.style.display = ''; return; }
+        if (!data)                      { msgErro.textContent = 'Data obrigatória.';      msgErro.style.display = ''; return; }
+        if (instIds.length === 0)       { msgErro.textContent = 'Selecione ao menos uma instituição.'; msgErro.style.display = ''; return; }
         msgErro.style.display = 'none';
 
         btn.disabled = true;
@@ -605,15 +654,16 @@ async function abrirEdicaoRegistro(registro) {
 
         const payload = {
             financeiro:  { usuario_id: userId, tipo, valor, descricao, dataEvento: data },
-            instituicao: [{ instituicaoUsuario_id: instId, tipoMovimento: movimento, valor, parcelas }],
-            detalhe:     { categoriaUsuario_id: [catId], tituloGasto: titulo }
+            instituicao: instIds.map(id => ({ instituicaoUsuario_id: id, tipoMovimento: movimento, valor, parcelas })),
+            detalhe:     { categoriaUsuario_id: catIds, tituloGasto: titulo }
         };
 
         try {
             const res = await MainAPI.editarRegistro(ef.id, payload);
             if (res.ok) {
                 modal.remove();
-                carregarRegistros();
+                // Atualiza apenas o card editado, sem recarregar a página inteira
+                await atualizarCardRegistro(ef.id, userId);
             } else {
                 let detalhe = `HTTP ${res.status}`;
                 try { const corpo = await res.json(); detalhe = corpo.message || JSON.stringify(corpo); } catch (_) {}

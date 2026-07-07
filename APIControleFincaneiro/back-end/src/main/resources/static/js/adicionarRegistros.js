@@ -243,13 +243,18 @@ let _diasSemana    = [];
 let _diaMes        = null;
 let _mesAnual      = null;
 let _diaAnual      = null;
+let _dataFimRecorrente = null;
+
+// Mapeamento: índice do botão DOM (0=Dom, 1=Seg, …, 6=Sáb) → DayOfWeek do Java
+const _DOW_MAP = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
 
 function toggleRecorrente() {
     _isRecorrente = !_isRecorrente;
     if (!_isRecorrente) {
-        _periodicidade = null; _diasSemana = []; _diaMes = null; _mesAnual = null; _diaAnual = null;
-    }
-    const btn  = document.getElementById('ar-recorrente-btn');
+        _periodicidade = null; _diasSemana = []; _diaMes = null; _mesAnual = null; _diaAnual = null; _dataFimRecorrente = null;
+        const fim = document.getElementById('rec-data-fim');
+        if (fim) fim.value = '';
+    }    const btn  = document.getElementById('ar-recorrente-btn');
     const icon = document.getElementById('ar-recorrente-icon');
     const opts = document.getElementById('recurring-options');
     if (btn)  btn.classList.toggle('active', _isRecorrente);
@@ -337,6 +342,121 @@ function _initRecurringSubOptions() {
         }
         anualDay.addEventListener('change', () => { _diaAnual = anualDay.value ? parseInt(anualDay.value) : null; });
     }
+
+    // Campo de data final da recorrência — mesmo estilo da tela de filtros (dd/mm/aaaa)
+    const recurringOpts = document.getElementById('recurring-options');
+    if (recurringOpts && !document.getElementById('rec-data-fim')) {
+        const grp = document.createElement('div');
+        grp.className = 'ar-recurring-group';
+        grp.id = 'rec-data-fim-group';
+        grp.innerHTML = `
+            <span class="ar-group-label">Data final da recorrência</span>
+            <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+                <input type="text" id="rec-data-fim" class="ar-select-small"
+                       placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric"
+                       style="min-width:180px;max-width:220px;cursor:text;">
+            </div>
+        `;
+        recurringOpts.appendChild(grp);
+
+        const inputDataFim = document.getElementById('rec-data-fim');
+        // Aplica a mesma máscara usada no filtro de registros
+        if (window.MainAPI && window.MainAPI.aplicarMascaraData) {
+            window.MainAPI.aplicarMascaraData(inputDataFim);
+        }
+        // Converte dd/mm/aaaa → aaaa-mm-dd para o backend
+        inputDataFim.addEventListener('input', function () {
+            _dataFimRecorrente = (window.MainAPI && window.MainAPI.dataParaISO)
+                ? window.MainAPI.dataParaISO(this.value)
+                : null;
+        });
+    }
+} // fim _initRecurringSubOptions
+
+/* ══════════════════════════════════════════════════
+   Painel de Poupança (Caixinha)
+══════════════════════════════════════════════════ */
+let _caixinhas = [];
+let _caixinhaSelecionadaId = null;
+
+async function _carregarCaixinhas() {
+    if (!userId) return;
+    try {
+        _caixinhas = await MainAPI.getCaixinhas(userId);
+    } catch (e) {
+        _caixinhas = [];
+    }
+}
+
+function _renderPainelPoupanca(show) {
+    let painel = document.getElementById('ar-poupanca-painel');
+    if (!show) {
+        if (painel) painel.style.display = 'none';
+        _caixinhaSelecionadaId = null;
+        return;
+    }
+    if (!painel) {
+        // Cria o painel dinamicamente na primeira vez
+        painel = document.createElement('div');
+        painel.id = 'ar-poupanca-painel';
+        painel.className = 'ar-recurring-wrap ar-span-3';
+        // Insere após o bloco de tipo de movimento
+        const movWrap = document.getElementById('select_movimento')?.closest('.ar-field-wrap');
+        if (movWrap && movWrap.parentNode) {
+            movWrap.parentNode.insertBefore(painel, movWrap.nextSibling);
+        }
+    }
+    painel.style.display = '';
+
+    if (_caixinhas.length === 0) {
+        painel.innerHTML = `
+            <div style="background:var(--cor-tinte-suave);border-radius:12px;padding:14px 16px;border:1px solid var(--cor-tinte-borda);">
+                <p style="margin:0;color:var(--cor-texto-secundario);font-size:0.92rem;">
+                    <i class='bx bx-info-circle' style="color:var(--cor-principal);"></i>
+                    Nenhuma caixinha ativa encontrada. 
+                    <strong>Registre o aporte mesmo assim</strong> — ele aparecerá como Poupança sem caixinha vinculada.
+                </p>
+            </div>`;
+        _caixinhaSelecionadaId = null;
+        return;
+    }
+
+    const opts = _caixinhas.map(c => {
+        const pct   = c.percentualAtingido != null ? `${c.percentualAtingido.toFixed(1)}%` : '—';
+        const prazo = c.dataPrazo ? ` · prazo ${c.dataPrazo}` : '';
+        return `<option value="${c.id}">${c.nome} (${pct} atingido${prazo})</option>`;
+    }).join('');
+
+    painel.innerHTML = `
+        <div style="background:var(--cor-tinte-suave);border-radius:12px;padding:14px 16px;border:1px solid var(--cor-tinte-borda);display:flex;flex-direction:column;gap:10px;">
+            <span style="font-size:0.82rem;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:0.5px;">Vincular a uma Caixinha</span>
+            <select id="ar-select-caixinha" style="background:var(--cor-fundo-card);border:1px solid var(--cor-tinte-borda);border-radius:8px;padding:8px 12px;color:var(--cor-texto-principal);font-size:0.95rem;">
+                <option value="">Sem caixinha (aporte avulso)</option>
+                ${opts}
+            </select>
+            <div id="ar-caixinha-info" style="display:none;font-size:0.87rem;color:var(--cor-texto-secundario);line-height:1.6;padding:8px 10px;background:var(--cor-fundo-campo);border-radius:8px;"></div>
+        </div>`;
+
+    document.getElementById('ar-select-caixinha').addEventListener('change', function () {
+        _caixinhaSelecionadaId = this.value || null;
+        const info = document.getElementById('ar-caixinha-info');
+        if (!_caixinhaSelecionadaId) { info.style.display = 'none'; return; }
+        const cx = _caixinhas.find(c => c.id === _caixinhaSelecionadaId);
+        if (!cx) { info.style.display = 'none'; return; }
+        const fmt = v => v != null ? `R$ ${Number(v).toFixed(2)}` : '—';
+        const pct = cx.percentualAtingido != null ? `${cx.percentualAtingido.toFixed(1)}%` : '—';
+        info.style.display = '';
+        info.innerHTML = `
+            <b>${cx.nome}</b><br>
+            Meta: <b>${fmt(cx.valorMeta)}</b> · Acumulado: <b>${fmt(cx.valorAtual)}</b> (${pct})<br>
+            ${cx.aporteMensalSugerido != null ? `Aporte mensal sugerido: <b style="color:var(--cor-principal)">${fmt(cx.aporteMensalSugerido)}</b>` : ''}
+            ${cx.mesesRestantes != null ? ` · ${cx.mesesRestantes} meses restantes` : ''}`;
+    });
+}
+
+function _onTipoChange() {
+    const tipo = document.getElementById('select_tipo')?.value;
+    _renderPainelPoupanca(tipo === 'Poupanca');
 }
 
 /* ══════════════════════════════════════════════════
@@ -360,6 +480,11 @@ function gerarInformacoes() {
 
     // Clear-on-focus for text fields
     setupClearOnFocus();
+
+    // Poupança: carrega caixinhas e escuta mudança de tipo
+    _carregarCaixinhas();
+    const selectTipo = document.getElementById('select_tipo');
+    if (selectTipo) selectTipo.addEventListener('change', _onTipoChange);
 
     // Load data from API
     gerarCategorias();
@@ -483,14 +608,68 @@ async function registrar() {
         ? instituicaoList.reduce((acc, i) => acc + i.valor, 0)
         : valor;
 
-    // Dados de recorrência (serão incluídos no payload para suporte futuro no backend)
-    const recorrente = _isRecorrente ? {
-        periodicidade: _periodicidade,
-        diasSemana:    _diasSemana,
-        diaMes:        _diaMes,
-        mesAnual:      _mesAnual,
-        diaAnual:      _diaAnual
-    } : null;
+    // Dados de recorrência — se ativada, usa endpoint /registros/recorrente
+    if (_isRecorrente) {
+        // Validações extras de recorrência
+        if (tipo !== 'Gasto' && tipo !== 'Recebimento')
+            return alerta("Recorrência disponível apenas para Gasto e Recebimento");
+        if (!_periodicidade)
+            return alerta("Escolha a periodicidade da recorrência");
+        if (_periodicidade === 'semanal' && _diasSemana.length === 0)
+            return alerta("Escolha pelo menos um dia da semana");
+        if (_periodicidade === 'mensal' && !_diaMes)
+            return alerta("Escolha o dia do mês");
+        if (_periodicidade === 'anual' && (!_mesAnual || !_diaAnual))
+            return alerta("Escolha o mês e o dia do ano");
+        if (!_dataFimRecorrente)
+            return alerta("Informe a data final da recorrência");
+
+        // Capitalizar primeira letra do periodicidade (ex: 'semanal' → 'Semanal')
+        const periodicidade = _periodicidade.charAt(0).toUpperCase() + _periodicidade.slice(1);
+
+        // Mapear índices numéricos para DayOfWeek Java
+        const diasDaSemana = _diasSemana.map(n => _DOW_MAP[n]);
+
+        // Dia do mês ou do ano
+        const dia = _diaMes || _diaAnual || null;
+
+        alerta(`Registrando recorrência...
+            <div class="glaceonCorrendoDiv">
+                <img class="glaceon correndo" src="/assets/gif/glaceon-correndo-unscreen.gif" alt="">
+            </div>`, 0);
+
+        MainAPI.registrarRecorrente({
+            financeiro: {
+                usuario_id: userId,
+                tipo,
+                valor: valorTotal,
+                descricao: Desc,
+                dataEvento: data,          // data de início
+                periodicidade,             // Diario | Semanal | Mensal | Anual
+                diasDaSemana,              // ["MONDAY", "FRIDAY", ...]
+                dia,                       // dia do mês ou do ano
+                dataFim: _dataFimRecorrente, // data final
+                intervalo: 1
+            },
+            instituicao: instituicaoList,
+            detalhe: { categoriaUsuario_id: selectedCat.map(s => Number(s.id)), tituloGasto: titulo }
+        }).then(async (response) => {
+            if (response.ok) {
+                window.dispatchEvent(new Event('xp:refresh'));
+                markFieldsForClear(['ipt_nome', 'ipt_valor', 'ipt_desc']);
+                alerta('✔ Recorrência registrada com sucesso!', 3000);
+            } else {
+                let detalhe = "";
+                try { const corpo = await response.json(); detalhe = corpo.message || corpo.error || JSON.stringify(corpo); }
+                catch (_) { detalhe = `HTTP ${response.status}`; }
+                alerta(`Erro ao registrar recorrência (${response.status}): ${detalhe}`);
+            }
+        }).catch(err => {
+            console.error("Erro de rede:", err);
+            alerta("Erro de conexão ao registrar recorrência.");
+        });
+        return; // não continua para o registro normal
+    }
 
     alerta(`Registrando...
         <div class="glaceonCorrendoDiv">
@@ -498,10 +677,16 @@ async function registrar() {
         </div>`, 0);
 
     MainAPI.registrarGasto({
-        financeiro: { usuario_id: userId, tipo, valor: valorTotal, descricao: Desc, dataEvento: data },
+        financeiro: {
+            usuario_id: userId,
+            tipo,
+            valor: valorTotal,
+            descricao: Desc,
+            dataEvento: data,
+            ...(tipo === 'Poupanca' && _caixinhaSelecionadaId ? { caixinha_id: _caixinhaSelecionadaId } : {})
+        },
         instituicao: instituicaoList,
-        detalhe: { categoriaUsuario_id: selectedCat.map(s => Number(s.id)), tituloGasto: titulo },
-        recorrente
+        detalhe: { categoriaUsuario_id: selectedCat.map(s => Number(s.id)), tituloGasto: titulo }
     }).then(async (response) => {
         if (response.ok) {
             window.dispatchEvent(new Event('xp:refresh'));
@@ -563,6 +748,7 @@ let anoAtual = hoje.getFullYear();
 let modalAbertoPor = 'single';
 let lote = [];
 
+// O botão #calendario abre o modal para selecionar a data do evento único
 btnAbrir.onclick = () => { modalAbertoPor = 'single'; modal.style.display = "flex"; };
 
 function abrirCalendarioMulti() { modalAbertoPor = 'multi'; modal.style.display = 'flex'; }

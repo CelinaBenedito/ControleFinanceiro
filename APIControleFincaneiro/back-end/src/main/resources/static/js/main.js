@@ -256,6 +256,16 @@
         registrarGasto(payload) {
             return postJson("/registros", payload);
         },
+        registrarRecorrente(payload) {
+            return postJson("/registros/recorrente", payload);
+        },
+        getCaixinhas(userId) {
+            return request(`/caixinhas/ativas/usuarios/${userId}`, { method: "GET" })
+                .then(res => {
+                    if (res.status === 204) return [];
+                    return res.json();
+                });
+        },
         adicionarSaldo(payload) {
             return this.registrarGasto(payload);
         },
