@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
@@ -6,7 +6,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configurações</title>
-    <link href='https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link href='assets/boxicons/boxicons.min.css' rel='stylesheet' id='bx-local'>
+    <script>
+        // Fallback: se icones locais nao carregarem, usa CDN
+        (function(){
+            function checkAndFallback(){
+                var el = document.createElement('i');
+                el.className = 'bx bx-check';
+                el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;font-size:20px;visibility:hidden';
+                document.body.appendChild(el);
+                var ff = window.getComputedStyle(el).fontFamily || '';
+                document.body.removeChild(el);
+                if(ff.toLowerCase().indexOf('boxicons') === -1){
+                    var l = document.createElement('link');
+                    l.rel = 'stylesheet';
+                    l.href = 'https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css';
+                    document.head.appendChild(l);
+                }
+            }
+            if(document.readyState === 'loading'){
+                document.addEventListener('DOMContentLoaded', checkAndFallback);
+            } else { checkAndFallback(); }
+        })();
+    </script>
     <link rel="stylesheet" href="styles/Estilos.css">
     <link rel="stylesheet" href="styles/configuracao.css">
     <link rel="stylesheet" href="styles/root.css">
@@ -263,7 +285,6 @@
                                 <span>Exportar dados</span>
                                 <i class="bx bx-arrow-out-up-square-half"></i>
                             </button>
-                            <input type="file" id="inputImportar" accept=".json,.csv" style="display:none;" onchange="processarImportacao(event)">
                         </div>
                     </div>
 

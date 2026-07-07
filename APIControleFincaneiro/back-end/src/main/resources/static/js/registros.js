@@ -82,8 +82,16 @@ function renderizarRegistros(json) {
                             const descricao = registro.eventoFinanceiro.descricao || "";
                             const valor = registro.eventoFinanceiro.valor || 0;
                             const tipo = registro.eventoFinanceiro.tipo || "";
-                            const instNome = registro.eventoInstituicao && registro.eventoInstituicao[0] && registro.eventoInstituicao[0].instituicao
-                                ? registro.eventoInstituicao[0].instituicao.nome : "-";
+                            // Todas as instituições do registro
+                            const todasInsts = (registro.eventoInstituicao || [])
+                                .map(ei => ei.instituicao ? ei.instituicao.nome : null)
+                                .filter(Boolean);
+                            const instNome = todasInsts.length > 0 ? todasInsts[0] : "-";
+
+                            // Todas as categorias do registro
+                            const todasCats = (registro.gastoDetalhe?.categoria || [])
+                                .map(c => c.titulo || null)
+                                .filter(Boolean);
 
                             const registroId = registro.eventoFinanceiro.id || "";
                             const registroData = {
@@ -96,12 +104,34 @@ function renderizarRegistros(json) {
                                 data: dataISO
                             };
 
+                            // Badge de tipo com cor
+                            const tipoEstilos = {
+                                'Gasto':                { bg: 'var(--red-100)',   color: 'var(--red-700)' },
+                                'Recebimento':          { bg: 'var(--green-100)', color: 'var(--green-700)' },
+                                'Transferencia':        { bg: '#e0f2fe',          color: '#0369a1' },
+                                'Gasto Agendado':       { bg: '#fef9c3',          color: '#854d0e' },
+                                'Recebimento Agendado': { bg: '#d1fae5',          color: '#065f46' },
+                            };
+                            const tipoLabel = tipo === 'Transferencia' ? 'Transferência' : tipo;
+                            const est = tipoEstilos[tipo] || { bg: '#f1f5f9', color: '#475569' };
+                            const tipoBadge = `<span class="reg-tipo-badge" style="background:${est.bg};color:${est.color};">${tipoLabel}</span>`;
+
+                            // Tags de instituições
+                            const instTags = todasInsts.length > 0
+                                ? todasInsts.map(n => `<span class="reg-tag">${n}</span>`).join("")
+                                : '<span class="reg-tag-empty">-</span>';
+
+                            // Tags de categorias
+                            const catTags = todasCats.length > 0
+                                ? todasCats.map(c => `<span class="reg-tag">${c}</span>`).join("")
+                                : '<span class="reg-tag-empty">-</span>';
+
                             const card = document.createElement("div");
                             card.className = "cardRegistro";
                             card.innerHTML = `
                                 <div class="registroInfo">
                                     <div class="dataRegistro">${dia}</div>
-                                    <div class="registroTipo">${tipo}</div>
+                                    ${tipoBadge}
                                 </div>
                                 <div class="registroInfo">
                                     <div><p>Valor</p></div>
@@ -112,12 +142,12 @@ function renderizarRegistros(json) {
                                     <div class="registroDescricao">${descricao}</div>
                                 </div>
                                 <div class="registroDetalhes">
-                                    <div><p>Instituições</p></div>
-                                    <div class="registroInstituicao">${instNome}</div>
+                                    <div><p>Instituições:</p></div>
+                                    <div class="reg-tags-row">${instTags}</div>
                                 </div>
                                 <div class="registroDetalhes">
-                                    <div><p>Categoria</p></div>
-                                    <div class="registroInstituicao">{Falta integrar}</div>
+                                    <div><p>Categorias:</p></div>
+                                    <div class="reg-tags-row">${catTags}</div>
                                 </div>
 
                                 <div class="registroAcoes">
@@ -291,11 +321,11 @@ async function abrirModalFiltroRegistros() {
             <div>
                 <h4 class="fr-secao-titulo">Data do Evento</h4>
                 <div class="fr-date-row" style="margin-top:8px;">
-                    <p class="fr-date-display" id="frDataDisplay">Nenhuma data selecionada</p>
-                    <button class="fr-btn secondary" id="frBtnData" type="button">
-                        <i class='bx bx-calendar' style="margin-right:6px;"></i> Escolher data
+                    <input id="frDataEvento" type="text" class="fr-select" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" style="min-width:180px;max-width:220px;cursor:text;">
+                    <button class="fr-btn secondary" id="frBtnLimparData" type="button" style="padding:0 14px;" title="Limpar data">
+                        <i class='bx bx-x'></i>
                     </button>
-                    <input id="frDataEvento" type="date" style="position:absolute;left:-9999px;opacity:0;pointer-events:none;" aria-hidden="true">
+                    <p class="fr-date-display" id="frDataDisplay">Nenhuma data selecionada</p>
                 </div>
             </div>
 
@@ -360,25 +390,25 @@ async function abrirModalFiltroRegistros() {
     modal.querySelector("#frFechar").addEventListener("click", () => modal.remove());
 
     const inputData = modal.querySelector("#frDataEvento");
-    const btnData = modal.querySelector("#frBtnData");
     const txtData = modal.querySelector("#frDataDisplay");
+    const btnLimparData = modal.querySelector("#frBtnLimparData");
 
-    btnData.addEventListener("click", () => {
-        if (typeof inputData.showPicker === "function") {
-            inputData.showPicker();
-        } else {
-            inputData.click();
-        }
+    // Aplica máscara de data (dd/mm/aaaa)
+    if (window.MainAPI && window.MainAPI.aplicarMascaraData) {
+        window.MainAPI.aplicarMascaraData(inputData);
+    }
+
+    inputData.addEventListener("input", () => {
+        const iso = window.MainAPI ? window.MainAPI.dataParaISO(inputData.value) : null;
+        txtData.textContent = iso ? inputData.value : "Nenhuma data selecionada";
     });
 
-    inputData.addEventListener("change", () => {
-        if (!inputData.value) {
+    if (btnLimparData) {
+        btnLimparData.addEventListener("click", () => {
+            inputData.value = "";
             txtData.textContent = "Nenhuma data selecionada";
-            return;
-        }
-        const [ano, mes, dia] = inputData.value.split("-");
-        txtData.textContent = `${dia}/${mes}/${ano}`;
-    });
+        });
+    }
 
     modal.querySelector("#frLimpar").addEventListener("click", () => {
         modal.querySelector("#frCampoTexto").value = "titulo";
@@ -391,7 +421,9 @@ async function abrirModalFiltroRegistros() {
     modal.querySelector("#frAplicar").addEventListener("click", async () => {
         const campoTexto = modal.querySelector("#frCampoTexto").value;
         const textoBusca = modal.querySelector("#frTextoBusca").value.trim();
-        const dataEvento = modal.querySelector("#frDataEvento").value;
+        const dataEvento = window.MainAPI
+            ? (window.MainAPI.dataParaISO(modal.querySelector("#frDataEvento").value) || "")
+            : modal.querySelector("#frDataEvento").value;
         const tipo = Array.from(modal.querySelectorAll(".fr-tipo:checked")).map(i => i.value);
         const tipoMovimento = Array.from(modal.querySelectorAll(".fr-movimento:checked")).map(i => i.value);
         const instituicaoUsuario = Array.from(modal.querySelectorAll(".fr-inst:checked")).map(i => i.value);

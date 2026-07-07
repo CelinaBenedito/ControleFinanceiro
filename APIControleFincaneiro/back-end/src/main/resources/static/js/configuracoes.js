@@ -124,6 +124,33 @@
         ]);
     }
 
+    // ── Helper: busca todas as páginas de um endpoint paginado ──────
+    async function fetchTodasPaginasCfg(url) {
+        const allContent = [];
+        let pagina = 0;
+        let isLast = false;
+        const LIMITE = 100;
+
+        while (!isLast && pagina < LIMITE) {
+            const sep = url.includes("?") ? "&" : "?";
+            const res = await fetch(`${url}${sep}pagina=${pagina}`);
+            if (res.status === 204) break;
+            if (!res.ok) break;
+            const data = await res.json();
+            if (data && Array.isArray(data.content)) {
+                allContent.push(...data.content);
+                isLast = data.last === true;
+            } else if (Array.isArray(data)) {
+                allContent.push(...data);
+                isLast = true;
+            } else {
+                break;
+            }
+            pagina++;
+        }
+        return allContent;
+    }
+
     // ── CONFIGURAÇÕES ─────────────────────────────────────────────
     async function carregarConfig() {
         try {
@@ -320,8 +347,7 @@
     // ── INSTITUIÇÕES ──────────────────────────────────────────────
     async function carregarInstituicoes() {
         try {
-            const res = await fetch(`${API}/instituicoes/usuarios/${userId}`);
-            instituicoes = res.status === 204 ? [] : (res.ok ? await res.json() : []);
+            instituicoes = await fetchTodasPaginasCfg(`${API}/instituicoes/usuarios/${userId}`);
             renderInstituicoes();
             preencherSelectInstituicoes();
             await preencherSelectNovaInstituicao();
@@ -409,10 +435,8 @@
         const sel = document.getElementById("sel_nova_instituicao");
         if (!sel) return;
         try {
-            const res = await fetch(`${API}/instituicoes`);
-            if (!res.ok) return;
-            const todas = await res.json();
-            const vinculadasIds = new Set(instituicoes.map(i => i.intituicao.id));
+            const todas = await fetchTodasPaginasCfg(`${API}/instituicoes`);
+            const vinculadasIds = new Set(instituicoes.map(i => i.intituicao && i.intituicao.id));
             const disponiveis = todas.filter(i => !vinculadasIds.has(i.id));
             sel.innerHTML = `<option value="" disabled selected></option>`;
             disponiveis.forEach(inst => {
@@ -431,8 +455,7 @@
     // ── CATEGORIAS ────────────────────────────────────────────────
     async function carregarCategorias() {
         try {
-            const res = await fetch(`${API}/categorias/usuario/${userId}`);
-            categorias = res.status === 204 ? [] : (res.ok ? await res.json() : []);
+            categorias = await fetchTodasPaginasCfg(`${API}/categorias/usuario/${userId}`);
             renderCategorias();
             preencherSelectCategorias();
             await preencherSelectNovaCategoria();
@@ -445,10 +468,8 @@
         const sel = document.getElementById("sel_nova_categoria");
         if (!sel) return;
         try {
-            const res = await fetch(`${API}/categorias`);
-            if (!res.ok) return;
-            const todas = await res.json();
-            const vinculadasIds = new Set(categorias.map(c => c.categoria.id));
+            const todas = await fetchTodasPaginasCfg(`${API}/categorias`);
+            const vinculadasIds = new Set(categorias.map(c => c.categoria && c.categoria.id));
             const disponiveis = todas.filter(c => !vinculadasIds.has(c.id));
             sel.innerHTML = `<option value="" disabled selected></option>`;
             disponiveis.forEach(cat => {
@@ -602,9 +623,192 @@
         }
     };
 
-    // ── EVENTOS (backend não implementado) ────────────────────────
+    // ── IMPORTAR DADOS ────────────────────────────────────────────
+    function garantirModalImportacao() {
+        let modal = document.getElementById("cfgImportModal");
+        if (modal) return modal;
+
+        modal = document.createElement("div");
+        modal.id = "cfgImportModal";
+        // Estilo inline completo para garantir funcionamento em JavaFX WebView
+        modal.style.cssText = [
+            "display:none",
+            "position:fixed",
+            "inset:0",
+            "background:rgba(0,0,0,0.55)",
+            "z-index:9999",
+            "align-items:center",
+            "justify-content:center",
+            "padding:16px"
+        ].join(";");
+
+        modal.innerHTML = `
+            <div style="background:var(--cor-fundo-card,#FAFFFF);border-radius:20px;padding:28px 24px;
+                        width:min(480px,94vw);display:flex;flex-direction:column;gap:16px;
+                        box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <h2 style="margin:0;color:var(--cor-titulo,#004C58);font-size:1.4rem;">Importar dados</h2>
+                    <button id="cfgImportFechar" style="background:none;border:1px solid #9cc9c9;border-radius:8px;
+                            width:36px;height:36px;font-size:1.5rem;cursor:pointer;color:var(--cor-principal,#367373);
+                            display:flex;align-items:center;justify-content:center;padding:0;margin:0;">&times;</button>
+                </div>
+                <p style="margin:0;color:var(--cor-texto-secundario,#4A4A4A);font-size:0.9rem;">
+                    Selecione a instituição financeira e o arquivo exportado pelo banco.
+                </p>
+
+                <div style="position:relative;margin:4px 0;">
+                    <select id="cfgImportBanco" style="height:52px;width:100%;border:2px solid var(--cor-principal,#367373);
+                            border-radius:10px;padding:0 18px;font-size:1rem;font-weight:600;
+                            color:var(--cor-principal,#367373);background:transparent;appearance:none;outline:none;">
+                        <option value="" disabled selected>Selecione a instituição</option>
+                    </select>
+                    <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);
+                                 color:var(--cor-principal,#367373);pointer-events:none;">▾</span>
+                </div>
+
+                <div style="border:2px dashed var(--cor-principal,#367373);border-radius:10px;
+                            padding:16px;text-align:center;cursor:pointer;" id="cfgImportDropArea">
+                    <p style="margin:0 0 8px;color:var(--cor-principal,#367373);font-weight:600;">
+                        Clique para selecionar o arquivo
+                    </p>
+                    <p style="margin:0;font-size:0.8rem;color:var(--cor-texto-secundario,#4A4A4A);">
+                        Formatos aceitos: .csv, .ofx, .xls, .xlsx, .json, .sql
+                    </p>
+                    <input type="file" id="cfgImportArquivo"
+                           accept=".csv,.ofx,.qfx,.xls,.xlsx,.json,.sql,.pdf"
+                           style="display:none;">
+                    <p id="cfgImportNomeArquivo" style="margin:8px 0 0;font-size:0.85rem;
+                       color:var(--cor-principal,#367373);font-weight:600;"></p>
+                </div>
+
+                <p id="cfgImportMsg" style="color:#e53e3e;font-size:0.85rem;display:none;margin:0;"></p>
+
+                <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+                    <button id="cfgImportCancelar"
+                        style="height:44px;padding:0 20px;background:transparent;
+                               border:2px solid var(--cor-principal,#367373);color:var(--cor-principal,#367373);
+                               border-radius:10px;font-size:1rem;cursor:pointer;margin:0;">
+                        Cancelar
+                    </button>
+                    <button id="cfgImportConfirmar"
+                        style="height:44px;padding:0 20px;background:var(--cor-principal,#367373);
+                               color:#fff;border:none;border-radius:10px;font-size:1rem;cursor:pointer;margin:0;">
+                        Importar
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const fechar = () => { modal.style.display = "none"; };
+        modal.querySelector("#cfgImportFechar").onclick = fechar;
+        modal.querySelector("#cfgImportCancelar").onclick = fechar;
+        modal.addEventListener("click", e => { if (e.target === modal) fechar(); });
+
+        // Área de drop / clique para selecionar arquivo
+        const dropArea = modal.querySelector("#cfgImportDropArea");
+        const inputArq = modal.querySelector("#cfgImportArquivo");
+        const nomeLabel = modal.querySelector("#cfgImportNomeArquivo");
+
+        dropArea.addEventListener("click", () => inputArq.click());
+
+        inputArq.addEventListener("change", () => {
+            const f = inputArq.files && inputArq.files[0];
+            nomeLabel.textContent = f ? `Arquivo selecionado: ${f.name}` : "";
+        });
+
+        modal.querySelector("#cfgImportConfirmar").onclick = async () => {
+            const selBanco = modal.querySelector("#cfgImportBanco");
+            const msg = modal.querySelector("#cfgImportMsg");
+            const btn = modal.querySelector("#cfgImportConfirmar");
+
+            const bancoId = selBanco ? selBanco.value : "";
+            // O backend espera o NOME da instituição, não o ID
+            const bancoNome = selBanco && selBanco.selectedIndex >= 0
+                ? selBanco.options[selBanco.selectedIndex].textContent.trim()
+                : "";
+            const arquivo = inputArq && inputArq.files && inputArq.files[0];
+
+            if (!bancoId) {
+                msg.textContent = "Selecione uma instituição financeira.";
+                msg.style.display = "";
+                return;
+            }
+            if (!arquivo) {
+                msg.textContent = "Selecione um arquivo para importar.";
+                msg.style.display = "";
+                return;
+            }
+
+            msg.style.display = "none";
+            btn.disabled = true;
+            btn.textContent = "Importando...";
+            btn.style.opacity = "0.7";
+
+            try {
+                const formData = new FormData();
+                // O backend espera: @RequestParam MultipartFile arquivo
+                //                   @RequestParam(required = false) String bancoNome
+                formData.append("arquivo", arquivo);
+                if (bancoNome) formData.append("bancoNome", bancoNome);
+
+                const res = await fetch(`${API}/configuracoes/upload-arquivo/usuarios/${userId}`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (res.ok || res.status === 204) {
+                    fechar();
+                    mostrarAlerta("Dados importados com sucesso!");
+                } else {
+                    let detalhe = `HTTP ${res.status}`;
+                    try { const corpo = await res.json(); detalhe = corpo.message || detalhe; } catch (_) {}
+                    msg.textContent = `Erro ao importar: ${detalhe}`;
+                    msg.style.display = "";
+                }
+            } catch (e) {
+                console.error("Erro ao importar dados:", e);
+                msg.textContent = "Erro de conexão ao importar. Verifique se o servidor está ativo.";
+                msg.style.display = "";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Importar";
+                btn.style.opacity = "1";
+            }
+        };
+
+        return modal;
+    }
+
     window.importarDados = function () {
-        document.getElementById("inputImportar")?.click();
+        if (!userId) { mostrarAlerta("Usuário não identificado."); return; }
+
+        const modal = garantirModalImportacao();
+        const selBanco = modal.querySelector("#cfgImportBanco");
+        const inputArq = modal.querySelector("#cfgImportArquivo");
+        const nomeLabel = modal.querySelector("#cfgImportNomeArquivo");
+        const msg = modal.querySelector("#cfgImportMsg");
+
+        // Atualiza lista de instituições sempre que abrir
+        if (selBanco) {
+            selBanco.innerHTML = `<option value="" disabled selected>Selecione a instituição</option>`;
+            (instituicoes || []).forEach(inst => {
+                const opt = document.createElement("option");
+                opt.value = inst.id;
+                opt.textContent = (inst.intituicao && inst.intituicao.nome) ? inst.intituicao.nome : "Instituição";
+                selBanco.appendChild(opt);
+            });
+        }
+        if (inputArq) inputArq.value = "";
+        if (nomeLabel) nomeLabel.textContent = "";
+        if (msg) msg.style.display = "none";
+
+        modal.style.display = "flex";
+    };
+
+    window.processarImportacao = function () {
+        // Mantido por compatibilidade – fluxo agora via modal
     };
 
     function obterFormatosExportacaoDisponiveis() {
@@ -694,85 +898,249 @@
         return window.desktopBridge || null;
     }
 
+    // ── MODAL DE DOWNLOAD MANUAL (fallback para JavaFX) ──────────
+    function mostrarModalDownload(url, nome, tipo) {
+        const anterior = document.getElementById("cfgModalDownload");
+        if (anterior) anterior.remove();
+
+        const modal = document.createElement("div");
+        modal.id = "cfgModalDownload";
+        modal.style.cssText = [
+            "position:fixed", "inset:0", "background:rgba(0,0,0,0.55)",
+            "z-index:9999", "display:flex", "align-items:center",
+            "justify-content:center", "padding:16px"
+        ].join(";");
+
+        modal.innerHTML = `
+            <div style="background:var(--cor-fundo-card,#FAFFFF);border-radius:20px;padding:28px 24px;
+                        width:min(520px,96vw);display:flex;flex-direction:column;gap:16px;
+                        box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <i class='bx bx-download' style="font-size:1.8rem;color:var(--cor-principal,#367373);"></i>
+                    <h3 style="margin:0;color:var(--cor-titulo,#004C58);font-size:1.3rem;">
+                        Exportar ${tipo.toUpperCase()}
+                    </h3>
+                </div>
+
+                <p style="margin:0;font-size:0.9rem;color:var(--cor-texto-secundario,#4A4A4A);line-height:1.5;">
+                    Clique em <strong>"Baixar arquivo"</strong> para iniciar o download.
+                    Se não funcionar automaticamente, copie o link e abra no navegador do sistema.
+                </p>
+
+                <div style="background:var(--cor-fundo-pagina,#EBF4F4);border-radius:10px;padding:10px 14px;
+                            word-break:break-all;font-size:0.78rem;font-family:monospace;
+                            color:var(--cor-texto-principal,#1A1A1A);border:1px solid var(--cor-hover,#B4D9D5);">
+                    ${url}
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button id="cfgDlBaixar"
+                        style="flex:2;min-width:140px;height:46px;background:var(--cor-principal,#367373);
+                               color:#fff;border:none;border-radius:10px;font-size:0.95rem;
+                               cursor:pointer;font-weight:600;margin:0;display:flex;
+                               align-items:center;justify-content:center;gap:6px;">
+                        <i class='bx bx-download'></i> Baixar arquivo
+                    </button>
+                    <button id="cfgDlCopiar"
+                        style="flex:1;min-width:110px;height:46px;background:transparent;
+                               color:var(--cor-principal,#367373);border:2px solid var(--cor-principal,#367373);
+                               border-radius:10px;font-size:0.95rem;cursor:pointer;margin:0;">
+                        Copiar link
+                    </button>
+                    <button id="cfgDlNavegar"
+                        style="height:46px;padding:0 14px;background:transparent;color:#0369a1;
+                               border:1px solid #0369a1;border-radius:10px;font-size:0.85rem;
+                               cursor:pointer;margin:0;" title="Navega direto para a URL de download (pode recarregar a tela)">
+                        ↗ Ir para URL
+                    </button>
+                    <button id="cfgDlFechar"
+                        style="height:46px;padding:0 14px;background:transparent;color:#888;
+                               border:1px solid #ccc;border-radius:10px;font-size:0.9rem;
+                               cursor:pointer;margin:0;">
+                        Fechar
+                    </button>
+                </div>
+
+                <p style="margin:0;font-size:0.78rem;color:#888;line-height:1.4;">
+                    💡 <em>Dica IntelliJ/JavaFX:</em> se o download não abrir automaticamente,
+                    copie o link acima e cole em um navegador (Chrome, Firefox etc.).
+                </p>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const fechar = () => modal.remove();
+        modal.querySelector("#cfgDlFechar").onclick = fechar;
+        modal.addEventListener("click", e => { if (e.target === modal) fechar(); });
+
+        // Botão COPIAR
+        modal.querySelector("#cfgDlCopiar").onclick = function () {
+            const btn = this;
+            const copiar = () => {
+                const ta = document.createElement("textarea");
+                ta.value = url;
+                ta.style.cssText = "position:fixed;top:-9999px;left:-9999px;";
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                try { document.execCommand("copy"); } catch (_) {}
+                ta.remove();
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).catch(copiar);
+            } else {
+                copiar();
+            }
+            btn.textContent = "✓ Copiado!";
+            setTimeout(() => { btn.textContent = "Copiar link"; }, 2000);
+        };
+
+        // Botão NAVEGAR (ir direto para a URL — pode recarregar a tela em JavaFX)
+        modal.querySelector("#cfgDlNavegar").onclick = function () {
+            window.location.href = url;
+        };
+        modal.querySelector("#cfgDlBaixar").onclick = function () {
+            const btn = this;
+            btn.innerHTML = "Iniciando...";
+            btn.disabled = true;
+
+            // Método 1: window.open (pode abrir no browser do sistema se a app tiver popup handler)
+            try { window.open(url, "_blank"); } catch (_) {}
+
+            // Método 2: <a> com URL direta (sem blob) — JavaFX pode interceptar a navegação
+            setTimeout(() => {
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = nome;
+                a.style.display = "none";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }, 200);
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = "<i class='bx bx-download'></i> Baixar arquivo";
+            }, 2500);
+        };
+    }
+
     async function exportarDadosPorTipo(tipo) {
         if (!userId) {
             mostrarAlerta("Usuário não identificado para exportação.");
             return;
         }
 
-        try {
-            const res = await fetch(`${API}/registros/download/${userId}?tipo=${encodeURIComponent(tipo)}`);
-            if (!res.ok) {
-                mostrarAlerta(`Erro ao exportar ${tipo.toUpperCase()} (HTTP ${res.status}).`);
-                return;
-            }
+        const ext = tipo === "excel" ? "xlsx" : tipo;
+        let nomeArquivo = `registros.${ext}`;
+        const downloadUrl = `${API}/registros/download/${userId}?tipo=${encodeURIComponent(tipo)}`;
 
-            const blob = await res.blob();
+        // 1. desktopBridge (JavaFX bridge nativo — se disponível)
+        const bridge = await aguardarDesktopBridge(2000);
+        if (bridge) {
+            try {
+                const res = await fetch(downloadUrl);
+                if (!res.ok) { mostrarAlerta(`Erro ao exportar (HTTP ${res.status}).`); return; }
+                const blob = await res.blob();
+                const cd = res.headers.get("content-disposition") || "";
+                const m = cd.match(/filename=([^;]+)/i);
+                if (m && m[1]) nomeArquivo = m[1].replace(/"/g, "").trim();
 
-            const contentDisposition = res.headers.get("content-disposition") || "";
-            let nomeArquivo = `registros.${tipo === "excel" ? "xlsx" : tipo}`;
-            const match = contentDisposition.match(/filename=([^;]+)/i);
-            if (match && match[1]) {
-                nomeArquivo = match[1].replace(/"/g, "").trim();
-            }
-
-            const userAgent = navigator.userAgent || "";
-            const emWebViewJavaFx = /JavaFX/i.test(userAgent);
-
-            const desktopBridge = emWebViewJavaFx
-                ? await aguardarDesktopBridge()
-                : window.desktopBridge;
-            if (desktopBridge) {
-                try {
-                    const bytes = new Uint8Array(await blob.arrayBuffer());
-                    let binario = "";
-                    const tamanhoChunk = 0x8000;
-
-                    for (let offset = 0; offset < bytes.length; offset += tamanhoChunk) {
-                        const chunk = bytes.subarray(offset, offset + tamanhoChunk);
-                        binario += String.fromCharCode(...chunk);
-                    }
-
-                    const salvo = desktopBridge.saveBase64File(nomeArquivo, btoa(binario));
-                    if (salvo) {
-                        mostrarAlerta(`${tipo.toUpperCase()} exportado com sucesso!`);
-                    } else {
-                        mostrarAlerta("Exportação cancelada pelo usuário.");
-                    }
-                    return;
-                } catch (bridgeError) {
-                    console.warn("desktopBridge indisponível ou incompatível nesta página:", bridgeError);
+                const bytes = new Uint8Array(await blob.arrayBuffer());
+                let binario = "";
+                for (let i = 0; i < bytes.length; i += 0x8000) {
+                    binario += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
                 }
+                const salvo = bridge.saveBase64File(nomeArquivo, btoa(binario));
+                if (salvo) { mostrarAlerta(`${tipo.toUpperCase()} exportado com sucesso!`); return; }
+            } catch (bridgeErr) {
+                console.warn("desktopBridge falhou:", bridgeErr);
             }
+        }
 
-            if (emWebViewJavaFx) {
-                mostrarAlerta("Modo desktop detectado, mas a integração de exportação não está ativa. Reinicie o app Desktop.");
+        // 2. Verifica se o endpoint responde
+        try {
+            const check = await fetch(downloadUrl, { method: "HEAD" });
+            if (!check.ok) {
+                mostrarAlerta(`Servidor retornou erro ao gerar o arquivo (HTTP ${check.status}).`);
                 return;
             }
-
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = nomeArquivo;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-
-            mostrarAlerta(`${tipo.toUpperCase()} exportado com sucesso!`);
         } catch (e) {
-            console.error(`Erro ao exportar ${tipo}:`, e);
-            mostrarAlerta(`Erro ao exportar ${tipo.toUpperCase()}.`);
+            console.warn("HEAD check falhou:", e);
         }
+
+        // 3. Busca conteúdo e tenta abordagens JavaScript
+        let blob = null;
+        try {
+            const res = await fetch(downloadUrl);
+            if (res.ok) {
+                blob = await res.blob();
+                const cd = res.headers.get("content-disposition") || "";
+                const m = cd.match(/filename=([^;]+)/i);
+                if (m && m[1]) nomeArquivo = m[1].replace(/"/g, "").trim();
+            }
+        } catch (e) {
+            console.warn("Fetch do blob falhou:", e);
+        }
+
+        if (blob) {
+            // 3a. Blob URL (funciona em browsers normais)
+            try {
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = blobUrl;
+                a.download = nomeArquivo;
+                a.style.display = "none";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+            } catch (e) { console.warn("Blob URL:", e); }
+
+            // 3b. Data URI (às vezes funciona em JavaFX quando blob URL falha)
+            try {
+                const arrayBuffer = await blob.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+                let binary = "";
+                for (let i = 0; i < bytes.length; i += 0x8000) {
+                    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+                }
+                const base64 = btoa(binary);
+                const mimeType = blob.type || "application/octet-stream";
+                const dataUri = `data:${mimeType};base64,${base64}`;
+
+                const a2 = document.createElement("a");
+                a2.href = dataUri;
+                a2.download = nomeArquivo;
+                a2.style.display = "none";
+                document.body.appendChild(a2);
+                a2.click();
+                a2.remove();
+            } catch (e) { console.warn("Data URI:", e); }
+        }
+
+        // 4. Em JavaFX: iframe (WebEngine pode acionar loadWorker → download handler)
+        setTimeout(() => {
+            try {
+                const ifr = document.createElement("iframe");
+                ifr.style.cssText = "display:none;width:0;height:0;border:0;";
+                ifr.src = downloadUrl;
+                document.body.appendChild(ifr);
+                setTimeout(() => { try { document.body.removeChild(ifr); } catch (_) {} }, 60000);
+            } catch (e) { console.warn("Iframe:", e); }
+        }, 300);
+
+        // 5. Mostra modal com link direto + botões (fallback confiável para JavaFX)
+        setTimeout(() => {
+            mostrarModalDownload(downloadUrl, nomeArquivo, tipo);
+        }, 800);
     }
 
     window.exportarDados = function () {
         abrirModalExportacao();
     };
 
-    window.processarImportacao = function () {
-        mostrarAlerta("Importação de dados ainda não disponível.");
-    };
 
     // ── CALENDÁRIO – SELEÇÃO DE PERÍODO PARA EXCLUSÃO ────────────
     let cfgCalCampo = null;        // 'inicio' | 'fim'

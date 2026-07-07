@@ -4,7 +4,7 @@
 .cfg-card {
     background: var(--cor-fundo-card);
     border-radius: 30px;
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    box-shadow: 0px 4px 4px var(--sombra-caixa);
     padding: 32px 28px;
     margin-bottom: 24px;
     display: flex; 
@@ -142,7 +142,7 @@
     gap: 14px;
     font-size: 17px;
     font-weight: 600;
-    color: #1A1A1A;
+    color: var(--cor-texto-principal);
     cursor: pointer;
 }
 
@@ -185,7 +185,7 @@
     position: absolute;
     cursor: pointer;
     inset: 0;
-    background: #c8d5d5;
+    background: var(--cor-toggle-inativo);
     border-radius: 999px;
     transition: .2s;
 }
@@ -197,10 +197,10 @@
     width: 24px;
     left: 3px;
     top: 3px;
-    background: #fff;
+    background: var(--cor-fundo-card);
     border-radius: 50%;
     transition: .2s;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 3px var(--sombra-caixa);
 }
 
 .cfg-switch input:checked+.cfg-switch-slider {
@@ -220,7 +220,7 @@
     padding: 0 24px;
     min-width: 130px;
     background: var(--cor-principal);
-    color: #fff;
+    color: var(--cor-texto-claro);
     border: none;
     border-radius: 10px;
     font-size: 17px;
@@ -236,11 +236,11 @@
 }
 
 .cfg-btn.danger {
-    background: #e53e3e;
+    background: var(--red-700);
 }
 
 .cfg-btn.danger:hover {
-    background: #c53030;
+    background: var(--red-800);
 }
 
 /* Fix: .containerGeral button (especificidade 11) sobrescreve .cfg-btn (10).
@@ -263,7 +263,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px 18px;
-    border-bottom: 1px solid var(--cor-principal);
+    border-bottom: 1px solid var(--cor-tinte-borda);
     font-size: 16px;
 }
 
@@ -305,7 +305,7 @@
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--cor-principal);
-    border-bottom: 1px solid var(--cor-principal);
+    border-bottom: 1px solid var(--cor-tinte-borda);
     background: var(--cor-fundo-pagina);
 }
 
@@ -313,7 +313,7 @@
     padding: 12px 18px;
     font-size: 0.95rem;
     color: var(--cor-principal);
-    border-bottom: 1px solid rgba(54, 115, 115, 0.2);
+    border-bottom: 1px solid var(--cor-tinte-borda);
 }
 
 .cfg-table tr:last-child td {
@@ -322,7 +322,7 @@
 
 .cfg-table-empty td {
     text-align: center;
-    color: #888;
+    color: var(--cor-texto-secundario);
     font-style: italic;
 }
 

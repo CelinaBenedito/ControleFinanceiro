@@ -136,6 +136,16 @@
                 window.MainAPI.salvarImagemLocal(userId, dataUrl);
                 localStorage.setItem("usuarioLogado", JSON.stringify(novoUsuario));
 
+                // Atualiza também a lista de perfis na tela de seleção (index.html)
+                try {
+                    const perfis = JSON.parse(localStorage.getItem("perfis") || "[]");
+                    const idx = perfis.findIndex(p => p.id === userId);
+                    if (idx !== -1) {
+                        perfis[idx] = Object.assign({}, perfis[idx], { imagem: atualizado.imagem || perfis[idx].imagem });
+                        localStorage.setItem("perfis", JSON.stringify(perfis));
+                    }
+                } catch (_) {}
+
                 popularHero(novoUsuario);
                 window.dispatchEvent(new Event("usuario:imagemAtualizada"));
                 mostrarAlerta("Imagem de perfil atualizada com sucesso.");
@@ -342,11 +352,36 @@
         }
     }
 
+    // ── Auxiliar: busca todas as páginas de endpoint paginado ─────
+    async function fetchTodasPaginas(url) {
+        const allContent = [];
+        let pagina = 0;
+        let isLast = false;
+        const LIMITE = 100;
+        while (!isLast && pagina < LIMITE) {
+            const sep = url.includes("?") ? "&" : "?";
+            const res = await fetch(`${url}${sep}pagina=${pagina}`);
+            if (res.status === 204) break;
+            if (!res.ok) break;
+            const data = await res.json();
+            if (data && Array.isArray(data.content)) {
+                allContent.push(...data.content);
+                isLast = data.last === true;
+            } else if (Array.isArray(data)) {
+                allContent.push(...data);
+                isLast = true;
+            } else {
+                break;
+            }
+            pagina++;
+        }
+        return allContent;
+    }
+
     // ── INSTITUIÇÕES ──────────────────────────────────────────────
     async function carregarInstituicoes() {
         try {
-            const res = await fetch(`${API}/instituicoes/usuarios/${userId}`);
-            const lista = res.status === 204 ? [] : (res.ok ? await res.json() : []);
+            const lista = await fetchTodasPaginas(`${API}/instituicoes/usuarios/${userId}`);
             renderInstituicoes(lista);
         } catch (e) {
             console.error("Erro ao carregar instituições:", e);
@@ -414,8 +449,7 @@
         // Carrega todas as instituições disponíveis para o usuário escolher
         let todasInst = [];
         try {
-            const res = await fetch(`${API}/instituicoes`);
-            todasInst = res.ok ? await res.json() : [];
+            todasInst = await fetchTodasPaginas(`${API}/instituicoes`);
         } catch (e) { console.error(e); }
 
         if (document.getElementById("modalInstituicao")) {
@@ -476,8 +510,7 @@
     // ── CATEGORIAS ────────────────────────────────────────────────
     async function carregarCategorias() {
         try {
-            const res = await fetch(`${API}/categorias/usuario/${userId}`);
-            const lista = res.status === 204 ? [] : (res.ok ? await res.json() : []);
+            const lista = await fetchTodasPaginas(`${API}/categorias/usuario/${userId}`);
             renderCategorias(lista);
         } catch (e) {
             console.error("Erro ao carregar categorias:", e);

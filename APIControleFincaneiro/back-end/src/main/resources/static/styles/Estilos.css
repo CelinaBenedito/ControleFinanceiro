@@ -21,7 +21,7 @@ h1 {
     height: 100%;
     justify-content: center;
     align-items: center;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--cor-overlay);
 }
 
 .conteudoTipo {
@@ -41,7 +41,7 @@ h1 {
     position: fixed;
     justify-content: center;
     align-items: center;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--cor-overlay);
     z-index: 10000;
 }
 
@@ -256,7 +256,7 @@ h1 {
     overflow: visible;
     display: flex;
     width: 120px;
-    border: #50B4BF solid 2px;
+    border: var(--cor-principal) solid 2px;
     border-radius: 3px;
     align-items: end;
     justify-content: end;
@@ -366,7 +366,7 @@ h1 {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--cor-overlay);
     justify-content: center;
     align-items: center;
     z-index: 1;
@@ -420,7 +420,7 @@ h1 {
 .headerFormulario {
     display: flex;
     gap: 20px;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid var(--cor-borda-divisor);
     padding-bottom: 8px;
     margin-bottom: 15px;
 }
@@ -511,6 +511,41 @@ h1 {
     text-align: center;
 }
 
+/* Badge de tipo (Gasto / Recebimento / Transferência) */
+.reg-tipo-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    margin-top: 4px;
+}
+
+/* Tags de instituições e categorias */
+.reg-tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.reg-tag {
+    display: inline-block;
+    background: var(--cor-principal);
+    color: var(--cor-texto-claro);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.reg-tag-empty {
+    font-size: 0.85rem;
+    color: var(--cor-texto-secundario);
+}
+
 .reg-icon-btn {
     background: none;
     border: none;
@@ -527,19 +562,19 @@ h1 {
 }
 
 .reg-icon-btn.edit {
-    color: #00BBDD;
+    color: var(--cor-acao-editar);
 }
 
 .reg-icon-btn.edit:hover {
-    background: rgba(0, 187, 221, 0.12);
+    background: var(--cor-acao-editar-suave);
 }
 
 .reg-icon-btn.delete {
-    color: #e53e3e;
+    color: var(--red-700);
 }
 
 .reg-icon-btn.delete:hover {
-    background: rgba(229, 62, 62, 0.12);
+    background: var(--cor-acao-deletar-suave);
 }
 
 /* Campo com floating label dentro dos modais de registro */
@@ -574,8 +609,8 @@ h1 {
     left: 14px;
     top: 18px;
     font-size: 15px;
-    color: #4A4A4A;
-    background: #FAFFFF;
+    color: var(--cor-texto-secundario);
+    background: var(--cor-fundo-card);
     padding: 0 4px;
     pointer-events: none;
     transition: 0.2s ease-in-out;
@@ -989,12 +1024,12 @@ footer a {
     align-items: center;
     justify-content: center;
     padding: 24px;
-    background-color: #5FA8A3;
+    background-color: var(--cor-fundo-cadastro);
     background-image:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%),
-        linear-gradient(225deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%),
-        linear-gradient(45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%),
-        linear-gradient(315deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%);
+        linear-gradient(135deg, var(--cor-padrao-geometrico) 25%, transparent 25%),
+        linear-gradient(225deg, var(--cor-padrao-geometrico) 25%, transparent 25%),
+        linear-gradient(45deg, var(--cor-padrao-geometrico) 25%, transparent 25%),
+        linear-gradient(315deg, var(--cor-padrao-geometrico) 25%, transparent 25%);
     background-position: 10px 0, 10px 0, 0 0, 0 0;
     background-size: 20px 20px;
     background-repeat: repeat;
@@ -1010,7 +1045,7 @@ footer a {
     backdrop-filter: blur(10px);
 
     border-radius: 18px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 20px 40px var(--sombra-caixa);
 
     padding: 36px;
 
@@ -1097,7 +1132,7 @@ footer a {
     outline: 2px solid var(--cor-principal) !important;
     outline-offset: 3px;
     border: none !important;
-    box-shadow: 0 0 0 4px rgba(54, 115, 115, 0.2) !important;
+    box-shadow: 0 0 0 4px var(--cor-tinte-borda) !important;
 }
 
 .uw-info {
@@ -1116,7 +1151,7 @@ footer a {
 .uw-xp-track {
     width: 150px;
     height: 14px;
-    background: #FAFFFF;
+    background: var(--cor-fundo-card);
     border-radius: 100px;
     display: flex;
     align-items: center;
@@ -1137,7 +1172,7 @@ footer a {
 .uw-lvl {
     font-size: 10px;
     font-weight: 200;
-    color: #0E5454;
+    color: var(--cor-titulo);
     white-space: nowrap;
     position: absolute;
     z-index: 2;
@@ -1147,10 +1182,9 @@ footer a {
 .uw-avatar {
     width: 75px;
     height: 75px;
-    background: #FAFFFF;
+    background: var(--cor-fundo-card);
     border-radius: 50%;
-    /* box-shadow used instead of outline so the ring follows border-radius */
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px var(--cor-principal);
+    box-shadow: 0px 4px 4px var(--sombra-caixa), 0 0 0 2px var(--cor-principal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1159,5 +1193,5 @@ footer a {
 }
 
 .user-widget:hover .uw-avatar {
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), 0 0 0 2px var(--cor-hover);
+    box-shadow: 0px 4px 4px var(--sombra-caixa), 0 0 0 2px var(--cor-hover);
 }
