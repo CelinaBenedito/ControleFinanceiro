@@ -6,7 +6,7 @@
 .pf-card {
     background: var(--cor-fundo-card);
     border-radius: 30px;
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    box-shadow: 0px 4px 4px var(--sombra-caixa);
     padding: 28px 24px;
     margin-bottom: 28px;
     display: flex;
@@ -36,8 +36,8 @@
     height: 200px;
     border-radius: 9999px;
     border: 2px solid var(--cor-principal);
-    background: #FAFFFF;
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    background: var(--cor-fundo-card);
+    box-shadow: 0px 4px 4px var(--sombra-caixa);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -52,9 +52,9 @@
 /* XP bar */
 .pf-xp-wrap {
     width: 320px;
-    background: #FAFFFF;
+    background: var(--cor-fundo-card);
     border-radius: 100px;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
+    box-shadow: 0px 2px 4px var(--sombra-caixa);
     height: 22px;
     display: flex;
     align-items: center;
@@ -99,7 +99,7 @@
     cursor: pointer;
     padding: 4px;
     margin: 0;
-    color: #367373;
+    color: var(--cor-principal);
     font-size: 1.5rem;
     line-height: 1;
     display: flex;
@@ -200,11 +200,10 @@
 .pf-toggle-slider {
     position: absolute;
     inset: 0;
-    background: #d1d5db;
+    background: var(--cor-toggle-inativo);
     border-radius: 12px;
     cursor: pointer;
     transition: background 0.2s;
-    /* outline: 1px solid #535353; */
 }
 
 .pf-toggle-slider::after {
@@ -214,13 +213,13 @@
     height: 18px;
     top: 2px;
     left: 2px;
-    background: #535353;
+    background: var(--cor-toggle-handle);
     border-radius: 12px;
     transition: transform 0.2s;
 }
 
 .pf-toggle input:checked+.pf-toggle-slider {
-    background: #EBF4F4;
+    background: var(--cor-fundo-pagina);
     outline-color: var(--cor-principal);
 }
 
@@ -245,7 +244,7 @@
     padding: 0 24px;
     min-width: 130px;
     background: var(--cor-principal);
-    color: #fff;
+    color: var(--cor-texto-claro);
     border: none;
     border-radius: 10px;
     font-size: 17px;
@@ -261,11 +260,11 @@
 }
 
 .pf-btn.danger {
-    background: #e53e3e;
+    background: var(--red-700);
 }
 
 .pf-btn.danger:hover {
-    background: #c53030;
+    background: var(--red-800);
 }
 
 /* ── Resumo de Configurações ── */
@@ -309,14 +308,14 @@
     font-size: 1rem;
     font-weight: 600;
     color: var(--cor-texto-principal);
-    border-bottom: 1px solid var(--cor-principal);
+    border-bottom: 1px solid var(--cor-tinte-borda);
 }
 
 .pf-table td {
     padding: 12px 16px;
     font-size: 0.95rem;
-    color: #0E5454;
-    border-bottom: 1px solid rgba(54, 115, 115, 0.2);
+    color: var(--cor-para-destacar);
+    border-bottom: 1px solid var(--cor-tinte-borda);
     vertical-align: middle;
 }
 
@@ -345,19 +344,19 @@
 }
 
 .pf-icon-btn.edit {
-    color: #00BBDD;
+    color: var(--cor-acao-editar);
 }
 
 .pf-icon-btn.edit:hover {
-    background: rgba(0, 187, 221, 0.1);
+    background: var(--cor-acao-editar-suave);
 }
 
 .pf-icon-btn.delete {   
-    color: #e53e3e;
+    color: var(--red-700);
 }
 
 .pf-icon-btn.delete:hover {
-    background: rgba(229, 62, 62, 0.1);
+    background: var(--cor-acao-deletar-suave);
 }
 
 .pf-campo {

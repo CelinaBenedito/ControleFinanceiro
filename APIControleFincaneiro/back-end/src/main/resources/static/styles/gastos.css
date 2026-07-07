@@ -32,7 +32,7 @@
 
 .ag-nav-btn {
     background: var(--cor-principal);
-    color: #fff;
+    color: var(--cor-texto-claro);
     border: none;
     border-radius: 8px;
     width: 38px;
@@ -78,7 +78,7 @@
 .ag-day {
     background: var(--cor-principal);
     border-radius: 10px;
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    box-shadow: 0px 4px 4px var(--sombra-caixa);
     padding: 10px 8px 6px;
     min-height: 80px;
     cursor: pointer;
@@ -111,7 +111,7 @@
 }
 
 .ag-day-num {
-    color: #fff;
+    color: var(--cor-texto-claro);
     font-size: 1.4rem;
     font-weight: 400;
     line-height: 1;
@@ -133,28 +133,28 @@
 }
 
 .ag-dot-gasto {
-    background: #FF9E9E;
+    background: var(--cor-gasto-bg);
 }
 
 .ag-dot-recebimento {
-    background: #B7FFB6;
+    background: var(--cor-recebimento-bg);
 }
 
 .ag-dot-transferencia {
-    background: #7FFFFF;
+    background: var(--cor-transferencia-bg);
 }
 
 .ag-dot-agendamento {
-    background: #FFFF9E;
+    background: var(--cor-agendamento-bg);
 }
 
 /* ── Summary panel ── */
 .ag-resumo {
     width: 340px;
     flex-shrink: 0;
-    background: #FAFFFF;
+    background: var(--cor-fundo-card);
     border-radius: 30px;
-    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    box-shadow: 0px 4px 4px var(--sombra-caixa);
     padding: 24px 20px;
     display: flex;
     flex-direction: column;
@@ -174,7 +174,7 @@
 }
 
 .ag-resumo-empty {
-    color: #888;
+    color: var(--cor-texto-secundario);
     font-size: 1rem;
     text-align: center;
     padding: 20px 0;
@@ -182,7 +182,7 @@
 
 /* Event group date header */
 .ag-resumo-data {
-    color: #1A1A1A;
+    color: var(--cor-texto-principal);
     font-size: 1.2rem;
     font-weight: 400;
     margin-top: 8px;
@@ -210,21 +210,21 @@
 }
 
 .ag-evento.gasto {
-    background: #FF9E9E;
-    color: #A00000;
+    background: var(--cor-gasto-bg);
+    color: var(--cor-gasto-texto);
 }
 
 .ag-evento.recebimento {
-    background: #B7FFB6;
-    color: #0A6000;
+    background: var(--cor-recebimento-bg);
+    color: var(--cor-recebimento-texto);
 }
 
 .ag-evento.transferencia {
-    background: #7FFFFF;
-    color: #006C9E;
+    background: var(--cor-transferencia-bg);
+    color: var(--cor-transferencia-texto);
 }
 
 .ag-evento.agendamento {
-    background: #FFFF9E;
-    color: #AFA900;
+    background: var(--cor-agendamento-bg);
+    color: var(--cor-agendamento-texto);
 }

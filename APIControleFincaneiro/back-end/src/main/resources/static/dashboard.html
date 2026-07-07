@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
@@ -6,11 +6,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link href='https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link href='assets/boxicons/boxicons.min.css' rel='stylesheet' id='bx-local'>
+    <script>
+        (function(){
+            function checkAndFallback(){
+                var el = document.createElement('i');
+                el.className = 'bx bx-check';
+                el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;font-size:20px;visibility:hidden';
+                document.body.appendChild(el);
+                var ff = window.getComputedStyle(el).fontFamily || '';
+                document.body.removeChild(el);
+                if(ff.toLowerCase().indexOf('boxicons') === -1){
+                    var l = document.createElement('link');
+                    l.rel = 'stylesheet';
+                    l.href = 'https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css';
+                    document.head.appendChild(l);
+                }
+            }
+            if(document.readyState === 'loading'){
+                document.addEventListener('DOMContentLoaded', checkAndFallback);
+            } else { checkAndFallback(); }
+        })();
+    </script>
     <link rel="stylesheet" href="styles/Estilos.css">
     <link rel="stylesheet" href="styles/root.css">
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- ApexCharts: local first, CDN fallback -->
+    <script src="assets/apexcharts/apexcharts.min.js" id="apex-local"></script>
+    <script>
+        (function(){
+            if(typeof ApexCharts === 'undefined'){
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.min.js';
+                document.head.appendChild(s);
+            }
+        })();
+    </script>
+    <!-- Google Charts (Sankey) -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        if(typeof google !== 'undefined' && google.charts){
+            google.charts.load('current', {'packages': ['sankey']});
+            google.charts.setOnLoadCallback(function() {
+                if (window._onGoogleChartsReady) window._onGoogleChartsReady();
+            });
+        }
+    </script>
 </head>
 
 <body data-tema="padrao" data-mode="light" onload="gerarInformações()">
@@ -18,21 +58,19 @@
         <nav class="side-bar" id="navbar">
             <ul>
                 <li onclick="sidebarFunction()">
-                    <i class='bx  bx-menu-closer'></i>
+                    <i class='bx bx-menu-closer'></i>
                 </li>
                 <li>
-                    <a href="dashboard.html"> <i class='bx  bx-home'></i> <span id="home">Home</span></a>
+                    <a href="dashboard.html"><i class='bx bx-home'></i><span id="home">Home</span></a>
                 </li>
                 <li>
-                    <a href="registros.html"> <i class='bx  bx-address-book'></i> <span id="reg"> Registros </span></a>
+                    <a href="registros.html"><i class='bx bx-address-book'></i><span id="reg"> Registros </span></a>
                 </li>
                 <li>
-                    <a href="adicionarRegistros.html"> <i class='bx  bx-file-plus'></i> <span id="add">Adicionar
-                            Registros</span></a>
+                    <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i><span id="add">Adicionar Registros</span></a>
                 </li>
                 <li>
-                    <a href="agendaGastos.html"><i class='bx  bx-calendar-event'></i> <span
-                            id="agenda">Agenda</span></a>
+                    <a href="agendaGastos.html"><i class='bx bx-calendar-event'></i><span id="agenda">Agenda</span></a>
                 </li>
                 <li>
                     <a id="toggleTheme">
@@ -41,7 +79,7 @@
                     </a>
                 </li>
                 <li>
-                    <a href="configurações.html"><i class='bx  bx-cog'></i> <span id="config">Configurações</span></a>
+                    <a href="configurações.html"><i class='bx bx-cog'></i><span id="config">Configurações</span></a>
                 </li>
             </ul>
         </nav>
@@ -50,7 +88,6 @@
 
             <div class="page-title-row">
                 <h1>Boas Vindas!</h1>
-                <!-- User widget -->
                 <a href="meuPerfil.html" class="user-widget" id="userWidget">
                     <div class="uw-info">
                         <span class="uw-nome" id="uw_nome">Usuário</span>
@@ -64,138 +101,172 @@
                     </div>
                 </a>
             </div>
-            <button>Ver instituições</button>
-            <!-- TEMP: botão de deslogar para testes -->
-            <!-- <button onclick="localStorage.removeItem('usuarioLogado'); window.location.href='index.html'"
-                style="background:transparent; border:1px solid currentColor; color:inherit; opacity:0.5; font-size:0.75rem; padding:4px 10px; cursor:pointer;">
-                <i class='bx bx-log-out'></i> Deslogar
-            </button> -->
-            <strong><p>Período analisado: <span>20/12/2025 - 19/01/2026</span></p></strong>
-            <div id="filtros" class="filtros">
+
+            <!-- Período analisado -->
+            <strong><p>Período Analisado — <span id="labelPeriodoAtual">–</span></p></strong>
+
+            <!-- Botões de seleção rápida -->
+            <div class="dash-atalhos">
+                <button class="dash-atalho-btn" data-atalho="mes-atual" onclick="selecionarRapido('mes-atual')">
+                    <i class='bx bx-calendar-check'></i> Mês Atual
+                </button>
+                <button class="dash-atalho-btn" data-atalho="mes-passado" onclick="selecionarRapido('mes-passado')">
+                    <i class='bx bx-calendar-minus'></i> Mês Passado
+                </button>
+                <button class="dash-atalho-btn" data-atalho="ano-atual" onclick="selecionarRapido('ano-atual')">
+                    <i class='bx bx-calendar'></i> Ano Atual
+                </button>
+                <button class="dash-atalho-btn" data-atalho="ano-passado" onclick="selecionarRapido('ano-passado')">
+                    <i class='bx bx-time-five'></i> Ano Passado
+                </button>
+            </div>
+
+            <!-- Filtros de período -->
+            <div id="filtros" class="filtros" style="flex-wrap:wrap;gap:4px;">
                 <div class="campo">
-                    <select id="select_tempo" onchange="tempo()">
-                        <option value="mes">Mensal</option>
-                        <option value="ano">Anual</option>
+                    <select id="select_tempo" onchange="atualizarSeletoresPeriodo()">
+                        <option value="MENSAL">Mensal</option>
+                        <option value="TRIMESTRAL">Trimestral</option>
+                        <option value="SEMESTRAL">Semestral</option>
+                        <option value="ANUAL">Anual</option>
                     </select>
-                    <label>Selecionar periodo de tempo</label>
+                    <label>Tipo de período</label>
                 </div>
-                <div class="campo" id="visualizaçãoPeriodo">
-                    <select id="select_periodo" onchange="periodo()">
-                        <option value="#">Selecionar Mês</option>
-                        <option value="01">Janeiro</option>
-                        <option value="02"> Fevereiro</option>
-                        <option value="03">Março</option>
-                        <option value="04">Abril</option>
-                        <option value="05">Maio</option>
-                        <option value="06">Junho</option>
-                        <option value="07">Julho</option>
-                        <option value="08">Agosto</option>
-                        <option value="09">Setembro</option>
+                <div class="campo" id="div_mes">
+                    <select id="select_mes" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
+                        <option value="1">Janeiro</option>
+                        <option value="2">Fevereiro</option>
+                        <option value="3">Março</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Maio</option>
+                        <option value="6">Junho</option>
+                        <option value="7">Julho</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Setembro</option>
                         <option value="10">Outubro</option>
                         <option value="11">Novembro</option>
                         <option value="12">Dezembro</option>
                     </select>
-
-                    <label id="labelMes"> Selecionar mês</label>
+                    <label>Mês</label>
+                </div>
+                <div class="campo" id="div_trimestre" style="display:none;">
+                    <select id="select_trimestre" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
+                        <option value="1">1º Trimestre (Jan–Mar)</option>
+                        <option value="2">2º Trimestre (Abr–Jun)</option>
+                        <option value="3">3º Trimestre (Jul–Set)</option>
+                        <option value="4">4º Trimestre (Out–Dez)</option>
+                    </select>
+                    <label>Trimestre</label>
+                </div>
+                <div class="campo" id="div_semestre" style="display:none;">
+                    <select id="select_semestre" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
+                        <option value="1">1º Semestre (Jan–Jun)</option>
+                        <option value="2">2º Semestre (Jul–Dez)</option>
+                    </select>
+                    <label>Semestre</label>
                 </div>
                 <div class="campo" id="div_ano">
-                    <select id="anoAnalisado" onchange="periodo()">
-                        <option value="#">Selecionar ano</option>
+                    <select id="select_ano" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
+                        <option value="2024">2024</option>
                         <option value="2025">2025</option>
                         <option value="2026">2026</option>
                     </select>
-                    <label>Selecionar o ano</label>
+                    <label>Ano</label>
                 </div>
             </div>
+
+            <!-- ── KPIs ── -->
             <div class="containerKPIS" id="containerKPIS">
-                <!--KPI: Saldo total do mês atual-->
+
+                <!-- KPI 1: Saldo total -->
                 <div class="KPI">
-                    <div>
-                        <p class="kpi-label">Saldo total do <span id="KPIsaldoTotal">mês</span> atual</p>
-                        <span class="saldo-valor" id="saldoTotal">...</span>
-                    </div>
+                    <p class="kpi-label">Saldo Total</p>
+                    <span class="kpi-valor-grande" id="saldoTotal">...</span>
                 </div>
 
-                <!-- KPI: Gasto Total -->
+                <!-- KPI 2: Gasto total -->
                 <div class="KPI">
-                    <div>
-                        <p class="kpi-label">Gasto total do <span id="dataKPIgastoTotal">ano</span> atual</p>
-                        <span class="gasto-valor" id="gastoTotal">...</span>
-                    </div>
-                    <div>
-                        <span class="badge-delta" id="percentual">...</span>
-                        <span class="subtexto" id="subtexto">e...</span>
+                    <p class="kpi-label">Gasto Total do Período</p>
+                    <span class="kpi-valor-grande" id="gastoTotal">...</span>
+                    <div class="kpi-badge-row">
+                        <span class="badge-delta" id="percentual" style="display:none;"></span>
+                        <span class="kpi-sub" id="subtexto"></span>
                     </div>
                 </div>
 
-                <!-- KPI: Maior Gasto -->
-                <div class="KPI KPI-maior-gasto">
-                    <div>
-                        <p class="kpi-label">Maior gasto do <span id="kpiMaiorGastoTitulo">mês</span> atual</p>
-                        <p class="categoria-nome" id="categoria">...</p>
-                        <p class="valor-destaque" id="valorCategoria">...</p>
-                        <p class="subtexto" id="tituloGasto"
-                            style="font-weight: 700; text-transform: uppercase; font-size: 10px;">do total</p>
+                <!-- KPI 3: Maior gasto -->
+                <div class="KPI">
+                    <p class="kpi-label">Maior Gasto do Período</p>
+                    <p class="kpi-subtitulo" id="categoria">...</p>
+                    <span class="kpi-valor-grande" id="valorCategoria">...</span>
+                    <div class="kpi-badge-row">
+                        <span class="badge-verde" id="tituloGasto" style="display:none;"></span>
                     </div>
                 </div>
 
-                <!-- KPI: Categoria de Impacto -->
+                <!-- KPI 4: Categoria de impacto -->
                 <div class="KPI">
                     <p class="kpi-label">Categoria que mais impactou</p>
-
-                    <div class="impacto-container">
-                        <div>
-                            <span class="impactoKPI" id="percentualKPItipo">...</span>
-                        </div>
-                        <div style="text-align: right;">
-                            <span class="valorKPItipo" id="valorKPItipo">...</span>
-                            <p class="subtexto" style="font-weight: 700; text-transform: uppercase; font-size: 10px;">do
-                                total</p>
-                        </div>
+                    <p class="kpi-subtitulo" id="percentualKPItipo">...</p>
+                    <span class="kpi-valor-grande" id="valorKPItipo">...</span>
+                    <div class="kpi-badge-row">
+                        <span class="badge-delta" id="kpi4-badge" style="display:none;"></span>
+                        <span class="kpi-sub" id="variacaoCategoriaImpacto"></span>
                     </div>
                 </div>
             </div>
 
+            <!-- ── Gráficos ── -->
             <div class="containerGraficos">
-                <div class="campo-grafico">
-                    <div class="titulo-grafico">
-                        <span>Categorias utilizadas</span>
-                        <i class='bx bx-info-circle tooltip-icon'></i>
 
-                        <div class="tooltip">
-                            Mostra quantas vezes cada categoria apareceu no período selecionado.
-                        </div>
-                    </div>
-
-                    <div id="graficoTipo" class="grafico"></div>
-                </div>
-
-                <div class="campo-grafico">
-
-                    <div class="titulo-grafico">
-                        <span>Porcentagem do total por categoria</span>
-                        <i class='bx bx-info-circle tooltip-icon'></i>
-                        <div class="tooltip">
-                            Exibe quanto cada categoria representa do total de gastos no período analisado.
-                        </div>
-                    </div>
-
-                    <div id="graficoDonut" class="grafico"></div>
-                </div>
-                <div class="campo-grafico">
-
+                <!-- Row 1: Evolução + Comparação -->
+                <div class="campo-grafico" style="background:var(--cor-fundo-card);border-radius:16px;box-shadow:0 4px 16px var(--sombra-card);">
                     <div class="titulo-grafico">
                         <span>Evolução dos gastos no tempo</span>
                         <i class='bx bx-info-circle tooltip-icon'></i>
-                        <div class="tooltip">
-                            Permite visualizar como os gastos variaram ao longo do tempo dentro do período selecionado.
-                        </div>
+                        <div class="tooltip">Variação dos gastos ao longo do tempo no período selecionado.</div>
                     </div>
-
-                    <div id="graficoTemporal" class="grafico"></div>
+                    <div id="graficoTemporal"></div>
                 </div>
 
-                <div id="graficoComparacao" class="grafico"></div>
+                <div class="campo-grafico" style="background:var(--cor-fundo-card);border-radius:16px;box-shadow:0 4px 16px var(--sombra-card);">
+                    <div class="titulo-grafico">
+                        <span>Comparação por período</span>
+                        <i class='bx bx-info-circle tooltip-icon'></i>
+                        <div class="tooltip">Compara os gastos do período atual com o período anterior.</div>
+                    </div>
+                    <div id="graficoComparacao"></div>
+                </div>
+
+                <!-- Row 2: Gastos por Categoria + Dia da Semana -->
+                <div class="campo-grafico" style="background:var(--cor-fundo-card);border-radius:16px;box-shadow:0 4px 16px var(--sombra-card);">
+                    <div class="titulo-grafico">
+                        <span>Gastos por Categoria</span>
+                        <i class='bx bx-info-circle tooltip-icon'></i>
+                        <div class="tooltip">Valor gasto, percentual do total e número de ocorrências por categoria.</div>
+                    </div>
+                    <div id="graficoTipo"></div>
+                </div>
+
+                <div class="campo-grafico" style="background:var(--cor-fundo-card);border-radius:16px;box-shadow:0 4px 16px var(--sombra-card);">
+                    <div class="titulo-grafico">
+                        <span id="tituloDiaSemana">Gastos por dia da semana</span>
+                        <i class='bx bx-info-circle tooltip-icon'></i>
+                        <div class="tooltip" id="tooltipDiaSemana">Dias com mais gastos aparecem em vermelho; dias com menos gastos em azul.</div>
+                    </div>
+                    <div id="graficoDiaSemana"></div>
+                </div>
+
+                <!-- Row 3: Sankey — full width -->
+                <div class="campo-grafico" style="grid-column:span 2;background:var(--cor-fundo-card);border-radius:16px;box-shadow:0 4px 16px var(--sombra-card);">
+                    <div class="titulo-grafico">
+                        <span>Fluxo de entradas e saídas</span>
+                        <i class='bx bx-info-circle tooltip-icon'></i>
+                        <div class="tooltip">Mostra como o dinheiro flui das instituições para cada categoria de gasto.</div>
+                    </div>
+                    <div id="graficoFluxo" class="grafico-fluxo-container"></div>
+                </div>
+
             </div>
         </div>
     </div>

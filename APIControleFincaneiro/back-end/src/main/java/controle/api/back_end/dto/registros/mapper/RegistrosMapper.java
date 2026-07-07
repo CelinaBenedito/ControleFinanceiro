@@ -12,6 +12,7 @@ import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.Periodicidade;
 import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.model.poupanca.Caixinha;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import jakarta.validation.Valid;
@@ -39,6 +40,13 @@ public class RegistrosMapper {
         entity.setTaxaRendimento(dto.getTaxaRendimento());
         entity.setTempoAplicacao(dto.getTempoAplicacao());
         entity.setTempoProjecao(dto.getTempoProjecao());
+
+        // Caixinha de poupança (opcional, apenas para Poupanca)
+        if (dto.getCaixinha_id() != null) {
+            Caixinha caixinha = new Caixinha();
+            caixinha.setId(dto.getCaixinha_id());
+            entity.setCaixinha(caixinha);
+        }
 
         return entity;
     }

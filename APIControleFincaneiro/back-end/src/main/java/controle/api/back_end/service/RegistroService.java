@@ -27,6 +27,7 @@ import controle.api.back_end.strategy.movimento.MovimentoStrategy;
 import controle.api.back_end.strategy.recorrenciaFinanceira.RecorrenciaStrategy;
 import controle.api.back_end.model.configuracoes.TipoAlertaEmail;
 import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
+import controle.api.back_end.repository.poupanca.CaixinhaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -88,6 +89,7 @@ public class RegistroService {
     private final InstituicaoService instituicaoService;
     private final ConfiguracoesRepository configuracoesRepository;
     private final EmailService emailService;
+    private final CaixinhaRepository caixinhaRepository;
 
     public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository,
                            EventoInstituicaoRepository eventoInstituicaoRepository,
@@ -100,7 +102,8 @@ public class RegistroService {
                            RecorrenciaFactory recorrenciaFactory,
                            InstituicaoService instituicaoService,
                            ConfiguracoesRepository configuracoesRepository,
-                           EmailService emailService) {
+                           EmailService emailService,
+                           CaixinhaRepository caixinhaRepository) {
         this.eventoFinanceiroRepository  = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoDetalheRepository     = eventoDetalheRepository;
@@ -113,6 +116,7 @@ public class RegistroService {
         this.instituicaoService          = instituicaoService;
         this.configuracoesRepository     = configuracoesRepository;
         this.emailService                = emailService;
+        this.caixinhaRepository          = caixinhaRepository;
     }
 
     // =========================================================================
@@ -285,6 +289,12 @@ public class RegistroService {
         Usuario usuario = buscarUsuarioOuErro(financeiro.getUsuario().getId());
         financeiro.setUsuario(usuario);
 
+        // Vincula a caixinha de poupança (apenas para tipo Poupanca)
+        if (financeiro.getCaixinha() != null && financeiro.getCaixinha().getId() != null) {
+            caixinhaRepository.findById(financeiro.getCaixinha().getId())
+                    .ifPresent(financeiro::setCaixinha);
+        }
+
         // Aplica as regras de negócio do tipo de evento via Strategy
         EventoFinanceiroStrategy strategy = eventoFinanceiroFactory.getStrategy(financeiro.getTipo());
         Registro registroProcessado = strategy.processar(financeiro, instituicoes, detalhe);
@@ -316,7 +326,8 @@ public class RegistroService {
                 .map(evento -> {
                     evento.setDataRegistro(LocalDateTime.now());
                     EventoFinanceiro salvo         = eventoFinanceiroRepository.save(evento);
-                    List<EventoInstituicao> insts  = createEventoInstituicao(instituicoes, salvo);
+                    // Eventos recorrentes não validam saldo — o gasto ocorrerá no futuro
+                    List<EventoInstituicao> insts  = createEventoInstituicao(instituicoes, salvo, false);
                     EventoDetalhe detalheSalvo     = createGastoDetalhe(detalhe, salvo);
                     return RegistrosMapper.toResponse(salvo, insts, detalheSalvo);
                 })
@@ -336,6 +347,12 @@ public class RegistroService {
      */
     public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> instituicoes,
                                                             EventoFinanceiro evento) {
+        return createEventoInstituicao(instituicoes, evento, true);
+    }
+
+    public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> instituicoes,
+                                                            EventoFinanceiro evento,
+                                                            boolean validarSaldo) {
         if (!eventoFinanceiroRepository.existsById(evento.getId())) {
             throw new EntidadeNaoEncontradaException(
                     "Evento Financeiro de id: %s não encontrado.".formatted(evento.getId()));
@@ -343,7 +360,7 @@ public class RegistroService {
 
         // Cada instituição pode gerar 1 ou N registros (parcelamento)
         return instituicoes.stream()
-                .flatMap(inst -> processarPagamento(inst, evento).stream())
+                .flatMap(inst -> processarPagamento(inst, evento, validarSaldo).stream())
                 .toList();
     }
 
@@ -360,13 +377,18 @@ public class RegistroService {
         }
 
         // Verifica se todas as categorias existem antes de salvar
+        // Usa ArrayList (mutável) — Hibernate precisa chamar clear() durante merge
         List<CategoriaUsuario> categorias = detalhe.getCategoriaUsuario().stream()
                 .map(cu -> buscarCategoriaOuErro(cu.getId()))
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
 
-        detalhe.setEventoFinanceiro(evento);
-        detalhe.setCategoriaUsuario(categorias);
-        return eventoDetalheRepository.save(detalhe);
+        // Sempre cria um NOVO EventoDetalhe para evitar que o mesmo objeto seja reutilizado
+        // em eventos recorrentes (o que faria Hibernate chamar merge com lista imutável)
+        EventoDetalhe novoDetalhe = new EventoDetalhe();
+        novoDetalhe.setEventoFinanceiro(evento);
+        novoDetalhe.setCategoriaUsuario(categorias);
+        novoDetalhe.setTituloGasto(detalhe.getTituloGasto());
+        return eventoDetalheRepository.save(novoDetalhe);
     }
 
     // =========================================================================
@@ -567,6 +589,12 @@ public class RegistroService {
      */
     private List<EventoInstituicao> processarPagamento(EventoInstituicao pagamento,
                                                         EventoFinanceiro evento) {
+        return processarPagamento(pagamento, evento, true);
+    }
+
+    private List<EventoInstituicao> processarPagamento(EventoInstituicao pagamento,
+                                                        EventoFinanceiro evento,
+                                                        boolean validarSaldo) {
         InstituicaoUsuario instUsuario = buscarInstituicaoAtivaOuErro(pagamento.getInstituicaoUsuario().getId());
 
         Map<String, Object> params = Map.of("parcelas", pagamento.getParcelas());
@@ -574,8 +602,8 @@ public class RegistroService {
         movimentoStrategy.validar(instUsuario);
         MovimentoResultado resultado = movimentoStrategy.processar(pagamento);
 
-        // Gastos e transferências requerem saldo suficiente na instituição
-        if (tipoRequerValidacaoSaldo(evento.getTipo())) {
+        // Gastos e transferências requerem saldo suficiente — exceto para recorrentes (validarSaldo=false)
+        if (validarSaldo && tipoRequerValidacaoSaldo(evento.getTipo())) {
             BigDecimal saldoDisponivel = instituicaoService.getSaldoByInstituicao(instUsuario.getId());
             if (BigDecimal.valueOf(resultado.getValorParcela()).compareTo(saldoDisponivel) > 0) {
                 throw new SaldoInsuficienteException(
@@ -601,10 +629,14 @@ public class RegistroService {
                                                     InstituicaoUsuario instUsuario,
                                                     EventoFinanceiro evento) {
         if (resultado.getParcelas() == 1) {
-            pagamento.setInstituicaoUsuario(instUsuario);
-            pagamento.setEventoFinanceiro(evento);
-            pagamento.setParcelas(1);
-            return List.of(eventoInstituicaoRepository.save(pagamento));
+            // Sempre cria um NOVO objeto para não reutilizar o mesmo pagamento em recorrentes
+            EventoInstituicao novaInst = new EventoInstituicao();
+            novaInst.setInstituicaoUsuario(instUsuario);
+            novaInst.setEventoFinanceiro(evento);
+            novaInst.setParcelas(1);
+            novaInst.setTipoMovimento(pagamento.getTipoMovimento());
+            novaInst.setValor(resultado.getValorParcela());
+            return List.of(eventoInstituicaoRepository.save(novaInst));
         }
 
         // Parcelado: cria um registro por número de parcela
