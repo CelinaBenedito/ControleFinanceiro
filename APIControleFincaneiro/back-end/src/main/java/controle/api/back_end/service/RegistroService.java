@@ -25,6 +25,14 @@ import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import controle.api.back_end.strategy.movimento.MovimentoResultado;
 import controle.api.back_end.strategy.movimento.MovimentoStrategy;
 import controle.api.back_end.strategy.recorrenciaFinanceira.RecorrenciaStrategy;
+import controle.api.back_end.model.configuracoes.TipoAlertaEmail;
+import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
+import controle.api.back_end.repository.poupanca.CaixinhaRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +43,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.Locale;
 
 /**
  * Serviço principal de registros financeiros.
@@ -54,6 +63,20 @@ import java.util.stream.IntStream;
 @Transactional
 public class RegistroService {
 
+    private static final Logger log = LoggerFactory.getLogger(RegistroService.class);
+
+    // Ordem de exibição dos tipos: Recebimento → Gasto → Transferencia → Poupanca → Emprestimo
+    private static final Map<Tipo, Integer> TIPO_ORDEM = Map.of(
+            Tipo.Recebimento, 0,
+            Tipo.Gasto, 1,
+            Tipo.Transferencia, 2,
+            Tipo.Poupanca, 3,
+            Tipo.Emprestimo, 4
+    );
+    private static final int REGISTROS_POR_PAGINA_PADRAO = 20;
+    private static final int REGISTROS_POR_PAGINA_MINIMO  = 5;
+    private static final int REGISTROS_POR_PAGINA_MAXIMO  = 100;
+
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
     private final EventoInstituicaoRepository eventoInstituicaoRepository;
     private final EventoDetalheRepository eventoDetalheRepository;
@@ -64,6 +87,9 @@ public class RegistroService {
     private final EventoFinanceiroFactory eventoFinanceiroFactory;
     private final RecorrenciaFactory recorrenciaFactory;
     private final InstituicaoService instituicaoService;
+    private final ConfiguracoesRepository configuracoesRepository;
+    private final EmailService emailService;
+    private final CaixinhaRepository caixinhaRepository;
 
     public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository,
                            EventoInstituicaoRepository eventoInstituicaoRepository,
@@ -74,7 +100,10 @@ public class RegistroService {
                            MovimentoFactory movimentoFactory,
                            EventoFinanceiroFactory eventoFinanceiroFactory,
                            RecorrenciaFactory recorrenciaFactory,
-                           InstituicaoService instituicaoService) {
+                           InstituicaoService instituicaoService,
+                           ConfiguracoesRepository configuracoesRepository,
+                           EmailService emailService,
+                           CaixinhaRepository caixinhaRepository) {
         this.eventoFinanceiroRepository  = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoDetalheRepository     = eventoDetalheRepository;
@@ -85,6 +114,9 @@ public class RegistroService {
         this.eventoFinanceiroFactory     = eventoFinanceiroFactory;
         this.recorrenciaFactory          = recorrenciaFactory;
         this.instituicaoService          = instituicaoService;
+        this.configuracoesRepository     = configuracoesRepository;
+        this.emailService                = emailService;
+        this.caixinhaRepository          = caixinhaRepository;
     }
 
     // =========================================================================
@@ -139,6 +171,73 @@ public class RegistroService {
     }
 
     /**
+     * Retorna os anos distintos em que o usuário possui registros (mais recente primeiro).
+     */
+    @Transactional(readOnly = true)
+    public List<Integer> getAnosByUserId(UUID userId) {
+        buscarUsuarioOuErro(userId);
+        return eventoFinanceiroRepository.findDistinctAnosByUserId(userId);
+    }
+
+    /**
+     * Retorna os meses distintos em que o usuário possui registros no ano informado (1–12).
+     */
+    @Transactional(readOnly = true)
+    public List<Integer> getMesesByUserIdAndAno(UUID userId, int ano) {
+        buscarUsuarioOuErro(userId);
+        return eventoFinanceiroRepository.findDistinctMesesByUserIdAndAno(userId, ano);
+    }
+
+    /**
+     * Retorna os registros do mês/ano de forma paginada,
+     * ordenados por: dia ASC → tipo (Recebimento primeiro) → título ASC.
+     *
+     * @param tamanho itens por página; limitado entre {@value #REGISTROS_POR_PAGINA_MINIMO}
+     *                e {@value #REGISTROS_POR_PAGINA_MAXIMO}. Padrão: {@value #REGISTROS_POR_PAGINA_PADRAO}.
+     */
+    @Transactional(readOnly = true)
+    public Page<RegistroResponseDto> getRegistrosByMes(UUID userId, int ano, int mes, int pagina, int tamanho) {
+        buscarUsuarioOuErro(userId);
+
+        // Garante que o tamanho esteja dentro dos limites permitidos
+        int tamanhoPagina = Math.max(REGISTROS_POR_PAGINA_MINIMO,
+                            Math.min(tamanho, REGISTROS_POR_PAGINA_MAXIMO));
+
+        // Busca todos os eventos do mês com EventoDetalhe pré-carregado via JOIN FETCH
+        List<EventoFinanceiro> todos =
+                eventoFinanceiroRepository.findByUserIdAndAnoAndMes(userId, ano, mes);
+
+        // Ordena: dia → tipo customizado → título alfabético
+        List<EventoFinanceiro> ordenados = todos.stream()
+                .sorted(Comparator
+                        .comparing(EventoFinanceiro::getDataEvento)
+                        .thenComparingInt(e -> TIPO_ORDEM.getOrDefault(e.getTipo(), 99))
+                        .thenComparing(e -> {
+                            EventoDetalhe d = e.getGastoDetalhe();
+                            return (d != null && d.getTituloGasto() != null)
+                                    ? d.getTituloGasto().toLowerCase(Locale.ROOT) : "";
+                        }))
+                .toList();
+
+        int total = ordenados.size();
+        int start = pagina * tamanhoPagina;
+
+        if (start >= total) {
+            return new PageImpl<>(List.of(), PageRequest.of(pagina, tamanhoPagina), total);
+        }
+
+        int end = Math.min(start + tamanhoPagina, total);
+
+        // Mapeia apenas os itens da página atual — instituicoes são lazy mas a sessão está aberta
+        List<RegistroResponseDto> dtos = ordenados.subList(start, end).stream()
+                .map(ev -> RegistrosMapper.toResponse(ev, ev.getEventoInstituicoes(), ev.getGastoDetalhe()))
+                .filter(Objects::nonNull)
+                .toList();
+
+        return new PageImpl<>(dtos, PageRequest.of(pagina, tamanhoPagina), total);
+    }
+
+    /**
      * Busca registros aplicando filtros dinâmicos. Todos os parâmetros são opcionais.
      */
     @Transactional(readOnly = true)
@@ -190,6 +289,12 @@ public class RegistroService {
         Usuario usuario = buscarUsuarioOuErro(financeiro.getUsuario().getId());
         financeiro.setUsuario(usuario);
 
+        // Vincula a caixinha de poupança (apenas para tipo Poupanca)
+        if (financeiro.getCaixinha() != null && financeiro.getCaixinha().getId() != null) {
+            caixinhaRepository.findById(financeiro.getCaixinha().getId())
+                    .ifPresent(financeiro::setCaixinha);
+        }
+
         // Aplica as regras de negócio do tipo de evento via Strategy
         EventoFinanceiroStrategy strategy = eventoFinanceiroFactory.getStrategy(financeiro.getTipo());
         Registro registroProcessado = strategy.processar(financeiro, instituicoes, detalhe);
@@ -221,7 +326,8 @@ public class RegistroService {
                 .map(evento -> {
                     evento.setDataRegistro(LocalDateTime.now());
                     EventoFinanceiro salvo         = eventoFinanceiroRepository.save(evento);
-                    List<EventoInstituicao> insts  = createEventoInstituicao(instituicoes, salvo);
+                    // Eventos recorrentes não validam saldo — o gasto ocorrerá no futuro
+                    List<EventoInstituicao> insts  = createEventoInstituicao(instituicoes, salvo, false);
                     EventoDetalhe detalheSalvo     = createGastoDetalhe(detalhe, salvo);
                     return RegistrosMapper.toResponse(salvo, insts, detalheSalvo);
                 })
@@ -241,6 +347,12 @@ public class RegistroService {
      */
     public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> instituicoes,
                                                             EventoFinanceiro evento) {
+        return createEventoInstituicao(instituicoes, evento, true);
+    }
+
+    public List<EventoInstituicao> createEventoInstituicao(List<EventoInstituicao> instituicoes,
+                                                            EventoFinanceiro evento,
+                                                            boolean validarSaldo) {
         if (!eventoFinanceiroRepository.existsById(evento.getId())) {
             throw new EntidadeNaoEncontradaException(
                     "Evento Financeiro de id: %s não encontrado.".formatted(evento.getId()));
@@ -248,7 +360,7 @@ public class RegistroService {
 
         // Cada instituição pode gerar 1 ou N registros (parcelamento)
         return instituicoes.stream()
-                .flatMap(inst -> processarPagamento(inst, evento).stream())
+                .flatMap(inst -> processarPagamento(inst, evento, validarSaldo).stream())
                 .toList();
     }
 
@@ -265,13 +377,18 @@ public class RegistroService {
         }
 
         // Verifica se todas as categorias existem antes de salvar
+        // Usa ArrayList (mutável) — Hibernate precisa chamar clear() durante merge
         List<CategoriaUsuario> categorias = detalhe.getCategoriaUsuario().stream()
                 .map(cu -> buscarCategoriaOuErro(cu.getId()))
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
 
-        detalhe.setEventoFinanceiro(evento);
-        detalhe.setCategoriaUsuario(categorias);
-        return eventoDetalheRepository.save(detalhe);
+        // Sempre cria um NOVO EventoDetalhe para evitar que o mesmo objeto seja reutilizado
+        // em eventos recorrentes (o que faria Hibernate chamar merge com lista imutável)
+        EventoDetalhe novoDetalhe = new EventoDetalhe();
+        novoDetalhe.setEventoFinanceiro(evento);
+        novoDetalhe.setCategoriaUsuario(categorias);
+        novoDetalhe.setTituloGasto(detalhe.getTituloGasto());
+        return eventoDetalheRepository.save(novoDetalhe);
     }
 
     // =========================================================================
@@ -409,7 +526,61 @@ public class RegistroService {
             }
         }
 
-        return new Registro(eventosSalvos, instituicoesMap, detalheMap);
+        Registro resultado = new Registro(eventosSalvos, instituicoesMap, detalheMap);
+
+        // Verifica alerta de limite mensal apos salvar
+        eventosSalvos.stream()
+                .filter(ev -> ev.getTipo() == Tipo.Gasto)
+                .findFirst()
+                .ifPresent(ev -> verificarEEnviarAlertaLimite(ev.getUsuario()));
+
+        return resultado;
+    }
+
+    /**
+     * Verifica se o gasto mensal do usuario cruzou o percentual de alerta configurado
+     * e, se sim, envia o e-mail de alerta (uma vez por mes por usuario).
+     */
+    private void verificarEEnviarAlertaLimite(Usuario usuario) {
+        try {
+            configuracoesRepository.findConfiguracoesByUsuario_Id(usuario.getId())
+                    .ifPresent(config -> {
+                        if (!config.getAlertasEmailAtivos().contains(TipoAlertaEmail.ALERTA_LIMITE_MENSAL)) return;
+                        if (config.getLimiteDesejadoMensal() == null || config.getLimiteDesejadoMensal() <= 0) return;
+
+                        // Ja enviou alerta este mes?
+                        LocalDate hoje = LocalDate.now();
+                        if (config.getUltimoAlertaGastoEnviado() != null
+                                && config.getUltimoAlertaGastoEnviado().getMonth() == hoje.getMonth()
+                                && config.getUltimoAlertaGastoEnviado().getYear() == hoje.getYear()) {
+                            return;
+                        }
+
+                        // Soma os gastos do mes atual
+                        LocalDate inicioMes = hoje.withDayOfMonth(1);
+                        double gastoMes = eventoFinanceiroRepository
+                                .findEventoFinanceiroByUsuario_IdAndDataEventoBetween(
+                                        usuario.getId(), inicioMes, hoje)
+                                .stream()
+                                .filter(e -> e.getTipo() == Tipo.Gasto)
+                                .mapToDouble(EventoFinanceiro::getValor)
+                                .sum();
+
+                        double limite = config.getLimiteDesejadoMensal();
+                        double percentualReal = (gastoMes / limite) * 100.0;
+                        int threshold = config.getPercentualAlertaGasto() != null
+                                ? config.getPercentualAlertaGasto() : 80;
+
+                        if (percentualReal >= threshold) {
+                            emailService.enviarAlertaLimiteMensal(
+                                    usuario, gastoMes, limite, threshold, percentualReal);
+                            config.setUltimoAlertaGastoEnviado(hoje);
+                            configuracoesRepository.save(config);
+                        }
+                    });
+        } catch (Exception e) {
+            log.warn("[RegistroService] Erro ao verificar alerta de limite: {}", e.getMessage());
+        }
     }
 
     /**
@@ -418,6 +589,12 @@ public class RegistroService {
      */
     private List<EventoInstituicao> processarPagamento(EventoInstituicao pagamento,
                                                         EventoFinanceiro evento) {
+        return processarPagamento(pagamento, evento, true);
+    }
+
+    private List<EventoInstituicao> processarPagamento(EventoInstituicao pagamento,
+                                                        EventoFinanceiro evento,
+                                                        boolean validarSaldo) {
         InstituicaoUsuario instUsuario = buscarInstituicaoAtivaOuErro(pagamento.getInstituicaoUsuario().getId());
 
         Map<String, Object> params = Map.of("parcelas", pagamento.getParcelas());
@@ -425,8 +602,8 @@ public class RegistroService {
         movimentoStrategy.validar(instUsuario);
         MovimentoResultado resultado = movimentoStrategy.processar(pagamento);
 
-        // Gastos e transferências requerem saldo suficiente na instituição
-        if (tipoRequerValidacaoSaldo(evento.getTipo())) {
+        // Gastos e transferências requerem saldo suficiente — exceto para recorrentes (validarSaldo=false)
+        if (validarSaldo && tipoRequerValidacaoSaldo(evento.getTipo())) {
             BigDecimal saldoDisponivel = instituicaoService.getSaldoByInstituicao(instUsuario.getId());
             if (BigDecimal.valueOf(resultado.getValorParcela()).compareTo(saldoDisponivel) > 0) {
                 throw new SaldoInsuficienteException(
@@ -452,10 +629,14 @@ public class RegistroService {
                                                     InstituicaoUsuario instUsuario,
                                                     EventoFinanceiro evento) {
         if (resultado.getParcelas() == 1) {
-            pagamento.setInstituicaoUsuario(instUsuario);
-            pagamento.setEventoFinanceiro(evento);
-            pagamento.setParcelas(1);
-            return List.of(eventoInstituicaoRepository.save(pagamento));
+            // Sempre cria um NOVO objeto para não reutilizar o mesmo pagamento em recorrentes
+            EventoInstituicao novaInst = new EventoInstituicao();
+            novaInst.setInstituicaoUsuario(instUsuario);
+            novaInst.setEventoFinanceiro(evento);
+            novaInst.setParcelas(1);
+            novaInst.setTipoMovimento(pagamento.getTipoMovimento());
+            novaInst.setValor(resultado.getValorParcela());
+            return List.of(eventoInstituicaoRepository.save(novaInst));
         }
 
         // Parcelado: cria um registro por número de parcela

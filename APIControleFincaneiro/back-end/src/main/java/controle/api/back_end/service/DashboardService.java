@@ -202,33 +202,41 @@ public class DashboardService {
         Periodo periodo = resolverPeriodo(userId, tipo, ano, mes, trimestre, semestre);
         List<EventoFinanceiro> eventos = eventoFinanceiroRepository.findAllByUsuario_Id(userId);
 
-        // daily map of gastos
-        Map<LocalDate, BigDecimal> porDia = new TreeMap<>();
+        // daily map de gastos e de recebimentos
+        Map<LocalDate, BigDecimal> porDia    = new TreeMap<>();
+        Map<LocalDate, BigDecimal> porDiaRec = new TreeMap<>();
         for (EventoFinanceiro e : eventos) {
             if (!emPeriodo(e, periodo)) continue;
-            if (e.getTipo() != Tipo.Gasto && e.getTipo() != Tipo.Transferencia) continue;
-            porDia.merge(e.getDataEvento(), BigDecimal.valueOf(e.getValor()), BigDecimal::add);
+            if (e.getTipo() == Tipo.Gasto) {
+                porDia.merge(e.getDataEvento(), BigDecimal.valueOf(e.getValor()), BigDecimal::add);
+            } else if (e.getTipo() == Tipo.Recebimento || e.getTipo() == Tipo.Emprestimo) {
+                porDiaRec.merge(e.getDataEvento(), BigDecimal.valueOf(e.getValor()), BigDecimal::add);
+            }
         }
 
         String granularidade;
         List<EvolucaoGastosDto.Ponto> dados;
+        List<EvolucaoGastosDto.Ponto> dadosRec;
 
         switch (tipo) {
             case MENSAL, TRIMESTRAL -> {
                 granularidade = "DIARIO";
-                dados = seriesDiaria(porDia, periodo.inicio(), periodo.fim(), "dd/MM");
+                dados    = seriesDiaria(porDia,    periodo.inicio(), periodo.fim(), "dd/MM");
+                dadosRec = seriesDiaria(porDiaRec, periodo.inicio(), periodo.fim(), "dd/MM");
             }
             case SEMESTRAL -> {
                 granularidade = "SEMANAL";
-                dados = seriesSemanais(porDia, periodo.inicio(), periodo.fim());
+                dados    = seriesSemanais(porDia,    periodo.inicio(), periodo.fim());
+                dadosRec = seriesSemanais(porDiaRec, periodo.inicio(), periodo.fim());
             }
             default -> { // ANUAL
                 granularidade = "MENSAL";
-                dados = seriesMensais(porDia, periodo.inicio(), periodo.fim());
+                dados    = seriesMensais(porDia,    periodo.inicio(), periodo.fim());
+                dadosRec = seriesMensais(porDiaRec, periodo.inicio(), periodo.fim());
             }
         }
 
-        return new EvolucaoGastosDto(periodo.label(), granularidade, dados);
+        return new EvolucaoGastosDto(periodo.label(), granularidade, dados, dadosRec);
     }
 
     // =========================================================================
@@ -249,7 +257,7 @@ public class DashboardService {
 
         for (EventoFinanceiro e : eventos) {
             if (!emPeriodo(e, periodo)) continue;
-            if (e.getTipo() != Tipo.Gasto && e.getTipo() != Tipo.Transferencia) continue;
+            if (e.getTipo() != Tipo.Gasto) continue;
 
             EventoDetalhe det = e.getGastoDetalhe();
             if (det == null || det.getCategoriaUsuario() == null) continue;
@@ -298,11 +306,30 @@ public class DashboardService {
         Map<LocalDate, BigDecimal> porDiaAtual    = gastosPorDia(eventos, atual.inicio(), atual.fim());
         Map<LocalDate, BigDecimal> porDiaAnterior = gastosPorDia(eventos, anterior.inicio(), anterior.fim());
 
+        // Para ANUAL: granularidade mensal (12 pontos com nome do mês)
+        if (tipo == TipoPeriodo.ANUAL) {
+            DateTimeFormatter fmtMes = DateTimeFormatter.ofPattern("MMM", new Locale("pt", "BR"));
+            List<ComparacaoPeriodoDto.PontoComparacao> pontos = new ArrayList<>();
+            for (int m = 0; m < 12; m++) {
+                LocalDate inicioAtual    = atual.inicio().withDayOfMonth(1).plusMonths(m);
+                LocalDate fimAtual       = inicioAtual.withDayOfMonth(inicioAtual.lengthOfMonth());
+                LocalDate inicioAnterior = anterior.inicio().withDayOfMonth(1).plusMonths(m);
+                LocalDate fimAnterior    = inicioAnterior.withDayOfMonth(inicioAnterior.lengthOfMonth());
+                if (inicioAtual.isAfter(atual.fim())) break;
+                String nomeMes = inicioAtual.format(fmtMes);
+                nomeMes = Character.toUpperCase(nomeMes.charAt(0)) + nomeMes.substring(1);
+                pontos.add(new ComparacaoPeriodoDto.PontoComparacao(
+                        nomeMes,
+                        somarRange(porDiaAtual,    inicioAtual,    fimAtual.isAfter(atual.fim())         ? atual.fim()     : fimAtual),
+                        somarRange(porDiaAnterior, inicioAnterior, fimAnterior.isAfter(anterior.fim())   ? anterior.fim()  : fimAnterior)
+                ));
+            }
+            return new ComparacaoPeriodoDto(atual.label(), anterior.label(), pontos);
+        }
+
         long duracaoAtual    = ChronoUnit.DAYS.between(atual.inicio(), atual.fim()) + 1;
         long duracaoAnterior = ChronoUnit.DAYS.between(anterior.inicio(), anterior.fim()) + 1;
         long numPontos = Math.min(duracaoAtual, duracaoAnterior);
-
-        String labelDia = tipo == TipoPeriodo.ANUAL ? "Mês" : "Dia";
 
         List<ComparacaoPeriodoDto.PontoComparacao> pontos = new ArrayList<>();
         for (int i = 0; i < numPontos; i++) {
@@ -310,7 +337,7 @@ public class DashboardService {
             LocalDate dAnterior = anterior.inicio().plusDays(i);
 
             pontos.add(new ComparacaoPeriodoDto.PontoComparacao(
-                    labelDia + " " + (i + 1),
+                    "Dia " + (i + 1),
                     porDiaAtual.getOrDefault(dAtual, BigDecimal.ZERO),
                     porDiaAnterior.getOrDefault(dAnterior, BigDecimal.ZERO)
             ));
@@ -336,7 +363,7 @@ public class DashboardService {
 
         for (EventoFinanceiro e : eventos) {
             if (!emPeriodo(e, periodo)) continue;
-            if (e.getTipo() != Tipo.Gasto && e.getTipo() != Tipo.Transferencia) continue;
+            if (e.getTipo() != Tipo.Gasto) continue;
             porDia.merge(e.getDataEvento().getDayOfWeek(), BigDecimal.valueOf(e.getValor()), BigDecimal::add);
         }
 
@@ -533,8 +560,13 @@ public class DashboardService {
     }
 
     private int getDiaFiscal(UUID userId) {
-        Configuracoes c = configuracoesService.getConfiguracaoByUserId(userId);
-        return c.getInicioMesFiscal() != null ? c.getInicioMesFiscal() : 1;
+        try {
+            Configuracoes c = configuracoesService.getConfiguracaoByUserId(userId);
+            return c.getInicioMesFiscal() != null ? c.getInicioMesFiscal() : 1;
+        } catch (Exception e) {
+            // Usuário sem configuração → usa o dia 1 como padrão
+            return 1;
+        }
     }
 
     private void validarUsuario(UUID userId) {
@@ -564,28 +596,26 @@ public class DashboardService {
         };
     }
 
-    /** Soma apenas Gasto + Transferência dentro do intervalo. */
+    /** Soma apenas Gastos (sem transferências) dentro do intervalo. */
     private BigDecimal somarGastos(List<EventoFinanceiro> eventos,
                                    LocalDate inicio, LocalDate fim) {
         BigDecimal total = BigDecimal.ZERO;
         for (EventoFinanceiro e : eventos) {
             LocalDate d = e.getDataEvento();
-            if (!d.isBefore(inicio) && !d.isAfter(fim)
-                    && (e.getTipo() == Tipo.Gasto || e.getTipo() == Tipo.Transferencia)) {
+            if (!d.isBefore(inicio) && !d.isAfter(fim) && e.getTipo() == Tipo.Gasto) {
                 total = total.add(BigDecimal.valueOf(e.getValor()));
             }
         }
         return total;
     }
 
-    /** Agrupa gastos por nome de categoria. */
+    /** Agrupa apenas gastos (sem transferências) por nome de categoria. */
     private Map<String, BigDecimal> somarGastosPorCategoria(List<EventoFinanceiro> eventos,
                                                              LocalDate inicio, LocalDate fim) {
         Map<String, BigDecimal> mapa = new LinkedHashMap<>();
         for (EventoFinanceiro e : eventos) {
             LocalDate d = e.getDataEvento();
-            if (!d.isBefore(inicio) && !d.isAfter(fim)
-                    && (e.getTipo() == Tipo.Gasto || e.getTipo() == Tipo.Transferencia)) {
+            if (!d.isBefore(inicio) && !d.isAfter(fim) && e.getTipo() == Tipo.Gasto) {
                 EventoDetalhe det = e.getGastoDetalhe();
                 if (det == null || det.getCategoriaUsuario() == null) continue;
                 for (CategoriaUsuario cu : det.getCategoriaUsuario()) {
@@ -610,13 +640,21 @@ public class DashboardService {
 
     // ── séries temporais para o gráfico de evolução ──────────────────────────
 
+    /** Soma valores de um map Date→BigDecimal num intervalo fechado [inicio, fim]. */
+    private BigDecimal somarRange(Map<LocalDate, BigDecimal> mapa, LocalDate inicio, LocalDate fim) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (LocalDate d = inicio; !d.isAfter(fim); d = d.plusDays(1)) {
+            total = total.add(mapa.getOrDefault(d, BigDecimal.ZERO));
+        }
+        return total;
+    }
+
     private Map<LocalDate, BigDecimal> gastosPorDia(List<EventoFinanceiro> eventos,
                                                      LocalDate inicio, LocalDate fim) {
         Map<LocalDate, BigDecimal> mapa = new TreeMap<>();
         for (EventoFinanceiro e : eventos) {
             LocalDate d = e.getDataEvento();
-            if (!d.isBefore(inicio) && !d.isAfter(fim)
-                    && (e.getTipo() == Tipo.Gasto || e.getTipo() == Tipo.Transferencia)) {
+            if (!d.isBefore(inicio) && !d.isAfter(fim) && e.getTipo() == Tipo.Gasto) {
                 mapa.merge(d, BigDecimal.valueOf(e.getValor()), BigDecimal::add);
             }
         }
@@ -686,5 +724,19 @@ public class DashboardService {
 
     private String normalizeId(String s) {
         return s.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "_");
+    }
+
+    /**
+     * Retorna os anos distintos em que o usuário possui registros, mais recente primeiro.
+     * Garante que o ano corrente sempre conste na lista, mesmo sem registros.
+     */
+    public List<Integer> getAnosDisponiveis(UUID userId) {
+        List<Integer> anos = new ArrayList<>(eventoFinanceiroRepository.findDistinctAnosByUserId(userId));
+        int anoAtual = LocalDate.now().getYear();
+        if (!anos.contains(anoAtual)) {
+            anos.add(0, anoAtual);
+        }
+        anos.sort(Comparator.reverseOrder());
+        return anos;
     }
 }

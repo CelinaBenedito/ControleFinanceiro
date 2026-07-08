@@ -250,6 +250,14 @@ public class DashboardController {
                 dashboardService.getFluxoFinanceiro(periodo, ano, mes, trimestre, semestre, user_id));
     }
 
+    @GetMapping("/anos/usuarios/{user_id}")
+    @Operation(summary = "Anos disponíveis",
+            description = "Retorna os anos distintos em que o usuário possui registros, mais recente primeiro. O ano corrente é sempre incluído.")
+    @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json"))
+    public ResponseEntity<List<Integer>> getAnosDisponiveis(@PathVariable UUID user_id) {
+        return ResponseEntity.ok(dashboardService.getAnosDisponiveis(user_id));
+    }
+
     // =======================================================================
     //  REGISTROS DO PERÍODO
     // =======================================================================

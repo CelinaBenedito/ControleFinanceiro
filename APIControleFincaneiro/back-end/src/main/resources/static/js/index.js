@@ -1,622 +1,804 @@
-const semDados =
-  `
-        <div class="aviso">
-        <h3>Sem Dados</h3>
-        <i class='bx  bx-alert-triangle'></i> 
-        <p>Selecionar outra data para visualizar o gráfico<p>
-        </div>
-`
-
-function obterUsuarioIdDashboard() {
-  try {
-    const usuario = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-    return usuario?.id || null;
-  } catch (_) {
-    return null;
-  }
-}
-
-function dataReferenciaPeriodo(periodo) {
-  if (!periodo || typeof periodo !== 'object') return null;
-  const ano = Number(periodo.ano);
-  const mes = Number(periodo.mes);
-  if (!ano || !mes) return null;
-  return `${ano}-${String(mes).padStart(2, '0')}-01`;
-}
-
-function atualizarDados(periodo) {
-  gastosMes(periodo)
-  buscarSaldoTotal(periodo)
-  buscarGastoTotal(periodo)
-  buscarMaiorGasto(periodo)
-  gerarTipos(periodo)
-  percentualTipo(periodo)
-}
-
-function tempo() {
-  console.log("Entrei na função tempo")
-  valorSelect = document.getElementById('select_tempo').value
-  console.log(valorSelect)
-  const hoje = new Date();
-
-  if (valorSelect == "ano") {
-    atualizarDados(hoje.getFullYear())
-    div_ano = document.getElementById('div_ano');
-    visualizaçãoPeriodo.style.display = "none"
-
-    div_ano.innerHTML =
-      `
-      <select id="anoAnalisado" onchange="periodoAnual()">
-        <option value="#">Selecionar ano</option>
-        <option value="2025">2025</option>
-        <option value="2026">2026</option>
-      </select>
-      <label>Selecionar o ano</label>
-    `
-  }
-  else if (valorSelect == "mes") {
-    const hoje = new Date();
-    ano = hoje.getFullYear();
-    mes = hoje.getMonth() + 1;
-    tempoAnalisado = { ano, mes }
-    visualizaçãoPeriodo.style.display = ""
-    atualizarDados(tempoAnalisado)
-
-    div_ano.innerHTML =
-      `
-       <select id="anoAnalisado" onchange="periodo()">
-          <option value="#">Selecionar ano</option>
-          <option value="2025">2025</option>
-          <option value="2026">2026</option>
-      </select>
-      <label>Selecionar o ano</label>
-    `
-  }
-}
-
-function periodoAnual() {
-  console.log("Entrei na função periodo")
-  valorSelectAno = document.getElementById('anoAnalisado').value
-  ano = Number(valorSelectAno);
-  atualizarDados(ano)
-}
-
-function periodo() {
-  console.log("Entrei na função periodo")
-  valorSelectMes = document.getElementById('select_periodo').value
-  valorSelectAno = document.getElementById('anoAnalisado').value
-
-  const hoje = new Date();
-  ano = valorSelectAno;
-  mes = valorSelectMes;
-  tempoAnalisado = { ano, mes }
-  atualizarDados(tempoAnalisado)
-}
-
-function gerarInformações() {
-  console.log("Gerando informações iniciais")
-  const hoje = new Date();
-  ano = hoje.getFullYear();
-  mes = hoje.getMonth() + 1
-  tempoAnalisado = { ano, mes }
-  gerarKPIS(tempoAnalisado).then(() => gerarGraficos(tempoAnalisado))
-}
-
-async function gerarKPIS(periodo) {
-  console.log("Iniciando geração de KPI's")
-
-  await Promise.all([
-    buscarSaldoTotal(periodo),
-    buscarMaiorGasto(periodo),
-    buscarGastoTotal(periodo),
-    percentualTipo(periodo)
-  ]);
-}
-
-function gerarGraficos(periodo) {
-  console.log("Iniciando geração de gráficos")
-  gastosMes(periodo);
-  gerarTipos(periodo);
-  graficoComparacao([10, 20, 356, 13, 121], [50, 90, 246, 113, 1221], ["jan", "fev", "mar", "abr", "mai"]);
-}
-//KPI
-function buscarSaldoTotal(periodo) {
-  const userId = obterUsuarioIdDashboard();
-  const divSaldo = document.getElementById('saldoTotal');
-  const spanLabel = document.getElementById('KPIsaldoTotal');
-
-  if (typeof periodo === 'number') {
-    // endpoint anual ainda não existe, aguardar implementação futura
-    spanLabel.innerHTML = 'ano';
-    divSaldo.innerHTML = '...';
-    return Promise.resolve();
-  }
-
-  if (typeof periodo === 'object') {
-    spanLabel.innerHTML = 'mês';
-    const dataRef = dataReferenciaPeriodo(periodo);
-    if (!dataRef || !userId) {
-      divSaldo.innerHTML = 'Sem dados';
-      return Promise.resolve();
-    }
-
-    return MainAPI.get(`/dashboard/gasto-total-mes/${dataRef}/usuarios/${userId}`)
-      .then(json => {
-        const valor = Number(json?.valor ?? 0);
-        divSaldo.innerHTML = `R$ ${valor.toFixed(2)}`;
-        const root = document.documentElement;
-        if (valor >= 0) {
-          divSaldo.style.color = getComputedStyle(root).getPropertyValue('--green-500') || '#22c55e';
-        } else {
-          divSaldo.style.color = getComputedStyle(root).getPropertyValue('--red-500') || '#ef4444';
-        }
-      });
-  }
-
-  return Promise.resolve();
-}
-
-//KPI
-function buscarMaiorGasto(periodo) {
-  let url = '';
-  let usaNovoEndpoint = false;
-  const userId = obterUsuarioIdDashboard();
-
-  if (typeof periodo === 'number') {
-    console.log("Ano identificado")
-    url = `/registros/maiorGastoAno/${periodo}`;
-    kpiMaiorGastoTitulo.innerHTML = "ano"
-
-    labelComparacao = `${periodo - 1}`;
-  }
-  else if (typeof periodo === 'object') {
-    console.log("Mês identificado")
-    const dataRef = dataReferenciaPeriodo(periodo);
-    if (dataRef && userId) {
-      url = `/dashboard/maior-gasto-do-mes/${dataRef}/usuarios/${userId}`;
-      usaNovoEndpoint = true;
-    } else {
-      url = `/registros/maiorGastoMes/${periodo.ano}/${periodo.mes}`;
-    }
-    kpiMaiorGastoTitulo.innerHTML = "mês"
-
-    let mesAnterior = periodo.mes - 1;
-    let anoAnterior = periodo.ano;
-
-    if (mesAnterior === 0) {
-      mesAnterior = 12;
-      anoAnterior--;
-    }
-    labelComparacao = `${nomeMes(mesAnterior)}`;
-  }
-  console.log("Iniciando fetch na kpi de maior categoria...")
-  return MainAPI.get(url)
-    .then(json => {
-      console.log("Dentro do fetch da maior categoria\nJson:", json)
-
-      let categoria = document.getElementById('categoria');
-      let valorCategoria = document.getElementById('valorCategoria');
-      let tituloGasto = document.getElementById('tituloGasto')
-
-      if (!json || (Array.isArray(json) && json.length === 0)) {
-        categoria.innerHTML = "Sem dados";
-        valorCategoria.innerHTML = "Sem dados";
-        tituloGasto.innerHTML = "Categoria: Sem dados";
-        return;
-      }
-
-      if (usaNovoEndpoint) {
-        categoria.innerHTML = json.nomeCategoria || "Sem dados";
-        valorCategoria.innerHTML = json.valor != null ? `R$ ${Number(json.valor).toFixed(2)}` : "Sem dados";
-        tituloGasto.innerHTML = json.porcentagem != null ? `${json.porcentagem}% do total` : "Categoria: Sem dados";
-      } else {
-        categoria.innerHTML = json[0].tituloGasto;
-        valorCategoria.innerHTML = `R$ ${json[0].valor}`
-        tituloGasto.innerHTML = `Categoria: ${json[0].tipo}`
-      }
-
-
-    })
-}
-
-//KPI
-function buscarGastoTotal(periodo) {
-  console.log("Entrei em buscarGastoTotal")
-  let url = '';
-  let usaNovoEndpoint = false;
-  const userId = obterUsuarioIdDashboard();
-  let div_titulo = document.getElementById('dataKPIgastoTotal');
-  let labelComparacao = "";
-
-  if (typeof periodo === 'number') {
-    console.log("Ano identificado")
-    url = `/registros/gastoTotalAno/${periodo}`;
-    div_titulo.innerHTML = "ano"
-
-    labelComparacao = `${periodo - 1}`;
-  }
-  else if (periodo && typeof periodo === 'object') {
-    console.log("Mês identificado")
-    const dataRef = dataReferenciaPeriodo(periodo);
-    if (dataRef && userId) {
-      url = `/dashboard/gasto-total-mes/${dataRef}/usuarios/${userId}`;
-      usaNovoEndpoint = true;
-    } else {
-      url = `/registros/gastoTotalMes/${periodo.ano}/${periodo.mes}`;
-    }
-    div_titulo.innerHTML = "mês"
-
-    let mesAnterior = periodo.mes - 1;
-    let anoAnterior = periodo.ano;
-
-    if (mesAnterior === 0) {
-      mesAnterior = 12;
-      anoAnterior--;
-    }
-
-    labelComparacao = `${nomeMes(mesAnterior)}`;
-
-  }
-
-  console.log("Iniciando fetch...")
-  MainAPI.get(url)
-    .then(json => {
-      console.log("Dentro do fetch\nJson:", json)
-      div_gastoTotal = document.getElementById('gastoTotal');
-      div_percentual = document.getElementById('percentual');
-      div_subtexto = document.getElementById('subtexto');
-
-      if (usaNovoEndpoint) {
-        const valorAtual = Number(json?.valor || 0);
-        const percentual = Number(json?.porcentagem || 0);
-        div_gastoTotal.innerHTML = `R$ ${valorAtual.toFixed(2)}`;
-
-        if (percentual === 0) {
-          div_percentual.style.display = "none";
-          div_subtexto.innerHTML = "variação não aplicável";
-          return;
-        }
-
-        const root = document.documentElement;
-        if (percentual > 0) {
-          const corFundo = getComputedStyle(root).getPropertyValue('--red-700');
-          const corTexto = getComputedStyle(root).getPropertyValue('--red-100');
-          div_percentual.style.display = "";
-          div_percentual.style.backgroundColor = corFundo;
-          div_percentual.style.color = corTexto;
-          div_percentual.innerHTML = `<i class='bx  bx-caret-big-up'></i> +${percentual}%`;
-        } else {
-          const corFundo = getComputedStyle(root).getPropertyValue('--green-700');
-          const corTexto = getComputedStyle(root).getPropertyValue('--green-100');
-          div_percentual.style.display = "";
-          div_percentual.style.backgroundColor = corFundo;
-          div_percentual.style.color = corTexto;
-          div_percentual.innerHTML = `<i class='bx  bx-caret-big-down'></i> ${percentual}%`;
-        }
-
-        div_subtexto.innerHTML = "Em relação ao mês anterior";
-        return;
-      }
-
-      div_gastoTotal.innerHTML = `R$ ${json[0].total_atual.toFixed(2)}`
-      if (json[0].total_anterior === 0 && json[0].total_atual > 0) {
-        console.log("Valor anterior nulo")
-        div_percentual.style.display = "none"
-        div_subtexto.innerHTML = "variação não aplicável"
-      }
-      else if (json[0].total_anterior === 0 && json[0].total_atual === 0) {
-        console.log("Valor anterior e atual nulo")
-        div_percentual.style.display = "none"
-        div_subtexto.innerHTML = "variação não aplicável"
-      }
-      else {
-
-        diferenca = (json[0].total_atual - json[0].total_anterior).toFixed(2);
-        diferença_percentual = ((diferenca / json[0].total_anterior) * 100).toFixed(2);
-        const root = document.documentElement;
-        if (diferença_percentual > 0) {
-          const corFundo = getComputedStyle(root).getPropertyValue('--red-700');
-          const corTexto = getComputedStyle(root).getPropertyValue('--red-100');
-          div_percentual.style.display = ""
-          div_percentual.style.backgroundColor = corFundo;
-          div_percentual.style.color = corTexto
-          div_percentual.innerHTML = `<i class='bx  bx-caret-big-up'></i> +${diferença_percentual}%`
-          div_subtexto.innerHTML = `Em relação a ${typeof periodo === 'object' ? 'mês de ' : 'ano de '} ${labelComparacao}`;
-
-        }
-        else if (diferença_percentual < 0) {
-          const corFundo = getComputedStyle(root).getPropertyValue('--green-700');
-          const corTexto = getComputedStyle(root).getPropertyValue('--green-100');
-          div_percentual.style.display = ""
-          div_percentual.style.backgroundColor = corFundo;
-          div_percentual.style.color = corTexto
-
-          div_percentual.innerHTML = `<i class='bx  bx-caret-big-down'></i> ${diferença_percentual}%`
-          div_subtexto.innerHTML = `Em relação a ${typeof periodo === 'object' ? 'mês de ' : 'ano de '} ${labelComparacao}`;
-
-        }
-
-      }
-    })
-}
-
-//GRÁFICO
-function gerarTipos(periodo) {
-  let url = ''
-  let dados = [];
-  let labels = [];
-
-  // 📅 Ano
-  if (typeof periodo === 'number') {
-    url = `/registros/quantidadeTipoAno/${periodo}`;
-  }
-  if (typeof periodo === 'object') {
-    url = `/registros/quantidadeTipoMes/${periodo.ano}/${periodo.mes}`;
-  }
-
-  MainAPI.get(url)
-    .then(json => {
-      console.log("Dentro do fetch do gráfico de barra dos tipos")
-      if (!json || json.length === 0) {
-        graficoTipo.innerHTML = semDados
-        return;
-      }
-      graficoTipo.innerHTML = ""
-
-      for (let c = 0; json.length > c; c++) {
-        dados.push(json[c].qtd);
-        labels.push(json[c].titulo);
-      }
-      console.log("Dados do gráfico de barra dos tipos:", dados)
-
-      criarGrafico(
-        350,
-        'bar',
-        "Quantidade por categoria",
-        dados,
-        labels,
-        'graficoTipo'
-      );
-    });
-}
-
-//GRÁFICO
-async function gastosMes(param) {
-  let url = '';
-  let titulo = '';
-  let tipoLabel = ''; // 'mes' ou 'dia'
-
-  // 📅 Ano
-  if (typeof param === 'number') {
-    url = `/registros/gastosMes/${param}`;
-    titulo = 'Gasto por mês';
-    tipoLabel = 'mes';
-  }
-  // 📆 Mês
-  else if (typeof param === 'object') {
-    url = `/registros/gastosDia/${param.ano}/${param.mes}`;
-    titulo = 'Gasto por dia';
-    tipoLabel = 'dia';
-  }
-
-  MainAPI.get(url)
-    .then(json => {
-      const dados = [];
-      const labels = [];
-      if (!json || json.length === 0) {
-        graficoTemporal.innerHTML = semDados
-        return;
-      }
-      graficoTemporal.innerHTML = ""
-      json.forEach(item => {
-        const valor = Math.round(item.total_gasto * 100) / 100;
-        dados.push(valor);
-
-        // Labels para ANO → meses
-        if (tipoLabel === 'mes') {
-          const nome = new Date(param, item.mes_num - 1)
-            .toLocaleString('pt-BR', { month: 'long' });
-          labels.push(nome.charAt(0).toUpperCase() + nome.slice(1));
-        }
-
-        // Labels para MÊS → dias
-        if (tipoLabel === 'dia') {
-          const [dia, mes, ano] = item.dia_label.split('/');
-
-          const nomeMes = new Date(ano, mes - 1)
-            .toLocaleString('pt-BR', { month: 'short' });
-
-          labels.push(`${dia} de ${nomeMes}`);
-        }
-      });
-
-      criarGrafico(
-        350,
-        'line',
-        titulo,
-        dados,
-        labels,
-        'graficoTemporal'
-      );
-    });
-}
-
-//KPI e GRÁFICO
-function percentualTipo(periodo) {
-  kpiTipo = document.getElementById('percentualKPItipo')
-  valorKPI = document.getElementById('valorKPItipo')
-  const dados = [];
-  const labels = [];
-// 📅 Ano
-  if (typeof periodo === 'number') {
-    console.log("Mês identificado no percentual por categoria")
-    url = `/registros/percentualTipoAno/${periodo}`;
-  }
-  // 📅 Mês
-  else if (periodo && typeof periodo === 'object') {
-    console.log("Ano identificado no percentual por categoria")
-    url = `/registros/percentualTipoMes/${periodo.ano}/${periodo.mes}`;
-  }
-
-  MainAPI.get(url)
-    .then(json => {
-
-      if (!json || json.length === 0) {
-        kpiTipo.innerHTML = "Sem dados";
-        valorKPI.innerHTML = "Sem dados";
-        graficoDonut.innerHTML = semDados
-        return;
-      }
-      graficoDonut.innerHTML = ""
-      let maiorTipo = json[0]
-      for (let c = 0; json.length > c; c++) {
-        dados.push(json[c].percentual);
-        labels.push(json[c].tipo);
-        if (json[c].percentual > maiorTipo.percentual) {
-          maiorTipo = json[c];
-        }
-      }
-      kpiTipo.innerHTML = `${maiorTipo.tipo}`;
-      valorKPI.innerHTML = `${maiorTipo.percentual}%`
-
-      opcaoDonut = {
-        chart: {
-          type: 'donut',
-          height: 350
-        },
-        series: dados,
-        labels: labels,
-        fill: {
-          colors: [
-            '#1E4F56', // azul petróleo
-            '#2C6E73', // teal mais escuro
-            '#4F918C', // teal médio
-            '#6FB9B5', // teal claro
-            '#B5E3E0', // gelo suave
-            '#C8ECF0', // azul glacial
-            '#6FAFD6', // azul céu frio
-            '#D8F3F5', // quase branco gelo
-          ]
-        },
-        plotOptions: {
-          pie: {
-            customScale: 0.8
-          }
-        },
-        responsive: [
-          {
-            breakpoint: 480,
-            options: {
-              chart: {
-                width: '100%'
-              }
-            }
-          }
-        ]
-      }
-
-
-      var Donut = new ApexCharts(document.querySelector("#graficoDonut"), opcaoDonut)
-
-      Donut.render();
-
-
-    });
-
-}
+// ── DASHBOARD — integração com os novos endpoints /dashboard/* ────────────────
+const API_BASE = 'http://localhost:8080';
+const CURRENCY = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+const semDados = `
+  <div class="aviso">
+    <i class='bx bx-search-alt'></i>
+    <h3>Sem Dados</h3>
+    <p>Selecione outro período para visualizar.</p>
+  </div>`;
+
+const carregando = `<p style="text-align:center;padding:32px;color:var(--cor-texto-secundario);">
+    <i class='bx bx-loader-alt' style="font-size:1.5rem;animation:spin 1s linear infinite;"></i>
+</p>`;
+
+// Instâncias ApexCharts para destroy/recreate
 const graficos = {};
 
+// Período selecionado
+let periodoCfg = null;
 
-function criarGrafico(altura, tipo, nome, dados, labels, div) {
-  const options = {
-    chart: {
-      height: altura,
-      type: tipo
-    },
-    fill: {
-      colors: [
-        '#1E4F56', // azul petróleo
-        '#2C6E73', // teal mais escuro
-        '#4F918C', // teal médio
-        '#6FB9B5', // teal claro
-        '#B5E3E0', // gelo suave
-        '#C8ECF0', // azul glacial
-        '#6FAFD6', // azul céu frio
-        '#D8F3F5', // quase branco gelo
-      ]
-    },
-    series: [{
-      name: nome,
-      data: dados
-    }],
-    xaxis: {
-      categories: labels
-    },
-    grid: {
-      borderColor: 'rgba(54, 115, 115, 0.15)',
-      strokeDashArray: 4
-    },
-  };
+// ── Google Charts — controle de carregamento ──────────────────────────────────
+let _gcReady = false;
+const _gcQueue = [];
+window._onGoogleChartsReady = function () {
+    _gcReady = true;
+    _gcQueue.forEach(fn => { try { fn(); } catch(e) { console.error('[Sankey]', e); } });
+    _gcQueue.length = 0;
+};
 
-  if (graficos[div]) {
-    graficos[div].destroy();
-  }
+// ── HELPERS ───────────────────────────────────────────────────────────────────
 
-  graficos[div] = new ApexCharts(
-    document.querySelector(`#${div}`),
-    options
-  );
-
-  graficos[div].render();
+function obterUsuarioIdDashboard() {
+    try {
+        const u = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+        return u?.id || null;
+    } catch (_) { return null; }
 }
-
-function graficoComparacao(periodoAtual, periodoAnterior, labels) {
-  const options = {
-    chart: {
-      type: 'line',
-      height: 350,
-      toolbar: { show: false }
-    },
-    series: [
-      {
-        name: 'Período selecionado',
-        data: periodoAtual
-      },
-      {
-        name: 'Período anterior',
-        data: periodoAnterior
-      }
-    ],
-    xaxis: {
-      categories: labels
-    },
-    stroke: {
-      curve: 'smooth',
-      width: 3
-    },
-    colors: ['#367373', '#B4D9D5'],
-    grid: {
-      borderColor: 'rgba(54,115,115,0.15)',
-      strokeDashArray: 4
-    },
-    legend: {
-      position: 'top'
-    }
-  };
-
-  new ApexCharts(
-    document.querySelector("#graficoComparacao"),
-    options
-  ).render();
-}
-
 
 function nomeMes(mes) {
-  const meses = [
-    "Janeiro", "Fevereiro", "Março", "Abril",
-    "Maio", "Junho", "Julho", "Agosto",
-    "Setembro", "Outubro", "Novembro", "Dezembro"
-  ];
+    return ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+            'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][(mes - 1)] || '';
+}
 
-  return meses[mes - 1];
+function buildParams(cfg) {
+    cfg = cfg || periodoCfg;
+    const p = new URLSearchParams();
+    p.set('periodo', cfg.tipo);
+    p.set('ano', cfg.ano);
+    if (cfg.tipo === 'MENSAL'     && cfg.mes)       p.set('mes',       cfg.mes);
+    if (cfg.tipo === 'TRIMESTRAL' && cfg.trimestre) p.set('trimestre', cfg.trimestre);
+    if (cfg.tipo === 'SEMESTRAL'  && cfg.semestre)  p.set('semestre',  cfg.semestre);
+    return p.toString();
+}
+
+function labelPeriodoCfg(cfg) {
+    cfg = cfg || periodoCfg;
+    if (!cfg) return '';
+    if (cfg.tipo === 'MENSAL')     return `${nomeMes(cfg.mes)} / ${cfg.ano}`;
+    if (cfg.tipo === 'TRIMESTRAL') return `${cfg.trimestre}º Trimestre / ${cfg.ano}`;
+    if (cfg.tipo === 'SEMESTRAL')  return `${cfg.semestre}º Semestre / ${cfg.ano}`;
+    return `Anual / ${cfg.ano}`;
+}
+
+async function apiFetch(url) {
+    try {
+        // cache: 'no-store' garante dados frescos após importação de arquivos
+        const res = await fetch(url, { cache: 'no-store' });
+        if (res.status === 204) return { ok: false, json: null };
+        if (!res.ok) {
+            console.warn(`[Dashboard] API ${res.status} →`, url);
+            return { ok: false, json: null };
+        }
+        const json = await res.json();
+        return { ok: true, json };
+    } catch (err) {
+        console.error('[Dashboard] Erro ao buscar:', url, err);
+        return { ok: false, json: null };
+    }
+}
+
+function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function isDark() {
+    return document.body.dataset.mode === 'dark';
+}
+
+// Interpola hue 240(azul) → 0(vermelho) baseado em normalizado (0-1)
+function heatColor(normalizado) {
+    const n = Math.max(0, Math.min(1, normalizado || 0));
+    if (n < 0.02) return 'var(--cor-fundo-inativo)';
+    const hue = Math.round(240 * (1 - n));
+    return `hsl(${hue}, 80%, ${isDark() ? 38 : 45}%)`;
+}
+
+/**
+ * Retorna 3 cores para gráficos de múltiplas séries baseadas nas variáveis do root.
+ * Série 1 → --cor-principal, Série 2 → --cor-para-destacar, Série 3 → --cor-hover
+ */
+function getChartPalette3() {
+    return [
+        cssVar('--cor-principal')     || '#367373',
+        cssVar('--cor-para-destacar') || '#004C58',
+        cssVar('--cor-hover')         || '#B4D9D5',
+    ];
+}
+
+/**
+ * Retorna a cor de borda do grid dos gráficos baseada na variável --cor-tinte-borda.
+ */
+function getGridColor() {
+    return cssVar('--cor-tinte-borda') || 'rgba(54,115,115,0.18)';
+}
+
+/**
+ * Retorna o array de cores dos nós do diagrama Sankey baseado nas variáveis do root.
+ */
+function getSankeyNodeColors() {
+    const c1 = cssVar('--cor-principal')      || '#367373';
+    const c2 = cssVar('--cor-para-destacar')  || '#004C58';
+    const c3 = cssVar('--cor-fundo-cadastro') || '#5FA8A3';
+    const c4 = cssVar('--cor-titulo')         || '#004C58';
+    const c5 = cssVar('--cor-hover')          || '#B4D9D5';
+    return [c1, c2, c3, c4, c5, c1, c2, c3];
+}
+
+/**
+ * Retorna a cor secundária do gráfico de comparação de acordo com o tema atual.
+ * Deve contrastar visivelmente com --cor-principal em qualquer combinação tema/modo.
+ */
+function getGraficoAntColor() {
+    const tema = document.body.dataset.tema || 'padrao';
+    const mode = document.body.dataset.mode || 'light';
+    const map = {
+        'padrao-light':    '#F59E0B',   // âmbar — contrasta com teal
+        'padrao-dark':     '#FBBF24',   // âmbar claro
+        'vampirico-light': '#1D4ED8',   // azul — contrasta com vermelho
+        'vampirico-dark':  '#60A5FA',   // azul claro
+        'ceu-azul-light':  '#7C3AED',   // roxo — contrasta com ciano
+        'ceu-azul-dark':   '#A78BFA',   // roxo claro
+        'purpura-light':   '#059669',   // verde — contrasta com roxo
+        'purpura-dark':    '#34D399',   // verde claro
+        'branco-light':    '#F59E0B',   // âmbar
+        'branco-dark':     '#FBBF24',   // âmbar claro
+    };
+    return map[`${tema}-${mode}`] || '#F59E0B';
+}
+
+// ── ATALHOS DE PERÍODO ────────────────────────────────────────────────────────
+
+function marcarAtalhoAtivo(atalho) {
+    document.querySelectorAll('.dash-atalho-btn').forEach(btn => {
+        btn.classList.toggle('ativo', btn.dataset.atalho === atalho);
+    });
+}
+
+function selecionarRapido(atalho) {
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    const mesAtual = hoje.getMonth() + 1;
+    const selTipo      = document.getElementById('select_tempo');
+    const selMes       = document.getElementById('select_mes');
+    const selAno       = document.getElementById('select_ano');
+    const divMes       = document.getElementById('div_mes');
+    const divTrimestre = document.getElementById('div_trimestre');
+    const divSemestre  = document.getElementById('div_semestre');
+
+    if (divMes)       divMes.style.display       = 'none';
+    if (divTrimestre) divTrimestre.style.display  = 'none';
+    if (divSemestre)  divSemestre.style.display   = 'none';
+
+    if (atalho === 'mes-atual') {
+        selTipo.value = 'MENSAL';
+        selMes.value  = String(mesAtual);
+        selAno.value  = String(anoAtual);
+        if (divMes) divMes.style.display = '';
+    } else if (atalho === 'mes-passado') {
+        let mes = mesAtual - 1, ano = anoAtual;
+        if (mes === 0) { mes = 12; ano--; }
+        selTipo.value = 'MENSAL';
+        selMes.value  = String(mes);
+        selAno.value  = String(ano);
+        if (divMes) divMes.style.display = '';
+    } else if (atalho === 'ano-atual') {
+        selTipo.value = 'ANUAL';
+        selAno.value  = String(anoAtual);
+    } else if (atalho === 'ano-passado') {
+        selTipo.value = 'ANUAL';
+        selAno.value  = String(anoAtual - 1);
+    }
+    marcarAtalhoAtivo(atalho);
+    carregarDashboard();
+}
+
+// ── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
+
+/** Força atualização completa de KPIs e gráficos sem cache. */
+function atualizarDashboard() {
+    if (!periodoCfg) return;
+    gerarKPIS();
+    gerarGraficos();
+}
+
+/**
+ * Observa mudanças de tema/modo na tag <body> e re-renderiza todos
+ * os gráficos para aplicar as novas cores imediatamente.
+ */
+let _temaDebounce = null;
+const _temaObserver = new MutationObserver(() => {
+    clearTimeout(_temaDebounce);
+    _temaDebounce = setTimeout(() => {
+        if (!periodoCfg) return;
+        // Destroi todas as instâncias ApexCharts existentes
+        Object.keys(graficos).forEach(id => {
+            try { graficos[id].destroy(); } catch (_) {}
+            delete graficos[id];
+        });
+        // Re-renderiza com as novas cores do tema
+        gerarGraficos();
+    }, 200);
+});
+_temaObserver.observe(document.body, {
+    attributes: true,
+    attributeFilter: ['data-mode', 'data-tema']
+});
+
+async function gerarInformações() {
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    const mesAtual = hoje.getMonth() + 1;
+    periodoCfg = { tipo: 'MENSAL', ano: anoAtual, mes: mesAtual };
+
+    const selTipo = document.getElementById('select_tempo');
+    const selMes  = document.getElementById('select_mes');
+    const selAno  = document.getElementById('select_ano');
+    if (selTipo) selTipo.value = 'MENSAL';
+    if (selMes)  selMes.value  = String(mesAtual);
+
+    // Popula o select de ano com os anos presentes no banco
+    await popularSelectAnos(selAno, anoAtual);
+
+    atualizarSeletoresPeriodo(false);
+    marcarAtalhoAtivo('mes-atual');
+    carregarDashboard();
+}
+
+async function popularSelectAnos(selAno, anoAtual) {
+    if (!selAno) return;
+    const userId = obterUsuarioIdDashboard();
+    let anos = [anoAtual];
+    if (userId) {
+        try {
+            const { ok, json } = await apiFetch(`${API_BASE}/dashboard/anos/usuarios/${userId}`);
+            if (ok && Array.isArray(json) && json.length > 0) anos = json;
+        } catch (_) { /* fallback: usa só o ano atual */ }
+    }
+    selAno.innerHTML = anos.map(a =>
+        `<option value="${a}"${a === anoAtual ? ' selected' : ''}>${a}</option>`
+    ).join('');
+}
+
+function atualizarSeletoresPeriodo(recarregar) {
+    const tipo = document.getElementById('select_tempo')?.value || 'MENSAL';
+    const divMes       = document.getElementById('div_mes');
+    const divTrimestre = document.getElementById('div_trimestre');
+    const divSemestre  = document.getElementById('div_semestre');
+    if (divMes)       divMes.style.display       = tipo === 'MENSAL'     ? '' : 'none';
+    if (divTrimestre) divTrimestre.style.display  = tipo === 'TRIMESTRAL' ? '' : 'none';
+    if (divSemestre)  divSemestre.style.display   = tipo === 'SEMESTRAL'  ? '' : 'none';
+    if (recarregar !== false) { marcarAtalhoAtivo(null); carregarDashboard(); }
+}
+
+function carregarDashboard() {
+    const tipo = document.getElementById('select_tempo')?.value;
+    const ano  = Number(document.getElementById('select_ano')?.value);
+    if (!tipo || !ano || isNaN(ano)) return;
+
+    const cfg = { tipo, ano };
+    if (tipo === 'MENSAL') {
+        const mes = Number(document.getElementById('select_mes')?.value);
+        if (!mes) return;
+        cfg.mes = mes;
+    } else if (tipo === 'TRIMESTRAL') {
+        const trimestre = Number(document.getElementById('select_trimestre')?.value);
+        if (!trimestre) return;
+        cfg.trimestre = trimestre;
+    } else if (tipo === 'SEMESTRAL') {
+        const semestre = Number(document.getElementById('select_semestre')?.value);
+        if (!semestre) return;
+        cfg.semestre = semestre;
+    }
+
+    periodoCfg = cfg;
+    const labelEl = document.getElementById('labelPeriodoAtual');
+    if (labelEl) labelEl.textContent = labelPeriodoCfg(cfg);
+
+    gerarKPIS();
+    gerarGraficos();
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+
+async function gerarKPIS() {
+    const userId = obterUsuarioIdDashboard();
+    if (!userId || !periodoCfg) return;
+    const params = buildParams();
+    await Promise.all([
+        carregarKpiSaldoTotal(userId, params),
+        carregarKpiGastoTotal(userId, params),
+        carregarKpiMaiorGasto(userId, params),
+        carregarKpiCategoriaImpacto(userId, params)
+    ]);
+}
+
+async function carregarKpiSaldoTotal(userId, params) {
+    const el = document.getElementById('saldoTotal');
+    if (!el) return;
+    el.textContent = '...';
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/kpi/saldo-total/usuarios/${userId}?${params}`);
+    if (!ok || !json) { el.textContent = '–'; el.style.color = ''; return; }
+    const saldo = Number(json.saldo ?? 0);
+    el.textContent  = CURRENCY.format(saldo);
+    el.style.color  = saldo >= 0 ? cssVar('--green-700') : cssVar('--red-700');
+}
+
+async function carregarKpiGastoTotal(userId, params) {
+    const elValor = document.getElementById('gastoTotal');
+    const elBadge = document.getElementById('percentual');
+    const elSub   = document.getElementById('subtexto');
+    if (!elValor) return;
+    elValor.textContent = '...';
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/kpi/gasto-total/usuarios/${userId}?${params}`);
+    if (!ok || !json) {
+        elValor.textContent = '–';
+        if (elBadge) elBadge.style.display = 'none';
+        if (elSub)   elSub.textContent = '';
+        return;
+    }
+
+    elValor.textContent = CURRENCY.format(Number(json.totalGastos ?? 0));
+    const v = Number(json.variacaoPercentual ?? 0);
+    if (!elBadge || !elSub) return;
+
+    if (v === 0) {
+        elBadge.style.display = 'none';
+        elSub.textContent = 'Sem variação em relação ao período anterior';
+    } else if (v > 0) {
+        elBadge.style.display = '';
+        elBadge.style.backgroundColor = cssVar('--red-100');
+        elBadge.style.color           = cssVar('--red-700');
+        elBadge.innerHTML = `<i class='bx bx-caret-big-up'></i> +${v}%`;
+        elSub.textContent = `Em comparação ao ${json.labelPeriodoAnterior || 'período anterior'}`;
+    } else {
+        elBadge.style.display = '';
+        elBadge.style.backgroundColor = cssVar('--green-100');
+        elBadge.style.color           = cssVar('--green-700');
+        elBadge.innerHTML = `<i class='bx bx-caret-big-down'></i> ${v}%`;
+        elSub.textContent = `Em comparação ao ${json.labelPeriodoAnterior || 'período anterior'}`;
+    }
+}
+
+async function carregarKpiMaiorGasto(userId, params) {
+    const elSub    = document.getElementById('categoria');      // subtítulo (titulo do gasto)
+    const elValor  = document.getElementById('valorCategoria'); // valor R$
+    const elBadge  = document.getElementById('tituloGasto');    // badge verde "X% Do total"
+    if (!elSub) return;
+    elSub.textContent = '...';
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/kpi/maior-gasto/usuarios/${userId}?${params}`);
+    if (!ok || !json) {
+        elSub.textContent = 'Sem dados';
+        if (elValor) elValor.textContent = '–';
+        if (elBadge) elBadge.style.display = 'none';
+        return;
+    }
+
+    // Mostra título do gasto como subtítulo e categoria entre parênteses
+    elSub.textContent  = json.titulo || '–';
+    if (elValor) elValor.textContent = CURRENCY.format(Number(json.valor ?? 0));
+    if (elBadge) {
+        if (json.percentualDoTotal != null) {
+            elBadge.textContent   = `${json.percentualDoTotal}% Do total · ${json.categoria || ''}`;
+            elBadge.style.display = '';
+        } else {
+            elBadge.style.display = 'none';
+        }
+    }
+}
+
+async function carregarKpiCategoriaImpacto(userId, params) {
+    const elCateg   = document.getElementById('percentualKPItipo'); // nome da categoria
+    const elValor   = document.getElementById('valorKPItipo');      // valor atual
+    const elBadge   = document.getElementById('kpi4-badge');        // badge de variação
+    const elSub     = document.getElementById('variacaoCategoriaImpacto');
+    if (!elCateg) return;
+    elCateg.textContent = '...';
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/kpi/categoria-impacto/usuarios/${userId}?${params}`);
+    if (!ok || !json) {
+        elCateg.textContent = 'Sem dados';
+        if (elValor) elValor.textContent = '–';
+        if (elBadge) elBadge.style.display = 'none';
+        if (elSub)   elSub.textContent = '';
+        return;
+    }
+
+    elCateg.textContent = json.categoria || '–';
+    if (elValor) elValor.textContent = CURRENCY.format(Number(json.valorAtual ?? 0));
+
+    const v = Number(json.variacaoPercentual ?? 0);
+    if (!elBadge || !elSub) return;
+
+    if (v === 0) {
+        elBadge.style.display = 'none';
+        elSub.textContent = 'Sem variação em relação ao período anterior';
+    } else if (v > 0) {
+        elBadge.style.display = '';
+        elBadge.style.backgroundColor = cssVar('--red-100');
+        elBadge.style.color           = cssVar('--red-700');
+        elBadge.innerHTML = `<i class='bx bx-caret-big-up'></i> +${v}%`;
+        elSub.textContent = 'Em comparação ao período anterior';
+    } else {
+        elBadge.style.display = '';
+        elBadge.style.backgroundColor = cssVar('--green-100');
+        elBadge.style.color           = cssVar('--green-700');
+        elBadge.innerHTML = `<i class='bx bx-caret-big-down'></i> ${v}%`;
+        elSub.textContent = 'Em comparação ao período anterior';
+    }
+}
+
+// ── GRÁFICOS ─────────────────────────────────────────────────────────────────
+
+function gerarGraficos() {
+    const userId = obterUsuarioIdDashboard();
+    if (!userId || !periodoCfg) return;
+
+    // Verifica se ApexCharts carregou (local ou CDN)
+    if (typeof ApexCharts === 'undefined') {
+        console.error('[Dashboard] ApexCharts não carregado — tentando CDN de fallback...');
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/apexcharts/dist/apexcharts.min.js';
+        s.onload = () => { gerarGraficos(); };
+        s.onerror = () => {
+            ['graficoTemporal','graficoComparacao','graficoTipo','graficoDiaSemana'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = `<div class="aviso"><i class='bx bx-error'></i>
+                    <h3>Biblioteca não disponível</h3>
+                    <p>Não foi possível carregar o mecanismo de gráficos (ApexCharts).</p></div>`;
+            });
+        };
+        document.head.appendChild(s);
+        return;
+    }
+
+    const params = buildParams();
+    carregarGraficoEvolucao(userId, params);
+    carregarGraficoComparacao(userId, params);
+    carregarGraficoCategorias(userId, params);
+    carregarGraficoDiaSemana(userId, params);
+    carregarGraficoFluxo(userId, params);
+}
+
+function destroyGrafico(id) {
+    if (graficos[id]) { graficos[id].destroy(); delete graficos[id]; }
+}
+
+function apexTheme() {
+    return isDark() ? 'dark' : 'light';
+}
+
+// ── Gráfico 1: Evolução dos gastos + recebimentos (area) ─────────────────────
+async function carregarGraficoEvolucao(userId, params) {
+    const el = document.getElementById('graficoTemporal');
+    if (!el) return;
+    el.innerHTML = carregando;
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/grafico/evolucao-gastos/usuarios/${userId}?${params}`);
+    if (!ok || !json?.dados?.length) { el.innerHTML = semDados; return; }
+
+    destroyGrafico('graficoTemporal');
+    el.innerHTML = '';
+
+    const corGastos = cssVar('--cor-principal') || '#367373';
+    const corRec    = cssVar('--green-700') || '#15803D';
+
+    const series = [{ name: 'Gastos', data: json.dados.map(d => Number(d.valor)) }];
+    const colors = [corGastos];
+
+    const hasRec = Array.isArray(json.dadosRecebimentos) && json.dadosRecebimentos.length > 0;
+    if (hasRec) {
+        series.push({ name: 'Recebimentos', data: json.dadosRecebimentos.map(d => Number(d.valor)) });
+        colors.push(corRec);
+    }
+
+    try {
+        graficos['graficoTemporal'] = new ApexCharts(el, {
+            chart: { type: 'area', height: 320, toolbar: { show: false }, zoom: { enabled: false } },
+            series,
+            xaxis: { categories: json.dados.map(d => d.label), labels: { rotate: -35 } },
+            yaxis: { labels: { formatter: v => `R$ ${Number(v).toFixed(0)}` } },
+            colors,
+            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.04 } },
+            stroke: { curve: 'smooth', width: 3 },
+            dataLabels: { enabled: false },
+            legend: { position: 'top' },
+            grid: { borderColor: getGridColor(), strokeDashArray: 4 },
+            tooltip: { theme: apexTheme(), y: { formatter: v => CURRENCY.format(v) } }
+        });
+        graficos['graficoTemporal'].render();
+    } catch (e) {
+        console.error('[Dashboard] Erro ao renderizar graficoTemporal:', e);
+        el.innerHTML = semDados;
+    }
+}
+
+// ── Gráfico 2: Comparação por período (multi-line) ────────────────────────────
+async function carregarGraficoComparacao(userId, params) {
+    const el = document.getElementById('graficoComparacao');
+    if (!el) return;
+    el.innerHTML = carregando;
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/grafico/comparacao-periodo/usuarios/${userId}?${params}`);
+    if (!ok || !json?.dados?.length) { el.innerHTML = semDados; return; }
+
+    destroyGrafico('graficoComparacao');
+    el.innerHTML = '';
+
+    try {
+        graficos['graficoComparacao'] = new ApexCharts(el, {
+            chart: { type: 'line', height: 320, toolbar: { show: false }, zoom: { enabled: false } },
+            series: [
+                { name: json.labelPeriodoAtual    || 'Período atual',    data: json.dados.map(d => Number(d.valorAtual)) },
+                { name: json.labelPeriodoAnterior || 'Período anterior', data: json.dados.map(d => Number(d.valorAnterior)) }
+            ],
+            xaxis: { categories: json.dados.map(d => d.label), labels: { rotate: -35 } },
+            yaxis: { labels: { formatter: v => `R$ ${Number(v).toFixed(0)}` } },
+            stroke: { curve: 'smooth', width: [3, 3] },
+            colors: [cssVar('--cor-principal') || '#367373', getGraficoAntColor()],
+            grid: { borderColor: getGridColor(), strokeDashArray: 4 },
+            legend: { position: 'top' },
+            tooltip: { theme: apexTheme(), y: { formatter: v => CURRENCY.format(v) } }
+        });
+        graficos['graficoComparacao'].render();
+    } catch (e) {
+        console.error('[Dashboard] Erro ao renderizar graficoComparacao:', e);
+        el.innerHTML = semDados;
+    }
+}
+
+// ── Gráfico 3: Gastos por Categoria — 3 séries agrupadas ─────────────────────
+async function carregarGraficoCategorias(userId, params) {
+    const el = document.getElementById('graficoTipo');
+    if (!el) return;
+    el.innerHTML = carregando;
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/grafico/categorias/usuarios/${userId}?${params}`);
+    if (!ok || !json?.categorias?.length) { el.innerHTML = semDados; return; }
+
+    const cats   = json.categorias;
+    const nomes  = cats.map(c => c.nome);
+    const valores   = cats.map(c => Number(c.valorTotal));
+    const pcts      = cats.map(c => Number(c.percentualDoTotal));
+    const ocorrs    = cats.map(c => Number(c.ocorrencias));
+
+    destroyGrafico('graficoTipo');
+    el.innerHTML = '';
+
+    try {
+        graficos['graficoTipo'] = new ApexCharts(el, {
+            chart: { type: 'bar', height: 350, toolbar: { show: false } },
+            series: [
+                { name: 'Valor (R$)',   data: valores, yAxisIndex: 0 },
+                { name: '% do Total',  data: pcts,    yAxisIndex: 1 },
+                { name: 'Ocorrências', data: ocorrs,  yAxisIndex: 1 }
+            ],
+            xaxis: { categories: nomes },
+            yaxis: [
+                {
+                    seriesName: 'Valor (R$)',
+                    title: { text: 'Valor (R$)', style: { color: cssVar('--cor-texto-secundario') } },
+                    labels: { formatter: v => `R$ ${Number(v).toFixed(0)}` }
+                },
+                {
+                    seriesName: '% do Total',
+                    opposite: true,
+                    title: { text: '% / Qtd', style: { color: cssVar('--cor-texto-secundario') } },
+                    labels: { formatter: v => Number(v).toFixed(0) },
+                    min: 0
+                },
+                {
+                    seriesName: 'Ocorrências',
+                    opposite: true,
+                    show: false
+                }
+            ],
+            colors: getChartPalette3(),
+            plotOptions: { bar: { horizontal: false, borderRadius: 4, dataLabels: { position: 'center' } } },
+            dataLabels: {
+                enabled: true,
+                formatter: function(val, opts) {
+                    const idx = opts.seriesIndex;
+                    if (idx === 0) return `R$ ${Number(val).toFixed(0)}`;
+                    if (idx === 1) return `${Number(val).toFixed(0)}%`;
+                    return `${Number(val).toFixed(0)}x`;
+                },
+                style: { fontSize: '10px', colors: [cssVar('--cor-texto-claro') || '#fff'] }
+            },
+            legend: { position: 'top' },
+            grid: { borderColor: getGridColor(), strokeDashArray: 4 },
+            tooltip: {
+                theme: apexTheme(),
+                shared: true,
+                intersect: false,
+                y: {
+                    formatter: function(val, { seriesIndex }) {
+                        if (seriesIndex === 0) return CURRENCY.format(val);
+                        if (seriesIndex === 1) return `${val}%`;
+                        return `${val} vez(es)`;
+                    }
+                }
+            }
+        });
+        graficos['graficoTipo'].render();
+    } catch (e) {
+        console.error('[Dashboard] Erro ao renderizar graficoTipo:', e);
+        el.innerHTML = semDados;
+    }
+}
+
+// ── Gráfico 4: Dia da semana (heat map) ou Mês (ANUAL — bar chart) ────────────
+async function carregarGraficoDiaSemana(userId, params) {
+    const el       = document.getElementById('graficoDiaSemana');
+    const tituloEl = document.getElementById('tituloDiaSemana');
+    const tooltipEl = document.getElementById('tooltipDiaSemana');
+    if (!el) return;
+
+    // Para ANUAL → mostra gastos por mês em vez de dia da semana
+    if (periodoCfg?.tipo === 'ANUAL') {
+        if (tituloEl)  tituloEl.textContent  = 'Gastos por mês';
+        if (tooltipEl) tooltipEl.textContent = 'Total gasto em cada mês do ano selecionado.';
+        await carregarGastosPorMes(userId, params, el);
+        return;
+    }
+
+    if (tituloEl)  tituloEl.textContent  = 'Gastos por dia da semana';
+    if (tooltipEl) tooltipEl.textContent = 'Dias com mais gastos aparecem em vermelho; dias com menos gastos em azul.';
+    el.innerHTML = carregando;
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/grafico/gastos-dia-semana/usuarios/${userId}?${params}`);
+    if (!ok || !json?.dias?.length) { el.innerHTML = semDados; return; }
+
+    const ABREV = {
+        'segunda-feira': 'Seg', 'terça-feira': 'Ter', 'quarta-feira': 'Qua',
+        'quinta-feira': 'Qui', 'sexta-feira': 'Sex', 'sábado': 'Sáb', 'domingo': 'Dom'
+    };
+
+    const cells = json.dias.map(d => {
+        const abrev = ABREV[d.dia.toLowerCase()] || d.dia.slice(0, 3);
+        const cor   = heatColor(d.normalizado);
+        const valor = d.valorTotal > 0 ? CURRENCY.format(d.valorTotal) : '–';
+        return `<div class="hm-cell" title="${d.dia}: ${valor}">
+            <span class="hm-nome">${abrev}</span>
+            <div class="hm-box" style="background:${cor};"></div>
+            <span class="hm-valor">${valor}</span>
+        </div>`;
+    }).join('');
+
+    el.innerHTML = `
+        <div class="hm-wrap">
+            <div class="hm-grid">${cells}</div>
+            <div class="hm-legenda">
+                <span class="hm-leg-txt">Menos Gastos</span>
+                <div class="hm-grad"></div>
+                <span class="hm-leg-txt">Mais Gastos</span>
+            </div>
+        </div>`;
+}
+
+// Gastos por mês — usado no modo ANUAL
+async function carregarGastosPorMes(userId, params, el) {
+    el.innerHTML = carregando;
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/grafico/evolucao-gastos/usuarios/${userId}?${params}`);
+    if (!ok || !json?.dados?.length) { el.innerHTML = semDados; return; }
+
+    destroyGrafico('graficoDiaSemana');
+    el.innerHTML = '';
+
+    try {
+        graficos['graficoDiaSemana'] = new ApexCharts(el, {
+            chart: { type: 'bar', height: 300, toolbar: { show: false } },
+            series: [{ name: 'Gasto mensal', data: json.dados.map(d => Number(d.valor)) }],
+            xaxis: {
+                categories: json.dados.map(d => d.label),
+                labels: { rotate: -35 }
+            },
+            yaxis: { labels: { formatter: v => `R$ ${Number(v).toFixed(0)}` } },
+            colors: [cssVar('--cor-principal') || '#367373'],
+            plotOptions: { bar: { borderRadius: 6, dataLabels: { position: 'top' } } },
+            dataLabels: {
+                enabled: true,
+                formatter: v => `R$ ${Number(v).toFixed(0)}`,
+                style: { fontSize: '10px', colors: [cssVar('--cor-texto-principal') || '#1A1A1A'] },
+                offsetY: -20
+            },
+            grid: { borderColor: getGridColor(), strokeDashArray: 4 },
+            tooltip: { theme: apexTheme(), y: { formatter: v => CURRENCY.format(v) } }
+        });
+        graficos['graficoDiaSemana'].render();
+    } catch (e) {
+        console.error('[Dashboard] Erro ao renderizar gastos por mês:', e);
+        el.innerHTML = semDados;
+    }
+}
+
+// ── Gráfico 5: Fluxo de entradas e saídas — Sankey (Google Charts) ────────────
+async function carregarGraficoFluxo(userId, params) {
+    const el = document.getElementById('graficoFluxo');
+    if (!el) return;
+    el.innerHTML = carregando;
+    el.style.minHeight = '420px';
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/grafico/fluxo-financeiro/usuarios/${userId}?${params}`);
+    if (!ok || !json) { el.innerHTML = semDados; return; }
+
+    const links = json.links || [];
+    const nos   = json.nos   || [];
+    if (!links.length) { el.innerHTML = semDados; return; }
+
+    // Mapeia id → label dos nós
+    const labelMap = {};
+    nos.forEach(n => { if (n.id && n.label) labelMap[n.id] = n.label; });
+
+    const rows = links
+        .filter(l => l.de && l.para && Number(l.valor) > 0)
+        .map(l => [
+            labelMap[l.de]   || l.de,
+            labelMap[l.para] || l.para,
+            Number(l.valor)
+        ]);
+
+    if (!rows.length) { el.innerHTML = semDados; return; }
+
+    const renderizar = () => {
+        try {
+            el.innerHTML = '';
+            el.style.height = '420px';
+
+            const dark = isDark();
+            const txtColor = dark
+                ? (cssVar('--cor-texto-principal') || '#FFFFFF')
+                : (cssVar('--cor-texto-principal') || '#1A1A1A');
+
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'De');
+            data.addColumn('string', 'Para');
+            data.addColumn('number', 'Valor (R$)');
+            data.addRows(rows);
+
+            const chart = new google.visualization.Sankey(el);
+            chart.draw(data, {
+                width: el.clientWidth || 800,
+                height: 420,
+                sankey: {
+                    node: {
+                        colors: getSankeyNodeColors(),
+                        label: { color: txtColor, fontName: 'Open Sans', fontSize: 13 },
+                        width: 18,
+                        nodePadding: 24,
+                        interactivity: true
+                    },
+                    link: { colorMode: 'gradient', fillOpacity: 0.38 },
+                    iterations: 64
+                }
+            });
+        } catch (e) {
+            console.error('[Dashboard] Erro ao renderizar Sankey:', e);
+            el.innerHTML = semDados;
+        }
+    };
+
+    // Tenta renderizar; se Google Charts não carregou ainda, agenda para quando estiver pronto
+    if (_gcReady) {
+        renderizar();
+    } else {
+        // Mostra mensagem enquanto aguarda
+        el.innerHTML = `<p style="text-align:center;padding:32px;color:var(--cor-texto-secundario);">
+            Aguardando carregamento do gráfico de fluxo…</p>`;
+        _gcQueue.push(renderizar);
+        // Timeout de segurança: se após 8s ainda não carregou, mostra aviso
+        setTimeout(() => {
+            if (!_gcReady && el.innerHTML.includes('Aguardando')) {
+                el.innerHTML = `<div class="aviso">
+                    <i class='bx bx-wifi-off'></i>
+                    <h3>Gráfico indisponível</h3>
+                    <p>Não foi possível carregar a biblioteca de fluxo. Verifique a conexão.</p>
+                </div>`;
+            }
+        }, 8000);
+    }
 }

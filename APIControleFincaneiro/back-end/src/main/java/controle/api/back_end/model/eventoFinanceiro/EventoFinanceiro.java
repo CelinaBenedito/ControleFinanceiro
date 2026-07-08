@@ -1,5 +1,6 @@
 package controle.api.back_end.model.eventoFinanceiro;
 
+import controle.api.back_end.model.poupanca.Caixinha;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -47,6 +48,14 @@ public class EventoFinanceiro {
 
     @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime dataRegistro;
+
+    /**
+     * Caixinha de poupança à qual este evento pertence.
+     * Preenchido apenas para eventos do tipo {@link Tipo#Poupanca}.
+     * Nulo = evento avulso (não vinculado a nenhuma caixinha).
+     */
+    @ManyToOne
+    private Caixinha caixinha;
 
     public Usuario getUsuario() {
         return usuario;
@@ -143,4 +152,7 @@ public class EventoFinanceiro {
     public void setGastoDetalhe(EventoDetalhe eventoDetalhe) {
         this.eventoDetalhe = eventoDetalhe;
     }
+
+    public Caixinha getCaixinha() { return caixinha; }
+    public void setCaixinha(Caixinha caixinha) { this.caixinha = caixinha; }
 }

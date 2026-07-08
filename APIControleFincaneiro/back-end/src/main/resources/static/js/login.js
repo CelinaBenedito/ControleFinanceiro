@@ -85,11 +85,15 @@ function login(email, senha){
         if (response.ok) {
             response.json().then(usuario => {
                 const perfis = JSON.parse(localStorage.getItem("perfis") || "[]");
-                const jaExiste = perfis.some(p => p.id === usuario.id);
-                if (!jaExiste) {
-                    perfis.push({ id: usuario.id, nome: usuario.nome, imagem: usuario.imagem || null });
-                    localStorage.setItem("perfis", JSON.stringify(perfis));
+                const idx = perfis.findIndex(p => p.id === usuario.id);
+                const perfilAtualizado = { id: usuario.id, nome: usuario.nome, imagem: usuario.imagem || null };
+                if (idx === -1) {
+                    perfis.push(perfilAtualizado);
+                } else {
+                    // Atualiza dados existentes (ex.: nova imagem)
+                    perfis[idx] = Object.assign({}, perfis[idx], perfilAtualizado);
                 }
+                localStorage.setItem("perfis", JSON.stringify(perfis));
                 localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
             });
             alerta(`Logado com sucesso!`);

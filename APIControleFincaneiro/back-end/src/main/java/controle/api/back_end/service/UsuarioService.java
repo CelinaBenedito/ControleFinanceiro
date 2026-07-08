@@ -14,6 +14,8 @@ import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -49,8 +51,8 @@ public class UsuarioService {
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
     }
 
-    public List<Usuario> getUsuarios() {
-        return usuarioRepository.findAll();
+    public Page<Usuario> getUsuarios(Pageable pageable) {
+        return usuarioRepository.findAll(pageable);
     }
 
     public Usuario getUsuarioById(UUID id) {

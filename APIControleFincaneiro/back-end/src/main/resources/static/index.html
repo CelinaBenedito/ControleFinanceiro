@@ -1,11 +1,33 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles/Estilos.css">
-    <link href='https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link href='assets/boxicons/boxicons.min.css' rel='stylesheet' id='bx-local'>
+    <script>
+        // Fallback: se icones locais nao carregarem, usa CDN
+        (function(){
+            function checkAndFallback(){
+                var el = document.createElement('i');
+                el.className = 'bx bx-check';
+                el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;font-size:20px;visibility:hidden';
+                document.body.appendChild(el);
+                var ff = window.getComputedStyle(el).fontFamily || '';
+                document.body.removeChild(el);
+                if(ff.toLowerCase().indexOf('boxicons') === -1){
+                    var l = document.createElement('link');
+                    l.rel = 'stylesheet';
+                    l.href = 'https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css';
+                    document.head.appendChild(l);
+                }
+            }
+            if(document.readyState === 'loading'){
+                document.addEventListener('DOMContentLoaded', checkAndFallback);
+            } else { checkAndFallback(); }
+        })();
+    </script>
 
     <title>Escolher perfil</title>
 </head>
@@ -24,25 +46,55 @@
     </div>
 </div>
 
+<script src="js/main.js"></script>
 <script>
-    (function () {
+    (async function () {
+        const API = "http://localhost:8080";
         const perfis = JSON.parse(localStorage.getItem("perfis") || "[]");
         const lista = document.getElementById("listaUsuarios");
         const btnAdd = lista.querySelector(".addUsuario");
 
-        perfis.forEach(function (perfil, index) {
+        // Busca dados atualizados de cada usuário para ter a imagem mais recente
+        const perfisAtualizados = await Promise.all(
+            perfis.map(async function (perfil) {
+                try {
+                    const res = await fetch(API + "/usuarios/" + perfil.id);
+                    if (res.ok) {
+                        const usuario = await res.json();
+                        return Object.assign({}, perfil, usuario);
+                    }
+                } catch (e) {}
+                return perfil;
+            })
+        );
+        if (perfisAtualizados.length > 0) {
+            localStorage.setItem("perfis", JSON.stringify(perfisAtualizados));
+        }
+
+        function resolverImg(perfil) {
+            if (window.MainAPI && window.MainAPI.resolverUrlImagem) {
+                return window.MainAPI.resolverUrlImagem(perfil.imagem, perfil.id);
+            }
+            if (!perfil.imagem) return null;
+            if (/^data:image\//i.test(perfil.imagem) || /^https?:\/\//i.test(perfil.imagem)) return perfil.imagem;
+            return API + (perfil.imagem.startsWith("/") ? perfil.imagem : "/" + perfil.imagem);
+        }
+
+        perfisAtualizados.forEach(function (perfil, index) {
             const card = document.createElement("div");
             card.className = "usuario-card";
             card.dataset.index = index;
-            card.innerHTML = `
-                <div class="usuario">
-                    ${ perfil.imagem
-                        ? '<img src="' + perfil.imagem + '" alt="' + perfil.nome + '">'
-                        : '<i class="bx bx-user"></i>'
-                    }
-                </div>
-                <span>${perfil.nome}</span>
-            `;
+
+            const imgUrl = resolverImg(perfil);
+            const imgFinal = imgUrl && /^data:image\//i.test(imgUrl)
+                ? imgUrl
+                : (imgUrl ? imgUrl + (imgUrl.includes("?") ? "&" : "?") + "v=" + Date.now() : null);
+
+            const avatarHtml = imgFinal
+                ? '<img src="' + imgFinal + '" alt="' + perfil.nome + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'\'"><i class="bx bx-user" style="display:none;"></i>'
+                : '<i class="bx bx-user"></i>';
+
+            card.innerHTML = '<div class="usuario">' + avatarHtml + '</div><span>' + perfil.nome + '</span>';
             card.style.cursor = "pointer";
             card.addEventListener("click", function () {
                 localStorage.setItem("usuarioLogado", JSON.stringify(perfil));
@@ -51,7 +103,7 @@
             lista.insertBefore(card, btnAdd);
         });
 
-        if (perfis.length === 0) {
+        if (perfisAtualizados.length === 0) {
             const aviso = document.createElement("p");
             aviso.textContent = "Nenhum perfil salvo. Fa\u00e7a login ou cadastre-se.";
             aviso.style.cssText = "color: var(--text-muted, #888); font-size: 0.9rem; margin-bottom: 1rem;";

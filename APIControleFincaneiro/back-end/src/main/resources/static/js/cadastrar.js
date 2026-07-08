@@ -1,5 +1,14 @@
 
+
 div_alerta.style.display = 'none';
+
+// Aplica máscara no campo de data ao carregar
+(function () {
+    const inputData = document.getElementById("ipt_dataNascimento");
+    if (inputData && window.MainAPI && window.MainAPI.aplicarMascaraData) {
+        window.MainAPI.aplicarMascaraData(inputData);
+    }
+})();
 
 function habilitarFecharAlertaAoClicarFora() {
     const divAl = document.getElementById("div_alerta");
@@ -26,7 +35,8 @@ function alerta(texto) {
 function checarDados() {
     const nome = document.getElementById("ipt_nome").value.trim();
     const sobrenome = document.getElementById("ipt_sobrenome").value.trim();
-    const dataNascimento = document.getElementById("ipt_dataNascimento").value;
+    const dataNascimentoBR = document.getElementById("ipt_dataNascimento").value.trim();
+    const dataNascimento = window.MainAPI ? window.MainAPI.dataParaISO(dataNascimentoBR) : null;
     let sexo = document.getElementById("select_sexo").value;
     const email = document.getElementById("ipt_email").value.trim();
     const senha = document.getElementById("ipt_senha").value;
@@ -57,14 +67,14 @@ function checarDados() {
     /* =========================
        DATA DE NASCIMENTO (>= 16 anos)
     ========================= */
-    if (!dataNascimento) {
-        alerta(`Data de nascimento inválida <button onclick='div_alerta.style.display="none"'>OK</button>`);
+    if (!dataNascimentoBR || dataNascimentoBR.length < 10 || !dataNascimento) {
+        alerta(`Data de nascimento inválida (use dd/mm/aaaa) <button onclick='div_alerta.style.display="none"'>OK</button>`);
         console.error("Data de nascimento inválida");
         return;
     }
 
     const hoje = new Date();
-    const nascimento = new Date(dataNascimento);
+    const nascimento = new Date(dataNascimento + "T00:00:00");
     let idade = hoje.getFullYear() - nascimento.getFullYear();
     const m = hoje.getMonth() - nascimento.getMonth();
 

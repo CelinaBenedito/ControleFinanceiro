@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 @CrossOrigin
 @RestController
@@ -54,13 +56,15 @@ public class ConfiguracoesController {
             @ApiResponse(responseCode = "204", description = "Busca de dados feita com sucesso e não retornou dados!",
                     content = @Content)
     })
-    public ResponseEntity<List<ConfiguracoesResponsesDTO>> getConfiguracoes(){
-        List<Configuracoes> all = configuracoesService.getConfiguracoes();
-        if(all.isEmpty()){
+    public ResponseEntity<Page<ConfiguracoesResponsesDTO>> getConfiguracoes(
+            @RequestParam(defaultValue = "0") int pagina){
+        Page<ConfiguracoesResponsesDTO> response = configuracoesService
+                .getConfiguracoes(PageRequest.of(pagina, 10))
+                .map(ConfiguracoesMapper::toDto);
+        if(response.isEmpty()){
             return ResponseEntity.noContent().build();
         }
-        List<ConfiguracoesResponsesDTO> responses = ConfiguracoesMapper.toDto(all);
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

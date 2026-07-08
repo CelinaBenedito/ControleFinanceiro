@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  settings.xml LOCAL deste projeto pessoal.
+  Usa o Maven Central diretamente, sem nenhum mirror corporativo.
+  Este arquivo e lido pelo mvnw via .mvn/maven.config (-s).
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.1.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0
+                              http://maven.apache.org/xsd/settings-1.1.0.xsd">
+
+  <!-- Sem mirrors: usa o Maven Central padrao -->
+  <mirrors/>
+
+  <!-- Sem servidores corporativos -->
+  <servers/>
+
+  <!-- Sem perfis corporativos -->
+  <profiles/>
+
+</settings>

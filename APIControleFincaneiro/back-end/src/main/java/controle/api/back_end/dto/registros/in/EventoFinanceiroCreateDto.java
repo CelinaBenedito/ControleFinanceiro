@@ -68,6 +68,13 @@ public class EventoFinanceiroCreateDto {
             description = "Tempo em meses que o da projeção em que o valor ficaria aplicado")
     private Integer tempoProjecao;
 
+    @Schema(example = "uuid-da-caixinha",
+            description = "ID da caixinha de poupança à qual este aporte pertence (apenas tipo Poupança)")
+    private UUID caixinha_id;
+
+    public UUID getCaixinha_id() { return caixinha_id; }
+    public void setCaixinha_id(UUID caixinha_id) { this.caixinha_id = caixinha_id; }
+
     public UUID getUsuario_id() {
         return usuario_id;
     }
