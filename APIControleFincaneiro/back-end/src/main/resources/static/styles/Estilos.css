@@ -1161,6 +1161,7 @@ footer a {
     -webkit-tap-highlight-color: transparent;
     cursor: pointer;
     flex-shrink: 0;
+    position: relative;
 }
 
 .user-widget:focus,
@@ -1237,6 +1238,78 @@ footer a {
 
 .user-widget:hover .uw-avatar {
     box-shadow: 0px 4px 4px var(--sombra-caixa), 0 0 0 2px var(--cor-hover);
+}
+
+/* ── User Widget Dropdown ── */
+.uw-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background: var(--cor-fundo-card);
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.22);
+    min-width: 240px;
+    z-index: 2000;
+    overflow: hidden;
+    border: 1px solid var(--cor-tinte-borda, rgba(54,115,115,0.18));
+    animation: uwDropFadeIn 0.15s ease;
+}
+
+@keyframes uwDropFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.uw-dropdown.aberto {
+    display: block;
+}
+
+.uw-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 18px;
+    color: var(--cor-texto-principal);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.18s, color 0.18s;
+    width: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: "Open Sans", sans-serif;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding-top: 13px !important;
+    padding-bottom: 13px !important;
+}
+
+.uw-dropdown-item i {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.uw-dropdown-item:not(:last-child) {
+    border-bottom: 1px solid var(--cor-tinte-borda, rgba(54,115,115,0.12));
+}
+
+.uw-dropdown-item:hover {
+    background: var(--cor-fundo-pagina);
+    color: var(--cor-principal);
+}
+
+.uw-logout-btn {
+    color: var(--red-700, #b91c1c) !important;
+    background-color: transparent !important;
+}
+
+.uw-logout-btn:hover {
+    background: var(--red-100, #fee2e2) !important;
+    color: var(--red-700, #b91c1c) !important;
 }
 
 /* ── KPI — tipografia e layout melhorado ── */
@@ -1386,3 +1459,4 @@ footer a {
         font-size: 1.5rem;
     }
 }
+
