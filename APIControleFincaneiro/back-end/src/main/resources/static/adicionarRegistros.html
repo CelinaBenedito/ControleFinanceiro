@@ -74,7 +74,7 @@
 
             <div class="page-title-row">
                 <h1>Adicionar Registros</h1>
-                <a href="meuPerfil.html" class="user-widget" id="userWidget">
+                <div class="user-widget" id="userWidget">
                     <div class="uw-info">
                         <span class="uw-nome" id="uw_nome">Usuário</span>
                         <div class="uw-xp-track">
@@ -85,7 +85,18 @@
                     <div class="uw-avatar">
                         <i class='bx bx-user' style="font-size:1.6rem; color:var(--cor-principal);"></i>
                     </div>
-                </a>
+                    <div class="uw-dropdown" id="uwDropdown">
+                        <a href="meuPerfil.html" class="uw-dropdown-item">
+                            <i class='bx bx-user-circle'></i> Perfil
+                        </a>
+                        <a href="index.html" class="uw-dropdown-item">
+                            <i class='bx bx-arrow-back'></i> Voltar para seleção de usuário
+                        </a>
+                        <button class="uw-dropdown-item uw-logout-btn" id="btnLogout">
+                            <i class='bx bx-log-out'></i> LogOut
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Tabs -->

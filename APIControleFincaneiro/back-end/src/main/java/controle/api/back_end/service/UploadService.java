@@ -346,15 +346,29 @@ public class UploadService {
     }
 
     // =====================================================================
-    // PDF IMPORT
+    // PDF IMPORT — compatível com o formato gerado pelo MyFinance
     // =====================================================================
 
+    /**
+     * Importa registros a partir de um PDF gerado pelo próprio sistema MyFinance.
+     *
+     * <p>Formato esperado nas linhas de tabela:
+     * {@code dd/MM  Título  R$ X.XXX,XX  Tipo  Descrição  Instituição  Movimento  (À vista|Nx)  Categorias}
+     *
+     * <p>O parser detecta:
+     * <ul>
+     *   <li>Ano (4 dígitos sozinhos na linha) → contexto de ano</li>
+     *   <li>Cabeçalho de seção de mês (ex.: "Janeiro 2025") → contexto de mês/ano</li>
+     *   <li>Cabeçalho de tabela ("Data" + "Título" + "Valor") → início da tabela</li>
+     *   <li>Início da seção analítica ("ANÁLISE FINANCEIRA") → fim dos registros</li>
+     *   <li>Caixas de resumo ("Receitas", "Gastos", "Poupança" juntos) → pula resumo</li>
+     * </ul>
+     */
     public ImportResultDto importFromPdf(UUID userId, byte[] content) {
         List<RegistroResponseDto> importados = new ArrayList<>();
         List<String> erros = new ArrayList<>();
 
         try {
-            // Load institution names and category titles for smart matching
             List<InstituicaoUsuario> userInstituicoes =
                     instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
             List<CategoriaUsuario> userCategorias =
@@ -364,22 +378,30 @@ public class UploadService {
                     .map(i -> i.getInstituicao().getNome())
                     .toList();
 
-            String tipoRegex = "Gasto|Recebimento|Transferencia|Poupanca|Emprestimo";
-            String movRegex  = "Debito|Credito|Dinheiro|Pix|Boleto|Voucher";
+            String tipoRegex = "Gasto|Recebimento|Transferencia|Transferência|Poupanca|Poupança|Emprestimo|Empréstimo";
+            String movRegex  = "Debito|Débito|Credito|Crédito|Dinheiro|Pix|Boleto|Voucher";
 
-            // Row pattern: <day> <...> <valor> <Tipo> <...> <TipoMovimento> <parcelas> <...>
-            Pattern rowPattern = Pattern.compile(
-                    "^(\\d{1,2})\\s+(.+?)\\s+([\\d]+[.,]?[\\d]*)\\s+(" + tipoRegex + ")\\s+(.*?)\\s+(" + movRegex + ")\\s+(\\d+)\\s+(.*)$"
+            // Padrão novo: dd/MM  Título  R$ X.XXX,XX  Tipo  ...  Movimento  (À vista|Nx)  Categorias
+            Pattern rowPatternNovo = Pattern.compile(
+                "^(\\d{2}/\\d{2})\\s+(.+?)\\s+R\\$\\s*([\\d.]+,[\\d]{2})\\s+(" + tipoRegex + ")\\s+(.*?)\\s+(" + movRegex + ")\\s+(À vista|\\d+x)\\s+(.*)$"
+            );
+
+            // Padrão legado: <dia> <...> <valor> <Tipo> <...> <Movimento> <parcelas> <...>
+            Pattern rowPatternLegado = Pattern.compile(
+                "^(\\d{1,2})\\s+(.+?)\\s+([\\d]+[.,]?[\\d]*)\\s+(" + tipoRegex + ")\\s+(.*?)\\s+(" + movRegex + ")\\s+(\\d+)\\s+(.*)$"
             );
 
             int currentYear  = LocalDate.now().getYear();
             int currentMonth = 1;
             boolean inTable  = false;
-            boolean pastSummary = false; // skip sumário pages
+            boolean pastSummary = false;
+            boolean analiseEncontrada = false;
 
             try (PdfDocument pdfDoc = new PdfDocument(new PdfReader(new ByteArrayInputStream(content)))) {
 
                 for (int page = 1; page <= pdfDoc.getNumberOfPages(); page++) {
+                    if (analiseEncontrada) break;
+
                     String pageText = PdfTextExtractor.getTextFromPage(pdfDoc.getPage(page));
                     String[] lines = pageText.split("\n");
 
@@ -387,14 +409,23 @@ public class UploadService {
                         String line = rawLine.trim();
                         if (line.isEmpty()) continue;
 
-                        // Skip sumário section (first page)
-                        if (line.equalsIgnoreCase("Sumário") || line.startsWith("MyFinance")) {
+                        // Detecta seção de análise financeira → para de importar registros
+                        if (line.toUpperCase().contains("ANÁLISE FINANCEIRA") ||
+                            line.toUpperCase().contains("ANALISE FINANCEIRA")) {
+                            analiseEncontrada = true;
+                            inTable = false;
+                            break;
+                        }
+
+                        // Capa / sumário — pula até encontrar registros reais
+                        if (line.equalsIgnoreCase("Sumário") || line.equalsIgnoreCase("Sumario") ||
+                            line.startsWith("MyFinance") || line.startsWith("Relatório Financeiro")) {
                             pastSummary = false;
                             inTable = false;
                             continue;
                         }
 
-                        // Detect year (4-digit integer)
+                        // Detecta ano isolado na linha (ex.: "2025")
                         if (line.matches("^\\d{4}$")) {
                             currentYear = Integer.parseInt(line);
                             pastSummary = true;
@@ -402,92 +433,132 @@ public class UploadService {
                             continue;
                         }
 
-                        // Detect Portuguese month name
-                        Integer mes = MESES_PT.get(line.toLowerCase());
-                        if (mes != null) {
-                            currentMonth = mes;
-                            inTable = false;
+                        // Detecta cabeçalho de mês no novo formato: "Janeiro 2025"
+                        // Formato novo: "NomeMes AAAA" (ex.: "Janeiro 2025")
+                        boolean detectedMonth = false;
+                        String[] partesMes = line.split("\\s+");
+                        if (partesMes.length == 2 && partesMes[1].matches("\\d{4}")) {
+                            Integer mesNum = MESES_PT.get(partesMes[0].toLowerCase());
+                            if (mesNum != null) {
+                                currentMonth = mesNum;
+                                currentYear  = Integer.parseInt(partesMes[1]);
+                                pastSummary  = true;
+                                inTable      = false;
+                                detectedMonth = true;
+                            }
+                        }
+                        // Formato legado: nome do mês sozinho
+                        if (!detectedMonth) {
+                            Integer mesNum = MESES_PT.get(line.toLowerCase());
+                            if (mesNum != null) {
+                                currentMonth = mesNum;
+                                inTable = false;
+                                continue;
+                            }
+                        } else {
                             continue;
                         }
 
-                        // Detect table header
+                        // Detecta cabeçalho de tabela
                         if (line.contains("Título") && line.contains("Valor") && line.contains("Tipo")) {
                             inTable = pastSummary;
                             continue;
                         }
 
-                        // Detect end of table (summary section)
-                        if (line.startsWith("Resumo") || line.startsWith("Ganhos") || line.startsWith("Saldo")) {
+                        // Detecta fim da tabela (resumo mensal / anual)
+                        if (line.startsWith("Resumo") || line.startsWith("Receitas")
+                                || line.startsWith("Ganhos") || line.startsWith("Saldo")
+                                || line.startsWith("Pontuação")) {
                             inTable = false;
                             continue;
                         }
 
                         if (!inTable) continue;
 
-                        Matcher m = rowPattern.matcher(line);
-                        if (!m.find()) continue;
+                        // ── Tenta padrão novo (dd/MM, R$ formatado) ──────────────────
+                        Matcher mNovo = rowPatternNovo.matcher(line);
+                        if (mNovo.find()) {
+                            try {
+                                String dataDDMM = mNovo.group(1);      // dd/MM
+                                String titulo   = mNovo.group(2).trim();
+                                String valorStr = mNovo.group(3);       // X.XXX,XX
+                                String tipoStr  = normalizarTipo(mNovo.group(4));
+                                String afterTipo = mNovo.group(5).trim();
+                                String movStr   = normalizarMovimento(mNovo.group(6));
+                                String parcStr  = mNovo.group(7);       // "À vista" ou "Nx"
+                                String catStr   = mNovo.group(8).trim();
 
-                        try {
-                            int dia          = Integer.parseInt(m.group(1));
-                            String titulo    = m.group(2).trim();
-                            double valor     = Double.parseDouble(m.group(3).replace(",", "."));
-                            Tipo tipo        = Tipo.valueOf(m.group(4));
-                            String afterTipo = m.group(5).trim();
-                            TipoMovimento mv = TipoMovimento.valueOf(m.group(6));
-                            int parcelas     = Integer.parseInt(m.group(7));
-                            String catStr    = m.group(8).trim();
+                                String[] dmParts = dataDDMM.split("/");
+                                int dia = Integer.parseInt(dmParts[0]);
+                                int mes = Integer.parseInt(dmParts[1]);
+                                LocalDate data = LocalDate.of(currentYear, mes, dia);
 
-                            // Split afterTipo into description + institution name
-                            String descricao = afterTipo;
-                            String instNome  = null;
-                            for (String nome : instNomes) {
-                                if (afterTipo.contains(nome)) {
-                                    instNome = nome;
-                                    descricao = afterTipo.replace(nome, "").trim();
-                                    break;
+                                double valor = Double.parseDouble(
+                                        valorStr.replaceAll("\\.", "").replace(",", "."));
+                                Tipo tipo = Tipo.valueOf(tipoStr);
+                                TipoMovimento mv = TipoMovimento.valueOf(movStr);
+                                int parcelas = "À vista".equalsIgnoreCase(parcStr) ? 1
+                                        : Integer.parseInt(parcStr.replace("x", "").trim());
+
+                                // Separa descrição da instituição (afterTipo pode conter ambos)
+                                String descricao = afterTipo;
+                                String instNomeMatch = null;
+                                for (String nome : instNomes) {
+                                    if (afterTipo.contains(nome)) {
+                                        instNomeMatch = nome;
+                                        descricao = afterTipo.replace(nome, "").trim();
+                                        break;
+                                    }
                                 }
+
+                                RegistroResponseDto dto = montarEPersistir(
+                                        userId, titulo, valor, tipo, descricao, data,
+                                        instNomeMatch, mv, parcelas, catStr,
+                                        userInstituicoes, userCategorias);
+                                if (dto != null) importados.add(dto);
+
+                            } catch (Exception e) {
+                                erros.add("PDF p." + page + " (novo formato) — '"
+                                        + truncarLog(line) + "': " + e.getMessage());
                             }
+                            continue;
+                        }
 
-                            LocalDate data = LocalDate.of(currentYear, currentMonth, dia);
+                        // ── Tenta padrão legado (dia inteiro, valor sem R$) ───────────
+                        Matcher mLeg = rowPatternLegado.matcher(line);
+                        if (mLeg.find()) {
+                            try {
+                                int dia      = Integer.parseInt(mLeg.group(1));
+                                String titulo = mLeg.group(2).trim();
+                                double valor  = Double.parseDouble(mLeg.group(3).replace(",", "."));
+                                Tipo tipo     = Tipo.valueOf(normalizarTipo(mLeg.group(4)));
+                                String afterTipo = mLeg.group(5).trim();
+                                TipoMovimento mv = TipoMovimento.valueOf(normalizarMovimento(mLeg.group(6)));
+                                int parcelas  = Integer.parseInt(mLeg.group(7));
+                                String catStr = mLeg.group(8).trim();
 
-                            EventoFinanceiro financeiro = new EventoFinanceiro();
-                            financeiro.setUsuario(getUsuario(userId));
-                            financeiro.setTipo(tipo);
-                            financeiro.setValor(valor);
-                            financeiro.setDescricao(descricao);
-                            financeiro.setDataEvento(data);
+                                String descricao = afterTipo;
+                                String instNomeMatch = null;
+                                for (String nome : instNomes) {
+                                    if (afterTipo.contains(nome)) {
+                                        instNomeMatch = nome;
+                                        descricao = afterTipo.replace(nome, "").trim();
+                                        break;
+                                    }
+                                }
 
-                            List<EventoInstituicao> instituicoes = new ArrayList<>();
-                            if (instNome != null) {
-                                final String finalInstNome = instNome;
-                                userInstituicoes.stream()
-                                        .filter(i -> i.getInstituicao().getNome().equals(finalInstNome))
-                                        .findFirst()
-                                        .ifPresent(iu -> {
-                                            EventoInstituicao ei = new EventoInstituicao();
-                                            ei.setInstituicaoUsuario(iu);
-                                            ei.setTipoMovimento(mv);
-                                            ei.setValor(valor);
-                                            ei.setParcelas(parcelas);
-                                            instituicoes.add(ei);
-                                        });
+                                LocalDate data = LocalDate.of(currentYear, currentMonth, dia);
+
+                                RegistroResponseDto dto = montarEPersistir(
+                                        userId, titulo, valor, tipo, descricao, data,
+                                        instNomeMatch, mv, parcelas, catStr,
+                                        userInstituicoes, userCategorias);
+                                if (dto != null) importados.add(dto);
+
+                            } catch (Exception e) {
+                                erros.add("PDF p." + page + " (formato legado) — '"
+                                        + truncarLog(line) + "': " + e.getMessage());
                             }
-
-                            EventoDetalhe detalhe = new EventoDetalhe();
-                            detalhe.setTituloGasto(titulo.isEmpty() ? "Registro Importado" : titulo);
-                            List<CategoriaUsuario> categorias = new ArrayList<>();
-                            final String finalCatStr = catStr;
-                            userCategorias.stream()
-                                    .filter(c -> c.getCategoria().getTitulo().equals(finalCatStr))
-                                    .findFirst()
-                                    .ifPresent(categorias::add);
-                            detalhe.setCategoriaUsuario(categorias);
-
-                            RegistroResponseDto dto = persistirRegistro(financeiro, instituicoes, detalhe);
-                            if (dto != null) importados.add(dto);
-
-                        } catch (Exception e) {
-                            erros.add("PDF página " + page + " - '" + line.substring(0, Math.min(line.length(), 60)) + "': " + e.getMessage());
                         }
                     }
                 }
@@ -499,10 +570,83 @@ public class UploadService {
 
         if (importados.isEmpty() && erros.isEmpty()) {
             erros.add("Nenhum registro importado do PDF. O PDF pode não conter tabelas de dados reconhecíveis. " +
-                    "Para importação confiável, prefira o formato JSON ou Excel.");
+                    "Para importação confiável, prefira os formatos JSON ou Excel.");
         }
 
         return new ImportResultDto(importados.size(), importados, erros);
+    }
+
+    /**
+     * Constrói o EventoFinanceiro, EventoInstituicao e EventoDetalhe e persiste via RegistroService.
+     */
+    private RegistroResponseDto montarEPersistir(UUID userId, String titulo, double valor,
+                                                   Tipo tipo, String descricao, LocalDate data,
+                                                   String instNome, TipoMovimento tipoMovimento, int parcelas,
+                                                   String catStr,
+                                                   List<InstituicaoUsuario> userInstituicoes,
+                                                   List<CategoriaUsuario> userCategorias) {
+        EventoFinanceiro financeiro = new EventoFinanceiro();
+        financeiro.setUsuario(getUsuario(userId));
+        financeiro.setTipo(tipo);
+        financeiro.setValor(valor);
+        financeiro.setDescricao(descricao.length() > 500 ? descricao.substring(0, 500) : descricao);
+        financeiro.setDataEvento(data);
+
+        List<EventoInstituicao> instituicoes = new ArrayList<>();
+        if (instNome != null) {
+            final String finalNome = instNome;
+            userInstituicoes.stream()
+                    .filter(i -> i.getInstituicao().getNome().equals(finalNome))
+                    .findFirst()
+                    .ifPresent(iu -> {
+                        EventoInstituicao ei = new EventoInstituicao();
+                        ei.setInstituicaoUsuario(iu);
+                        ei.setTipoMovimento(tipoMovimento);
+                        ei.setValor(valor);
+                        ei.setParcelas(parcelas);
+                        instituicoes.add(ei);
+                    });
+        }
+
+        EventoDetalhe detalhe = new EventoDetalhe();
+        detalhe.setTituloGasto(titulo == null || titulo.isBlank() ? "Registro Importado" : titulo);
+        List<CategoriaUsuario> categorias = new ArrayList<>();
+        if (catStr != null && !catStr.isBlank() && !"-".equals(catStr)) {
+            // Suporta múltiplas categorias separadas por ", " (novo formato)
+            for (String catTitulo : catStr.split(",\\s*|\\s*/\\s*")) {
+                String t = catTitulo.trim();
+                userCategorias.stream()
+                        .filter(c -> c.getCategoria().getTitulo().equalsIgnoreCase(t))
+                        .findFirst()
+                        .ifPresent(categorias::add);
+            }
+        }
+        detalhe.setCategoriaUsuario(categorias);
+
+        return persistirRegistro(financeiro, instituicoes, detalhe);
+    }
+
+    /** Normaliza variações acentuadas/sem acento dos tipos de evento para o enum exato. */
+    private String normalizarTipo(String raw) {
+        return switch (raw.trim()) {
+            case "Transferência" -> "Transferencia";
+            case "Poupança"      -> "Poupanca";
+            case "Empréstimo"    -> "Emprestimo";
+            default              -> raw.trim();
+        };
+    }
+
+    /** Normaliza variações acentuadas/sem acento dos tipos de movimento para o enum exato. */
+    private String normalizarMovimento(String raw) {
+        return switch (raw.trim()) {
+            case "Débito"  -> "Debito";
+            case "Crédito" -> "Credito";
+            default        -> raw.trim();
+        };
+    }
+
+    private String truncarLog(String linha) {
+        return linha.length() > 80 ? linha.substring(0, 80) + "…" : linha;
     }
 
     // =====================================================================
@@ -592,16 +736,19 @@ public class UploadService {
 
                     double amount    = Double.parseDouble(amtStr.replace(",", "."));
                     double absAmount = Math.abs(amount);
-                    Tipo tipo        = ofxMapTrnType(trnType, amount);
                     LocalDate data   = ofxParseDate(dtPosted);
+
+                    // Analisa MEMO para determinar tipo, movimento e título de forma inteligente
+                    String memoText = memo != null && !memo.isBlank() ? memo
+                            : (name != null ? name : "");
+                    MemoParseResult parsed = parseMemoOFX(memoText, trnType, amount);
 
                     // EventoFinanceiro
                     EventoFinanceiro financeiro = new EventoFinanceiro();
                     financeiro.setUsuario(getUsuario(userId));
-                    financeiro.setTipo(tipo);
+                    financeiro.setTipo(parsed.tipo());
                     financeiro.setValor(absAmount);
-                    String descricao = memo != null && !memo.isBlank() ? memo
-                            : (name != null ? name : "Importado via OFX");
+                    String descricao = memoText.isBlank() ? "Importado via OFX" : memoText;
                     financeiro.setDescricao(descricao.length() > 500 ? descricao.substring(0, 500) : descricao);
                     financeiro.setDataEvento(data);
 
@@ -610,7 +757,7 @@ public class UploadService {
                     if (matchedInstituicao != null) {
                         EventoInstituicao ei = new EventoInstituicao();
                         ei.setInstituicaoUsuario(matchedInstituicao);
-                        ei.setTipoMovimento(amount < 0 ? TipoMovimento.Debito : TipoMovimento.Credito);
+                        ei.setTipoMovimento(parsed.tipoMovimento());
                         ei.setValor(absAmount);
                         ei.setParcelas(1);
                         instituicoes.add(ei);
@@ -618,8 +765,13 @@ public class UploadService {
 
                     // EventoDetalhe
                     EventoDetalhe detalhe = new EventoDetalhe();
-                    String titulo = name != null && !name.isBlank() ? name : "Registro OFX";
-                    detalhe.setTituloGasto(titulo.length() > 50 ? titulo.substring(0, 50) : titulo);
+                    // Se houver um NAME explícito e o título inferido for genérico, prefere o NAME
+                    String tituloFinal = parsed.titulo();
+                    if ((tituloFinal == null || tituloFinal.equals("Registro OFX"))
+                            && name != null && !name.isBlank()) {
+                        tituloFinal = sanitizeMerchant(name);
+                    }
+                    detalhe.setTituloGasto(tituloFinal != null ? tituloFinal : "Registro OFX");
                     detalhe.setCategoriaUsuario(new ArrayList<>());
 
                     RegistroResponseDto dto = persistirRegistro(financeiro, instituicoes, detalhe);
@@ -678,6 +830,175 @@ public class UploadService {
         int month = Integer.parseInt(digits.substring(4, 6));
         int day   = Integer.parseInt(digits.substring(6, 8));
         return LocalDate.of(year, month, day);
+    }
+
+    // =====================================================================
+    // MEMO PARSER — interpretação semântica do campo MEMO do OFX
+    // Suporta Nubank, Inter, C6, Bradesco, Itaú e outros bancos brasileiros
+    // =====================================================================
+
+    /** Resultado da análise semântica do campo MEMO. */
+    private record MemoParseResult(Tipo tipo, TipoMovimento tipoMovimento, String titulo) {}
+
+    /**
+     * Analisa o campo MEMO do OFX para inferir {@link Tipo}, {@link TipoMovimento} e
+     * título de forma inteligente, eliminando a dependência exclusiva do campo TRNTYPE.
+     *
+     * <p>Padrões reconhecidos (Nubank e bancos BR em geral):
+     * <ul>
+     *   <li>"Compra no débito/crédito - NOME"           → Gasto / Debito ou Credito</li>
+     *   <li>"Pagamento de boleto efetuado - NOME"        → Gasto / Boleto</li>
+     *   <li>"Pagamento de fatura"                        → Gasto / Boleto</li>
+     *   <li>"Transferência enviada pelo Pix - NOME - ..."→ Transferencia / Pix</li>
+     *   <li>"Transferência recebida pelo Pix - NOME - ..."→ Recebimento / Pix</li>
+     *   <li>"Aplicação RDB/CDB/Poupança"                → Poupanca / Debito</li>
+     *   <li>"Resgate RDB/CDB"                            → Recebimento / Credito</li>
+     *   <li>"Resgate/Pagamento de empréstimo"            → Gasto / Debito</li>
+     *   <li>"Saque"                                      → Gasto / Dinheiro</li>
+     *   <li>"Estorno / Devolução"                        → Recebimento / Credito</li>
+     *   <li>"TED/DOC enviado"                            → Transferencia / Debito</li>
+     *   <li>"TED/DOC recebido"                           → Recebimento / Credito</li>
+     * </ul>
+     */
+    private MemoParseResult parseMemoOFX(String memo, String trnType, double amount) {
+        if (memo == null || memo.isBlank()) {
+            return new MemoParseResult(
+                    ofxMapTrnType(trnType, amount),
+                    amount < 0 ? TipoMovimento.Debito : TipoMovimento.Credito,
+                    "Registro OFX");
+        }
+
+        String lower = memo.toLowerCase();
+
+        // ── Pix enviado → Transferência ────────────────────────────────────────
+        if (lower.contains("enviada pelo pix") || lower.contains("enviado pelo pix")
+                || lower.contains("transferência enviada") || lower.contains("transferencia enviada")) {
+            return new MemoParseResult(Tipo.Transferencia, TipoMovimento.Pix,
+                    sanitizeMerchant(extrairNomeAposDash(memo)));
+        }
+
+        // ── Pix recebido → Recebimento ─────────────────────────────────────────
+        if (lower.contains("recebida pelo pix") || lower.contains("recebido pelo pix")
+                || lower.contains("transferência recebida") || lower.contains("transferencia recebida")) {
+            return new MemoParseResult(Tipo.Recebimento, TipoMovimento.Pix,
+                    sanitizeMerchant(extrairNomeAposDash(memo)));
+        }
+
+        // ── Compra no débito ────────────────────────────────────────────────────
+        if (lower.startsWith("compra no déb") || lower.startsWith("compra no deb")) {
+            return new MemoParseResult(Tipo.Gasto, TipoMovimento.Debito,
+                    sanitizeMerchant(extrairNomeAposDash(memo)));
+        }
+
+        // ── Compra no crédito ────────────────────────────────────────────────────
+        if (lower.startsWith("compra no cré") || lower.startsWith("compra no cre")) {
+            return new MemoParseResult(Tipo.Gasto, TipoMovimento.Credito,
+                    sanitizeMerchant(extrairNomeAposDash(memo)));
+        }
+
+        // ── Compra (sem especificar débito/crédito) ─────────────────────────────
+        if (lower.startsWith("compra ") || lower.startsWith("compra-")) {
+            TipoMovimento mv = detectTipoMovimento(lower, amount);
+            return new MemoParseResult(Tipo.Gasto, mv,
+                    sanitizeMerchant(extrairNomeAposDash(memo)));
+        }
+
+        // ── Pagamento de boleto ─────────────────────────────────────────────────
+        if (lower.startsWith("pagamento de boleto")) {
+            return new MemoParseResult(Tipo.Gasto, TipoMovimento.Boleto,
+                    sanitizeMerchant(extrairNomeAposDash(memo)));
+        }
+
+        // ── Pagamento de fatura ─────────────────────────────────────────────────
+        if (lower.startsWith("pagamento de fatura")) {
+            return new MemoParseResult(Tipo.Gasto, TipoMovimento.Boleto, "Pagamento de Fatura");
+        }
+
+        // ── Pagamento / Resgate de empréstimo ───────────────────────────────────
+        if (lower.startsWith("pagamento de empr") || lower.startsWith("resgate de empr")
+                || lower.startsWith("parcela de empr") || lower.startsWith("amortização")) {
+            return new MemoParseResult(Tipo.Gasto, TipoMovimento.Debito, "Pagamento de Empréstimo");
+        }
+
+        // ── Aplicação (RDB, CDB, Poupança) → Poupança ──────────────────────────
+        if (lower.startsWith("aplica\u00e7\u00e3o") || lower.startsWith("aplicacao")
+                || lower.startsWith("investimento")) {
+            return new MemoParseResult(Tipo.Poupanca, TipoMovimento.Debito,
+                    sanitizeMerchant(memo));
+        }
+
+        // ── Resgate de RDB/CDB/investimento → Recebimento ──────────────────────
+        if (lower.startsWith("resgate")
+                && (lower.contains("rdb") || lower.contains("cdb")
+                    || lower.contains("poupan\u00e7a") || lower.contains("poupanca")
+                    || lower.contains("investimento") || lower.contains("rdl"))) {
+            return new MemoParseResult(Tipo.Recebimento, TipoMovimento.Credito,
+                    sanitizeMerchant(memo));
+        }
+
+        // ── Saque ───────────────────────────────────────────────────────────────
+        if (lower.startsWith("saque")) {
+            return new MemoParseResult(Tipo.Gasto, TipoMovimento.Dinheiro, "Saque");
+        }
+
+        // ── TED / DOC enviado → Transferência ──────────────────────────────────
+        if (lower.contains("ted enviado") || lower.contains("doc enviado")
+                || lower.contains("transfer\u00eancia ted") || lower.contains("transferencia ted")) {
+            return new MemoParseResult(Tipo.Transferencia, TipoMovimento.Debito,
+                    sanitizeMerchant(extrairNomeAposDash(memo)));
+        }
+
+        // ── TED / DOC recebido → Recebimento ───────────────────────────────────
+        if (lower.contains("ted recebido") || lower.contains("doc recebido")) {
+            return new MemoParseResult(Tipo.Recebimento, TipoMovimento.Credito,
+                    sanitizeMerchant(extrairNomeAposDash(memo)));
+        }
+
+        // ── Estorno / Devolução → Recebimento ──────────────────────────────────
+        if (lower.startsWith("estorno") || lower.startsWith("devolu\u00e7\u00e3o")
+                || lower.startsWith("devolucao") || lower.startsWith("reembolso")) {
+            return new MemoParseResult(Tipo.Recebimento, TipoMovimento.Credito,
+                    "Estorno: " + sanitizeMerchant(extrairNomeAposDash(memo)));
+        }
+
+        // ── Rendimento / Juros ──────────────────────────────────────────────────
+        if (lower.startsWith("rendimento") || lower.startsWith("juros a receber")
+                || lower.startsWith("creditamento")) {
+            return new MemoParseResult(Tipo.Recebimento, TipoMovimento.Credito,
+                    sanitizeMerchant(memo));
+        }
+
+        // ── Fallback: usa TRNTYPE + detecta movimento por palavras-chave ────────
+        return new MemoParseResult(
+                ofxMapTrnType(trnType, amount),
+                detectTipoMovimento(memo, amount),
+                sanitizeMerchant(extrairNomeAposDash(memo)));
+    }
+
+    /**
+     * Extrai o nome/estabelecimento da segunda parte do MEMO (após o primeiro " - ").
+     *
+     * <p>Exemplos:
+     * <ul>
+     *   <li>"Compra no débito - LOJA EXEMPLO" → "LOJA EXEMPLO"</li>
+     *   <li>"Transferência enviada pelo Pix - João Silva - •••.753-•• - BCO C6..." → "João Silva"</li>
+     *   <li>"Pagamento de boleto efetuado - EDP SAO PAULO" → "EDP SAO PAULO"</li>
+     * </ul>
+     */
+    private String extrairNomeAposDash(String memo) {
+        if (memo == null || memo.isBlank()) return memo;
+        // Divide em até 3 partes pelo separador " - " (com espaços opcionais)
+        String[] partes = memo.split("\\s*-\\s*", 3);
+        if (partes.length >= 2) {
+            String candidato = partes[1].trim();
+            // Se o segundo campo parece ser um CNPJ/CPF puro (só dígitos/pontos/barras),
+            // tenta o terceiro campo
+            if (candidato.matches("[\\d./-]+") && partes.length >= 3) {
+                candidato = partes[2].split("\\s*-\\s*")[0].trim();
+            }
+            return candidato;
+        }
+        return partes[0].trim();
     }
 
     /**
@@ -1130,14 +1451,18 @@ public class UploadService {
 
                     double amount    = Double.parseDouble(amtStr.replace(",", "."));
                     double absAmount = Math.abs(amount);
-                    Tipo tipo        = ofxMapTrnType(trnType, amount);
                     LocalDate data   = ofxParseDate(dtPosted);
+
+                    // Analisa MEMO para determinar tipo, movimento e título de forma inteligente
+                    String memoText = memo != null && !memo.isBlank() ? memo
+                            : (name != null ? name : "");
+                    MemoParseResult parsed = parseMemoOFX(memoText, trnType, amount);
 
                     EventoFinanceiro financeiro = new EventoFinanceiro();
                     financeiro.setUsuario(getUsuario(userId));
-                    financeiro.setTipo(tipo);
+                    financeiro.setTipo(parsed.tipo());
                     financeiro.setValor(absAmount);
-                    String descricao = memo != null && !memo.isBlank() ? memo : (name != null ? name : "Importado via OFX");
+                    String descricao = memoText.isBlank() ? "Importado via OFX" : memoText;
                     financeiro.setDescricao(descricao.length() > 500 ? descricao.substring(0, 500) : descricao);
                     financeiro.setDataEvento(data);
 
@@ -1145,15 +1470,19 @@ public class UploadService {
                     if (matchedInstituicao != null) {
                         EventoInstituicao ei = new EventoInstituicao();
                         ei.setInstituicaoUsuario(matchedInstituicao);
-                        ei.setTipoMovimento(detectTipoMovimento(memo != null ? memo : "", amount));
+                        ei.setTipoMovimento(parsed.tipoMovimento());
                         ei.setValor(absAmount);
                         ei.setParcelas(1);
                         instituicoes.add(ei);
                     }
 
                     EventoDetalhe detalhe = new EventoDetalhe();
-                    // Campo NAME do OFX pode conter "Loja     Cidade     Pais" com espacos duplos
-                    detalhe.setTituloGasto(sanitizeMerchant(name != null && !name.isBlank() ? name : "Registro OFX"));
+                    String tituloFinal = parsed.titulo();
+                    if ((tituloFinal == null || tituloFinal.equals("Registro OFX"))
+                            && name != null && !name.isBlank()) {
+                        tituloFinal = sanitizeMerchant(name);
+                    }
+                    detalhe.setTituloGasto(tituloFinal != null ? tituloFinal : "Registro OFX");
                     detalhe.setCategoriaUsuario(new ArrayList<>());
 
                     RegistroResponseDto dto = persistirRegistro(financeiro, instituicoes, detalhe);

@@ -52,6 +52,129 @@ function sidebarFunction() {
 
 }
 
+/*---------------- Modal de confirmação de Logout ----------------*/
+(function () {
+    // Cria o modal de confirmação de logout dinamicamente
+    const modalHtml = `
+    <div id="uwLogoutOverlay" style="
+        display:none; position:fixed; inset:0; z-index:99999;
+        background:rgba(0,0,0,0.45); backdrop-filter:blur(2px);
+        align-items:center; justify-content:center;">
+        <div id="uwLogoutModal" style="
+            background:var(--cor-fundo-card, #fff);
+            border-radius:18px;
+            box-shadow:0 16px 48px rgba(0,0,0,0.28);
+            padding:36px 32px 28px;
+            max-width:400px; width:90%;
+            display:flex; flex-direction:column; align-items:center; gap:16px;
+            animation:uwModalIn 0.2s ease;">
+            <div style="
+                width:60px; height:60px; border-radius:50%;
+                background:var(--red-100,#fee2e2);
+                display:flex; align-items:center; justify-content:center;">
+                <i class='bx bx-log-out' style="font-size:1.8rem; color:var(--red-700,#b91c1c);"></i>
+            </div>
+            <h2 style="
+                font-size:1.15rem; font-weight:700; margin:0;
+                color:var(--cor-titulo); text-align:center;">
+                Fazer Logout?
+            </h2>
+            <p style="
+                font-size:0.9rem; color:var(--cor-texto-secundario);
+                text-align:center; margin:0; line-height:1.55;">
+                Isso irá retirar sua conta deste dispositivo.<br>
+                Para acessar novamente, você deverá fazer login.
+            </p>
+            <div style="display:flex; gap:12px; width:100%; margin-top:8px;">
+                <button id="uwLogoutCancelar" style="
+                    flex:1; padding:11px; border-radius:10px; cursor:pointer;
+                    background:var(--cor-fundo-pagina); color:var(--cor-texto-principal);
+                    font-size:0.9rem; font-weight:600; border:1px solid var(--cor-tinte-borda, #ccc);
+                    transition:background 0.18s; margin:0;">
+                    Cancelar
+                </button>
+                <button id="uwLogoutConfirmar" style="
+                    flex:1; padding:11px; border-radius:10px; cursor:pointer;
+                    background:var(--red-700,#b91c1c); color:#fff;
+                    font-size:0.9rem; font-weight:600; border:none;
+                    transition:background 0.18s; margin:0;">
+                    Sim, fazer logout
+                </button>
+            </div>
+        </div>
+    </div>
+    <style>
+        @keyframes uwModalIn {
+            from { opacity:0; transform:scale(0.92) translateY(12px); }
+            to   { opacity:1; transform:scale(1)    translateY(0);     }
+        }
+        #uwLogoutCancelar:hover  { background:var(--cor-hover, #e2e8f0) !important; }
+        #uwLogoutConfirmar:hover { background:#991b1b !important; }
+    </style>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const overlay  = document.getElementById('uwLogoutOverlay');
+    const btnCanc  = document.getElementById('uwLogoutCancelar');
+    const btnConf  = document.getElementById('uwLogoutConfirmar');
+
+    window._abrirLogoutModal = function () {
+        overlay.style.display = 'flex';
+    };
+
+    btnCanc.addEventListener('click', function () {
+        overlay.style.display = 'none';
+    });
+
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) overlay.style.display = 'none';
+    });
+
+    btnConf.addEventListener('click', function () {
+        const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+        if (user && user.id) {
+            let perfis = JSON.parse(localStorage.getItem('perfis') || '[]');
+            perfis = perfis.filter(function (p) { return p.id !== user.id; });
+            localStorage.setItem('perfis', JSON.stringify(perfis));
+        }
+        localStorage.removeItem('usuarioLogado');
+        window.location.href = 'index.html';
+    });
+})();
+
+/*---------------- User widget dropdown ----------------*/
+(function () {
+    const userWidget = document.getElementById('userWidget');
+    const dropdown   = document.getElementById('uwDropdown');
+    const btnLogout  = document.getElementById('btnLogout');
+
+    if (!userWidget || !dropdown) return;
+
+    // Abre/fecha o dropdown ao clicar no widget
+    userWidget.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('aberto');
+    });
+
+    // Fecha ao clicar fora
+    document.addEventListener('click', function () {
+        dropdown.classList.remove('aberto');
+    });
+
+    // Impede que cliques dentro do dropdown fechem ele imediatamente
+    dropdown.addEventListener('click', function (e) {
+        e.stopPropagation();
+    });
+
+    // LogOut: abre modal de confirmação
+    if (btnLogout) {
+        btnLogout.addEventListener('click', function () {
+            dropdown.classList.remove('aberto');
+            window._abrirLogoutModal();
+        });
+    }
+})();
+
 /*---------------- User widget ----------------*/
 (function () {
     const uwNome = document.getElementById("uw_nome");

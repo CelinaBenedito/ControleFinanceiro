@@ -1,7 +1,11 @@
 package controle.api.back_end.controller;
 
+import controle.api.back_end.dto.registros.in.BulkEditPatchDto;
 import controle.api.back_end.dto.registros.in.RegistroCompletoCreateDto;
+import controle.api.back_end.dto.registros.in.RegistroCompletoEditDto;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
+import controle.api.back_end.dto.registros.out.BulkDeleteResultDto;
+import controle.api.back_end.dto.registros.out.BulkEditResultDto;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.dto.registros.out.RegistroUsuarioResponseDto;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
@@ -344,5 +348,83 @@ public class RegistrosController {
     public ResponseEntity<Void> deletarRegistro(@PathVariable UUID evento_id) {
         registroService.deleteRegistroByEventoFinanceiro_Id(evento_id);
         return ResponseEntity.noContent().build();
+    }
+
+    // =========================================================================
+    // EDIÇÃO / EXCLUSÃO EM LOTE
+    // =========================================================================
+
+    @PutMapping("/lote")
+    @Operation(
+        summary = "Editar vários registros individualmente em lote",
+        description = "Cada item da lista informa seu próprio ID e os dados a serem atualizados. " +
+                      "Campos omitidos (`null`) não são alterados. " +
+                      "A operação é melhor-esforço: falhas individuais são relatadas sem cancelar os demais.\n\n" +
+                      "**Máximo:** 200 registros por requisição.\n\n" +
+                      "**Exemplo de uso:** alterar a data e categoria de vários registros selecionados de uma vez.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Operação concluída (pode conter erros parciais).",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = BulkEditResultDto.class))),
+            @ApiResponse(responseCode = "400", description = "Lista vazia ou inválida.", content = @Content)
+    })
+    public ResponseEntity<BulkEditResultDto> editarEmLote(
+            @RequestBody @jakarta.validation.Valid @jakarta.validation.constraints.Size(max = 200)
+            List<RegistroCompletoEditDto> itens) {
+
+        if (itens == null || itens.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        BulkEditResultDto resultado = registroService.editarEmLote(itens);
+        return ResponseEntity.ok(resultado);
+    }
+
+    @PatchMapping("/lote")
+    @Operation(
+        summary = "Aplicar as mesmas alterações a múltiplos registros",
+        description = "Recebe uma lista de IDs e um conjunto de campos a alterar. " +
+                      "Apenas os campos não-nulos são aplicados — os demais permanecem inalterados.\n\n" +
+                      "**Casos de uso comuns:**\n" +
+                      "- Recategorizar vários registros de uma vez\n" +
+                      "- Mudar a instituição de múltiplas transações\n" +
+                      "- Corrigir o tipo de vários lançamentos\n\n" +
+                      "**`categoriaIds`:** `null` = não altera; `[]` = remove todas; `[1,2]` = substitui.\n\n" +
+                      "**Máximo:** 200 registros por requisição.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Operação concluída (pode conter erros parciais).",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = BulkEditResultDto.class))),
+            @ApiResponse(responseCode = "400", description = "Payload inválido.", content = @Content)
+    })
+    public ResponseEntity<BulkEditResultDto> aplicarPatchEmLote(
+            @RequestBody @jakarta.validation.Valid BulkEditPatchDto dto) {
+
+        BulkEditResultDto resultado = registroService.aplicarPatchEmLote(
+                dto.getIds(), dto.getAlteracoes());
+        return ResponseEntity.ok(resultado);
+    }
+
+    @DeleteMapping("/lote")
+    @Operation(
+        summary = "Deletar múltiplos registros de uma vez",
+        description = "Remove todos os registros cujos IDs foram informados. " +
+                      "Falhas individuais (ex.: ID não encontrado) são relatadas sem cancelar os demais.\n\n" +
+                      "**Máximo:** 200 registros por requisição.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Operação concluída (pode conter erros parciais).",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = BulkDeleteResultDto.class))),
+            @ApiResponse(responseCode = "400", description = "Lista vazia ou inválida.", content = @Content)
+    })
+    public ResponseEntity<BulkDeleteResultDto> deletarEmLote(
+            @RequestBody @jakarta.validation.constraints.NotEmpty
+            @jakarta.validation.constraints.Size(max = 200)
+            List<UUID> ids) {
+
+        if (ids == null || ids.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        BulkDeleteResultDto resultado = registroService.deletarEmLote(ids);
+        return ResponseEntity.ok(resultado);
     }
 }
