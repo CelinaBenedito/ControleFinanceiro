@@ -1,6 +1,10 @@
 package controle.api.back_end.service;
 
+import controle.api.back_end.dto.registros.in.BulkAlteracoesDto;
+import controle.api.back_end.dto.registros.in.RegistroCompletoEditDto;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
+import controle.api.back_end.dto.registros.out.BulkDeleteResultDto;
+import controle.api.back_end.dto.registros.out.BulkEditResultDto;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.exception.InstituicaoInativaException;
@@ -694,5 +698,148 @@ public class RegistroService {
         return categoriaUsuarioRepository.findById(id)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException(
                         "Categoria Usuário de id: %d não encontrada.".formatted(id)));
+    }
+
+    // =========================================================================
+    // EDIÇÃO EM LOTE
+    // =========================================================================
+
+    /**
+     * Edita vários registros individualmente em uma única chamada.
+     * Cada item pode conter dados diferentes para seu respectivo evento.
+     * Campos {@code null} dentro de cada item são ignorados.
+     * Falhas individuais não cancelam os demais.
+     */
+    public BulkEditResultDto editarEmLote(List<RegistroCompletoEditDto> itens) {
+        List<RegistroResponseDto> atualizados = new ArrayList<>();
+        List<BulkEditResultDto.BulkErroItemDto> erros = new ArrayList<>();
+
+        for (RegistroCompletoEditDto item : itens) {
+            UUID id = item.getId();
+            try {
+                EventoFinanceiro financeiroAtualizado = buscarEventoOuErro(id);
+                if (item.getFinanceiro() != null) {
+                    financeiroAtualizado = editEventoFinanceiro(
+                            id, RegistrosMapper.toEntityFinanceiro(item.getFinanceiro()));
+                }
+
+                List<EventoInstituicao> instituicoesAtualizadas =
+                        eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(id);
+                if (item.getInstituicao() != null) {
+                    instituicoesAtualizadas = editEventoInstituicao(
+                            id, RegistrosMapper.toEntityEvento(item.getInstituicao()));
+                }
+
+                EventoDetalhe detalheAtualizado =
+                        eventoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(id);
+                if (item.getDetalhe() != null) {
+                    detalheAtualizado = editGastoDetalhe(
+                            id, RegistrosMapper.toEntityGasto(item.getDetalhe()));
+                }
+
+                atualizados.add(RegistrosMapper.toResponse(
+                        financeiroAtualizado, instituicoesAtualizadas, detalheAtualizado));
+
+            } catch (Exception e) {
+                log.warn("[BulkEdit] Erro ao editar registro {}: {}", id, e.getMessage());
+                erros.add(new BulkEditResultDto.BulkErroItemDto(id, e.getMessage()));
+            }
+        }
+
+        return new BulkEditResultDto(itens.size(), atualizados.size(), erros.size(), atualizados, erros);
+    }
+
+    /**
+     * Aplica as <b>mesmas alterações parciais</b> a uma lista de registros.
+     * Apenas os campos não-nulos de {@code alteracoes} são aplicados.
+     * {@code categoriaIds} com lista vazia remove todas as categorias.
+     */
+    public BulkEditResultDto aplicarPatchEmLote(List<UUID> ids, BulkAlteracoesDto alteracoes) {
+        List<RegistroResponseDto> atualizados = new ArrayList<>();
+        List<BulkEditResultDto.BulkErroItemDto> erros = new ArrayList<>();
+
+        for (UUID id : ids) {
+            try {
+                EventoFinanceiro evento = buscarEventoOuErro(id);
+
+                // ── Patch do EventoFinanceiro ─────────────────────────────────
+                boolean eventoAlterado = false;
+                if (alteracoes.getTipo() != null)        { evento.setTipo(alteracoes.getTipo());                eventoAlterado = true; }
+                if (alteracoes.getDataEvento() != null)  { evento.setDataEvento(alteracoes.getDataEvento());    eventoAlterado = true; }
+                if (alteracoes.getDescricao() != null)   { evento.setDescricao(alteracoes.getDescricao());      eventoAlterado = true; }
+                if (alteracoes.getValor() != null)       { evento.setValor(alteracoes.getValor());              eventoAlterado = true; }
+                if (eventoAlterado) eventoFinanceiroRepository.save(evento);
+
+                // ── Patch das EventoInstituicoes ─────────────────────────────
+                List<EventoInstituicao> instAtualizadas =
+                        eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(id);
+                if (alteracoes.getTipoMovimento() != null || alteracoes.getInstituicaoUsuarioId() != null
+                        || alteracoes.getParcelas() != null || alteracoes.getValor() != null) {
+                    for (EventoInstituicao inst : instAtualizadas) {
+                        if (alteracoes.getTipoMovimento() != null)    inst.setTipoMovimento(alteracoes.getTipoMovimento());
+                        if (alteracoes.getParcelas() != null)         inst.setParcelas(alteracoes.getParcelas());
+                        if (alteracoes.getValor() != null)            inst.setValor(alteracoes.getValor());
+                        if (alteracoes.getInstituicaoUsuarioId() != null)
+                            inst.setInstituicaoUsuario(buscarInstituicaoAtivaOuErro(alteracoes.getInstituicaoUsuarioId()));
+                        eventoInstituicaoRepository.save(inst);
+                    }
+                }
+
+                // ── Patch do EventoDetalhe ───────────────────────────────────
+                EventoDetalhe detalhe = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(id);
+                if (detalhe != null) {
+                    boolean detalheAlterado = false;
+                    if (alteracoes.getTituloGasto() != null) {
+                        detalhe.setTituloGasto(alteracoes.getTituloGasto());
+                        detalheAlterado = true;
+                    }
+                    if (alteracoes.getCategoriaIds() != null) {
+                        List<CategoriaUsuario> novasCats = alteracoes.getCategoriaIds().stream()
+                                .map(this::buscarCategoriaOuErro)
+                                .collect(Collectors.toList());
+                        detalhe.setCategoriaUsuario(novasCats);
+                        detalheAlterado = true;
+                    }
+                    if (detalheAlterado) eventoDetalheRepository.save(detalhe);
+                }
+
+                // Recarrega para resposta atualizada
+                atualizados.add(RegistrosMapper.toResponse(
+                        buscarEventoOuErro(id),
+                        eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(id),
+                        eventoDetalheRepository.findGastoDetalheByEventoFinanceiro_Id(id)));
+
+            } catch (Exception e) {
+                log.warn("[BulkPatch] Erro ao aplicar patch no registro {}: {}", id, e.getMessage());
+                erros.add(new BulkEditResultDto.BulkErroItemDto(id, e.getMessage()));
+            }
+        }
+
+        return new BulkEditResultDto(ids.size(), atualizados.size(), erros.size(), atualizados, erros);
+    }
+
+    // =========================================================================
+    // EXCLUSÃO EM LOTE
+    // =========================================================================
+
+    /**
+     * Remove vários registros em uma única operação.
+     * Falhas individuais não cancelam os demais.
+     */
+    public BulkDeleteResultDto deletarEmLote(List<UUID> ids) {
+        List<UUID> removidos = new ArrayList<>();
+        List<BulkDeleteResultDto.BulkErroItemDto> erros = new ArrayList<>();
+
+        for (UUID id : ids) {
+            try {
+                eventoFinanceiroRepository.delete(buscarEventoOuErro(id));
+                removidos.add(id);
+            } catch (Exception e) {
+                log.warn("[BulkDelete] Erro ao remover registro {}: {}", id, e.getMessage());
+                erros.add(new BulkDeleteResultDto.BulkErroItemDto(id, e.getMessage()));
+            }
+        }
+
+        return new BulkDeleteResultDto(ids.size(), removidos.size(), erros.size(), removidos, erros);
     }
 }
