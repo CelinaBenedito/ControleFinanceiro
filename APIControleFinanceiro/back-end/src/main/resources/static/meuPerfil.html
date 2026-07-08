@@ -1,0 +1,252 @@
+        // ══════════════════════════════════════════════
+        //  SISTEMA DE PERSONAGEM — meuPerfil.html
+        // ══════════════════════════════════════════════
+        let _racaSelecionada   = null;
+        let _generoSelecionado = null;
+        let _step = 1;
+        let _custom = { corPele: null, corOlho: '#3D1F0A', corCabelo: '#8B5A2B', estiloCabelo: null };
+
+        function iniciarPersonagem() {
+            const p = PersonagemSistema.getPersonagem();
+            const conteudo = document.getElementById('conteudoPersonagem');
+            const botoes   = document.getElementById('botoesPersonagem');
+            if (!p) {
+                conteudo.innerHTML = `
+                    <button class="char-criar-btn" onclick="abrirModalCriacao()">
+                        <i class='bx bx-user-plus'></i>
+                        <span>Criar meu Personagem</span>
+                        <small style="color:var(--cor-texto-secundario);font-size:0.78rem;font-weight:400;">Escolha sua raça e comece a aventura!</small>
+                    </button>`;
+                botoes.innerHTML = '';
+                return;
+            }
+            PersonagemSistema.sincronizarNivel().then(r => {
+                if (r && r.subiuNivel) {
+                    const av = document.createElement('div');
+                    av.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;background:var(--cor-fundo-card);border-radius:14px;padding:16px 20px;box-shadow:0 8px 28px rgba(0,0,0,0.2);font-weight:600;color:var(--cor-titulo);';
+                    av.innerHTML = `<i class='bx bx-star' style="color:#FFD700;margin-right:8px;"></i>Nível ${r.novoNivel}! +${r.moedasGanhas} moedas 🪙`;
+                    document.body.appendChild(av);
+                    setTimeout(() => av.remove(), 4000);
+                    renderizarPersonagemPerfil();
+                }
+            });
+            renderizarPersonagemPerfil();
+        }
+
+        function renderizarPersonagemPerfil() {
+            const p = PersonagemSistema.getPersonagem();
+            if (!p) return;
+            const raca  = PersonagemSistema.RACAS.find(r => r.id === p.raca) || PersonagemSistema.RACAS[0];
+            const eq    = p.equipados || {};
+            const cat   = PersonagemSistema.CATALOGO;
+            const roupa = cat.find(i => i.id === eq.roupa);
+            const acess = cat.find(i => i.id === eq.acessorio);
+            const poder = cat.find(i => i.id === eq.poder);
+            document.getElementById('conteudoPersonagem').innerHTML = `
+                <div class="char-panel">
+                    <div class="char-preview-box">
+                        <div id="charPreviewPerfil"></div>
+                        <div class="char-nome-raca">
+                            <strong>${raca.nome}</strong>
+                            <span>${p.genero === 'feminino' ? '♀ Feminino' : '♂ Masculino'}</span>
+                        </div>
+                    </div>
+                    <div class="char-stats">
+                        <div class="char-stat-row"><i class='bx bx-trophy'></i><span>Nível <strong>${p.nivel||1}</strong></span></div>
+                        <div class="char-stat-row"><i class='bx bx-coin-stack'></i><div class="char-moedas-badge">🪙 ${(p.moedas||0).toLocaleString('pt-BR')} moedas</div></div>
+                        <div class="char-stat-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+                            <span style="color:var(--cor-texto-secundario);font-size:0.82rem;">Equipamentos:</span>
+                            <div class="char-equipados-grid">
+                                <span class="char-equip-badge ${roupa?'ativo':''}">👕 ${roupa?roupa.nome:'Nenhum'}</span>
+                                <span class="char-equip-badge ${acess?'ativo':''}">💎 ${acess?acess.nome:'Nenhum'}</span>
+                                <span class="char-equip-badge ${poder?'ativo':''}">✨ ${poder?poder.nome:'Nenhum'}</span>
+                            </div>
+                        </div>
+                        <a href="loja.html" class="char-ir-loja-btn" style="margin-top:8px;"><i class='bx bx-store'></i> Ir para a Loja</a>
+                    </div>
+                </div>`;
+            PersonagemSistema.renderizarPersonagem(document.getElementById('charPreviewPerfil'), { tamanho: 180 });
+            document.getElementById('botoesPersonagem').innerHTML = `
+                <button class="char-btn-sec" onclick="abrirCustomizacao()" style="font-size:0.8rem;padding:7px 14px;">
+                    <i class='bx bx-palette'></i> Personalizar
+                </button>
+                <button class="char-btn-sec" onclick="confirmarRecriar()" style="font-size:0.8rem;padding:7px 14px;">
+                    <i class='bx bx-refresh'></i> Recriar
+                </button>`;
+        }
+
+        function abrirCustomizacao() {
+            const p = PersonagemSistema.getPersonagem();
+            if (!p) return;
+            _racaSelecionada   = p.raca;
+            _generoSelecionado = p.genero;
+            window._dadosAntigos = null; // não é recriar, só personalização visual
+            _custom = {
+                corPele:      p.corPele      || (PersonagemSistema.RACAS.find(r=>r.id===p.raca)||{}).pelePad || '#F4C4A0',
+                corOlho:      p.corOlho      || '#3D1F0A',
+                corCabelo:    p.corCabelo     || '#8B5A2B',
+                estiloCabelo: p.estiloCabelo  || (p.genero==='feminino' ? 'liso_longo' : 'curto'),
+            };
+            mostrarStep(3);
+            document.getElementById('charModalOverlay').classList.add('aberto');
+        }
+
+        function confirmarRecriar() {
+            if (!confirm('Recriar personagem? Moedas e itens serão mantidos.')) return;
+            window._dadosAntigos = PersonagemSistema.getPersonagem();
+            _racaSelecionada = null; _generoSelecionado = null;
+            _custom = { corPele: null, corOlho: '#3D1F0A', corCabelo: '#8B5A2B', estiloCabelo: null };
+            abrirModalCriacao(window._dadosAntigos);
+        }
+
+        function abrirModalCriacao(dadosAntigos) {
+            _step = 1; _racaSelecionada = null; _generoSelecionado = null;
+            window._dadosAntigos = dadosAntigos || null;
+            _custom = { corPele: null, corOlho: '#3D1F0A', corCabelo: '#8B5A2B', estiloCabelo: null };
+            const grid = document.getElementById('racasGrid');
+            grid.innerHTML = PersonagemSistema.RACAS.map(r => `
+                <div class="char-raca-card" data-raca="${r.id}" onclick="selecionarRaca('${r.id}')">
+                    <div class="char-raca-preview" id="prevRaca_${r.id}"></div>
+                    <div class="char-raca-nome">${r.nome}</div>
+                    <div class="char-raca-desc">${r.desc}</div>
+                </div>`).join('');
+            PersonagemSistema.RACAS.forEach(r => {
+                const el = document.getElementById(`prevRaca_${r.id}`);
+                if (el) PersonagemSistema.renderizarPersonagemCustom(el, r.id, 'feminino', 70);
+            });
+            mostrarStep(1);
+            document.getElementById('charModalOverlay').classList.add('aberto');
+        }
+
+        function mostrarStep(n) {
+            _step = n;
+            document.getElementById('stepRaca').style.display   = n === 1 ? '' : 'none';
+            document.getElementById('stepGenero').style.display  = n === 2 ? '' : 'none';
+            document.getElementById('stepCustom').style.display  = n === 3 ? '' : 'none';
+            ['dot1','dot2','dot3'].forEach((id,i) =>
+                document.getElementById(id).classList.toggle('ativo', n >= i+1));
+            document.getElementById('btnModalAnterior').style.display = n > 1 ? '' : 'none';
+            const btnP = document.getElementById('btnModalProximo');
+            if (n === 3) {
+                btnP.textContent = '✨ Salvar Personagem!';
+                btnP.disabled = false;
+                btnP.onclick = finalizarCriacao;
+                montarCustomizacao();
+            } else if (n === 2) {
+                btnP.textContent = 'Próximo →';
+                btnP.disabled = !_generoSelecionado;
+                btnP.onclick = proximoStep;
+            } else {
+                btnP.textContent = 'Próximo →';
+                btnP.disabled = !_racaSelecionada;
+                btnP.onclick = proximoStep;
+            }
+        }
+
+        function montarCustomizacao() {
+            const PS   = PersonagemSistema;
+            const fem  = _generoSelecionado === 'feminino';
+            const estilos = fem ? PS.ESTILOS_FEM : PS.ESTILOS_MASC;
+            if (!_custom.corPele) { const raca = PS.RACAS.find(r=>r.id===_racaSelecionada)||PS.RACAS[0]; _custom.corPele = raca.pelePad; }
+            if (!_custom.estiloCabelo) _custom.estiloCabelo = fem ? 'liso_longo' : 'curto';
+
+            function swatches(arr, campo) {
+                return arr.map(c => `<div class="char-swatch ${_custom[campo]===c.cor?'selecionado':''}" style="background:${c.cor};" title="${c.nome}" onclick="selCustom('${campo}','${c.cor}')"></div>`).join('');
+            }
+            document.getElementById('swatchesPele').innerHTML   = swatches(PS.CORES_PELE,   'corPele');
+            document.getElementById('swatchesOlho').innerHTML   = swatches(PS.CORES_OLHO,   'corOlho');
+            document.getElementById('swatchesCabelo').innerHTML = swatches(PS.CORES_CABELO,  'corCabelo');
+            document.getElementById('estilosCabelo').innerHTML  = estilos.map(e =>
+                `<button class="char-estilo-btn ${_custom.estiloCabelo===e.id?'selecionado':''}" onclick="selCustom('estiloCabelo','${e.id}')">
+                    <span class="estilo-emoji">${e.emoji}</span><span>${e.nome}</span>
+                </button>`).join('');
+            atualizarPreviewCustom();
+        }
+
+        function selCustom(campo, valor) {
+            _custom[campo] = valor;
+            montarCustomizacao(); // re-render tudo (simples e confiável)
+        }
+
+        function atualizarPreviewCustom() {
+            const el = document.getElementById('previewCustom');
+            if (!el || !_racaSelecionada) return;
+            PersonagemSistema.renderizarPersonagemCustom(el, _racaSelecionada, _generoSelecionado||'feminino', 130, _custom);
+        }
+
+        function selecionarRaca(id) {
+            _racaSelecionada = id;
+            document.querySelectorAll('.char-raca-card').forEach(c => c.classList.toggle('selecionado', c.dataset.raca === id));
+            document.getElementById('btnModalProximo').disabled = false;
+        }
+
+        function selecionarGenero(g) {
+            _generoSelecionado = g;
+            document.getElementById('cardFeminino').classList.toggle('selecionado',  g === 'feminino');
+            document.getElementById('cardMasculino').classList.toggle('selecionado', g === 'masculino');
+            PersonagemSistema.renderizarPersonagemCustom(document.getElementById('previewFem'),  _racaSelecionada, 'feminino',  90);
+            PersonagemSistema.renderizarPersonagemCustom(document.getElementById('previewMasc'), _racaSelecionada, 'masculino', 90);
+            document.getElementById('btnModalProximo').disabled = false;
+        }
+
+        function proximoStep() {
+            if (_step === 1 && _racaSelecionada) {
+                mostrarStep(2);
+                PersonagemSistema.renderizarPersonagemCustom(document.getElementById('previewFem'),  _racaSelecionada, 'feminino',  90);
+                PersonagemSistema.renderizarPersonagemCustom(document.getElementById('previewMasc'), _racaSelecionada, 'masculino', 90);
+            } else if (_step === 2 && _generoSelecionado) {
+                mostrarStep(3);
+            }
+        }
+
+        function anteriorStep() {
+            if (_step === 2) { mostrarStep(1); _generoSelecionado = null; }
+            else if (_step === 3) { mostrarStep(2); }
+        }
+
+        function finalizarCriacao() {
+            if (!_racaSelecionada || !_generoSelecionado) {
+                alert('Selecione raça e gênero antes de salvar!');
+                return;
+            }
+            const antigos = window._dadosAntigos;
+            const pAtual  = PersonagemSistema.getPersonagem();
+
+            // Garante que custom tenha valores válidos
+            if (!_custom.corPele) {
+                const raca = PersonagemSistema.RACAS.find(r => r.id === _racaSelecionada) || PersonagemSistema.RACAS[0];
+                _custom.corPele = raca.pelePad;
+            }
+            if (!_custom.estiloCabelo) {
+                _custom.estiloCabelo = _generoSelecionado === 'feminino' ? 'liso_longo' : 'curto';
+            }
+
+            // Cria/atualiza o personagem
+            if (pAtual && _racaSelecionada === pAtual.raca && _generoSelecionado === pAtual.genero && !antigos) {
+                // Só atualizando aparência (botão Personalizar)
+                Object.assign(pAtual, _custom);
+                PersonagemSistema.salvarPersonagem(pAtual);
+            } else {
+                // Criando novo ou recriando
+                const novo = PersonagemSistema.criarPersonagem(_racaSelecionada, _generoSelecionado, _custom);
+                if (antigos) {
+                    novo.moedas         = antigos.moedas         || novo.moedas;
+                    novo.itensComprados = antigos.itensComprados  || novo.itensComprados;
+                    novo.nivel          = antigos.nivel           || novo.nivel;
+                    PersonagemSistema.salvarPersonagem(novo);
+                }
+            }
+
+            window._dadosAntigos = null;
+            document.getElementById('charModalOverlay').classList.remove('aberto');
+            iniciarPersonagem();
+        }
+
+        document.getElementById('charModalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) this.classList.remove('aberto');
+        });
+
+        window.addEventListener('DOMContentLoaded', iniciarPersonagem);
+
+
+

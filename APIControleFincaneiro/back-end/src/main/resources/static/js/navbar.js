@@ -4,6 +4,7 @@ const home = document.getElementById("home");
 const reg = document.getElementById("reg");
 const add = document.getElementById("add");
 const agenda = document.getElementById("agenda");
+const loja = document.getElementById("loja");
 const config = document.getElementById("config");
 const tema = document.getElementById("tema");
 
@@ -14,42 +15,35 @@ home.style.display = "none";
 reg.style.display = "none";
 add.style.display = "none";
 agenda.style.display = "none";
+if (loja) loja.style.display = "none";
 config.style.display = "none";
 tema.style.display = "none";
 main.style.marginLeft = "70px";
 
-
 function sidebarFunction() {
-    console.log("Entrei na funciton", ativo)
     if (!ativo) {
         ativo = true;
-
         navbar.style.width = "290px";
         main.style.marginLeft = "290px";
         home.style.display = "";
         reg.style.display = "";
         add.style.display = "";
         agenda.style.display = "";
+        if (loja) loja.style.display = "";
         config.style.display = "";
         tema.style.display = "";
-
-        console.log("Abriu", ativo);
-
     } else {
         ativo = false;
-
         navbar.style.width = "70px";
         main.style.marginLeft = "70px";
         home.style.display = "none";
         reg.style.display = "none";
         add.style.display = "none";
         agenda.style.display = "none";
+        if (loja) loja.style.display = "none";
         config.style.display = "none";
         tema.style.display = "none";
-
-        console.log("Fechou", ativo);
     }
-
 }
 
 /*---------------- Modal de confirmação de Logout ----------------*/

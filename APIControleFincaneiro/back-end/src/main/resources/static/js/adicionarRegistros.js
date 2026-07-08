@@ -684,6 +684,7 @@ async function registrar() {
                 window.dispatchEvent(new Event('xp:refresh'));
                 markFieldsForClear(['ipt_nome', 'ipt_valor', 'ipt_desc']);
                 alerta('✔ Recorrência registrada com sucesso!', 3000);
+                window.dispatchEvent(new CustomEvent('registro:salvo'));
             } else {
                 let detalhe = "";
                 try { const corpo = await response.json(); detalhe = corpo.message || corpo.error || JSON.stringify(corpo); }

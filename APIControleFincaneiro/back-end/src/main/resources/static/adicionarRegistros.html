@@ -32,6 +32,7 @@
     <link rel="stylesheet" href="styles/Estilos.css">
     <link rel="stylesheet" href="styles/registro.css">
     <link rel="stylesheet" href="styles/root.css">
+    <link rel="stylesheet" href="styles/personagem.css">
 </head>
 
 <body data-tema="padrao" data-mode="light" onload="gerarInformacoes()">
@@ -57,6 +58,9 @@
                 </li>
                 <li>
                     <a href="agendaGastos.html"><i class='bx bx-calendar-event'></i> <span id="agenda">Agenda</span></a>
+                </li>
+                <li>
+                    <a href="loja.html"><i class='bx bx-store'></i><span id="loja">Loja</span></a>
                 </li>
                 <li>
                     <a id="toggleTheme">
@@ -114,7 +118,11 @@
 
                 <!-- Mascot -->
                 <div class="ar-mascot">
-                    <img class="ar-mascot-img" src="assets/gif/glaceon fofinha.gif" alt="Glaceon">
+                    <div class="char-mascote-wrap">
+                        <div id="mascoteAddReg"></div>
+                        <span class="char-mascote-nome" id="mascoteAddNome"></span>
+                        <span class="char-mascote-nivel" id="mascoteAddNivel"></span>
+                    </div>
                 </div>
 
                 <!-- Form -->
@@ -464,8 +472,26 @@
     </div>
 
     <script src="js/main.js"></script>
+    <script src="js/personagem.js"></script>
     <script src="js/navbar.js"></script>
     <script src="js/adicionarRegistros.js"></script>
+    <script>
+        // ── Mascote: renderiza o personagem ──
+        window.addEventListener('DOMContentLoaded', function() {
+            const p = PersonagemSistema.getPersonagem();
+            PersonagemSistema.renderizarPersonagem(document.getElementById('mascoteAddReg'), { tamanho: 140 });
+            if (p) {
+                const raca = PersonagemSistema.RACAS.find(r => r.id === p.raca);
+                document.getElementById('mascoteAddNome').textContent  = raca ? raca.nome : '';
+                document.getElementById('mascoteAddNivel').textContent = `Nível ${p.nivel || 1}`;
+            }
+        });
+
+        // ── Animação de comemoração após registro salvo ──
+        window.addEventListener('registro:salvo', function () {
+            PersonagemSistema.triggerCelebracao('mascoteAddReg');
+        });
+    </script>
 </body>
 
 </html>

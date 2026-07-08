@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="icon" type="image/png" href="assets/glaceonIcon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loja de Aventureiro</title>
+    <link href='assets/boxicons/boxicons.min.css' rel='stylesheet' id='bx-local'>
+    <script>
+        (function(){
+            function checkAndFallback(){
+                var el=document.createElement('i');el.className='bx bx-check';
+                el.style.cssText='position:fixed;top:-9999px;left:-9999px;font-size:20px;visibility:hidden';
+                document.body.appendChild(el);
+                var ff=window.getComputedStyle(el).fontFamily||'';document.body.removeChild(el);
+                if(ff.toLowerCase().indexOf('boxicons')===-1){
+                    var l=document.createElement('link');l.rel='stylesheet';
+                    l.href='https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css';
+                    document.head.appendChild(l);
+                }
+            }
+            document.readyState==='loading'?document.addEventListener('DOMContentLoaded',checkAndFallback):checkAndFallback();
+        })();
+    </script>
+    <link rel="stylesheet" href="styles/Estilos.css">
+    <link rel="stylesheet" href="styles/root.css">
+    <link rel="stylesheet" href="styles/personagem.css">
+</head>
+<body data-tema="padrao" data-mode="light">
+<div class="containerGeral">
+    <nav class="side-bar" id="navbar">
+        <ul>
+            <li onclick="sidebarFunction()"><i class='bx bx-menu-closer'></i></li>
+            <li><a href="dashboard.html"><i class='bx bx-home'></i><span id="home">Home</span></a></li>
+            <li><a href="registros.html"><i class='bx bx-address-book'></i><span id="reg">Registros</span></a></li>
+            <li><a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i><span id="add">Adicionar Registros</span></a></li>
+            <li><a href="agendaGastos.html"><i class='bx bx-calendar-event'></i><span id="agenda">Agenda</span></a></li>
+            <li><a href="loja.html"><i class='bx bx-store'></i><span id="loja">Loja</span></a></li>
+            <li><a id="toggleTheme"><span id="icone"><i class='bx bx-moon'></i></span><span id="tema">Tema</span></a></li>
+            <li><a href="configurações.html"><i class='bx bx-cog'></i><span id="config">Configurações</span></a></li>
+        </ul>
+    </nav>
+
+    <div id="main" class="main loja-page">
+
+        <!-- Cabeçalho -->
+        <div class="page-title-row">
+            <h1><i class='bx bx-store' style="color:var(--cor-principal);"></i> Loja de Aventureiro</h1>
+            <div class="user-widget" id="userWidget">
+                <div class="uw-info">
+                    <span class="uw-nome" id="uw_nome">Usuário</span>
+                    <div class="uw-xp-track">
+                        <div class="uw-xp-fill" id="uw_xp"></div>
+                        <span class="uw-lvl" id="uw_lvl">LVL 1</span>
+                    </div>
+                </div>
+                <div class="uw-avatar">
+                    <i class='bx bx-user' style="font-size:1.6rem;color:var(--cor-principal);"></i>
+                </div>
+                <div class="uw-dropdown" id="uwDropdown">
+                    <a href="meuPerfil.html" class="uw-dropdown-item"><i class='bx bx-user-circle'></i> Perfil</a>
+                    <a href="index.html" class="uw-dropdown-item"><i class='bx bx-arrow-back'></i> Voltar para seleção de usuário</a>
+                    <button class="uw-dropdown-item uw-logout-btn" id="btnLogout"><i class='bx bx-log-out'></i> LogOut</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saldo de moedas -->
+        <div class="loja-topo">
+            <div class="loja-saldo">
+                <i class='bx bx-coin-stack'></i>
+                <span id="saldoMoedas">0</span> Moedas
+            </div>
+            <a href="meuPerfil.html" class="char-ir-loja-btn" style="background:var(--cor-fundo-pagina);color:var(--cor-texto-principal);border:1.5px solid var(--cor-tinte-borda);">
+                <i class='bx bx-user'></i> Meu Personagem
+            </a>
+        </div>
+
+        <!-- Layout principal -->
+        <div class="loja-layout" id="lojaLayout">
+
+            <!-- Preview do personagem -->
+            <div class="loja-char-panel" id="lojaCharPanel">
+                <div class="loja-char-title"><i class='bx bx-body'></i> Seu Personagem</div>
+                <div id="lojaCharPreview"></div>
+                <div class="loja-char-equip-info" id="lojaEquipInfo"></div>
+            </div>
+
+            <!-- Área de itens -->
+            <div class="loja-content">
+                <div class="loja-tabs">
+                    <button class="loja-tab ativo" data-cat="roupa" onclick="filtrarCategoria('roupa')">
+                        <i class='bx bx-shirt'></i> Roupas
+                    </button>
+                    <button class="loja-tab" data-cat="acessorio" onclick="filtrarCategoria('acessorio')">
+                        <i class='bx bx-diamond'></i> Acessórios
+                    </button>
+                    <button class="loja-tab" data-cat="poder" onclick="filtrarCategoria('poder')">
+                        <i class='bx bx-star'></i> Poderes
+                    </button>
+                </div>
+
+                <div class="loja-itens-grid" id="lojaItensGrid"></div>
+            </div>
+        </div>
+
+        <!-- Toast de feedback -->
+        <div class="loja-toast" id="lojaToast">
+            <i class='bx bx-check-circle' id="lojaToastIcon"></i>
+            <span id="lojaToastMsg"></span>
+        </div>
+    </div>
+</div>
+
+<script src="js/main.js"></script>
+<script src="js/personagem.js"></script>
+<script src="js/navbar.js"></script>
+<script>
+// ── Loja ─────────────────────────────────────────────
+let categoriaAtiva = 'roupa';
+
+function iniciarLoja() {
+    const p = PersonagemSistema.getPersonagem();
+
+    if (!p) {
+        document.getElementById('lojaLayout').innerHTML = `
+            <div class="loja-sem-personagem" style="grid-column:1/-1">
+                <i class='bx bx-ghost'></i>
+                <h2>Nenhum personagem criado</h2>
+                <p>Vá até seu Perfil e crie seu personagem para começar a aventura!</p>
+                <a href="meuPerfil.html" class="char-ir-loja-btn" style="margin-top:8px;">
+                    <i class='bx bx-user-plus'></i> Criar Personagem
+                </a>
+            </div>`;
+        return;
+    }
+
+    // Sincronizar nível e moedas
+    PersonagemSistema.sincronizarNivel().then(r => {
+        if (r && r.subiuNivel) {
+            mostrarToast(`🎉 Nível ${r.novoNivel}! +${r.moedasGanhas} moedas!`, true);
+        }
+        atualizarUI();
+    });
+
+    atualizarUI();
+}
+
+function atualizarUI() {
+    const p = PersonagemSistema.getPersonagem();
+    if (!p) return;
+
+    // Saldo
+    document.getElementById('saldoMoedas').textContent = (p.moedas || 0).toLocaleString('pt-BR');
+
+    // Preview do personagem
+    PersonagemSistema.renderizarPersonagem(document.getElementById('lojaCharPreview'), { tamanho: 160 });
+
+    // Info dos equipados
+    const eq = p.equipados || {};
+    const cat = PersonagemSistema.CATALOGO;
+    const roupa  = cat.find(i => i.id === eq.roupa);
+    const acess  = cat.find(i => i.id === eq.acessorio);
+    const poder  = cat.find(i => i.id === eq.poder);
+    document.getElementById('lojaEquipInfo').innerHTML = `
+        <div class="loja-equip-row"><i class='bx bx-shirt'></i> <span>Roupa:</span> <span class="loja-equip-val">${roupa ? roupa.nome : '—'}</span></div>
+        <div class="loja-equip-row"><i class='bx bx-diamond'></i> <span>Acessório:</span> <span class="loja-equip-val">${acess ? acess.nome : '—'}</span></div>
+        <div class="loja-equip-row"><i class='bx bx-star'></i> <span>Poder:</span> <span class="loja-equip-val">${poder ? poder.nome : '—'}</span></div>`;
+
+    // Grid de itens
+    renderizarGrid(categoriaAtiva);
+}
+
+function filtrarCategoria(cat) {
+    categoriaAtiva = cat;
+    document.querySelectorAll('.loja-tab').forEach(t => t.classList.toggle('ativo', t.dataset.cat === cat));
+    renderizarGrid(cat);
+}
+
+function renderizarGrid(cat) {
+    const p    = PersonagemSistema.getPersonagem();
+    const grid = document.getElementById('lojaItensGrid');
+    const itens = PersonagemSistema.CATALOGO.filter(i => i.tipo === cat);
+    const nivel = p ? (p.nivel || 1) : 0;
+    const moedas = p ? (p.moedas || 0) : 0;
+    const comprados = p ? (p.itensComprados || []) : [];
+    const eq = p ? (p.equipados || {}) : {};
+
+    grid.innerHTML = itens.map(item => {
+        const possuido  = comprados.includes(item.id);
+        const equipado  = Object.values(eq).includes(item.id);
+        const bloqueado = nivel < item.nivelMin;
+        const podePagar = moedas >= item.preco;
+
+        let badgeHtml = equipado ? `<div class="loja-badge-equipado">Equipado</div>` : '';
+        let btnHtml = '';
+
+        if (bloqueado) {
+            btnHtml = `<button class="loja-item-btn" disabled style="background:var(--cor-fundo-pagina);color:var(--cor-texto-secundario);">🔒 Nível ${item.nivelMin}</button>`;
+        } else if (possuido) {
+            btnHtml = equipado
+                ? `<button class="loja-item-btn desequipar" onclick="acaoEquipar('${item.id}')">Desequipar</button>`
+                : `<button class="loja-item-btn equipar"    onclick="acaoEquipar('${item.id}')">Equipar</button>`;
+        } else if (item.preco === 0) {
+            btnHtml = `<button class="loja-item-btn gratis" onclick="acaoComprar('${item.id}')">Pegar grátis</button>`;
+        } else {
+            btnHtml = `<button class="loja-item-btn comprar" onclick="acaoComprar('${item.id}')" ${!podePagar ? 'disabled style="opacity:0.5;"' : ''}>
+                           Comprar
+                       </button>`;
+        }
+
+        return `
+        <div class="loja-item-card ${bloqueado ? 'bloqueado' : ''} ${equipado ? 'equipado' : ''} ${possuido && !equipado ? 'possuido' : ''}">
+            ${badgeHtml}
+            <div class="loja-item-emoji">${item.emoji}</div>
+            <div class="loja-item-nome">${item.nome}</div>
+            <div class="loja-item-desc">${item.desc}</div>
+            <div class="loja-item-nivel ${!bloqueado ? 'desbloqueado' : ''}">Nível ${item.nivelMin}</div>
+            ${item.preco > 0 ? `<div class="loja-item-preco"><span class="moeda-icon">🪙</span> ${item.preco.toLocaleString('pt-BR')}</div>` : `<div class="loja-item-preco" style="color:#22C55E;">✨ Grátis</div>`}
+            ${btnHtml}
+        </div>`;
+    }).join('');
+}
+
+function acaoComprar(itemId) {
+    const res = PersonagemSistema.comprarItem(itemId);
+    mostrarToast(res.msg, res.ok);
+    if (res.ok) atualizarUI();
+}
+
+function acaoEquipar(itemId) {
+    PersonagemSistema.equiparItem(itemId);
+    atualizarUI();
+    const p  = PersonagemSistema.getPersonagem();
+    const it = PersonagemSistema.CATALOGO.find(i => i.id === itemId);
+    const eq = p && p.equipados && Object.values(p.equipados).includes(itemId);
+    mostrarToast(eq ? `${it.nome} equipado!` : `${it.nome} removido.`, true);
+}
+
+let _toastTimer = null;
+function mostrarToast(msg, ok) {
+    const t = document.getElementById('lojaToast');
+    const ic = document.getElementById('lojaToastIcon');
+    document.getElementById('lojaToastMsg').textContent = msg;
+    t.className = `loja-toast ${ok ? 'sucesso' : 'erro'}`;
+    ic.className = `bx ${ok ? 'bx-check-circle' : 'bx-x-circle'}`;
+    t.classList.add('visivel');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove('visivel'), 3000);
+}
+
+window.addEventListener('DOMContentLoaded', iniciarLoja);
+</script>
+</body>
+</html>
+
