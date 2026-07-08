@@ -10,11 +10,14 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.action.PdfAction;
 import com.itextpdf.kernel.pdf.navigation.PdfExplicitDestination;
 import com.itextpdf.layout.Document;
+import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.element.AreaBreak;
 import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Link;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
@@ -45,7 +48,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.*;
@@ -232,7 +237,7 @@ public class RegistroExportacaoService {
                 .findByInstituicaoUsuario_Usuario_Id(userId);
         sql.append("-- Limites por instituição\n");
         for (LimitePorInstituicao li : limitesInst) {
-            sql.append("INSERT INTO limite_por_instituicao (id, institucao_usuario_id, limite_desejado, configuracoes_id) VALUES (")
+            sql.append("INSERT INTO limite_por_instituicao (id, instituicao_usuario_id, limite_desejado, configuracoes_id) VALUES (")
                .append("'").append(li.getId()).append("', ")
                .append(li.getInstituicaoUsuario().getId()).append(", ")
                .append(li.getLimiteDesejado()).append(", '").append(li.getConfiguracoes().getId()).append("');\n");
@@ -712,7 +717,7 @@ public class RegistroExportacaoService {
     //
     // Apenas gráficos de BAR são usados — compatíveis com Apache POI 4.1.2.
     // XDDFPieChartData gera XML inválido para Excel 365 nessa versão do POI;
-    // para reativar gráficos de pizza, atualize poi/poi-ooxml para 5.x.
+    // para reativar gráficos de pizza, atualize poi / poi-ooxml para 5.x no pom.xml.
     // ──────────────────────────────────────────────────────────────────────────
 
     /** Gráfico de barras agrupadas (duas séries: receitas e gastos por mês). */
@@ -976,168 +981,209 @@ public class RegistroExportacaoService {
     }
 
     // =========================================================================
-    // EXPORTAÇÃO PDF
+    // EXPORTAÇÃO PDF — iText 7 — Layout moderno com análise financeira
     // =========================================================================
 
+    /** Paleta de cores usada em todo o PDF. */
+    private record PdfTheme(
+            DeviceRgb primaria, DeviceRgb priMed, DeviceRgb priLight,
+            DeviceRgb branco, DeviceRgb texto, DeviceRgb cinza, DeviceRgb bordaCinza,
+            DeviceRgb recBg, DeviceRgb recFg,
+            DeviceRgb gasBg, DeviceRgb gasFg,
+            DeviceRgb pouBg, DeviceRgb pouFg,
+            DeviceRgb traBg, DeviceRgb traFg
+    ) {}
+
     private ExportacaoResultado exportarPdf(Usuario usuario) {
-        DeviceRgb tealEscuro  = new DeviceRgb(54,  115, 115);
-        DeviceRgb tealClaro   = new DeviceRgb(180, 217, 213);
-        DeviceRgb textoEscuro = new DeviceRgb(26,  26,  26);
-        DeviceRgb textoClaro  = new DeviceRgb(255, 255, 255);
-        DeviceRgb vermelhoFundo = new DeviceRgb(255, 226, 226);
-        DeviceRgb vermelhoTexto = new DeviceRgb(185, 28,  28);
-        DeviceRgb verdeFundo    = new DeviceRgb(209, 250, 229);
-        DeviceRgb verdeTexto    = new DeviceRgb(21,  128, 61);
+        PdfTheme t = new PdfTheme(
+                new DeviceRgb(27,  94,  107), new DeviceRgb(46, 155, 153), new DeviceRgb(224, 245, 245),
+                new DeviceRgb(255, 255, 255), new DeviceRgb(33,  33,  33),
+                new DeviceRgb(248, 250, 250), new DeviceRgb(206, 212, 218),
+                new DeviceRgb(232, 245, 233), new DeviceRgb(27,  94,  32),
+                new DeviceRgb(255, 235, 238), new DeviceRgb(183, 28,  28),
+                new DeviceRgb(243, 229, 245), new DeviceRgb(74,  20, 140),
+                new DeviceRgb(255, 248, 225), new DeviceRgb(230, 81,   0)
+        );
 
         List<EventoFinanceiro> eventos = eventoFinanceiroRepository
                 .findEventoFinanceiroByUsuarioOrderByDataEventoDesc(usuario);
-        eventos.sort(Comparator.comparing(EventoFinanceiro::getDataEvento).reversed());
+        eventos.sort(Comparator.comparing(EventoFinanceiro::getDataEvento));
+
+        // Pré-carrega instituições (evita N+1)
+        Map<UUID, List<EventoInstituicao>> instsByEvento = new LinkedHashMap<>();
+        for (EventoFinanceiro ev : eventos) {
+            instsByEvento.put(ev.getId(),
+                    eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(ev.getId()));
+        }
+
+        // Agrupa por ano → mês em ordem cronológica
+        Map<Integer, Map<Integer, List<EventoFinanceiro>>> porAnoMes = new LinkedHashMap<>();
+        for (EventoFinanceiro ev : eventos) {
+            porAnoMes
+                    .computeIfAbsent(ev.getDataEvento().getYear(), k -> new LinkedHashMap<>())
+                    .computeIfAbsent(ev.getDataEvento().getMonthValue(), k -> new ArrayList<>())
+                    .add(ev);
+        }
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            PdfWriter pdfWriter = new PdfWriter(out);
-            PdfDocument pdf = new PdfDocument(pdfWriter);
+            PdfDocument pdf = new PdfDocument(new PdfWriter(out));
             Document doc = new Document(pdf);
+            doc.setMargins(36, 36, 36, 36);
 
-            doc.add(new Paragraph("MyFinance — Registros")
-                    .setBold().setFontSize(20)
-                    .setFontColor(tealEscuro).setBackgroundColor(tealClaro));
-            doc.add(new Paragraph("Nome: " + usuario.getNome() + " " + usuario.getSobrenome()));
-            doc.add(new Paragraph("Nascimento: " + usuario.getDataNascimento() + "  |  Sexo: " + usuario.getSexo()));
-            doc.add(new Paragraph("Email: " + usuario.getEmail()));
+            Locale ptBR = new Locale("pt", "BR");
+            DateTimeFormatter dtFmt    = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            DateTimeFormatter dtDiaMes = DateTimeFormatter.ofPattern("dd/MM");
 
-            doc.add(new Paragraph("Sumário").setBold().setFontSize(18)
-                    .setFontColor(tealEscuro).setMarginBottom(10));
-            int anoSumario = -1;
-            Set<String> mesesSumario = new HashSet<>();
-            for (EventoFinanceiro ev : eventos) {
-                LocalDate data = ev.getDataEvento();
-                String nomeMes = capitalizar(data.getMonth().getDisplayName(TextStyle.FULL, new Locale("pt", "BR")));
-                if (data.getYear() != anoSumario) {
-                    anoSumario = data.getYear();
-                    doc.add(new Paragraph(new Link(String.valueOf(anoSumario),
-                            PdfAction.createGoTo("ano_" + anoSumario)))
-                            .setBold().setFontSize(14).setFontColor(tealEscuro).setMarginTop(10));
-                }
-                String chaveMes = anoSumario + "-" + data.getMonthValue();
-                if (mesesSumario.add(chaveMes)) {
-                    doc.add(new Paragraph(new Link("   " + nomeMes,
-                            PdfAction.createGoTo("mes_" + data.getYear() + "_" + data.getMonthValue())))
-                            .setFontSize(12).setFontColor(textoEscuro).setMarginLeft(20));
-                    doc.add(new Paragraph(new Link("      Resumo de " + nomeMes,
-                            PdfAction.createGoTo("resumo_mes_" + data.getYear() + "_" + data.getMonthValue())))
-                            .setFontSize(11).setFontColor(textoEscuro).setMarginLeft(25));
-                }
-            }
+            LocalDate periodoInicio = eventos.isEmpty() ? LocalDate.now() : eventos.get(0).getDataEvento();
+            LocalDate periodoFim    = eventos.isEmpty() ? LocalDate.now() : eventos.get(eventos.size() - 1).getDataEvento();
+
+            // ── CAPA ──────────────────────────────────────────────────────────
+            pdfCapa(doc, usuario, periodoInicio, periodoFim, eventos.size(), dtFmt, t);
             doc.add(new AreaBreak());
 
-            int anoAtual = -1;
-            int mesAtual = -1;
-            BigDecimal ganhosMes = BigDecimal.ZERO;
-            BigDecimal gastosMes = BigDecimal.ZERO;
-            BigDecimal ganhosAno = BigDecimal.ZERO;
-            BigDecimal gastosAno = BigDecimal.ZERO;
-            Table tabela = new Table(9);
+            // ── SUMÁRIO ───────────────────────────────────────────────────────
+            pdfSumario(doc, porAnoMes, ptBR, t);
+            doc.add(new AreaBreak());
 
-            for (int i = 0; i < eventos.size(); i++) {
-                EventoFinanceiro ev = eventos.get(i);
-                LocalDate data = ev.getDataEvento();
+            // ── REGISTROS POR ANO / MÊS ───────────────────────────────────────
+            BigDecimal totalRecGeral = BigDecimal.ZERO, totalGasGeral = BigDecimal.ZERO;
+            BigDecimal totalPouGeral = BigDecimal.ZERO, totalTraGeral = BigDecimal.ZERO;
 
-                if (data.getYear() != anoAtual) {
-                    anoAtual = data.getYear();
-                    doc.add(new Paragraph(String.valueOf(anoAtual))
-                            .setBold().setFontSize(18).setFontColor(tealEscuro).setMarginTop(20));
-                    PdfExplicitDestination destAno = PdfExplicitDestination.createFit(pdf.getLastPage());
-                    pdf.addNamedDestination("ano_" + anoAtual, destAno.getPdfObject());
-                }
+            for (Map.Entry<Integer, Map<Integer, List<EventoFinanceiro>>> anoEntry : porAnoMes.entrySet()) {
+                int ano = anoEntry.getKey();
+                BigDecimal totalRecAno = BigDecimal.ZERO, totalGasAno = BigDecimal.ZERO;
+                BigDecimal totalPouAno = BigDecimal.ZERO, totalTraAno = BigDecimal.ZERO;
 
-                if (data.getMonthValue() != mesAtual) {
-                    ganhosMes = BigDecimal.ZERO;
-                    gastosMes = BigDecimal.ZERO;
-                    mesAtual = data.getMonthValue();
-                    String nomeMesDisplay = capitalizar(data.getMonth().getDisplayName(TextStyle.FULL, new Locale("pt", "BR")));
-                    doc.add(new Paragraph(nomeMesDisplay)
-                            .setBold().setFontSize(14).setFontColor(textoEscuro).setMarginLeft(20));
+                // Cabeçalho do ano
+                Table anoHdr = new Table(UnitValue.createPercentArray(new float[]{1}))
+                        .setWidth(UnitValue.createPercentValue(100));
+                anoHdr.addCell(new Cell()
+                        .add(new Paragraph(String.valueOf(ano))
+                                .setFontSize(22).setBold().setFontColor(t.branco())
+                                .setTextAlignment(TextAlignment.LEFT))
+                        .setBackgroundColor(t.primaria()).setPadding(14).setBorder(Border.NO_BORDER));
+                doc.add(anoHdr);
+                PdfExplicitDestination destAno = PdfExplicitDestination.createFit(pdf.getLastPage());
+                pdf.addNamedDestination("ano_" + ano, destAno.getPdfObject());
+
+                for (Map.Entry<Integer, List<EventoFinanceiro>> mesEntry : anoEntry.getValue().entrySet()) {
+                    int mes = mesEntry.getKey();
+                    List<EventoFinanceiro> evMes = mesEntry.getValue();
+                    String nomeMes = capitalizar(Month.of(mes).getDisplayName(TextStyle.FULL, ptBR));
+
+                    // Cabeçalho do mês
+                    Table mesHdr = new Table(UnitValue.createPercentArray(new float[]{1}))
+                            .setWidth(UnitValue.createPercentValue(100)).setMarginTop(18);
+                    mesHdr.addCell(new Cell()
+                            .add(new Paragraph(nomeMes + " " + ano)
+                                    .setFontSize(13).setBold().setFontColor(t.branco()))
+                            .setBackgroundColor(t.priMed()).setPadding(8).setBorder(Border.NO_BORDER));
+                    doc.add(mesHdr);
                     PdfExplicitDestination destMes = PdfExplicitDestination.createFit(pdf.getLastPage());
-                    pdf.addNamedDestination("mes_" + anoAtual + "_" + data.getMonthValue(), destMes.getPdfObject());
+                    pdf.addNamedDestination("mes_" + ano + "_" + mes, destMes.getPdfObject());
 
-                    tabela = new Table(9);
-                    String[] cabecalhos = {"Dia", "Título", "Valor", "Tipo", "Descrição",
-                                           "Instituições", "Movimentação", "Parcelas", "Categorias"};
-                    for (String h : cabecalhos) {
-                        tabela.addCell(new Cell().add(new Paragraph(h).setBold().setFontColor(textoClaro))
-                                .setBackgroundColor(tealEscuro));
+                    // Tabela de transações
+                    float[] cols = {5f, 13f, 9f, 9f, 14f, 12f, 8f, 7f, 13f};
+                    Table tabela = new Table(UnitValue.createPercentArray(cols))
+                            .setWidth(UnitValue.createPercentValue(100)).setMarginTop(4);
+
+                    String[] hdrs = {"Data", "Título", "Valor (R$)", "Tipo", "Descrição",
+                                     "Instituição", "Movimento", "Parcelas", "Categorias"};
+                    for (String h : hdrs) {
+                        tabela.addHeaderCell(new Cell()
+                                .add(new Paragraph(h).setFontSize(7.5f).setBold().setFontColor(t.branco())
+                                        .setTextAlignment(TextAlignment.CENTER))
+                                .setBackgroundColor(t.primaria()).setPadding(5f)
+                                .setBorder(new SolidBorder(t.branco(), 0.5f)));
                     }
-                }
 
-                EventoDetalhe detalhe = ev.getGastoDetalhe();
-                String titulo = (detalhe != null) ? detalhe.getTituloGasto() : "-";
-                String categorias = (detalhe != null && detalhe.getCategoriaUsuario() != null)
-                        ? detalhe.getCategoriaUsuario().stream()
-                                 .map(c -> c.getCategoria().getTitulo())
-                                 .reduce((a, b) -> a + " / " + b).orElse("-")
-                        : "-";
+                    BigDecimal recM = BigDecimal.ZERO, gasM = BigDecimal.ZERO;
+                    BigDecimal pouM = BigDecimal.ZERO, traM = BigDecimal.ZERO;
 
-                List<EventoInstituicao> insts = eventoInstituicaoRepository
-                        .findEventoInstituicaoByEventoFinanceiro_Id(ev.getId());
-                String instNome    = insts.isEmpty() ? "-" : insts.get(0).getInstituicaoUsuario().getInstituicao().getNome();
-                String tipoMov     = insts.isEmpty() ? "-" : insts.get(0).getTipoMovimento().toString();
-                String parcelasStr = insts.isEmpty() ? "-" : String.valueOf(insts.get(0).getParcelas());
+                    for (EventoFinanceiro ev : evMes) {
+                        DeviceRgb bg, fg;
+                        switch (ev.getTipo()) {
+                            case Recebimento, Emprestimo -> { bg = t.recBg(); fg = t.recFg(); }
+                            case Gasto                   -> { bg = t.gasBg(); fg = t.gasFg(); }
+                            case Transferencia           -> { bg = t.traBg(); fg = t.traFg(); }
+                            case Poupanca                -> { bg = t.pouBg(); fg = t.pouFg(); }
+                            default                      -> { bg = t.cinza(); fg = t.texto(); }
+                        }
 
-                tabela.addCell(String.valueOf(data.getDayOfMonth()));
-                tabela.addCell(titulo);
-                tabela.addCell(ev.getValor().toString());
-                tabela.addCell(ev.getTipo().toString());
-                tabela.addCell(ev.getDescricao() != null ? ev.getDescricao() : "-");
-                tabela.addCell(instNome);
-                tabela.addCell(tipoMov);
-                tabela.addCell(parcelasStr);
-                tabela.addCell(categorias);
+                        EventoDetalhe det = ev.getGastoDetalhe();
+                        String titulo = det != null ? det.getTituloGasto() : "-";
+                        String cats = det != null && det.getCategoriaUsuario() != null
+                                ? det.getCategoriaUsuario().stream()
+                                      .map(c -> c.getCategoria().getTitulo())
+                                      .reduce((a, b) -> a + ", " + b).orElse("-") : "-";
 
-                if (ev.getTipo() == Tipo.Recebimento) {
-                    ganhosMes = ganhosMes.add(BigDecimal.valueOf(ev.getValor()));
-                } else if (ev.getTipo() == Tipo.Gasto || ev.getTipo() == Tipo.Transferencia) {
-                    gastosMes = gastosMes.add(BigDecimal.valueOf(ev.getValor()));
-                }
+                        List<EventoInstituicao> insts = instsByEvento.getOrDefault(ev.getId(), List.of());
+                        String instN = insts.stream()
+                                .map(ei -> ei.getInstituicaoUsuario().getInstituicao().getNome())
+                                .distinct().reduce((a, b) -> a + " / " + b).orElse("-");
+                        String tipoMov = insts.stream()
+                                .map(ei -> ei.getTipoMovimento().toString())
+                                .distinct().reduce((a, b) -> a + " / " + b).orElse("-");
+                        int maxParc = insts.stream().mapToInt(EventoInstituicao::getParcelas).max().orElse(1);
 
-                boolean ultimoEvento = (i == eventos.size() - 1);
-                boolean proximoMesDiferente = !ultimoEvento
-                        && eventos.get(i + 1).getDataEvento().getMonthValue() != mesAtual;
+                        String[] celulas = {
+                            ev.getDataEvento().format(dtDiaMes),
+                            truncar(titulo, 35),
+                            formatarMoeda(ev.getValor()),
+                            ev.getTipo().toString(),
+                            truncar(ev.getDescricao() != null ? ev.getDescricao() : "-", 50),
+                            truncar(instN, 30),
+                            tipoMov,
+                            maxParc <= 1 ? "À vista" : maxParc + "x",
+                            truncar(cats, 35)
+                        };
 
-                if (ultimoEvento || proximoMesDiferente) {
+                        for (String celVal : celulas) {
+                            tabela.addCell(new Cell()
+                                    .add(new Paragraph(celVal).setFontSize(7.5f).setFontColor(fg))
+                                    .setBackgroundColor(bg).setPadding(4f)
+                                    .setBorder(new SolidBorder(t.bordaCinza(), 0.3f)));
+                        }
+
+                        switch (ev.getTipo()) {
+                            case Recebimento, Emprestimo -> recM = recM.add(BigDecimal.valueOf(ev.getValor()));
+                            case Gasto                   -> gasM = gasM.add(BigDecimal.valueOf(ev.getValor()));
+                            case Transferencia           -> traM = traM.add(BigDecimal.valueOf(ev.getValor()));
+                            case Poupanca                -> pouM = pouM.add(BigDecimal.valueOf(ev.getValor()));
+                        }
+                    }
+
                     doc.add(tabela);
-                    String nomeMesResumo = capitalizar(data.getMonth().getDisplayName(TextStyle.FULL, new Locale("pt", "BR")));
-                    doc.add(new Paragraph("Resumo de " + nomeMesResumo)
-                            .setBold().setFontSize(12).setFontColor(tealEscuro).setMarginTop(10));
-                    PdfPage paginaResumo = pdf.getLastPage();
-                    PdfExplicitDestination destResumo = PdfExplicitDestination.createFit(paginaResumo);
-                    pdf.addNamedDestination("resumo_mes_" + anoAtual + "_" + mesAtual, destResumo.getPdfObject());
 
-                    Table resumoMes = new Table(3).setWidth(UnitValue.createPercentValue(100));
-                    resumoMes.addCell(new Cell().add(new Paragraph("Ganhos")).setBackgroundColor(tealClaro).setFontColor(tealEscuro).setBold());
-                    resumoMes.addCell(new Cell().add(new Paragraph("Gastos")).setBackgroundColor(vermelhoFundo).setFontColor(vermelhoTexto).setBold());
-                    resumoMes.addCell(new Cell().add(new Paragraph("Saldo")).setBackgroundColor(verdeFundo).setFontColor(verdeTexto).setBold());
-                    resumoMes.addCell(new Cell().add(new Paragraph("R$ " + ganhosMes)));
-                    resumoMes.addCell(new Cell().add(new Paragraph("R$ " + gastosMes)));
-                    resumoMes.addCell(new Cell().add(new Paragraph("R$ " + ganhosMes.subtract(gastosMes))));
-                    doc.add(resumoMes);
-                    doc.add(new AreaBreak());
+                    BigDecimal saldoM = recM.subtract(gasM).subtract(traM).subtract(pouM);
+                    doc.add(pdfBoxResumoMes(nomeMes + " " + ano, recM, gasM, pouM, traM, saldoM, t));
 
-                    ganhosAno = ganhosAno.add(ganhosMes);
-                    gastosAno = gastosAno.add(gastosMes);
+                    totalRecAno = totalRecAno.add(recM);
+                    totalGasAno = totalGasAno.add(gasM);
+                    totalPouAno = totalPouAno.add(pouM);
+                    totalTraAno = totalTraAno.add(traM);
                 }
+
+                // Resumo anual
+                BigDecimal saldoAno = totalRecAno.subtract(totalGasAno).subtract(totalTraAno).subtract(totalPouAno);
+                doc.add(pdfBoxResumoAno(ano, totalRecAno, totalGasAno, totalPouAno, totalTraAno, saldoAno, t));
+
+                totalRecGeral = totalRecGeral.add(totalRecAno);
+                totalGasGeral = totalGasGeral.add(totalGasAno);
+                totalPouGeral = totalPouGeral.add(totalPouAno);
+                totalTraGeral = totalTraGeral.add(totalTraAno);
+
+                doc.add(new AreaBreak());
             }
 
-            doc.add(new Paragraph("Resumo do Ano " + anoAtual)
-                    .setBold().setFontSize(14).setFontColor(tealEscuro).setMarginTop(15));
-            Table resumoAno = new Table(3).setWidth(UnitValue.createPercentValue(100));
-            resumoAno.addCell(new Cell().add(new Paragraph("Ganhos")).setBackgroundColor(tealClaro).setFontColor(tealEscuro).setBold());
-            resumoAno.addCell(new Cell().add(new Paragraph("Gastos")).setBackgroundColor(vermelhoFundo).setFontColor(vermelhoTexto).setBold());
-            resumoAno.addCell(new Cell().add(new Paragraph("Saldo")).setBackgroundColor(verdeFundo).setFontColor(verdeTexto).setBold());
-            resumoAno.addCell(new Cell().add(new Paragraph("R$ " + ganhosAno)));
-            resumoAno.addCell(new Cell().add(new Paragraph("R$ " + gastosAno)));
-            resumoAno.addCell(new Cell().add(new Paragraph("R$ " + ganhosAno.subtract(gastosAno))));
-            doc.add(resumoAno);
+            // ── ANÁLISE FINANCEIRA ────────────────────────────────────────────
+            PdfExplicitDestination destAnalise = PdfExplicitDestination.createFit(pdf.getLastPage());
+            pdf.addNamedDestination("analise_financeira", destAnalise.getPdfObject());
+
+            pdfAnaliseFinanceira(doc, usuario, eventos, instsByEvento, porAnoMes,
+                    totalRecGeral, totalGasGeral, totalPouGeral, totalTraGeral, t, ptBR, dtFmt);
+
             doc.close();
 
             return new ExportacaoResultado(out.toByteArray(),
@@ -1146,6 +1192,571 @@ public class RegistroExportacaoService {
         } catch (Exception e) {
             throw new RuntimeException("Erro ao gerar exportação PDF.", e);
         }
+    }
+
+    // ─── Capa ────────────────────────────────────────────────────────────────
+
+    private void pdfCapa(Document doc, Usuario usuario,
+                          LocalDate inicio, LocalDate fim, int totalEventos,
+                          DateTimeFormatter dtFmt, PdfTheme t) {
+        // Banner principal
+        Table banner = new Table(UnitValue.createPercentArray(new float[]{1}))
+                .setWidth(UnitValue.createPercentValue(100));
+        banner.addCell(new Cell()
+                .add(new Paragraph("MyFinance")
+                        .setFontSize(40).setBold().setFontColor(t.branco())
+                        .setTextAlignment(TextAlignment.CENTER).setMarginBottom(4))
+                .add(new Paragraph("Relatório Financeiro Completo")
+                        .setFontSize(15).setFontColor(t.priLight())
+                        .setTextAlignment(TextAlignment.CENTER))
+                .setBackgroundColor(t.primaria()).setPadding(55).setBorder(Border.NO_BORDER));
+        doc.add(banner);
+
+        // Informações do usuário
+        Table info = new Table(UnitValue.createPercentArray(new float[]{35, 65}))
+                .setWidth(UnitValue.createPercentValue(75))
+                .setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.CENTER)
+                .setMarginTop(28);
+
+        Object[][] campos = {
+            {"Usuário",            usuario.getNome() + " " + usuario.getSobrenome()},
+            {"E-mail",             usuario.getEmail()},
+            {"Período analisado",  inicio.format(dtFmt) + " até " + fim.format(dtFmt)},
+            {"Total de registros", String.valueOf(totalEventos)},
+            {"Documento gerado",   LocalDate.now().format(dtFmt)}
+        };
+
+        for (Object[] campo : campos) {
+            info.addCell(new Cell()
+                    .add(new Paragraph(campo[0].toString()).setFontSize(9.5f).setBold().setFontColor(t.primaria()))
+                    .setBackgroundColor(t.priLight()).setPadding(8)
+                    .setBorder(new SolidBorder(t.bordaCinza(), 0.5f)));
+            info.addCell(new Cell()
+                    .add(new Paragraph(campo[1].toString()).setFontSize(9.5f).setFontColor(t.texto()))
+                    .setPadding(8).setBorder(new SolidBorder(t.bordaCinza(), 0.5f)));
+        }
+        doc.add(info);
+    }
+
+    // ─── Sumário ─────────────────────────────────────────────────────────────
+
+    private void pdfSumario(Document doc,
+                              Map<Integer, Map<Integer, List<EventoFinanceiro>>> porAnoMes,
+                              Locale ptBR, PdfTheme t) {
+        doc.add(pdfTituloSecao("Sumário", t));
+
+        for (Map.Entry<Integer, Map<Integer, List<EventoFinanceiro>>> anoEntry : porAnoMes.entrySet()) {
+            int ano = anoEntry.getKey();
+            doc.add(new Paragraph(
+                    new Link(String.valueOf(ano), PdfAction.createGoTo("ano_" + ano)))
+                    .setFontSize(13).setBold().setFontColor(t.primaria())
+                    .setMarginTop(10).setMarginLeft(12));
+
+            for (int mes : anoEntry.getValue().keySet()) {
+                String nomeMes = capitalizar(Month.of(mes).getDisplayName(TextStyle.FULL, ptBR));
+                doc.add(new Paragraph(
+                        new Link("    ▸  " + nomeMes + " " + ano,
+                                PdfAction.createGoTo("mes_" + ano + "_" + mes)))
+                        .setFontSize(11).setFontColor(t.texto()).setMarginLeft(28));
+            }
+        }
+
+        doc.add(new Paragraph(
+                new Link("► Análise Financeira e Saúde Financeira",
+                        PdfAction.createGoTo("analise_financeira")))
+                .setFontSize(13).setBold().setFontColor(t.priMed())
+                .setMarginTop(22).setMarginLeft(12));
+    }
+
+    // ─── Box resumo mensal ───────────────────────────────────────────────────
+
+    private Table pdfBoxResumoMes(String titulo, BigDecimal rec, BigDecimal gas,
+                                    BigDecimal pou, BigDecimal tra, BigDecimal saldo,
+                                    PdfTheme t) {
+        Table box = new Table(UnitValue.createPercentArray(new float[]{1, 1, 1, 1, 1}))
+                .setWidth(UnitValue.createPercentValue(100)).setMarginTop(8);
+
+        // Cabeçalhos
+        for (String h : new String[]{"Receitas", "Gastos", "Poupança", "Transferências", "Saldo"}) {
+            box.addCell(new Cell()
+                    .add(new Paragraph(h).setFontSize(8f).setBold().setFontColor(t.branco())
+                            .setTextAlignment(TextAlignment.CENTER))
+                    .setBackgroundColor(t.priMed()).setPadding(5f).setBorder(Border.NO_BORDER));
+        }
+
+        // Valores
+        DeviceRgb saldoBg = saldo.compareTo(BigDecimal.ZERO) >= 0 ? t.recBg() : t.gasBg();
+        DeviceRgb saldoFg = saldo.compareTo(BigDecimal.ZERO) >= 0 ? t.recFg() : t.gasFg();
+
+        box.addCell(pdfBoxCell(formatarMoeda(rec.doubleValue()), t.recBg(), t.recFg()));
+        box.addCell(pdfBoxCell(formatarMoeda(gas.doubleValue()), t.gasBg(), t.gasFg()));
+        box.addCell(pdfBoxCell(formatarMoeda(pou.doubleValue()), t.pouBg(), t.pouFg()));
+        box.addCell(pdfBoxCell(formatarMoeda(tra.doubleValue()), t.traBg(), t.traFg()));
+        box.addCell(pdfBoxCell(formatarMoeda(saldo.doubleValue()), saldoBg, saldoFg));
+
+        return box;
+    }
+
+    // ─── Box resumo anual ────────────────────────────────────────────────────
+
+    private Table pdfBoxResumoAno(int ano, BigDecimal rec, BigDecimal gas,
+                                   BigDecimal pou, BigDecimal tra, BigDecimal saldo,
+                                   PdfTheme t) {
+        Table box = new Table(UnitValue.createPercentArray(new float[]{1, 1, 1, 1, 1}))
+                .setWidth(UnitValue.createPercentValue(100)).setMarginTop(14);
+
+        box.addCell(new Cell(1, 5)
+                .add(new Paragraph("Resumo Anual — " + ano)
+                        .setFontSize(11f).setBold().setFontColor(t.branco()))
+                .setBackgroundColor(t.primaria()).setPadding(7f).setBorder(Border.NO_BORDER));
+
+        for (String h : new String[]{"Receitas", "Gastos", "Poupança", "Transferências", "Saldo do Ano"}) {
+            box.addCell(new Cell()
+                    .add(new Paragraph(h).setFontSize(8f).setBold().setFontColor(t.primaria())
+                            .setTextAlignment(TextAlignment.CENTER))
+                    .setBackgroundColor(t.priLight()).setPadding(5f)
+                    .setBorder(new SolidBorder(t.bordaCinza(), 0.5f)));
+        }
+
+        DeviceRgb saldoBg = saldo.compareTo(BigDecimal.ZERO) >= 0 ? t.recBg() : t.gasBg();
+        DeviceRgb saldoFg = saldo.compareTo(BigDecimal.ZERO) >= 0 ? t.recFg() : t.gasFg();
+
+        box.addCell(pdfBoxCell(formatarMoeda(rec.doubleValue()), t.recBg(), t.recFg()));
+        box.addCell(pdfBoxCell(formatarMoeda(gas.doubleValue()), t.gasBg(), t.gasFg()));
+        box.addCell(pdfBoxCell(formatarMoeda(pou.doubleValue()), t.pouBg(), t.pouFg()));
+        box.addCell(pdfBoxCell(formatarMoeda(tra.doubleValue()), t.traBg(), t.traFg()));
+        box.addCell(pdfBoxCell(formatarMoeda(saldo.doubleValue()), saldoBg, saldoFg));
+
+        return box;
+    }
+
+    // ─── Análise financeira completa ─────────────────────────────────────────
+
+    private void pdfAnaliseFinanceira(Document doc, Usuario usuario,
+                                       List<EventoFinanceiro> eventos,
+                                       Map<UUID, List<EventoInstituicao>> instsByEvento,
+                                       Map<Integer, Map<Integer, List<EventoFinanceiro>>> porAnoMes,
+                                       BigDecimal totalRec, BigDecimal totalGas,
+                                       BigDecimal totalPou, BigDecimal totalTra,
+                                       PdfTheme t, Locale ptBR, DateTimeFormatter dtFmt) {
+
+        // Marcador textual que o importador usa para parar de ler registros
+        doc.add(pdfTituloSecao("ANÁLISE FINANCEIRA", t));
+
+        BigDecimal saldoGeral = totalRec.subtract(totalGas).subtract(totalTra).subtract(totalPou);
+
+        // ── 1. Resumo financeiro global ────────────────────────────────────────
+        doc.add(pdfSubtituloSecao("1. Resumo Financeiro Global", t));
+
+        Table resumo = new Table(UnitValue.createPercentArray(new float[]{45, 55}))
+                .setWidth(UnitValue.createPercentValue(100)).setMarginTop(6);
+
+        Object[][] linhasResumo = {
+            {"Total de Receitas (Recebimentos + Empréstimos)", formatarMoeda(totalRec.doubleValue())},
+            {"Total de Gastos", formatarMoeda(totalGas.doubleValue())},
+            {"Total em Poupança", formatarMoeda(totalPou.doubleValue())},
+            {"Total em Transferências", formatarMoeda(totalTra.doubleValue())},
+            {"Saldo Geral (Receitas − Gastos − Transf. − Poupança)", formatarMoeda(saldoGeral.doubleValue())}
+        };
+
+        boolean altResumo = false;
+        for (int i = 0; i < linhasResumo.length; i++) {
+            boolean isSaldo = i == linhasResumo.length - 1;
+            DeviceRgb bg = isSaldo
+                    ? (saldoGeral.compareTo(BigDecimal.ZERO) >= 0 ? t.recBg() : t.gasBg())
+                    : (altResumo ? t.cinza() : t.branco());
+            DeviceRgb fg = isSaldo
+                    ? (saldoGeral.compareTo(BigDecimal.ZERO) >= 0 ? t.recFg() : t.gasFg())
+                    : t.texto();
+
+            Paragraph pLabel = new Paragraph(linhasResumo[i][0].toString())
+                    .setFontSize(9f).setFontColor(fg);
+            Paragraph pValue = new Paragraph(linhasResumo[i][1].toString())
+                    .setFontSize(9f).setFontColor(fg).setTextAlignment(TextAlignment.RIGHT);
+            if (isSaldo) { pLabel.setBold(); pValue.setBold(); }
+
+            resumo.addCell(new Cell()
+                    .add(pLabel).setBackgroundColor(bg).setPadding(7f)
+                    .setBorder(new SolidBorder(t.bordaCinza(), 0.4f)));
+            resumo.addCell(new Cell()
+                    .add(pValue).setBackgroundColor(bg).setPadding(7f)
+                    .setBorder(new SolidBorder(t.bordaCinza(), 0.4f)));
+            altResumo = !altResumo;
+        }
+        doc.add(resumo);
+
+        // Taxas
+        double taxaGastos  = totalRec.compareTo(BigDecimal.ZERO) > 0
+                ? totalGas.divide(totalRec, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).doubleValue() : 0;
+        double taxaPoupanca = totalRec.compareTo(BigDecimal.ZERO) > 0
+                ? totalPou.divide(totalRec, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).doubleValue() : 0;
+
+        Table taxas = new Table(UnitValue.createPercentArray(new float[]{1, 1}))
+                .setWidth(UnitValue.createPercentValue(60)).setMarginTop(8);
+        taxas.addCell(pdfBoxCell("Taxa de Gastos: " + String.format("%.1f%%", taxaGastos),
+                taxaGastos > 80 ? t.gasBg() : t.recBg(), taxaGastos > 80 ? t.gasFg() : t.recFg()));
+        taxas.addCell(pdfBoxCell("Taxa de Poupança: " + String.format("%.1f%%", taxaPoupanca),
+                taxaPoupanca >= 10 ? t.recBg() : t.gasBg(), taxaPoupanca >= 10 ? t.recFg() : t.gasFg()));
+        doc.add(taxas);
+
+        // ── 2. Análise por Categoria ───────────────────────────────────────────
+        doc.add(pdfSubtituloSecao("2. Gastos por Categoria", t));
+
+        Map<String, double[]> catMap = new LinkedHashMap<>();
+        for (EventoFinanceiro ev : eventos) {
+            if (ev.getTipo() == Tipo.Gasto) {
+                EventoDetalhe det = ev.getGastoDetalhe();
+                if (det != null && det.getCategoriaUsuario() != null) {
+                    for (CategoriaUsuario cu : det.getCategoriaUsuario()) {
+                        String nome = cu.getCategoria().getTitulo();
+                        catMap.computeIfAbsent(nome, k -> new double[]{0, 0});
+                        catMap.get(nome)[0] += ev.getValor();
+                        catMap.get(nome)[1]++;
+                    }
+                }
+            }
+        }
+        List<Map.Entry<String, double[]>> catSorted = catMap.entrySet().stream()
+                .sorted((a, b) -> Double.compare(b.getValue()[0], a.getValue()[0]))
+                .toList();
+
+        if (!catSorted.isEmpty()) {
+            Table catTable = new Table(UnitValue.createPercentArray(new float[]{40, 25, 20, 15}))
+                    .setWidth(UnitValue.createPercentValue(100)).setMarginTop(6);
+            for (String h : new String[]{"Categoria", "Total (R$)", "% dos Gastos", "Ocorrências"}) {
+                catTable.addHeaderCell(new Cell()
+                        .add(new Paragraph(h).setFontSize(8f).setBold().setFontColor(t.branco()))
+                        .setBackgroundColor(t.primaria()).setPadding(6f).setBorder(Border.NO_BORDER));
+            }
+            boolean altCat = false;
+            double totGas = totalGas.doubleValue();
+            for (Map.Entry<String, double[]> e : catSorted) {
+                DeviceRgb bg = altCat ? t.cinza() : t.branco();
+                double pct = totGas > 0 ? (e.getValue()[0] / totGas) * 100 : 0;
+                catTable.addCell(pdfDataCell(e.getKey(), bg, t.texto()));
+                catTable.addCell(pdfDataCell(formatarMoeda(e.getValue()[0]), bg, t.texto()));
+                catTable.addCell(pdfDataCell(String.format("%.1f%%", pct), bg, t.texto()));
+                catTable.addCell(pdfDataCell(String.valueOf((int) e.getValue()[1]), bg, t.texto()));
+                altCat = !altCat;
+            }
+            doc.add(catTable);
+        } else {
+            doc.add(new Paragraph("Nenhum gasto categorizado encontrado.")
+                    .setFontSize(9f).setFontColor(t.texto()).setMarginTop(4));
+        }
+
+        // ── 3. Análise por Instituição ─────────────────────────────────────────
+        doc.add(pdfSubtituloSecao("3. Movimentações por Instituição", t));
+
+        Map<String, double[]> instMap = new LinkedHashMap<>();
+        for (Map.Entry<UUID, List<EventoInstituicao>> e : instsByEvento.entrySet()) {
+            for (EventoInstituicao ei : e.getValue()) {
+                String nome = ei.getInstituicaoUsuario().getInstituicao().getNome();
+                instMap.computeIfAbsent(nome, k -> new double[]{0, 0});
+                instMap.get(nome)[0] += ei.getValor();
+                instMap.get(nome)[1]++;
+            }
+        }
+        List<Map.Entry<String, double[]>> instSorted = instMap.entrySet().stream()
+                .sorted((a, b) -> Double.compare(b.getValue()[0], a.getValue()[0]))
+                .toList();
+        double totInst = instMap.values().stream().mapToDouble(v -> v[0]).sum();
+
+        if (!instSorted.isEmpty()) {
+            Table instTable = new Table(UnitValue.createPercentArray(new float[]{40, 25, 20, 15}))
+                    .setWidth(UnitValue.createPercentValue(100)).setMarginTop(6);
+            for (String h : new String[]{"Instituição", "Volume (R$)", "% do Volume", "Transações"}) {
+                instTable.addHeaderCell(new Cell()
+                        .add(new Paragraph(h).setFontSize(8f).setBold().setFontColor(t.branco()))
+                        .setBackgroundColor(t.primaria()).setPadding(6f).setBorder(Border.NO_BORDER));
+            }
+            boolean altInst = false;
+            for (Map.Entry<String, double[]> e : instSorted) {
+                DeviceRgb bg = altInst ? t.cinza() : t.branco();
+                double pct = totInst > 0 ? (e.getValue()[0] / totInst) * 100 : 0;
+                instTable.addCell(pdfDataCell(e.getKey(), bg, t.texto()));
+                instTable.addCell(pdfDataCell(formatarMoeda(e.getValue()[0]), bg, t.texto()));
+                instTable.addCell(pdfDataCell(String.format("%.1f%%", pct), bg, t.texto()));
+                instTable.addCell(pdfDataCell(String.valueOf((int) e.getValue()[1]), bg, t.texto()));
+                altInst = !altInst;
+            }
+            doc.add(instTable);
+        }
+
+        // ── 4. Evolução Mensal ─────────────────────────────────────────────────
+        doc.add(pdfSubtituloSecao("4. Evolução Mensal", t));
+
+        Table evolTable = new Table(UnitValue.createPercentArray(new float[]{20, 20, 20, 20, 20}))
+                .setWidth(UnitValue.createPercentValue(100)).setMarginTop(6);
+        for (String h : new String[]{"Mês / Ano", "Receitas", "Gastos", "Saldo", "Situação"}) {
+            evolTable.addHeaderCell(new Cell()
+                    .add(new Paragraph(h).setFontSize(8f).setBold().setFontColor(t.branco()))
+                    .setBackgroundColor(t.primaria()).setPadding(6f).setBorder(Border.NO_BORDER));
+        }
+
+        for (Map.Entry<Integer, Map<Integer, List<EventoFinanceiro>>> anoEntry : porAnoMes.entrySet()) {
+            int ano = anoEntry.getKey();
+            for (Map.Entry<Integer, List<EventoFinanceiro>> mesEntry : anoEntry.getValue().entrySet()) {
+                int mes = mesEntry.getKey();
+                String nomeMes = capitalizar(Month.of(mes).getDisplayName(TextStyle.FULL, ptBR));
+                double recM = 0, gasM = 0;
+                for (EventoFinanceiro ev : mesEntry.getValue()) {
+                    if (ev.getTipo() == Tipo.Recebimento || ev.getTipo() == Tipo.Emprestimo) recM += ev.getValor();
+                    else if (ev.getTipo() == Tipo.Gasto) gasM += ev.getValor();
+                }
+                double saldoM = recM - gasM;
+                boolean pos = saldoM >= 0;
+                DeviceRgb bg = pos ? t.recBg() : t.gasBg();
+                DeviceRgb fg = pos ? t.recFg() : t.gasFg();
+                String situacao = pos ? "Positivo ✓" : "Negativo ✗";
+
+                evolTable.addCell(pdfDataCell(nomeMes + "/" + ano, t.branco(), t.texto()));
+                evolTable.addCell(pdfDataCell(formatarMoeda(recM), t.branco(), t.recFg()));
+                evolTable.addCell(pdfDataCell(formatarMoeda(gasM), t.branco(), t.gasFg()));
+                evolTable.addCell(pdfDataCell(formatarMoeda(saldoM), bg, fg));
+                evolTable.addCell(pdfDataCell(situacao, bg, fg));
+            }
+        }
+        doc.add(evolTable);
+
+        // ── 5. Principais Indicadores ──────────────────────────────────────────
+        doc.add(pdfSubtituloSecao("5. Principais Indicadores", t));
+
+        // Maior gasto individual
+        EventoFinanceiro maiorGasto = eventos.stream()
+                .filter(e -> e.getTipo() == Tipo.Gasto)
+                .max(Comparator.comparingDouble(EventoFinanceiro::getValor))
+                .orElse(null);
+
+        // Mês com maior gasto
+        double[] maiores = {0};
+        String[] mesMaiorGasto = {"-"};
+        for (Map.Entry<Integer, Map<Integer, List<EventoFinanceiro>>> anoEntry : porAnoMes.entrySet()) {
+            for (Map.Entry<Integer, List<EventoFinanceiro>> mesEntry : anoEntry.getValue().entrySet()) {
+                double gasM = mesEntry.getValue().stream()
+                        .filter(e -> e.getTipo() == Tipo.Gasto).mapToDouble(EventoFinanceiro::getValor).sum();
+                if (gasM > maiores[0]) {
+                    maiores[0] = gasM;
+                    mesMaiorGasto[0] = capitalizar(Month.of(mesEntry.getKey()).getDisplayName(TextStyle.FULL, ptBR))
+                            + "/" + anoEntry.getKey();
+                }
+            }
+        }
+
+        long qtdMeses = porAnoMes.values().stream().mapToLong(m -> m.size()).sum();
+        double mediaGastoMes = qtdMeses > 0 ? totalGas.doubleValue() / qtdMeses : 0;
+        long qtdPositivos = porAnoMes.values().stream().flatMap(m -> m.entrySet().stream())
+                .filter(me -> {
+                    double r = me.getValue().stream().filter(e -> e.getTipo() == Tipo.Recebimento || e.getTipo() == Tipo.Emprestimo).mapToDouble(EventoFinanceiro::getValor).sum();
+                    double g = me.getValue().stream().filter(e -> e.getTipo() == Tipo.Gasto).mapToDouble(EventoFinanceiro::getValor).sum();
+                    return r >= g;
+                }).count();
+
+        Table indicadores = new Table(UnitValue.createPercentArray(new float[]{55, 45}))
+                .setWidth(UnitValue.createPercentValue(100)).setMarginTop(6);
+
+        Object[][] indRows = {
+            {"Total de transações no período", String.valueOf(eventos.size())},
+            {"Total de meses analisados", String.valueOf(qtdMeses)},
+            {"Meses com saldo positivo", qtdPositivos + " de " + qtdMeses},
+            {"Média de gastos mensais", formatarMoeda(mediaGastoMes)},
+            {"Mês com maior volume de gastos", mesMaiorGasto[0] + " (" + formatarMoeda(maiores[0]) + ")"},
+            {"Maior gasto individual", maiorGasto != null
+                    ? formatarMoeda(maiorGasto.getValor()) + " — " +
+                      (maiorGasto.getGastoDetalhe() != null ? maiorGasto.getGastoDetalhe().getTituloGasto() : "-") +
+                      " (" + maiorGasto.getDataEvento().format(dtFmt) + ")"
+                    : "-"},
+            {"Categoria com maior impacto", catSorted.isEmpty() ? "-"
+                    : catSorted.get(0).getKey() + " — " + formatarMoeda(catSorted.get(0).getValue()[0])},
+            {"Instituição com maior volume", instSorted.isEmpty() ? "-"
+                    : instSorted.get(0).getKey() + " — " + formatarMoeda(instSorted.get(0).getValue()[0])}
+        };
+
+        boolean altInd = false;
+        for (Object[] row : indRows) {
+            DeviceRgb bg = altInd ? t.cinza() : t.branco();
+            indicadores.addCell(new Cell()
+                    .add(new Paragraph(row[0].toString()).setFontSize(9f).setBold().setFontColor(t.primaria()))
+                    .setBackgroundColor(bg).setPadding(7f).setBorder(new SolidBorder(t.bordaCinza(), 0.4f)));
+            indicadores.addCell(new Cell()
+                    .add(new Paragraph(row[1].toString()).setFontSize(9f).setFontColor(t.texto()))
+                    .setBackgroundColor(bg).setPadding(7f).setBorder(new SolidBorder(t.bordaCinza(), 0.4f)));
+            altInd = !altInd;
+        }
+        doc.add(indicadores);
+
+        // ── 6. Saúde Financeira ────────────────────────────────────────────────
+        doc.add(pdfSubtituloSecao("6. Saúde Financeira", t));
+
+        int score = calcularScoreSaude(taxaGastos, taxaPoupanca, saldoGeral, qtdPositivos, qtdMeses);
+        String[] classif = classificarSaude(score);
+
+        Table saude = new Table(UnitValue.createPercentArray(new float[]{1}))
+                .setWidth(UnitValue.createPercentValue(100)).setMarginTop(6);
+
+        DeviceRgb saudeBg = score >= 75 ? t.recBg() : score >= 50 ? t.priLight() : score >= 30 ? t.traBg() : t.gasBg();
+        DeviceRgb saudeFg = score >= 75 ? t.recFg() : score >= 50 ? t.primaria() : score >= 30 ? t.traFg() : t.gasFg();
+
+        saude.addCell(new Cell()
+                .add(new Paragraph("Pontuação: " + score + "/100 — " + classif[0])
+                        .setFontSize(16f).setBold().setFontColor(saudeFg)
+                        .setTextAlignment(TextAlignment.CENTER))
+                .setBackgroundColor(saudeBg).setPadding(18f).setBorder(Border.NO_BORDER));
+        doc.add(saude);
+
+        // Descrição e recomendações
+        doc.add(new Paragraph(classif[1])
+                .setFontSize(9.5f).setFontColor(t.texto()).setMarginTop(8).setMarginLeft(4));
+
+        doc.add(pdfSubtituloSecao("Critérios de avaliação:", t));
+
+        String[][] criterios = {
+            {"Taxa de Gastos (" + String.format("%.1f%%", taxaGastos) + ")",
+             taxaGastos <= 60 ? "Excelente — abaixo de 60% da receita"
+             : taxaGastos <= 75 ? "Bom — entre 60% e 75%"
+             : taxaGastos <= 85 ? "Atenção — entre 75% e 85%"
+             : "Crítico — acima de 85%"},
+            {"Taxa de Poupança (" + String.format("%.1f%%", taxaPoupanca) + ")",
+             taxaPoupanca >= 20 ? "Excelente — acima de 20%"
+             : taxaPoupanca >= 10 ? "Bom — entre 10% e 20%"
+             : taxaPoupanca >= 5  ? "Regular — entre 5% e 10%"
+             : "Baixo — abaixo de 5%"},
+            {"Saldo Geral", saldoGeral.compareTo(BigDecimal.ZERO) >= 0
+             ? "Positivo (" + formatarMoeda(saldoGeral.doubleValue()) + ")"
+             : "Negativo (" + formatarMoeda(saldoGeral.doubleValue()) + ") — requer atenção"},
+            {"Meses positivos", qtdPositivos + " de " + qtdMeses
+             + (qtdMeses > 0 ? " (" + String.format("%.0f%%", (double) qtdPositivos / qtdMeses * 100) + ")" : "")}
+        };
+
+        Table crit = new Table(UnitValue.createPercentArray(new float[]{35, 65}))
+                .setWidth(UnitValue.createPercentValue(100)).setMarginTop(4);
+        boolean altCrit = false;
+        for (String[] cr : criterios) {
+            DeviceRgb bg = altCrit ? t.cinza() : t.branco();
+            crit.addCell(new Cell()
+                    .add(new Paragraph(cr[0]).setFontSize(9f).setBold().setFontColor(t.primaria()))
+                    .setBackgroundColor(bg).setPadding(7f).setBorder(new SolidBorder(t.bordaCinza(), 0.4f)));
+            crit.addCell(new Cell()
+                    .add(new Paragraph(cr[1]).setFontSize(9f).setFontColor(t.texto()))
+                    .setBackgroundColor(bg).setPadding(7f).setBorder(new SolidBorder(t.bordaCinza(), 0.4f)));
+            altCrit = !altCrit;
+        }
+        doc.add(crit);
+
+        // Rodapé
+        doc.add(new Paragraph("\nRelatório gerado pelo MyFinance em " + LocalDate.now().format(dtFmt) +
+                " | " + usuario.getNome() + " " + usuario.getSobrenome())
+                .setFontSize(8f).setFontColor(t.priMed())
+                .setTextAlignment(TextAlignment.CENTER).setMarginTop(20));
+    }
+
+    // ─── Helpers de score / classificação ────────────────────────────────────
+
+    private int calcularScoreSaude(double taxaGastos, double taxaPoupanca,
+                                    BigDecimal saldoGeral, long qtdPositivos, long qtdMeses) {
+        int score = 50;
+
+        // Fator taxa de gastos
+        if (taxaGastos <= 60) score += 20;
+        else if (taxaGastos <= 75) score += 10;
+        else if (taxaGastos <= 85) score -= 5;
+        else score -= 20;
+
+        // Fator taxa de poupança
+        if (taxaPoupanca >= 20) score += 20;
+        else if (taxaPoupanca >= 10) score += 10;
+        else if (taxaPoupanca >= 5) score += 2;
+        else score -= 8;
+
+        // Fator saldo geral
+        if (saldoGeral.compareTo(BigDecimal.ZERO) >= 0) score += 10;
+        else score -= 15;
+
+        // Fator meses positivos
+        if (qtdMeses > 0) {
+            double pctPos = (double) qtdPositivos / qtdMeses;
+            if (pctPos >= 0.8) score += 10;
+            else if (pctPos >= 0.6) score += 5;
+            else if (pctPos < 0.4) score -= 10;
+        }
+
+        return Math.max(0, Math.min(100, score));
+    }
+
+    private String[] classificarSaude(int score) {
+        if (score >= 80) return new String[]{
+            "Excelente",
+            "Suas finanças estão em ótima forma! Você mantém um bom controle de gastos, " +
+            "possui uma taxa de poupança saudável e a maioria dos seus meses termina com saldo positivo. " +
+            "Continue assim e considere diversificar seus investimentos para maximizar seu patrimônio."
+        };
+        if (score >= 60) return new String[]{
+            "Boa",
+            "Suas finanças estão em boa situação. Você demonstra controle razoável sobre seus gastos. " +
+            "Há espaço para melhorar a taxa de poupança e reduzir gastos em categorias não essenciais " +
+            "para alcançar a faixa de excelência."
+        };
+        if (score >= 40) return new String[]{
+            "Regular",
+            "Suas finanças precisam de atenção. Identifique as categorias onde os gastos estão elevados " +
+            "e estabeleça metas mensais de poupança. Considere criar um fundo de emergência equivalente " +
+            "a 3-6 meses de despesas."
+        };
+        if (score >= 20) return new String[]{
+            "Atenção",
+            "Sua situação financeira requer cuidados imediatos. Os gastos estão comprometendo " +
+            "significativamente a receita. Revise seus hábitos de consumo, priorize dívidas e " +
+            "procure reduzir gastos supérfluos. Estabeleça um orçamento mensal rígido."
+        };
+        return new String[]{
+            "Crítica",
+            "Situação financeira crítica. É necessário agir urgentemente: revisar todos os gastos, " +
+            "eliminar despesas não essenciais, buscar fontes adicionais de renda e, se necessário, " +
+            "procurar orientação financeira profissional."
+        };
+    }
+
+    // ─── Helpers de layout PDF ───────────────────────────────────────────────
+
+    private Table pdfTituloSecao(String texto, PdfTheme t) {
+        Table tbl = new Table(UnitValue.createPercentArray(new float[]{1}))
+                .setWidth(UnitValue.createPercentValue(100)).setMarginTop(10);
+        tbl.addCell(new Cell()
+                .add(new Paragraph(texto).setFontSize(14f).setBold().setFontColor(t.branco()))
+                .setBackgroundColor(t.primaria()).setPadding(10f).setBorder(Border.NO_BORDER));
+        return tbl;
+    }
+
+    private Paragraph pdfSubtituloSecao(String texto, PdfTheme t) {
+        return new Paragraph(texto)
+                .setFontSize(11f).setBold().setFontColor(t.primaria())
+                .setMarginTop(14).setMarginBottom(4);
+    }
+
+    private Cell pdfBoxCell(String texto, DeviceRgb bg, DeviceRgb fg) {
+        return new Cell()
+                .add(new Paragraph(texto).setFontSize(9f).setBold().setFontColor(fg)
+                        .setTextAlignment(TextAlignment.CENTER))
+                .setBackgroundColor(bg).setPadding(7f)
+                .setBorder(new SolidBorder(new DeviceRgb(255, 255, 255), 1f));
+    }
+
+    private Cell pdfDataCell(String texto, DeviceRgb bg, DeviceRgb fg) {
+        return new Cell()
+                .add(new Paragraph(texto).setFontSize(8.5f).setFontColor(fg))
+                .setBackgroundColor(bg).setPadding(5f)
+                .setBorder(new SolidBorder(new DeviceRgb(206, 212, 218), 0.3f));
+    }
+
+    // ─── Formatação de valores ───────────────────────────────────────────────
+
+    private String formatarMoeda(double valor) {
+        return String.format(new Locale("pt", "BR"), "R$ %,.2f", valor);
+    }
+
+    private String truncar(String texto, int limite) {
+        if (texto == null) return "-";
+        return texto.length() > limite ? texto.substring(0, limite - 1) + "…" : texto;
     }
 
     // =========================================================================
