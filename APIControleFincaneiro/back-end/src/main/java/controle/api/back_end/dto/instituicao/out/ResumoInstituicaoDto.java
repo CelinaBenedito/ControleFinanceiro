@@ -12,6 +12,7 @@ public record ResumoInstituicaoDto(
         BigDecimal limiteCredito,
         int percentualCreditoUtilizado,
         int parcelamentosAtivos,
-        Double taxaJuros
+        Double taxaJuros,
+        boolean temCredito
 ) {}
 

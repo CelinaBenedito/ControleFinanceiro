@@ -141,6 +141,31 @@ public class DashboardController {
                 dashboardService.getCategoriaImpacto(periodo, ano, mes, trimestre, semestre, user_id));
     }
 
+    @GetMapping("/kpi/saude-financeira/usuarios/{user_id}")
+    @Operation(summary = "KPI — Saúde financeira", description = "Pontuação de saúde financeira do período.")
+    public ResponseEntity<?> getKpiSaudeFinanceira(
+            @PathVariable UUID user_id,
+            @RequestParam TipoPeriodo periodo,
+            @RequestParam Integer ano,
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) Integer trimestre,
+            @RequestParam(required = false) Integer semestre) {
+        return ResponseEntity.ok(
+                dashboardService.getKpiSaudeFinanceira(periodo, ano, mes, trimestre, semestre, user_id));
+    }
+
+    @GetMapping("/kpi/poupanca/usuarios/{user_id}")
+    @Operation(summary = "KPI — Poupança", description = "Caixinha com maior progresso do usuário.")
+    public ResponseEntity<?> getKpiPoupanca(@PathVariable UUID user_id) {
+        return ResponseEntity.ok(dashboardService.getKpiPoupanca(user_id));
+    }
+
+    @GetMapping("/kpi/emprestimo/usuarios/{user_id}")
+    @Operation(summary = "KPI — Empréstimo", description = "Resumo do empréstimo ativo do usuário.")
+    public ResponseEntity<?> getKpiEmprestimo(@PathVariable UUID user_id) {
+        return ResponseEntity.ok(dashboardService.getKpiEmprestimo(user_id));
+    }
+
     // =======================================================================
     //  GRÁFICOS
     // =======================================================================

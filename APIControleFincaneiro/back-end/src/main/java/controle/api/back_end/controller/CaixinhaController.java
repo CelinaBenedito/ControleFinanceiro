@@ -226,6 +226,19 @@ public class CaixinhaController {
         return ResponseEntity.ok(caixinhaService.encerrar(caixinha_id));
     }
 
+    @PatchMapping("/{caixinha_id}/reabrir")
+    @Operation(summary = "Reabrir uma caixinha encerrada",
+               description = "Desfaz o encerramento, marcando a caixinha como ativa novamente.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Caixinha reaberta.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CaixinhaResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Caixinha não encontrada.", content = @Content)
+    })
+    public ResponseEntity<CaixinhaResponseDTO> reabrir(@PathVariable UUID caixinha_id) {
+        return ResponseEntity.ok(caixinhaService.reabrir(caixinha_id));
+    }
+
     @PostMapping("/{caixinha_id}/instituicoes/{inst_id}")
     @Operation(summary = "Adicionar instituição a uma caixinha compartilhada",
                description = "Vincula uma nova instituição à caixinha, habilitando a meta compartilhada. " +

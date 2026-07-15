@@ -239,13 +239,35 @@ public class CaixinhaService {
                         "Caixinha de id: %s não encontrada.".formatted(caixinhaId)));
 
         if (dto.getNome() != null) caixinha.setNome(dto.getNome());
-        if (dto.getDescricao() != null) caixinha.setDescricao(dto.getDescricao());
+        // Permite limpar a descrição passando string vazia
+        if (dto.getDescricao() != null) caixinha.setDescricao(dto.getDescricao().isBlank() ? null : dto.getDescricao());
         if (dto.getValorMeta() != null) caixinha.setValorMeta(dto.getValorMeta());
         if (dto.getDataPrazo() != null) caixinha.setDataPrazo(dto.getDataPrazo());
         if (dto.getTipoRendimento() != null) caixinha.setTipoRendimento(dto.getTipoRendimento());
         if (dto.getPercentualRendimento() != null) caixinha.setPercentualRendimento(dto.getPercentualRendimento());
         if (dto.getTaxaAnualPersonalizada() != null) caixinha.setTaxaAnualPersonalizada(dto.getTaxaAnualPersonalizada());
         if (dto.getTaxaReferenciaAtual() != null) caixinha.setTaxaReferenciaAtual(dto.getTaxaReferenciaAtual());
+
+        // Atualiza vínculos de instituição se informados
+        if (dto.getInstituicaoUsuarioIds() != null && !dto.getInstituicaoUsuarioIds().isEmpty()) {
+            // Remove vínculos antigos
+            List<CaixinhaInstituicao> vinculosAtuais = caixinhaInstituicaoRepository.findAllByCaixinha_Id(caixinhaId);
+            caixinhaInstituicaoRepository.deleteAll(vinculosAtuais);
+            caixinhaInstituicaoRepository.flush();
+
+            // Adiciona novos vínculos
+            for (Integer instId : dto.getInstituicaoUsuarioIds()) {
+                InstituicaoUsuario inst = instituicaoUsuarioRepository.findById(instId)
+                        .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                                "InstituicaoUsuario de id: %d nao encontrada.".formatted(instId)));
+                CaixinhaInstituicao vinculo = new CaixinhaInstituicao();
+                vinculo.setCaixinha(caixinha);
+                vinculo.setInstituicaoUsuario(inst);
+                caixinhaInstituicaoRepository.save(vinculo);
+            }
+
+            caixinha.setIsCompartilhada(dto.getInstituicaoUsuarioIds().size() > 1);
+        }
 
         return calcularEMontar(caixinhaRepository.save(caixinha));
     }
@@ -257,6 +279,16 @@ public class CaixinhaService {
                         "Caixinha de id: %s não encontrada.".formatted(caixinhaId)));
         caixinha.setIsAtiva(false);
         caixinha.setDataEncerramento(LocalDate.now());
+        return calcularEMontar(caixinhaRepository.save(caixinha));
+    }
+
+    /** Reabre uma caixinha encerrada (desfaz o encerramento). */
+    public CaixinhaResponseDTO reabrir(UUID caixinhaId) {
+        Caixinha caixinha = caixinhaRepository.findById(caixinhaId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Caixinha de id: %s não encontrada.".formatted(caixinhaId)));
+        caixinha.setIsAtiva(true);
+        caixinha.setDataEncerramento(null);
         return calcularEMontar(caixinhaRepository.save(caixinha));
     }
 
@@ -288,6 +320,12 @@ public class CaixinhaService {
             throw new EntidadeNaoEncontradaException(
                     "Caixinha de id: %s não encontrada.".formatted(caixinhaId));
         }
+        // Desvincula EventoFinanceiro antes de deletar para evitar violação de FK
+        List<EventoFinanceiro> aportes = eventoFinanceiroRepository.findAllByCaixinha_Id(caixinhaId);
+        aportes.forEach(e -> e.setCaixinha(null));
+        eventoFinanceiroRepository.saveAll(aportes);
+        eventoFinanceiroRepository.flush();
+
         caixinhaRepository.deleteById(caixinhaId);
     }
 

@@ -8,6 +8,7 @@ import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,18 +55,21 @@ public class EmprestimoEvento implements EventoFinanceiroStrategy {
             detalhePorEvento.put(credito, eventoDetalhe);
         }
 
-        // Parcelas de débito
+        // Parcelas de débito — calcula valor total a pagar levando em conta a taxa
         if (!eventoInstituicoes.isEmpty()) {
             int parcelas = eventoInstituicoes.getFirst().getParcelas();
-            BigDecimal valorParcela = BigDecimal.valueOf(evento.getValor())
-                    .divide(BigDecimal.valueOf(parcelas));
+            // taxaRendimento = taxa de juros total em % (ex: 33.33 significa pagar 33,33% a mais)
+            double taxaPercentual = evento.getTaxaRendimento() != null ? evento.getTaxaRendimento() : 0.0;
+            double valorTotal = evento.getValor() * (1.0 + taxaPercentual / 100.0);
+            BigDecimal valorParcela = BigDecimal.valueOf(valorTotal)
+                    .divide(BigDecimal.valueOf(parcelas), 2, RoundingMode.HALF_UP);
 
             for (int i = 1; i <= parcelas; i++) {
                 EventoFinanceiro debito = new EventoFinanceiro();
                 debito.setUsuario(evento.getUsuario());
                 debito.setTipo(Tipo.Gasto);
                 debito.setValor(valorParcela.doubleValue());
-                debito.setDescricao("Parcela " + i + " do empréstimo");
+                debito.setDescricao("Parcela " + i + "/" + parcelas + " do empréstimo");
                 debito.setDataEvento(evento.getDataEvento().plusMonths(i));
                 debito.setDataRegistro(LocalDateTime.now());
                 eventos.add(debito);

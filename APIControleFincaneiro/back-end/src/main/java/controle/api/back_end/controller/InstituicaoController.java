@@ -24,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -193,15 +194,51 @@ public class InstituicaoController {
 
     @GetMapping("/resumo/usuarios/{user_id}")
     @Operation(summary = "Cards de resumo das instituições do usuário",
-            description = "Retorna um resumo de cada instituição ativa do usuário com saldo, crédito, débito, parcelamentos ativos e % de crédito utilizado.")
+            description = "Retorna um resumo de cada instituição ativa do usuário com saldo, crédito, débito, parcelamentos ativos e % de crédito utilizado. Suporta filtro por período (periodo, ano, mes, trimestre, semestre).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ResumoInstituicaoDto.class))),
             @ApiResponse(responseCode = "204", content = @Content),
             @ApiResponse(responseCode = "404", content = @Content)
     })
-    public ResponseEntity<List<ResumoInstituicaoDto>> getResumoInstituicoes(@PathVariable UUID user_id) {
-        List<ResumoInstituicaoDto> resultado = instituicaoService.getResumoInstituicoes(user_id);
+    public ResponseEntity<List<ResumoInstituicaoDto>> getResumoInstituicoes(
+            @PathVariable UUID user_id,
+            @RequestParam(required = false) String periodo,
+            @RequestParam(required = false) Integer ano,
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) Integer trimestre,
+            @RequestParam(required = false) Integer semestre) {
+
+        LocalDate dataInicio = null;
+        LocalDate dataFim = null;
+
+        if (periodo != null && ano != null) {
+            switch (periodo) {
+                case "MENSAL" -> {
+                    int m = mes != null ? mes : 1;
+                    dataInicio = LocalDate.of(ano, m, 1);
+                    dataFim = dataInicio.withDayOfMonth(dataInicio.lengthOfMonth());
+                }
+                case "TRIMESTRAL" -> {
+                    int t = trimestre != null ? trimestre : 1;
+                    int mesInicio = (t - 1) * 3 + 1;
+                    dataInicio = LocalDate.of(ano, mesInicio, 1);
+                    dataFim = dataInicio.plusMonths(3).minusDays(1);
+                }
+                case "SEMESTRAL" -> {
+                    int s = semestre != null ? semestre : 1;
+                    int mesInicio = (s - 1) * 6 + 1;
+                    dataInicio = LocalDate.of(ano, mesInicio, 1);
+                    dataFim = dataInicio.plusMonths(6).minusDays(1);
+                }
+                case "ANUAL" -> {
+                    dataInicio = LocalDate.of(ano, 1, 1);
+                    dataFim = LocalDate.of(ano, 12, 31);
+                }
+            }
+        }
+
+        List<ResumoInstituicaoDto> resultado = instituicaoService.getResumoInstituicoes(user_id, dataInicio, dataFim);
         return resultado.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(resultado);
     }
 
@@ -230,5 +267,24 @@ public class InstituicaoController {
             @RequestBody AtualizarInstituicaoUsuarioDto dto) {
         InstituicaoUsuario updated = instituicaoService.atualizarInstituicaoUsuario(instUsuario_id, dto);
         return ResponseEntity.ok(InstituicaoUsuarioMapper.toDto(updated));
+    }
+
+    @PostMapping("/{instUsuario_id}/pagar-fatura")
+    @Operation(summary = "Pagar fatura do cartão de crédito",
+            description = "Registra o pagamento de fatura, liberando crédito disponível.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagamento registrado."),
+            @ApiResponse(responseCode = "400", description = "Valor inválido.", content = @Content),
+            @ApiResponse(responseCode = "404", content = @Content)
+    })
+    public ResponseEntity<?> pagarFatura(
+            @PathVariable Integer instUsuario_id,
+            @RequestBody java.util.Map<String, Double> body) {
+        Double valor = body.get("valor");
+        if (valor == null || valor <= 0) {
+            return ResponseEntity.badRequest().body("Informe um valor válido.");
+        }
+        instituicaoService.pagarFatura(instUsuario_id, java.math.BigDecimal.valueOf(valor));
+        return ResponseEntity.ok().build();
     }
 }

@@ -427,4 +427,39 @@ public class RegistrosController {
         BulkDeleteResultDto resultado = registroService.deletarEmLote(ids);
         return ResponseEntity.ok(resultado);
     }
+
+    // =========================================================================
+    // RECORRENTES — CONSULTA E EXCLUSÃO
+    // =========================================================================
+
+    @GetMapping("/recorrentes/usuarios/{user_id}")
+    @Operation(summary = "Listar recorrências do usuário",
+               description = "Retorna todas as regras de recorrência criadas pelo usuário.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "204", content = @Content)
+    })
+    public ResponseEntity<List<RecorrenciaFinanceira>> listarRecorrentes(@PathVariable UUID user_id) {
+        List<RecorrenciaFinanceira> lista = registroService.getRecorrentesByUser(user_id);
+        return lista.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(lista);
+    }
+
+    @GetMapping("/recorrentes/instituicoes/{inst_id}")
+    @Operation(summary = "Listar recorrências de uma instituição")
+    public ResponseEntity<List<RecorrenciaFinanceira>> listarRecorrentesPorInstituicao(@PathVariable Integer inst_id) {
+        List<RecorrenciaFinanceira> lista = registroService.getRecorrentesByInstituicao(inst_id);
+        return lista.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(lista);
+    }
+
+    @DeleteMapping("/recorrentes/{recorrencia_id}")
+    @Operation(summary = "Deletar uma recorrência",
+               description = "Remove a regra de recorrência e todos os eventos futuros vinculados a ela.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", content = @Content),
+            @ApiResponse(responseCode = "404", content = @Content)
+    })
+    public ResponseEntity<Void> deletarRecorrencia(@PathVariable UUID recorrencia_id) {
+        registroService.deleteRecorrencia(recorrencia_id);
+        return ResponseEntity.noContent().build();
+    }
 }

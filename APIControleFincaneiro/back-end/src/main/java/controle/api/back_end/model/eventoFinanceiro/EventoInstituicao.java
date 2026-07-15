@@ -87,4 +87,12 @@ public class EventoInstituicao {
     public void setParcelas(Integer parcelas) {
         this.parcelas = parcelas;
     }
+
+    public RecorrenciaFinanceira getRecorrenciaFinanceira() {
+        return recorrenciaFinanceira;
+    }
+
+    public void setRecorrenciaFinanceira(RecorrenciaFinanceira recorrenciaFinanceira) {
+        this.recorrenciaFinanceira = recorrenciaFinanceira;
+    }
 }

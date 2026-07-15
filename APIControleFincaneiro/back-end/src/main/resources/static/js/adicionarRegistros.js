@@ -483,6 +483,14 @@ function _renderPainelPoupanca(show) {
 function _onTipoChange() {
     const tipo = document.getElementById('select_tipo')?.value;
     _renderPainelPoupanca(tipo === 'Poupanca');
+    _renderPainelEmprestimo(tipo === 'Emprestimo');
+    _renderPainelTransferencia(tipo === 'Transferencia');
+
+    // Para Empréstimo, força parcelas sempre visíveis independente do movimento
+    if (tipo === 'Emprestimo') {
+        const wrap = document.getElementById('wrap_parcelas');
+        if (wrap) wrap.style.display = '';
+    }
 }
 
 /* ══════════════════════════════════════════════════
@@ -562,6 +570,8 @@ async function gerarInstituicao() {
         const options = json.map(i => ({ id: i.id, label: i.intituicao.nome }));
         initTagPicker('inst',   options, 'Escolha instituições...', sel => _onInstChange('inst',   sel));
         initTagPicker('m-inst', options, 'Escolha...',              sel => _onInstChange('m-inst', sel));
+        // Atualiza também o picker de destino se já existir
+        if (_tp['dest']) initTagPicker('dest', options, 'Escolha a instituição destino...');
     } catch (e) {
         alerta("Não foi possível carregar as instituições. Tente novamente.");
     }
@@ -584,6 +594,14 @@ async function registrar() {
     const selectedInst = _tp['inst'] ? _tp['inst'].selected : [];
     const selectedCat  = _tp['cat']  ? _tp['cat'].selected  : [];
 
+    // Para Empréstimo: parcelas obrigatório, taxa opcional
+    const taxaEmprestimo = tipo === 'Emprestimo'
+        ? (Number(document.getElementById('ar-emprestimo-taxa')?.value) || 0)
+        : null;
+
+    // Para Transferência: instituição destino obrigatória
+    const selectedDest = _tp['dest'] ? _tp['dest'].selected : [];
+
     if (!data || data === 0)         return alerta("Data inválida");
     if (!titulo)                     return alerta("Título inválido");
     if (tipo === '#')                return alerta("Escolha o tipo do evento");
@@ -592,6 +610,10 @@ async function registrar() {
     if (movimento === '#')           return alerta("Escolha o tipo de movimento");
     if ((movimento === 'Credito' || movimento === 'Boleto') && (parcelas < 1 || isNaN(parcelas)))
         return alerta("Informe a quantidade de parcelas (mínimo 1)");
+    if (tipo === 'Emprestimo' && (parcelas < 1 || isNaN(parcelas)))
+        return alerta("Informe a quantidade de parcelas do empréstimo (mínimo 1)");
+    if (tipo === 'Transferencia' && selectedDest.length === 0)
+        return alerta("Escolha a instituição de destino para a transferência");
 
     // Validação de valor: quando múltiplas instituições o campo único fica oculto
     if (selectedInst.length <= 1) {
@@ -629,9 +651,16 @@ async function registrar() {
         return { instituicaoUsuario_id: Number(s.id), tipoMovimento: movimento, valor: instValor, parcelas };
     });
 
+    // Para Transferência: adiciona destino como segunda instituição
+    if (tipo === 'Transferencia' && selectedDest.length > 0) {
+        const dest = selectedDest[0];
+        instituicaoList.push({ instituicaoUsuario_id: Number(dest.id), tipoMovimento: movimento, valor, parcelas: 1 });
+    }
+
     // Quando múltiplas instituições, valor total = soma dos valores individuais
     const valorTotal = selectedInst.length > 1
-        ? instituicaoList.reduce((acc, i) => acc + i.valor, 0)
+        ? instituicaoList.filter(i => !selectedDest.some(d => Number(d.id) === i.instituicaoUsuario_id))
+              .reduce((acc, i) => acc + i.valor, 0)
         : valor;
 
     // Dados de recorrência — se ativada, usa endpoint /registros/recorrente
@@ -709,7 +738,8 @@ async function registrar() {
             valor: valorTotal,
             descricao: Desc,
             dataEvento: data,
-            ...(tipo === 'Poupanca' && _caixinhaSelecionadaId ? { caixinha_id: _caixinhaSelecionadaId } : {})
+            ...(tipo === 'Poupanca' && _caixinhaSelecionadaId ? { caixinha_id: _caixinhaSelecionadaId } : {}),
+            ...(tipo === 'Emprestimo' && taxaEmprestimo != null ? { taxaRendimento: taxaEmprestimo } : {})
         },
         instituicao: instituicaoList,
         detalhe: { categoriaUsuario_id: selectedCat.map(s => Number(s.id)), tituloGasto: titulo }

@@ -63,6 +63,7 @@ public class RegistroResponseDto {
     }
     public static class EventoInstituicaoDto{
         private Integer id;
+        private Integer instUsuarioId; // InstituicaoUsuario.id para filtros no front-end
         private InstituicaoDto instituicao;
         private TipoMovimento tipoMovimento;
         private Double valor;
@@ -96,6 +97,9 @@ public class RegistroResponseDto {
         public void setId(Integer id) {
             this.id = id;
         }
+
+        public Integer getInstUsuarioId() { return instUsuarioId; }
+        public void setInstUsuarioId(Integer instUsuarioId) { this.instUsuarioId = instUsuarioId; }
 
         public InstituicaoDto getInstituicao() {
             return instituicao;
