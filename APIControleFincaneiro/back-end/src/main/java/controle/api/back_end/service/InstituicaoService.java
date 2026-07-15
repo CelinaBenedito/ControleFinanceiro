@@ -173,6 +173,10 @@ public class InstituicaoService {
     //  RESUMO DAS INSTITUIÇÕES DO USUÁRIO
     // =========================================================================
     public List<ResumoInstituicaoDto> getResumoInstituicoes(UUID userId) {
+        return getResumoInstituicoes(userId, null, null);
+    }
+
+    public List<ResumoInstituicaoDto> getResumoInstituicoes(UUID userId, LocalDate dataInicio, LocalDate dataFim) {
         if (!usuarioRepository.existsById(userId)) {
             throw new EntidadeNaoEncontradaException("Usuário de id: %s não encontrado".formatted(userId));
         }
@@ -193,23 +197,42 @@ public class InstituicaoService {
                 EventoFinanceiro ef = ei.getEventoFinanceiro();
                 if (ef == null) continue;
 
+                // Saldo acumulado é sempre all-time (saldo atual da conta)
+                saldo = getSaldo(saldo, ef);
+
+                // Parcelamentos ativos: sobreposição com período (se fornecido) ou ainda não vencido
                 if (ei.getParcelas() != null && ei.getParcelas() > 1) {
-                    LocalDate fimParcelamento = ef.getDataEvento().plusMonths(ei.getParcelas());
-                    if (!fimParcelamento.isBefore(hoje)) parcelamentosAtivos++;
+                    LocalDate inicioParc = ef.getDataEvento();
+                    LocalDate fimParc = inicioParc.plusMonths(ei.getParcelas());
+                    if (dataInicio != null && dataFim != null) {
+                        if (!fimParc.isBefore(dataInicio) && !inicioParc.isAfter(dataFim)) {
+                            parcelamentosAtivos++;
+                        }
+                    } else {
+                        if (!fimParc.isBefore(hoje)) parcelamentosAtivos++;
+                    }
+                }
+
+                // Totais de crédito/débito e transações: filtrados pelo período
+                if (dataInicio != null && dataFim != null) {
+                    LocalDate dataEvento = ef.getDataEvento();
+                    if (dataEvento == null || dataEvento.isBefore(dataInicio) || dataEvento.isAfter(dataFim)) continue;
                 }
 
                 if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) transacoes++;
 
-                saldo = getSaldo(saldo, ef);
-
-                if (ei.getTipoMovimento() == TipoMovimento.Credito) totalCredito = totalCredito.add(BigDecimal.valueOf(ei.getValor()));
-                else if (ei.getTipoMovimento() == TipoMovimento.Debito) totalDebito = totalDebito.add(BigDecimal.valueOf(ei.getValor()));
+                if (ei.getTipoMovimento() == TipoMovimento.Credito)
+                    totalCredito = totalCredito.add(BigDecimal.valueOf(ei.getValor()));
+                else if (ei.getTipoMovimento() == TipoMovimento.Debito)
+                    totalDebito = totalDebito.add(BigDecimal.valueOf(ei.getValor()));
             }
 
             BigDecimal limite = iu.getLimiteCredito() != null ? iu.getLimiteCredito() : BigDecimal.ZERO;
             int pctCredito = limite.compareTo(BigDecimal.ZERO) > 0
                     ? totalCredito.divide(limite, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).intValue()
                     : 0;
+
+            boolean temCredito = calcularTemCredito(iu.getInstituicao().getNome());
 
             resultado.add(new ResumoInstituicaoDto(
                     iu.getId(),
@@ -221,10 +244,26 @@ public class InstituicaoService {
                     limite,
                     Math.min(pctCredito, 100),
                     parcelamentosAtivos,
-                    iu.getTaxaJuros()
+                    iu.getTaxaJuros(),
+                    temCredito
             ));
         }
         return resultado;
+    }
+
+    /** Retorna false para instituições de benefício/alimentação que não possuem limite de crédito rotativo. */
+    private boolean calcularTemCredito(String nomeInstituicao) {
+        if (nomeInstituicao == null) return true;
+        String nome = nomeInstituicao.toLowerCase()
+                .replace("ã", "a").replace("á", "a").replace("â", "a")
+                .replace("é", "e").replace("ê", "e").replace("í", "i")
+                .replace("ó", "o").replace("ô", "o").replace("ú", "u")
+                .replace("ç", "c");
+        return !(nome.contains("alelo") || nome.contains("aelo") ||
+                nome.contains("vale") || nome.contains("ticket") ||
+                nome.contains("pluxee") || nome.contains("sodexo") ||
+                nome.contains("multibene") || nome.contains("beneficio") ||
+                nome.contains("beneficios"));
     }
 
     // =========================================================================

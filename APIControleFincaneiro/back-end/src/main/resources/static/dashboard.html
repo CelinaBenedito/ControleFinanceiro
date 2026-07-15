@@ -87,112 +87,130 @@
         <div id="main" class="main">
 
             <div class="page-title-row">
-                <h1>Boas Vindas!</h1>
-                <div class="user-widget" id="userWidget">
-                    <div class="uw-info">
-                        <span class="uw-nome" id="uw_nome">Usuário</span>
-                        <div class="uw-xp-track">
-                            <div class="uw-xp-fill" id="uw_xp"></div>
-                            <span class="uw-lvl" id="uw_lvl">LVL 1</span>
+                <div class="welcome-actions">
+                    <h1>Boas Vindas!</h1>
+                    <a href="instituicoes.html" class="btn-instituicoes">
+                        <i class='bx bx-buildings'></i> Instituições
+                    </a>
+                </div>
+                <div class="top-actions">
+                    <div class="user-widget" id="userWidget">
+                        <div class="uw-info">
+                            <span class="uw-nome" id="uw_nome">Usuário</span>
+                            <div class="uw-xp-track">
+                                <div class="uw-xp-fill" id="uw_xp"></div>
+                                <span class="uw-lvl" id="uw_lvl">LVL 1</span>
+                            </div>
+                        </div>
+                        <div class="uw-avatar">
+                            <i class='bx bx-user' style="font-size:1.6rem; color:var(--cor-principal);"></i>
+                        </div>
+                        <div class="uw-dropdown" id="uwDropdown">
+                            <a href="meuPerfil.html" class="uw-dropdown-item">
+                                <i class='bx bx-user-circle'></i> Perfil
+                            </a>
+                            <a href="index.html" class="uw-dropdown-item">
+                                <i class='bx bx-arrow-back'></i> Voltar para seleção de usuário
+                            </a>
+                            <button class="uw-dropdown-item uw-logout-btn" id="btnLogout">
+                                <i class='bx bx-log-out'></i> LogOut
+                            </button>
                         </div>
                     </div>
-                    <div class="uw-avatar">
-                        <i class='bx bx-user' style="font-size:1.6rem; color:var(--cor-principal);"></i>
+                </div>
+            </div>
+
+            <section class="dashboard-periodo-card">
+                <div class="periodo-header">
+                    <p><strong>Período Analisado — <span id="labelPeriodoAtual">–</span></strong></p>
+                </div>
+
+                <div id="filtros" class="filtros" style="flex-wrap:wrap;gap:4px;">
+                    <div class="campo">
+                        <select id="select_tempo" onchange="atualizarSeletoresPeriodo()">
+                            <option value="MENSAL">Mensal</option>
+                            <option value="TRIMESTRAL">Trimestral</option>
+                            <option value="SEMESTRAL">Semestral</option>
+                            <option value="ANUAL">Anual</option>
+                        </select>
+                        <label>Tipo de período</label>
                     </div>
-                    <div class="uw-dropdown" id="uwDropdown">
-                        <a href="meuPerfil.html" class="uw-dropdown-item">
-                            <i class='bx bx-user-circle'></i> Perfil
-                        </a>
-                        <a href="index.html" class="uw-dropdown-item">
-                            <i class='bx bx-arrow-back'></i> Voltar para seleção de usuário
-                        </a>
-                        <button class="uw-dropdown-item uw-logout-btn" id="btnLogout">
-                            <i class='bx bx-log-out'></i> LogOut
-                        </button>
+                    <div class="campo" id="div_mes">
+                        <select id="select_mes" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                        <label>Mês</label>
+                    </div>
+                    <div class="campo" id="div_trimestre" style="display:none;">
+                        <select id="select_trimestre" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
+                            <option value="1">1º Trimestre (Jan–Mar)</option>
+                            <option value="2">2º Trimestre (Abr–Jun)</option>
+                            <option value="3">3º Trimestre (Jul–Set)</option>
+                            <option value="4">4º Trimestre (Out–Dez)</option>
+                        </select>
+                        <label>Trimestre</label>
+                    </div>
+                    <div class="campo" id="div_semestre" style="display:none;">
+                        <select id="select_semestre" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
+                            <option value="1">1º Semestre (Jan–Jun)</option>
+                            <option value="2">2º Semestre (Jul–Dez)</option>
+                        </select>
+                        <label>Semestre</label>
+                    </div>
+                    <div class="campo" id="div_ano">
+                        <select id="select_ano" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                        <label>Ano</label>
                     </div>
                 </div>
-            </div>
 
-            <!-- Período analisado -->
-            <strong><p>Período Analisado — <span id="labelPeriodoAtual">–</span></p></strong>
+                <div class="dash-atalhos">
+                    <button class="dash-atalho-btn" data-atalho="mes-atual" onclick="selecionarRapido('mes-atual')">
+                        <i class='bx bx-calendar-check'></i> Mês Atual
+                    </button>
+                    <button class="dash-atalho-btn" data-atalho="mes-passado" onclick="selecionarRapido('mes-passado')">
+                        <i class='bx bx-calendar-minus'></i> Mês Passado
+                    </button>
+                    <button class="dash-atalho-btn" data-atalho="ano-atual" onclick="selecionarRapido('ano-atual')">
+                        <i class='bx bx-calendar'></i> Ano Atual
+                    </button>
+                    <button class="dash-atalho-btn" data-atalho="ano-passado" onclick="selecionarRapido('ano-passado')">
+                        <i class='bx bx-time-five'></i> Ano Passado
+                    </button>
+                </div>
+            </section>
 
-            <!-- Botões de seleção rápida -->
-            <div class="dash-atalhos">
-                <button class="dash-atalho-btn" data-atalho="mes-atual" onclick="selecionarRapido('mes-atual')">
-                    <i class='bx bx-calendar-check'></i> Mês Atual
-                </button>
-                <button class="dash-atalho-btn" data-atalho="mes-passado" onclick="selecionarRapido('mes-passado')">
-                    <i class='bx bx-calendar-minus'></i> Mês Passado
-                </button>
-                <button class="dash-atalho-btn" data-atalho="ano-atual" onclick="selecionarRapido('ano-atual')">
-                    <i class='bx bx-calendar'></i> Ano Atual
-                </button>
-                <button class="dash-atalho-btn" data-atalho="ano-passado" onclick="selecionarRapido('ano-passado')">
-                    <i class='bx bx-time-five'></i> Ano Passado
-                </button>
-            </div>
-
-            <!-- Filtros de período -->
-            <div id="filtros" class="filtros" style="flex-wrap:wrap;gap:4px;">
-                <div class="campo">
-                    <select id="select_tempo" onchange="atualizarSeletoresPeriodo()">
-                        <option value="MENSAL">Mensal</option>
-                        <option value="TRIMESTRAL">Trimestral</option>
-                        <option value="SEMESTRAL">Semestral</option>
-                        <option value="ANUAL">Anual</option>
-                    </select>
-                    <label>Tipo de período</label>
-                </div>
-                <div class="campo" id="div_mes">
-                    <select id="select_mes" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
-                        <option value="1">Janeiro</option>
-                        <option value="2">Fevereiro</option>
-                        <option value="3">Março</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Maio</option>
-                        <option value="6">Junho</option>
-                        <option value="7">Julho</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Setembro</option>
-                        <option value="10">Outubro</option>
-                        <option value="11">Novembro</option>
-                        <option value="12">Dezembro</option>
-                    </select>
-                    <label>Mês</label>
-                </div>
-                <div class="campo" id="div_trimestre" style="display:none;">
-                    <select id="select_trimestre" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
-                        <option value="1">1º Trimestre (Jan–Mar)</option>
-                        <option value="2">2º Trimestre (Abr–Jun)</option>
-                        <option value="3">3º Trimestre (Jul–Set)</option>
-                        <option value="4">4º Trimestre (Out–Dez)</option>
-                    </select>
-                    <label>Trimestre</label>
-                </div>
-                <div class="campo" id="div_semestre" style="display:none;">
-                    <select id="select_semestre" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
-                        <option value="1">1º Semestre (Jan–Jun)</option>
-                        <option value="2">2º Semestre (Jul–Dez)</option>
-                    </select>
-                    <label>Semestre</label>
-                </div>
-                <div class="campo" id="div_ano">
-                    <select id="select_ano" onchange="marcarAtalhoAtivo(null); carregarDashboard()">
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
-                        <option value="2026">2026</option>
-                    </select>
-                    <label>Ano</label>
-                </div>
-            </div>
+            <section class="historia-financeira-card" id="historiaFinanceiraCard">
+                <p class="kpi-label">História financeira do período</p>
+                <h3 id="historiaTitulo">História financeira do período</h3>
+                <p id="historiaResumo">Sem dados no período.</p>
+            </section>
 
             <!-- ── KPIs ── -->
             <div class="containerKPIS" id="containerKPIS">
 
                 <!-- KPI 1: Saldo total -->
                 <div class="KPI">
-                    <p class="kpi-label">Saldo Total</p>
+                    <div class="kpi-head">
+                        <p class="kpi-label">Saldo Total</p>
+
+                    </div>
                     <span class="kpi-valor-grande" id="saldoTotal">...</span>
+                    <p class="kpi-sub">Consolidado de todas as contas</p>
                 </div>
 
                 <!-- KPI 2: Gasto total -->
@@ -224,6 +242,42 @@
                         <span class="badge-delta" id="kpi4-badge" style="display:none;"></span>
                         <span class="kpi-sub" id="variacaoCategoriaImpacto"></span>
                     </div>
+                </div>
+            </div>
+
+            <section class="kpi-saude-card" id="kpiSaudeCard">
+                <p class="kpi-label">Saúde financeira</p>
+                <div class="kpi-saude-header">
+                    <span class="kpi-saude-pontuacao" id="saudePontuacao">--</span>
+                    <span class="kpi-saude-nivel" id="saudeNivel">Sem dados no período</span>
+                </div>
+                <div class="kpi-progress-track saude">
+                    <div class="kpi-progress-fill" id="saudeProgress"></div>
+                </div>
+                <p class="kpi-sub" id="saudeDescricao">Sem dados no período.</p>
+            </section>
+
+            <div class="container-kpi-secundarios">
+                <div class="KPI KPI-progress">
+                    <p class="kpi-label">Poupança</p>
+                    <p class="kpi-subtitulo" id="poupancaNome">Sem dados no período</p>
+                    <span class="kpi-valor-grande" id="poupancaValor">R$ 0,00</span>
+                    <p class="kpi-sub" id="poupancaMeta">Meta: R$ 0,00</p>
+                    <div class="kpi-progress-track">
+                        <div class="kpi-progress-fill" id="poupancaProgress"></div>
+                    </div>
+                    <span class="kpi-progress-label" id="poupancaPercentual">0%</span>
+                </div>
+
+                <div class="KPI KPI-progress">
+                    <p class="kpi-label">Empréstimo ativo</p>
+                    <p class="kpi-subtitulo" id="emprestimoInstituicao">Sem dados no período</p>
+                    <span class="kpi-valor-grande" id="emprestimoValor">R$ 0,00</span>
+                    <p class="kpi-sub" id="emprestimoResumo">Sem dados no período.</p>
+                    <div class="kpi-progress-track">
+                        <div class="kpi-progress-fill" id="emprestimoProgress"></div>
+                    </div>
+                    <span class="kpi-progress-label" id="emprestimoPercentual">0%</span>
                 </div>
             </div>
 

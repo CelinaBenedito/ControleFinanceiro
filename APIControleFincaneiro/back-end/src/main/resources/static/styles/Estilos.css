@@ -163,22 +163,24 @@ h1 {
 }
 
 .KPI {
-    border-radius: 1rem;
-    padding: 20px;
+    border-radius: 24px;
+    padding: 28px 30px 24px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
     background-color: var(--cor-fundo-card);
     box-shadow: 0 4px 16px var(--sombra-card);
     min-width: 0;
+    overflow: visible;
 }
 
 .kpi-label {
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: 0.78rem;
+    font-weight: 700;
     color: var(--cor-texto-secundario);
     text-transform: uppercase;
-    margin-bottom: 0.5rem;
+    letter-spacing: 0.04em;
+    margin-bottom: 0;
 }
 
 .gasto-valor {
@@ -753,7 +755,7 @@ h1 {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin: 8px 0 4px;
+    margin: 12px 0 0;
 }
 
 .dash-atalho-btn {
@@ -847,7 +849,7 @@ footer a {
 }
 
 .filtros .campo label {
-    background-color: var(--cor-fundo-pagina);
+    background-color: var(--cor-fundo-card);
 }
 
 .label-data {
@@ -1140,14 +1142,85 @@ footer a {
 /* -- User Widget (top-right corner) -- */
 .page-title-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 28px;
 }
 
+.welcome-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(100%, 420px);
+}
+
 .page-title-row h1 {
     margin-bottom: 0;
+}
+
+.top-actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.btn-instituicoes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    padding: 10px 14px;
+    width: 100%;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    background: var(--cor-principal);
+    color: var(--cor-texto-claro);
+    box-shadow: 0 4px 14px var(--sombra-card);
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.btn-instituicoes:hover {
+    transform: translateY(-1px);
+    opacity: 0.95;
+}
+
+.dashboard-periodo-card {
+    background: var(--cor-fundo-card);
+    border-radius: 14px;
+    box-shadow: 0 4px 16px var(--sombra-card);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+}
+
+.periodo-header {
+    margin-bottom: 8px;
+}
+
+.periodo-header p {
+    color: var(--cor-texto-principal);
+}
+
+.historia-financeira-card {
+    background: linear-gradient(130deg, var(--cor-fundo-card), var(--cor-fundo-pagina));
+    border-left: 5px solid var(--cor-principal);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 4px 16px var(--sombra-card);
+    margin-bottom: 16px;
+}
+
+.historia-financeira-card h3 {
+    color: var(--cor-texto-principal);
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.historia-financeira-card p {
+    color: var(--cor-texto-secundario);
+    line-height: 1.5;
 }
 
 .user-widget {
@@ -1314,12 +1387,86 @@ footer a {
 
 /* ── KPI — tipografia e layout melhorado ── */
 .kpi-valor-grande {
-    font-size: 2rem;
+    font-size: clamp(1.5rem, 2.2vw, 2.2rem);
     font-weight: 800;
-    line-height: 1.1;
+    line-height: 1.12;
     color: var(--cor-texto-principal);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     display: block;
+    margin: 2px 0 0;
+    overflow-wrap: anywhere;
+}
+
+.containerKPIS {
+    gap: 18px;
+    margin: 18px 0;
+}
+
+.containerKPIS .KPI,
+.container-kpi-secundarios .KPI {
+    border: 1px solid var(--cor-tinte-borda);
+    box-shadow: 0 8px 20px var(--sombra-card);
+    transition: none;
+}
+
+.containerKPIS .KPI:hover,
+.container-kpi-secundarios .KPI:hover {
+    transform: none;
+    box-shadow: 0 8px 20px var(--sombra-card);
+}
+
+.containerKPIS .KPI:first-child {
+    background: var(--cor-principal);
+    border: none;
+    border-radius: 24px;
+    padding: 26px 30px 24px;
+}
+
+.containerKPIS .KPI:first-child .kpi-valor-grande {
+    color: var(--cor-texto-claro);
+    font-size: clamp(1.6rem, 2.7vw, 2.6rem);
+    line-height: 1.05;
+    margin-top: 6px;
+    max-width: 100%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.containerKPIS .KPI:first-child .kpi-label {
+    color: color-mix(in srgb, var(--cor-texto-claro) 82%, transparent);
+    font-size: 0.94rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.containerKPIS .KPI:first-child .kpi-sub {
+    color: color-mix(in srgb, var(--cor-texto-claro) 78%, transparent);
+    font-size: 0.98rem;
+    line-height: 1.35;
+    margin-top: 6px;
+}
+
+.kpi-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.kpi-icon-box {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--cor-texto-claro) 18%, transparent);
+    color: var(--cor-texto-claro);
+}
+
+.kpi-icon-box i {
+    font-size: 1.3rem;
 }
 
 .kpi-badge-row {
@@ -1331,13 +1478,13 @@ footer a {
 }
 
 .kpi-sub {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     color: var(--cor-texto-secundario);
-    line-height: 1.3;
+    line-height: 1.35;
 }
 
 .kpi-subtitulo {
-    font-size: 0.82rem;
+    font-size: 0.76rem;
     font-weight: 600;
     color: var(--cor-texto-alternativo);
     margin: 0;
@@ -1353,6 +1500,79 @@ footer a {
     background-color: var(--green-100);
     color: var(--green-700);
     white-space: nowrap;
+}
+
+.kpi-saude-card {
+    background: linear-gradient(125deg, var(--cor-principal), var(--cor-hover));
+    color: var(--cor-texto-claro);
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 12px 28px var(--sombra-card);
+    margin-bottom: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.kpi-saude-card .kpi-label,
+.kpi-saude-card .kpi-sub {
+    color: var(--cor-texto-claro);
+}
+
+.kpi-saude-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.kpi-saude-pontuacao {
+    font-size: 2.3rem;
+    font-weight: 800;
+}
+
+.kpi-saude-nivel {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.container-kpi-secundarios {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.KPI-progress {
+    gap: 8px;
+}
+
+.kpi-progress-track {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--cor-tinte-suave);
+    overflow: hidden;
+}
+
+.kpi-progress-track.saude {
+    background: rgba(255,255,255,0.35);
+}
+
+.kpi-progress-fill {
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: var(--cor-principal);
+    transition: width 0.25s ease;
+}
+
+.kpi-saude-card .kpi-progress-fill {
+    background: #ffffff;
+}
+
+.kpi-progress-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--cor-texto-secundario);
 }
 
 /* ── Heat map — gastos por dia da semana ── */
@@ -1445,6 +1665,19 @@ footer a {
     }
     .containerGraficos {
         grid-template-columns: 1fr !important;
+    }
+    .container-kpi-secundarios {
+        grid-template-columns: 1fr;
+    }
+    .top-actions {
+        width: auto;
+        justify-content: flex-end;
+    }
+    .page-title-row {
+        flex-direction: column;
+    }
+    .welcome-actions {
+        width: 100%;
     }
     .containerGraficos .campo-grafico[style*="span 2"] {
         grid-column: span 1 !important;
