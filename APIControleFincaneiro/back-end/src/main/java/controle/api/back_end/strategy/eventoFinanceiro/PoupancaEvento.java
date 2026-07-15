@@ -32,6 +32,10 @@ public class PoupancaEvento implements EventoFinanceiroStrategy {
         aplicacao.setDescricao("Aplicação em poupança");
         aplicacao.setDataEvento(evento.getDataEvento());
         aplicacao.setDataRegistro(LocalDateTime.now());
+        // Vincular à caixinha, se informada
+        if (evento.getCaixinha() != null) {
+            aplicacao.setCaixinha(evento.getCaixinha());
+        }
         eventos.add(aplicacao);
 
         // Instituições vinculadas à aplicação
@@ -51,39 +55,38 @@ public class PoupancaEvento implements EventoFinanceiroStrategy {
             detalhePorEvento.put(aplicacao, eventoDetalhe);
         }
 
-        // 2. Projeção de rendimento
-        double principal = evento.getValor();
-        double taxa = evento.getTaxaRendimento(); // informado pelo usuário
-        int tempoProjecao = evento.getTempoProjecao();   // em meses
+        // 2. Projeção de rendimento (opcional — só executa se taxa e prazo foram informados)
+        Double taxaRaw    = evento.getTaxaRendimento();
+        Integer tempoRaw  = evento.getTempoProjecao();
+        double taxa       = (taxaRaw != null) ? taxaRaw : 0.0;
+        int tempoProjecao = (tempoRaw != null) ? tempoRaw : 0;
 
-        for (int mes = 1; mes <= tempoProjecao; mes++) {
-            double montante = principal * Math.pow(1 + taxa, mes);
-            double rendimento = montante - principal;
+        if (taxa > 0 && tempoProjecao > 0) {
+            double principal = evento.getValor();
+            for (int mes = 1; mes <= tempoProjecao; mes++) {
+                double montante  = principal * Math.pow(1 + taxa, mes);
+                double rendimento = montante - principal;
 
-            EventoFinanceiro rendimentoEvento = new EventoFinanceiro();
-            rendimentoEvento.setUsuario(evento.getUsuario());
-            rendimentoEvento.setTipo(Tipo.Recebimento);
-            rendimentoEvento.setValor(rendimento);
-            rendimentoEvento.setDescricao("Rendimento projetado mês " + mes);
-            rendimentoEvento.setDataEvento(evento.getDataEvento().plusMonths(mes));
-            rendimentoEvento.setDataRegistro(LocalDateTime.now());
-            eventos.add(rendimentoEvento);
+                EventoFinanceiro rendimentoEvento = new EventoFinanceiro();
+                rendimentoEvento.setUsuario(evento.getUsuario());
+                rendimentoEvento.setTipo(Tipo.Recebimento);
+                rendimentoEvento.setValor(rendimento);
+                rendimentoEvento.setDescricao("Rendimento projetado mês " + mes);
+                rendimentoEvento.setDataEvento(evento.getDataEvento().plusMonths(mes));
+                rendimentoEvento.setDataRegistro(LocalDateTime.now());
+                eventos.add(rendimentoEvento);
 
-            // Instituições vinculadas ao rendimento
-            List<EventoInstituicao> instsRendimento = new ArrayList<>();
-            if (!eventoInstituicoes.isEmpty()) {
-                EventoInstituicao instRendimento = new EventoInstituicao();
-                instRendimento.setEventoFinanceiro(rendimentoEvento);
-                instRendimento.setInstituicaoUsuario(eventoInstituicoes.getFirst().getInstituicaoUsuario());
-                instRendimento.setValor(rendimento);
-                instRendimento.setParcelas(1);
-                instsRendimento.add(instRendimento);
-            }
-            instituicoesPorEvento.put(rendimentoEvento, instsRendimento);
-
-            // Detalhe único vinculado ao rendimento (se necessário)
-            if (eventoDetalhe != null) {
-                detalhePorEvento.put(rendimentoEvento, eventoDetalhe);
+                // Instituições vinculadas ao rendimento
+                List<EventoInstituicao> instsRendimento = new ArrayList<>();
+                if (!eventoInstituicoes.isEmpty()) {
+                    EventoInstituicao instRendimento = new EventoInstituicao();
+                    instRendimento.setEventoFinanceiro(rendimentoEvento);
+                    instRendimento.setInstituicaoUsuario(eventoInstituicoes.getFirst().getInstituicaoUsuario());
+                    instRendimento.setValor(rendimento);
+                    instRendimento.setParcelas(1);
+                    instsRendimento.add(instRendimento);
+                }
+                instituicoesPorEvento.put(rendimentoEvento, instsRendimento);
             }
         }
 

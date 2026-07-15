@@ -6,6 +6,7 @@ const add = document.getElementById("add");
 const agenda = document.getElementById("agenda");
 const config = document.getElementById("config");
 const tema = document.getElementById("tema");
+const caixinhaN = document.getElementById("caixinhas"); // pode ser null em páginas sem o item
 
 let ativo = false;
 
@@ -16,6 +17,7 @@ add.style.display = "none";
 agenda.style.display = "none";
 config.style.display = "none";
 tema.style.display = "none";
+if (caixinhaN) caixinhaN.style.display = "none";
 main.style.marginLeft = "70px";
 
 
@@ -32,6 +34,7 @@ function sidebarFunction() {
         agenda.style.display = "";
         config.style.display = "";
         tema.style.display = "";
+        if (caixinhaN) caixinhaN.style.display = "";
 
         console.log("Abriu", ativo);
 
@@ -46,6 +49,7 @@ function sidebarFunction() {
         agenda.style.display = "none";
         config.style.display = "none";
         tema.style.display = "none";
+        if (caixinhaN) caixinhaN.style.display = "none";
 
         console.log("Fechou", ativo);
     }

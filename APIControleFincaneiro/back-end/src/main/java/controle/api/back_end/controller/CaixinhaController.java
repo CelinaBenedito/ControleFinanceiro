@@ -2,6 +2,11 @@ package controle.api.back_end.controller;
 
 import controle.api.back_end.dto.poupanca.in.CaixinhaCreateDTO;
 import controle.api.back_end.dto.poupanca.out.CaixinhaResponseDTO;
+import controle.api.back_end.dto.poupanca.out.GraficoProgressoConsolidadoCaixinhaDto;
+import controle.api.back_end.dto.poupanca.out.KpiProgressoGeralCaixinhaDto;
+import controle.api.back_end.dto.poupanca.out.KpiRendimentoEstimadoMesCaixinhaDto;
+import controle.api.back_end.dto.poupanca.out.KpiStatusCaixinhasDto;
+import controle.api.back_end.dto.poupanca.out.KpiTotalAcumuladoCaixinhaDto;
 import controle.api.back_end.service.CaixinhaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -123,6 +128,71 @@ public class CaixinhaController {
         return ResponseEntity.ok(caixinhaService.resumoTotalPoupanca(user_id));
     }
 
+    @GetMapping("/kpi/total-acumulado/usuarios/{user_id}")
+    @Operation(summary = "KPI de total acumulado das caixinhas",
+            description = "Retorna o total acumulado em todas as caixinhas ativas e a quantidade de caixinhas ativas do usuário.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "KPI calculado com sucesso.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = KpiTotalAcumuladoCaixinhaDto.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.", content = @Content)
+    })
+    public ResponseEntity<KpiTotalAcumuladoCaixinhaDto> obterKpiTotalAcumulado(@PathVariable UUID user_id) {
+        return ResponseEntity.ok(caixinhaService.obterKpiTotalAcumulado(user_id));
+    }
+
+    @GetMapping("/kpi/progresso-geral/usuarios/{user_id}")
+    @Operation(summary = "KPI de progresso geral das caixinhas",
+            description = "Retorna total acumulado, total de metas ativas e percentual geral de progresso. Se total de metas for zero, o percentual será zero.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "KPI calculado com sucesso.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = KpiProgressoGeralCaixinhaDto.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.", content = @Content)
+    })
+    public ResponseEntity<KpiProgressoGeralCaixinhaDto> obterKpiProgressoGeral(@PathVariable UUID user_id) {
+        return ResponseEntity.ok(caixinhaService.obterKpiProgressoGeral(user_id));
+    }
+
+    @GetMapping("/kpi/rendimento-estimado-mes/usuarios/{user_id}")
+    @Operation(summary = "KPI de rendimento estimado no mês",
+            description = "Retorna a soma do rendimento estimado do mês atual em todas as caixinhas ativas, respeitando o tipo de taxa de cada caixinha.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "KPI calculado com sucesso.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = KpiRendimentoEstimadoMesCaixinhaDto.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.", content = @Content)
+    })
+    public ResponseEntity<KpiRendimentoEstimadoMesCaixinhaDto> obterKpiRendimentoEstimadoMes(@PathVariable UUID user_id) {
+        return ResponseEntity.ok(caixinhaService.obterKpiRendimentoEstimadoMes(user_id));
+    }
+
+    @GetMapping("/kpi/status/usuarios/{user_id}")
+    @Operation(summary = "KPI de status das caixinhas",
+            description = "Retorna quantidade de caixinhas ativas e encerradas do usuário.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "KPI calculado com sucesso.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = KpiStatusCaixinhasDto.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.", content = @Content)
+    })
+    public ResponseEntity<KpiStatusCaixinhasDto> obterKpiStatus(@PathVariable UUID user_id) {
+        return ResponseEntity.ok(caixinhaService.obterKpiStatusCaixinhas(user_id));
+    }
+
+    @GetMapping("/grafico/progresso-consolidado/usuarios/{user_id}")
+    @Operation(summary = "Gráfico de progresso consolidado das caixinhas",
+            description = "Retorna percentual geral de progresso, total acumulado e total de metas para consumo no gráfico consolidado.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dados do gráfico calculados com sucesso.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = GraficoProgressoConsolidadoCaixinhaDto.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.", content = @Content)
+    })
+    public ResponseEntity<GraficoProgressoConsolidadoCaixinhaDto> obterGraficoProgressoConsolidado(@PathVariable UUID user_id) {
+        return ResponseEntity.ok(caixinhaService.obterGraficoProgressoConsolidado(user_id));
+    }
+
     // =========================================================================
     // EDITAR
     // =========================================================================
@@ -154,6 +224,19 @@ public class CaixinhaController {
     })
     public ResponseEntity<CaixinhaResponseDTO> encerrar(@PathVariable UUID caixinha_id) {
         return ResponseEntity.ok(caixinhaService.encerrar(caixinha_id));
+    }
+
+    @PatchMapping("/{caixinha_id}/reabrir")
+    @Operation(summary = "Reabrir uma caixinha encerrada",
+               description = "Desfaz o encerramento, marcando a caixinha como ativa novamente.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Caixinha reaberta.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CaixinhaResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Caixinha não encontrada.", content = @Content)
+    })
+    public ResponseEntity<CaixinhaResponseDTO> reabrir(@PathVariable UUID caixinha_id) {
+        return ResponseEntity.ok(caixinhaService.reabrir(caixinha_id));
     }
 
     @PostMapping("/{caixinha_id}/instituicoes/{inst_id}")

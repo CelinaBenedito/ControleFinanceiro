@@ -33,12 +33,12 @@ public class EventoFinanceiroSpecifications {
             if (descricao != null) predicates.add(cb.like(cb.lower(root.get("descricao")), "%" + descricao.toLowerCase() + "%"));
 
             if (tipoMovimento != null && !tipoMovimento.isEmpty()) {
-                Join<EventoFinanceiro, EventoInstituicao> joinInstituicao = root.join("eventoInstituicao", JoinType.LEFT);
+                Join<EventoFinanceiro, EventoInstituicao> joinInstituicao = root.join("eventoInstituicoes", JoinType.LEFT);
                 predicates.add(joinInstituicao.get("tipoMovimento").in(tipoMovimento));
             }
             if (instituicao != null && !instituicao.isEmpty()) {
-                Join<EventoFinanceiro, EventoInstituicao> joinInstituicao = root.join("eventoInstituicao", JoinType.LEFT);
-                predicates.add(joinInstituicao.get("instituicaoUsuario").in(instituicao));
+                Join<EventoFinanceiro, EventoInstituicao> joinInst2 = root.join("eventoInstituicoes", JoinType.LEFT);
+                predicates.add(joinInst2.get("instituicaoUsuario").in(instituicao));
             }
 
 

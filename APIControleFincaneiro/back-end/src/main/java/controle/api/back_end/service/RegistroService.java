@@ -32,6 +32,7 @@ import controle.api.back_end.strategy.recorrenciaFinanceira.RecorrenciaStrategy;
 import controle.api.back_end.model.configuracoes.TipoAlertaEmail;
 import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
 import controle.api.back_end.repository.poupanca.CaixinhaRepository;
+import controle.api.back_end.repository.eventoFinanceiro.RecorrenciaFinanceiraRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -94,6 +95,7 @@ public class RegistroService {
     private final ConfiguracoesRepository configuracoesRepository;
     private final EmailService emailService;
     private final CaixinhaRepository caixinhaRepository;
+    private final RecorrenciaFinanceiraRepository recorrenciaFinanceiraRepository;
 
     public RegistroService(EventoFinanceiroRepository eventoFinanceiroRepository,
                            EventoInstituicaoRepository eventoInstituicaoRepository,
@@ -107,7 +109,8 @@ public class RegistroService {
                            InstituicaoService instituicaoService,
                            ConfiguracoesRepository configuracoesRepository,
                            EmailService emailService,
-                           CaixinhaRepository caixinhaRepository) {
+                           CaixinhaRepository caixinhaRepository,
+                           RecorrenciaFinanceiraRepository recorrenciaFinanceiraRepository) {
         this.eventoFinanceiroRepository  = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoDetalheRepository     = eventoDetalheRepository;
@@ -121,6 +124,7 @@ public class RegistroService {
         this.configuracoesRepository     = configuracoesRepository;
         this.emailService                = emailService;
         this.caixinhaRepository          = caixinhaRepository;
+        this.recorrenciaFinanceiraRepository = recorrenciaFinanceiraRepository;
     }
 
     // =========================================================================
@@ -323,6 +327,9 @@ public class RegistroService {
         Usuario usuario = buscarUsuarioOuErro(recorrencia.getUsuario().getId());
         recorrencia.setUsuario(usuario);
 
+        // Persiste a regra de recorrência para poder listar/deletar depois
+        RecorrenciaFinanceira recorrenciaSalva = recorrenciaFinanceiraRepository.save(recorrencia);
+
         RecorrenciaStrategy strategy = recorrenciaFactory.getStrategy(recorrencia.getPeriodicidade());
         List<EventoFinanceiro> eventosGerados = strategy.gerarEventos(recorrencia, recorrencia.getDataFim());
 
@@ -333,9 +340,57 @@ public class RegistroService {
                     // Eventos recorrentes não validam saldo — o gasto ocorrerá no futuro
                     List<EventoInstituicao> insts  = createEventoInstituicao(instituicoes, salvo, false);
                     EventoDetalhe detalheSalvo     = createGastoDetalhe(detalhe, salvo);
+
+                    // Vincula cada EI à recorrência para permitir agrupamento futuro
+                    insts.forEach(inst -> {
+                        inst.setRecorrenciaFinanceira(recorrenciaSalva);
+                        eventoInstituicaoRepository.save(inst);
+                    });
+
                     return RegistrosMapper.toResponse(salvo, insts, detalheSalvo);
                 })
                 .toList();
+    }
+
+    /** Lista todas as recorrências ativas de um usuário. */
+    @Transactional(readOnly = true)
+    public List<RecorrenciaFinanceira> getRecorrentesByUser(UUID userId) {
+        return recorrenciaFinanceiraRepository.findByUsuario_Id(userId);
+    }
+
+    /** Lista recorrências de um usuário vinculadas a uma instituição específica. */
+    @Transactional(readOnly = true)
+    public List<RecorrenciaFinanceira> getRecorrentesByInstituicao(Integer instUsuarioId) {
+        return recorrenciaFinanceiraRepository.findByInstituicaoUsuarioId(instUsuarioId);
+    }
+
+    /** Deleta uma recorrência e todos os eventos futuros vinculados a ela. */
+    public void deleteRecorrencia(UUID recorrenciaId) {
+        RecorrenciaFinanceira recorrencia = recorrenciaFinanceiraRepository.findById(recorrenciaId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Recorrência de id: %s não encontrada.".formatted(recorrenciaId)));
+
+        // Encontra todos os EventoInstituicao vinculados a esta recorrência
+        List<EventoInstituicao> eis = recorrencia.getEventoInstituicaos();
+        if (eis != null && !eis.isEmpty()) {
+            // Separa eventos futuros
+            List<EventoFinanceiro> eventosFuturos = eis.stream()
+                    .map(EventoInstituicao::getEventoFinanceiro)
+                    .filter(ev -> ev != null && !ev.getDataEvento().isBefore(LocalDate.now()))
+                    .distinct()
+                    .toList();
+
+            // Desvincula as EIs da recorrência antes de deletar
+            eis.forEach(ei -> {
+                ei.setRecorrenciaFinanceira(null);
+                eventoInstituicaoRepository.save(ei);
+            });
+
+            // Deleta eventos futuros (cascade remove EIs)
+            eventosFuturos.forEach(eventoFinanceiroRepository::delete);
+        }
+
+        recorrenciaFinanceiraRepository.delete(recorrencia);
     }
 
     /**
@@ -413,6 +468,9 @@ public class RegistroService {
         }
         if (novosDados.getTipo() != existente.getTipo()) {
             existente.setTipo(novosDados.getTipo());
+        }
+        if (novosDados.getValor() != null && !novosDados.getValor().equals(existente.getValor())) {
+            existente.setValor(novosDados.getValor());
         }
         return eventoFinanceiroRepository.save(existente);
     }

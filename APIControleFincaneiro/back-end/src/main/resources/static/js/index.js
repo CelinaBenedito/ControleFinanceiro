@@ -87,6 +87,28 @@ function isDark() {
     return document.body.dataset.mode === 'dark';
 }
 
+function clampPercent(v) {
+    const n = Number(v ?? 0);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+function setProgress(elId, percentual) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.style.width = `${clampPercent(percentual)}%`;
+}
+
+function formatarNivelSaude(nivel) {
+    const n = String(nivel || '').toUpperCase();
+    if (!n) return 'Sem dados no período';
+    if (n === 'ATENCAO') return 'Atenção';
+    if (n === 'CRITICO') return 'Crítico';
+    if (n === 'BAIXO') return 'Baixo';
+    if (n === 'NORMAL') return 'Normal';
+    return n;
+}
+
 // Interpola hue 240(azul) → 0(vermelho) baseado em normalizado (0-1)
 function heatColor(normalizado) {
     const n = Math.max(0, Math.min(1, normalizado || 0));
@@ -307,11 +329,34 @@ async function gerarKPIS() {
     if (!userId || !periodoCfg) return;
     const params = buildParams();
     await Promise.all([
+        carregarHistoriaFinanceira(userId, params),
         carregarKpiSaldoTotal(userId, params),
         carregarKpiGastoTotal(userId, params),
         carregarKpiMaiorGasto(userId, params),
-        carregarKpiCategoriaImpacto(userId, params)
+        carregarKpiCategoriaImpacto(userId, params),
+        carregarKpiSaudeFinanceira(userId, params),
+        carregarKpiPoupanca(userId),
+        carregarKpiEmprestimo(userId)
     ]);
+}
+
+async function carregarHistoriaFinanceira(userId, params) {
+    const elTitulo = document.getElementById('historiaTitulo');
+    const elResumo = document.getElementById('historiaResumo');
+    if (!elTitulo || !elResumo) return;
+
+    elTitulo.textContent = 'História financeira do período';
+    elResumo.textContent = 'Carregando...';
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/historia-financeira/usuarios/${userId}?${params}`);
+    if (!ok || !json) {
+        elTitulo.textContent = 'História financeira do período';
+        elResumo.textContent = 'Sem dados no período.';
+        return;
+    }
+
+    elTitulo.textContent = json.titulo || 'História financeira do período';
+    elResumo.textContent = json.resumo || 'Sem dados no período.';
 }
 
 async function carregarKpiSaldoTotal(userId, params) {
@@ -322,7 +367,7 @@ async function carregarKpiSaldoTotal(userId, params) {
     if (!ok || !json) { el.textContent = '–'; el.style.color = ''; return; }
     const saldo = Number(json.saldo ?? 0);
     el.textContent  = CURRENCY.format(saldo);
-    el.style.color  = saldo >= 0 ? cssVar('--green-700') : cssVar('--red-700');
+    el.style.color  = '';
 }
 
 async function carregarKpiGastoTotal(userId, params) {
@@ -429,6 +474,99 @@ async function carregarKpiCategoriaImpacto(userId, params) {
         elBadge.innerHTML = `<i class='bx bx-caret-big-down'></i> ${v}%`;
         elSub.textContent = 'Em comparação ao período anterior';
     }
+}
+
+async function carregarKpiSaudeFinanceira(userId, params) {
+    const elPontuacao = document.getElementById('saudePontuacao');
+    const elNivel = document.getElementById('saudeNivel');
+    const elDesc = document.getElementById('saudeDescricao');
+    if (!elPontuacao || !elNivel || !elDesc) return;
+
+    elPontuacao.textContent = '--';
+    elNivel.textContent = 'Carregando...';
+    elDesc.textContent = 'Carregando...';
+    setProgress('saudeProgress', 0);
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/kpi/saude-financeira/usuarios/${userId}?${params}`);
+    if (!ok || !json) {
+        elPontuacao.textContent = '--';
+        elNivel.textContent = 'Sem dados no período';
+        elDesc.textContent = 'Sem dados no período.';
+        return;
+    }
+
+    const pontuacao = clampPercent(json.pontuacao);
+    elPontuacao.textContent = `${pontuacao}/100`;
+    elNivel.textContent = formatarNivelSaude(json.nivel);
+    elDesc.textContent = json.descricao || 'Sem dados no período.';
+    setProgress('saudeProgress', pontuacao);
+}
+
+async function carregarKpiPoupanca(userId) {
+    const elNome = document.getElementById('poupancaNome');
+    const elValor = document.getElementById('poupancaValor');
+    const elMeta = document.getElementById('poupancaMeta');
+    const elPct = document.getElementById('poupancaPercentual');
+    if (!elNome || !elValor || !elMeta || !elPct) return;
+
+    elNome.textContent = 'Carregando...';
+    elValor.textContent = '...';
+    elMeta.textContent = '...';
+    elPct.textContent = '0%';
+    setProgress('poupancaProgress', 0);
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/kpi/poupanca/usuarios/${userId}`);
+    if (!ok || !json) {
+        elNome.textContent = 'Sem dados no período';
+        elValor.textContent = 'R$ 0,00';
+        elMeta.textContent = 'Meta: R$ 0,00';
+        elPct.textContent = '0%';
+        return;
+    }
+
+    const guardado = Number(json.valorGuardado ?? 0);
+    const meta = Number(json.valorMeta ?? 0);
+    const pct = clampPercent(json.percentualMeta ?? 0);
+
+    elNome.textContent = json.nomeCaixinha || 'Poupança';
+    elValor.textContent = CURRENCY.format(guardado);
+    elMeta.textContent = `Meta: ${CURRENCY.format(meta)} · Faltante: ${CURRENCY.format(Number(json.valorFaltante ?? 0))}`;
+    elPct.textContent = `${pct}%`;
+    setProgress('poupancaProgress', pct);
+}
+
+async function carregarKpiEmprestimo(userId) {
+    const elInst = document.getElementById('emprestimoInstituicao');
+    const elValor = document.getElementById('emprestimoValor');
+    const elResumo = document.getElementById('emprestimoResumo');
+    const elPct = document.getElementById('emprestimoPercentual');
+    if (!elInst || !elValor || !elResumo || !elPct) return;
+
+    elInst.textContent = 'Carregando...';
+    elValor.textContent = '...';
+    elResumo.textContent = 'Carregando...';
+    elPct.textContent = '0%';
+    setProgress('emprestimoProgress', 0);
+
+    const { ok, json } = await apiFetch(`${API_BASE}/dashboard/kpi/emprestimo/usuarios/${userId}`);
+    if (!ok || !json || !json.temEmprestimoAtivo) {
+        elInst.textContent = 'Sem empréstimo ativo';
+        elValor.textContent = 'R$ 0,00';
+        elResumo.textContent = 'Sem dados no período.';
+        elPct.textContent = '0%';
+        return;
+    }
+
+    const pct = clampPercent(json.percentualQuitado ?? 0);
+    const valorRestante = Number(json.valorRestante ?? 0);
+    const parcelasPagas = Number(json.parcelasPagas ?? 0);
+    const parcelasTotal = Number(json.parcelasTotal ?? 0);
+
+    elInst.textContent = json.nomeInstituicao || 'Instituição';
+    elValor.textContent = `Restante: ${CURRENCY.format(valorRestante)}`;
+    elResumo.textContent = `Pago: ${CURRENCY.format(Number(json.valorPago ?? 0))} · ${parcelasPagas}/${parcelasTotal} parcelas`;
+    elPct.textContent = `${pct}% quitado`;
+    setProgress('emprestimoProgress', pct);
 }
 
 // ── GRÁFICOS ─────────────────────────────────────────────────────────────────
@@ -630,20 +768,13 @@ async function carregarGraficoCategorias(userId, params) {
     }
 }
 
-// ── Gráfico 4: Dia da semana (heat map) ou Mês (ANUAL — bar chart) ────────────
+// ── Gráfico 4: Gastos por dia da semana (heat map) — todos os períodos ──────
 async function carregarGraficoDiaSemana(userId, params) {
     const el       = document.getElementById('graficoDiaSemana');
     const tituloEl = document.getElementById('tituloDiaSemana');
     const tooltipEl = document.getElementById('tooltipDiaSemana');
     if (!el) return;
 
-    // Para ANUAL → mostra gastos por mês em vez de dia da semana
-    if (periodoCfg?.tipo === 'ANUAL') {
-        if (tituloEl)  tituloEl.textContent  = 'Gastos por mês';
-        if (tooltipEl) tooltipEl.textContent = 'Total gasto em cada mês do ano selecionado.';
-        await carregarGastosPorMes(userId, params, el);
-        return;
-    }
 
     if (tituloEl)  tituloEl.textContent  = 'Gastos por dia da semana';
     if (tooltipEl) tooltipEl.textContent = 'Dias com mais gastos aparecem em vermelho; dias com menos gastos em azul.';

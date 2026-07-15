@@ -2,9 +2,14 @@ package controle.api.back_end.service;
 
 import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
+import controle.api.back_end.dto.instituicao.in.AtualizarInstituicaoUsuarioDto;
+import controle.api.back_end.dto.instituicao.out.DetalheInstituicaoDto;
+import controle.api.back_end.dto.instituicao.out.ResumoInstituicaoDto;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
+import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
@@ -18,10 +23,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class InstituicaoService {
@@ -118,7 +123,7 @@ public class InstituicaoService {
     }
 
     public BigDecimal getSaldoByInstituicao(Integer instituicaoUsuarioId) {
-        instituicaoUsuarioRepository.findById(instituicaoUsuarioId)
+        InstituicaoUsuario iu = instituicaoUsuarioRepository.findById(instituicaoUsuarioId)
                 .orElseThrow(() ->
                         new EntidadeNaoEncontradaException(
                                 "Associação de instituição e usuário de id: %d não encontrada."
@@ -129,15 +134,33 @@ public class InstituicaoService {
                 eventoInstituicaoRepository.findByInstituicaoUsuario_Id(instituicaoUsuarioId);
 
         BigDecimal saldo = BigDecimal.ZERO;
+        BigDecimal totalCreditoUsado = BigDecimal.ZERO;
 
-        for (EventoInstituicao eventoInstituicao : eventosInstituicao) {
-            EventoFinanceiro eventoFinanceiro = eventoInstituicao.getEventoFinanceiro();
+        for (EventoInstituicao ei : eventosInstituicao) {
+            EventoFinanceiro eventoFinanceiro = ei.getEventoFinanceiro();
 
             if (eventoFinanceiro == null) {
                 continue;
             }
 
             saldo = getSaldo(saldo, eventoFinanceiro);
+
+            // Acumula crédito utilizado (gastos no cartão de crédito)
+            // e reduz com pagamentos de fatura (Recebimento/Credito = quitação da fatura)
+            if (ei.getTipoMovimento() == TipoMovimento.Credito) {
+                BigDecimal v = BigDecimal.valueOf(ei.getValor());
+                if (eventoFinanceiro.getTipo() == Tipo.Gasto || eventoFinanceiro.getTipo() == Tipo.Transferencia) {
+                    totalCreditoUsado = totalCreditoUsado.add(v);
+                } else if (eventoFinanceiro.getTipo() == Tipo.Recebimento) {
+                    totalCreditoUsado = totalCreditoUsado.subtract(v); // pagamento de fatura
+                }
+            }
+        }
+
+        // Para instituições com limite de crédito: saldo disponível = limite - crédito utilizado
+        BigDecimal limite = iu.getLimiteCredito();
+        if (limite != null && limite.compareTo(BigDecimal.ZERO) > 0) {
+            return limite.subtract(totalCreditoUsado).max(BigDecimal.ZERO);
         }
 
         return saldo;
@@ -163,5 +186,192 @@ public class InstituicaoService {
             instituicao.setIsAtivo(false);
             instituicaoUsuarioRepository.save(instituicao);
         }
+    }
+
+    // =========================================================================
+    //  RESUMO DAS INSTITUIÇÕES DO USUÁRIO
+    // =========================================================================
+    public List<ResumoInstituicaoDto> getResumoInstituicoes(UUID userId) {
+        return getResumoInstituicoes(userId, null, null);
+    }
+
+    public List<ResumoInstituicaoDto> getResumoInstituicoes(UUID userId, LocalDate dataInicio, LocalDate dataFim) {
+        if (!usuarioRepository.existsById(userId)) {
+            throw new EntidadeNaoEncontradaException("Usuário de id: %s não encontrado".formatted(userId));
+        }
+        List<InstituicaoUsuario> instList = instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
+        List<ResumoInstituicaoDto> resultado = new ArrayList<>();
+        LocalDate hoje = LocalDate.now();
+
+        for (InstituicaoUsuario iu : instList) {
+            List<EventoInstituicao> eis = eventoInstituicaoRepository.findByInstituicaoUsuario_Id(iu.getId());
+
+            int transacoes = 0;
+            BigDecimal totalCredito = BigDecimal.ZERO;
+            BigDecimal totalDebito = BigDecimal.ZERO;
+            BigDecimal saldo = BigDecimal.ZERO;
+            int parcelamentosAtivos = 0;
+
+            for (EventoInstituicao ei : eis) {
+                EventoFinanceiro ef = ei.getEventoFinanceiro();
+                if (ef == null) continue;
+
+                // Saldo acumulado é sempre all-time (saldo atual da conta)
+                saldo = getSaldo(saldo, ef);
+
+                // Parcelamentos ativos: sobreposição com período (se fornecido) ou ainda não vencido
+                if (ei.getParcelas() != null && ei.getParcelas() > 1) {
+                    LocalDate inicioParc = ef.getDataEvento();
+                    LocalDate fimParc = inicioParc.plusMonths(ei.getParcelas());
+                    if (dataInicio != null && dataFim != null) {
+                        if (!fimParc.isBefore(dataInicio) && !inicioParc.isAfter(dataFim)) {
+                            parcelamentosAtivos++;
+                        }
+                    } else {
+                        if (!fimParc.isBefore(hoje)) parcelamentosAtivos++;
+                    }
+                }
+
+                // Totais de crédito/débito e transações: filtrados pelo período
+                if (dataInicio != null && dataFim != null) {
+                    LocalDate dataEvento = ef.getDataEvento();
+                    if (dataEvento == null || dataEvento.isBefore(dataInicio) || dataEvento.isAfter(dataFim)) continue;
+                }
+
+                if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) transacoes++;
+
+                if (ei.getTipoMovimento() == TipoMovimento.Credito) {
+                    BigDecimal v = BigDecimal.valueOf(ei.getValor());
+                    if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) {
+                        totalCredito = totalCredito.add(v);
+                    } else if (ef.getTipo() == Tipo.Recebimento) {
+                        totalCredito = totalCredito.subtract(v); // pagamento de fatura reduz crédito usado
+                    }
+                } else if (ei.getTipoMovimento() == TipoMovimento.Debito)
+                    totalDebito = totalDebito.add(BigDecimal.valueOf(ei.getValor()));
+            }
+
+            BigDecimal limite = iu.getLimiteCredito() != null ? iu.getLimiteCredito() : BigDecimal.ZERO;
+            int pctCredito = limite.compareTo(BigDecimal.ZERO) > 0
+                    ? totalCredito.divide(limite, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).intValue()
+                    : 0;
+
+            boolean temCredito = calcularTemCredito(iu.getInstituicao().getNome());
+
+            resultado.add(new ResumoInstituicaoDto(
+                    iu.getId(),
+                    iu.getInstituicao().getNome(),
+                    transacoes,
+                    saldo,
+                    totalCredito,
+                    totalDebito,
+                    limite,
+                    Math.min(pctCredito, 100),
+                    parcelamentosAtivos,
+                    iu.getTaxaJuros(),
+                    temCredito
+            ));
+        }
+        return resultado;
+    }
+
+    /** Retorna false para instituições de benefício/alimentação que não possuem limite de crédito rotativo. */
+    private boolean calcularTemCredito(String nomeInstituicao) {
+        if (nomeInstituicao == null) return true;
+        String nome = nomeInstituicao.toLowerCase()
+                .replace("ã", "a").replace("á", "a").replace("â", "a")
+                .replace("é", "e").replace("ê", "e").replace("í", "i")
+                .replace("ó", "o").replace("ô", "o").replace("ú", "u")
+                .replace("ç", "c");
+        return !(nome.contains("alelo") || nome.contains("aelo") ||
+                nome.contains("vale") || nome.contains("ticket") ||
+                nome.contains("pluxee") || nome.contains("sodexo") ||
+                nome.contains("multibene") || nome.contains("beneficio") ||
+                nome.contains("beneficios"));
+    }
+
+    // =========================================================================
+    //  DETALHE DA INSTITUIÇÃO COM DISTRIBUIÇÃO POR MOVIMENTO
+    // =========================================================================
+    public DetalheInstituicaoDto getDetalheInstituicao(Integer instUsuarioId) {
+        InstituicaoUsuario iu = instituicaoUsuarioRepository.findById(instUsuarioId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("InstituicaoUsuario de id: %d não encontrada.".formatted(instUsuarioId)));
+
+        List<EventoInstituicao> eis = eventoInstituicaoRepository.findByInstituicaoUsuario_Id(instUsuarioId);
+        Map<String, BigDecimal> porMovimento = new LinkedHashMap<>();
+        for (TipoMovimento tm : TipoMovimento.values()) porMovimento.put(tm.name(), BigDecimal.ZERO);
+
+        for (EventoInstituicao ei : eis) {
+            if (ei.getTipoMovimento() != null) {
+                porMovimento.merge(ei.getTipoMovimento().name(), BigDecimal.valueOf(ei.getValor()), BigDecimal::add);
+            }
+        }
+
+        List<DetalheInstituicaoDto.DistribuicaoMovimentoDto> distribuicao = porMovimento.entrySet().stream()
+                .filter(e -> e.getValue().compareTo(BigDecimal.ZERO) > 0)
+                .map(e -> new DetalheInstituicaoDto.DistribuicaoMovimentoDto(e.getKey(), e.getValue()))
+                .toList();
+
+        return new DetalheInstituicaoDto(
+                iu.getId(),
+                iu.getInstituicao().getNome(),
+                iu.getLimiteCredito() != null ? iu.getLimiteCredito() : BigDecimal.ZERO,
+                iu.getTaxaJuros(),
+                distribuicao
+        );
+    }
+
+    // =========================================================================
+    //  ATUALIZAR LIMITE DE CRÉDITO E TAXA DE JUROS DA INSTITUIÇÃO
+    // =========================================================================
+    public InstituicaoUsuario atualizarInstituicaoUsuario(Integer instUsuarioId, AtualizarInstituicaoUsuarioDto dto) {
+        InstituicaoUsuario iu = instituicaoUsuarioRepository.findById(instUsuarioId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("InstituicaoUsuario de id: %d não encontrada.".formatted(instUsuarioId)));
+        if (dto.getLimiteCredito() != null) iu.setLimiteCredito(dto.getLimiteCredito());
+        if (dto.getTaxaJuros() != null) iu.setTaxaJuros(dto.getTaxaJuros());
+        iu.setUltimaModificacao(LocalDateTime.now());
+        return instituicaoUsuarioRepository.save(iu);
+    }
+
+    // =========================================================================
+    //  PAGAMENTO DE FATURA (Cartão de Crédito)
+    // =========================================================================
+    /**
+     * Registra o pagamento de fatura do cartão de crédito.
+     * Cria um EventoFinanceiro de Recebimento vinculado à instituição,
+     * com tipoMovimento=Debito (pagamento saindo da conta corrente/dinheiro).
+     *
+     * @param instUsuarioId  instituição com crédito a ser paga
+     * @param valorPagamento valor a ser pago (pode ser total ou parcial)
+     * @return EventoInstituicao do pagamento registrado
+     */
+    public EventoInstituicao pagarFatura(Integer instUsuarioId, BigDecimal valorPagamento) {
+        InstituicaoUsuario iu = instituicaoUsuarioRepository.findById(instUsuarioId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "InstituicaoUsuario de id: %d não encontrada.".formatted(instUsuarioId)));
+
+        if (valorPagamento == null || valorPagamento.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Valor do pagamento deve ser maior que zero.");
+        }
+
+        // Cria o EventoFinanceiro de Recebimento (representa o crédito de volta ao limite)
+        EventoFinanceiro pagamento = new EventoFinanceiro();
+        pagamento.setUsuario(iu.getUsuario());
+        pagamento.setTipo(Tipo.Recebimento);
+        pagamento.setValor(valorPagamento.doubleValue());
+        pagamento.setDescricao("Pagamento de fatura — " + iu.getInstituicao().getNome());
+        pagamento.setDataEvento(java.time.LocalDate.now());
+        pagamento.setDataRegistro(java.time.LocalDateTime.now());
+        EventoFinanceiro eventoSalvo = eventoFinanceiroRepository.save(pagamento);
+
+        // Vincula o evento à instituição com movimento Credito
+        // (pagamento de fatura = quitação do crédito usado, reduz totalCreditoUsado)
+        EventoInstituicao ei = new EventoInstituicao();
+        ei.setEventoFinanceiro(eventoSalvo);
+        ei.setInstituicaoUsuario(iu);
+        ei.setTipoMovimento(TipoMovimento.Credito);
+        ei.setValor(valorPagamento.doubleValue());
+        ei.setParcelas(1);
+        return eventoInstituicaoRepository.save(ei);
     }
 }

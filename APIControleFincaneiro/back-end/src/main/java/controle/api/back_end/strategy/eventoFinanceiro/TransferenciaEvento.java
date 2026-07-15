@@ -36,8 +36,10 @@ public class TransferenciaEvento implements EventoFinanceiroStrategy {
         transferenciaSaida.setUsuario(evento.getUsuario());
         transferenciaSaida.setTipo(Tipo.Transferencia);
         transferenciaSaida.setValor(evento.getValor());
-        transferenciaSaida.setDescricao("Transferência realizada para " +
-                destino.getInstituicaoUsuario().getInstituicao().getNome());
+        String nomeDestino = (destino.getInstituicaoUsuario() != null
+                && destino.getInstituicaoUsuario().getInstituicao() != null)
+                ? destino.getInstituicaoUsuario().getInstituicao().getNome() : "instituição destino";
+        transferenciaSaida.setDescricao("Transferência realizada para " + nomeDestino);
         transferenciaSaida.setDataEvento(evento.getDataEvento());
         transferenciaSaida.setDataRegistro(LocalDateTime.now());
         eventos.add(transferenciaSaida);
@@ -60,8 +62,10 @@ public class TransferenciaEvento implements EventoFinanceiroStrategy {
             transferenciaRecebida.setUsuario(evento.getUsuario());
             transferenciaRecebida.setTipo(Tipo.Recebimento);
             transferenciaRecebida.setValor(evento.getValor());
-            transferenciaRecebida.setDescricao("Transferência recebida da instituição " +
-                    origem.getInstituicaoUsuario().getInstituicao().getNome());
+            String nomeOrigem = (origem.getInstituicaoUsuario() != null
+                    && origem.getInstituicaoUsuario().getInstituicao() != null)
+                    ? origem.getInstituicaoUsuario().getInstituicao().getNome() : "instituição origem";
+            transferenciaRecebida.setDescricao("Transferência recebida da instituição " + nomeOrigem);
             transferenciaRecebida.setDataEvento(evento.getDataEvento());
             transferenciaRecebida.setDataRegistro(LocalDateTime.now());
             eventos.add(transferenciaRecebida);

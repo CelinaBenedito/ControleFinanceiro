@@ -2,12 +2,16 @@ package controle.api.back_end.service;
 
 import controle.api.back_end.dto.poupanca.in.CaixinhaCreateDTO;
 import controle.api.back_end.dto.poupanca.out.CaixinhaResponseDTO;
+import controle.api.back_end.dto.poupanca.out.GraficoProgressoConsolidadoCaixinhaDto;
+import controle.api.back_end.dto.poupanca.out.KpiProgressoGeralCaixinhaDto;
+import controle.api.back_end.dto.poupanca.out.KpiRendimentoEstimadoMesCaixinhaDto;
+import controle.api.back_end.dto.poupanca.out.KpiStatusCaixinhasDto;
+import controle.api.back_end.dto.poupanca.out.KpiTotalAcumuladoCaixinhaDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.poupanca.Caixinha;
 import controle.api.back_end.model.poupanca.CaixinhaInstituicao;
-import controle.api.back_end.model.poupanca.TipoRendimento;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.poupanca.CaixinhaInstituicaoRepository;
@@ -21,8 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.ArrayList;
@@ -156,6 +161,73 @@ public class CaixinhaService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    @Transactional(readOnly = true)
+    public KpiTotalAcumuladoCaixinhaDto obterKpiTotalAcumulado(UUID usuarioId) {
+        List<Caixinha> caixinhasAtivas = buscarCaixinhasAtivasPorUsuario(usuarioId);
+        BigDecimal totalAcumulado = resumoTotalPoupanca(usuarioId);
+        return new KpiTotalAcumuladoCaixinhaDto(totalAcumulado, caixinhasAtivas.size());
+    }
+
+    @Transactional(readOnly = true)
+    public KpiProgressoGeralCaixinhaDto obterKpiProgressoGeral(UUID usuarioId) {
+        List<Caixinha> caixinhasAtivas = buscarCaixinhasAtivasPorUsuario(usuarioId);
+        BigDecimal totalAcumulado = resumoTotalPoupanca(usuarioId);
+        BigDecimal totalMetas = somarMetasDasCaixinhas(caixinhasAtivas);
+
+        int percentualProgressoGeral = 0;
+        if (totalMetas.compareTo(BigDecimal.ZERO) > 0) {
+            percentualProgressoGeral = totalAcumulado
+                    .divide(totalMetas, 6, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(0, RoundingMode.HALF_UP)
+                    .intValue();
+            percentualProgressoGeral = Math.min(percentualProgressoGeral, 100);
+        }
+
+        return new KpiProgressoGeralCaixinhaDto(totalAcumulado, totalMetas, percentualProgressoGeral);
+    }
+
+    @Transactional(readOnly = true)
+    public KpiRendimentoEstimadoMesCaixinhaDto obterKpiRendimentoEstimadoMes(UUID usuarioId) {
+        List<Caixinha> caixinhasAtivas = buscarCaixinhasAtivasPorUsuario(usuarioId);
+
+        BigDecimal rendimentoEstimadoMes = caixinhasAtivas.stream()
+                .map(caixinha -> {
+                    BigDecimal valorAtual = eventoFinanceiroRepository.sumValorByCaixinha(caixinha.getId());
+                    BigDecimal taxaMensalEfetiva = BigDecimal.valueOf(calcularTaxaMensal(caixinha));
+                    return valorAtual.multiply(taxaMensalEfetiva);
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        String mesReferencia = YearMonth.now().format(DateTimeFormatter.ofPattern("MM/yyyy"));
+        return new KpiRendimentoEstimadoMesCaixinhaDto(rendimentoEstimadoMes, mesReferencia);
+    }
+
+    @Transactional(readOnly = true)
+    public KpiStatusCaixinhasDto obterKpiStatusCaixinhas(UUID usuarioId) {
+        validarUsuario(usuarioId);
+        List<Caixinha> todasCaixinhas = caixinhaRepository.findAllByUsuario_Id(usuarioId);
+
+        int quantidadeAtivas = (int) todasCaixinhas.stream()
+                .filter(caixinha -> Boolean.TRUE.equals(caixinha.getIsAtiva()))
+                .count();
+        int quantidadeEncerradas = (int) todasCaixinhas.stream()
+                .filter(caixinha -> !Boolean.TRUE.equals(caixinha.getIsAtiva()))
+                .count();
+
+        return new KpiStatusCaixinhasDto(quantidadeAtivas, quantidadeEncerradas);
+    }
+
+    @Transactional(readOnly = true)
+    public GraficoProgressoConsolidadoCaixinhaDto obterGraficoProgressoConsolidado(UUID usuarioId) {
+        KpiProgressoGeralCaixinhaDto kpiProgresso = obterKpiProgressoGeral(usuarioId);
+        return new GraficoProgressoConsolidadoCaixinhaDto(
+                kpiProgresso.percentualProgressoGeral(),
+                kpiProgresso.totalAcumulado(),
+                kpiProgresso.totalMetas());
+    }
+
     // =========================================================================
     // EDITAR
     // =========================================================================
@@ -167,13 +239,35 @@ public class CaixinhaService {
                         "Caixinha de id: %s não encontrada.".formatted(caixinhaId)));
 
         if (dto.getNome() != null) caixinha.setNome(dto.getNome());
-        if (dto.getDescricao() != null) caixinha.setDescricao(dto.getDescricao());
+        // Permite limpar a descrição passando string vazia
+        if (dto.getDescricao() != null) caixinha.setDescricao(dto.getDescricao().isBlank() ? null : dto.getDescricao());
         if (dto.getValorMeta() != null) caixinha.setValorMeta(dto.getValorMeta());
         if (dto.getDataPrazo() != null) caixinha.setDataPrazo(dto.getDataPrazo());
         if (dto.getTipoRendimento() != null) caixinha.setTipoRendimento(dto.getTipoRendimento());
         if (dto.getPercentualRendimento() != null) caixinha.setPercentualRendimento(dto.getPercentualRendimento());
         if (dto.getTaxaAnualPersonalizada() != null) caixinha.setTaxaAnualPersonalizada(dto.getTaxaAnualPersonalizada());
         if (dto.getTaxaReferenciaAtual() != null) caixinha.setTaxaReferenciaAtual(dto.getTaxaReferenciaAtual());
+
+        // Atualiza vínculos de instituição se informados
+        if (dto.getInstituicaoUsuarioIds() != null && !dto.getInstituicaoUsuarioIds().isEmpty()) {
+            // Remove vínculos antigos
+            List<CaixinhaInstituicao> vinculosAtuais = caixinhaInstituicaoRepository.findAllByCaixinha_Id(caixinhaId);
+            caixinhaInstituicaoRepository.deleteAll(vinculosAtuais);
+            caixinhaInstituicaoRepository.flush();
+
+            // Adiciona novos vínculos
+            for (Integer instId : dto.getInstituicaoUsuarioIds()) {
+                InstituicaoUsuario inst = instituicaoUsuarioRepository.findById(instId)
+                        .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                                "InstituicaoUsuario de id: %d nao encontrada.".formatted(instId)));
+                CaixinhaInstituicao vinculo = new CaixinhaInstituicao();
+                vinculo.setCaixinha(caixinha);
+                vinculo.setInstituicaoUsuario(inst);
+                caixinhaInstituicaoRepository.save(vinculo);
+            }
+
+            caixinha.setIsCompartilhada(dto.getInstituicaoUsuarioIds().size() > 1);
+        }
 
         return calcularEMontar(caixinhaRepository.save(caixinha));
     }
@@ -185,6 +279,16 @@ public class CaixinhaService {
                         "Caixinha de id: %s não encontrada.".formatted(caixinhaId)));
         caixinha.setIsAtiva(false);
         caixinha.setDataEncerramento(LocalDate.now());
+        return calcularEMontar(caixinhaRepository.save(caixinha));
+    }
+
+    /** Reabre uma caixinha encerrada (desfaz o encerramento). */
+    public CaixinhaResponseDTO reabrir(UUID caixinhaId) {
+        Caixinha caixinha = caixinhaRepository.findById(caixinhaId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Caixinha de id: %s não encontrada.".formatted(caixinhaId)));
+        caixinha.setIsAtiva(true);
+        caixinha.setDataEncerramento(null);
         return calcularEMontar(caixinhaRepository.save(caixinha));
     }
 
@@ -216,6 +320,12 @@ public class CaixinhaService {
             throw new EntidadeNaoEncontradaException(
                     "Caixinha de id: %s não encontrada.".formatted(caixinhaId));
         }
+        // Desvincula EventoFinanceiro antes de deletar para evitar violação de FK
+        List<EventoFinanceiro> aportes = eventoFinanceiroRepository.findAllByCaixinha_Id(caixinhaId);
+        aportes.forEach(e -> e.setCaixinha(null));
+        eventoFinanceiroRepository.saveAll(aportes);
+        eventoFinanceiroRepository.flush();
+
         caixinhaRepository.deleteById(caixinhaId);
     }
 
@@ -341,7 +451,7 @@ public class CaixinhaService {
      * </ul>
      */
     private double calcularTaxaMensal(Caixinha c) {
-        if (c.getTipoRendimento() == null || c.getTaxaReferenciaAtual() == null) {
+        if (c.getTipoRendimento() == null) {
             return 0.0;
         }
 
@@ -349,12 +459,20 @@ public class CaixinhaService {
 
         switch (c.getTipoRendimento()) {
             case CDI, SELIC -> {
+                if (c.getTaxaReferenciaAtual() == null) {
+                    taxaAnualPercent = 0.0;
+                    break;
+                }
                 double referencia = c.getTaxaReferenciaAtual(); // % a.a.
                 double percentual = c.getPercentualRendimento() != null
                         ? c.getPercentualRendimento() / 100.0 : 1.0;
                 taxaAnualPercent = referencia * percentual;
             }
             case POUPANCA -> {
+                if (c.getTaxaReferenciaAtual() == null) {
+                    taxaAnualPercent = 0.0;
+                    break;
+                }
                 // Regra atual da poupança: 70% da SELIC quando SELIC > 8,5% a.a.
                 taxaAnualPercent = c.getTaxaReferenciaAtual() * 0.70;
             }
@@ -422,6 +540,18 @@ public class CaixinhaService {
             throw new EntidadeNaoEncontradaException(
                     "Usuário de id: %s não encontrado.".formatted(usuarioId));
         }
+    }
+
+    private List<Caixinha> buscarCaixinhasAtivasPorUsuario(UUID usuarioId) {
+        validarUsuario(usuarioId);
+        return caixinhaRepository.findAllByUsuario_IdAndIsAtivaTrue(usuarioId);
+    }
+
+    private BigDecimal somarMetasDasCaixinhas(List<Caixinha> caixinhas) {
+        return caixinhas.stream()
+                .map(Caixinha::getValorMeta)
+                .filter(valorMeta -> valorMeta != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }
 
