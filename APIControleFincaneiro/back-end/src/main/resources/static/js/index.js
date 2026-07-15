@@ -768,20 +768,13 @@ async function carregarGraficoCategorias(userId, params) {
     }
 }
 
-// ── Gráfico 4: Dia da semana (heat map) ou Mês (ANUAL — bar chart) ────────────
+// ── Gráfico 4: Gastos por dia da semana (heat map) — todos os períodos ──────
 async function carregarGraficoDiaSemana(userId, params) {
     const el       = document.getElementById('graficoDiaSemana');
     const tituloEl = document.getElementById('tituloDiaSemana');
     const tooltipEl = document.getElementById('tooltipDiaSemana');
     if (!el) return;
 
-    // Para ANUAL → mostra gastos por mês em vez de dia da semana
-    if (periodoCfg?.tipo === 'ANUAL') {
-        if (tituloEl)  tituloEl.textContent  = 'Gastos por mês';
-        if (tooltipEl) tooltipEl.textContent = 'Total gasto em cada mês do ano selecionado.';
-        await carregarGastosPorMes(userId, params, el);
-        return;
-    }
 
     if (tituloEl)  tituloEl.textContent  = 'Gastos por dia da semana';
     if (tooltipEl) tooltipEl.textContent = 'Dias com mais gastos aparecem em vermelho; dias com menos gastos em azul.';

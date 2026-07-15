@@ -327,6 +327,7 @@
     function abrirModalInstituicao(resumo) {
         _instAtual = resumo;
         _parcelamentosCarregados = false; // reset lazy load
+        _recorrentesCarregados   = false; // reset lazy load
 
         const hasCred = resumo.temCredito !== false;
 
@@ -377,6 +378,18 @@
         // Config tab: campo de limite de crédito
         const campLimite = document.getElementById("campLimiteCredito");
         if (campLimite) campLimite.style.display = hasCred ? "" : "none";
+
+        // Seção de pagamento de fatura (só para instituições com crédito)
+        const secFatura = document.getElementById("secaoPagarFatura");
+        if (secFatura) secFatura.style.display = hasCred ? "" : "none";
+
+        // Aplica máscara no campo de fatura se ainda não foi aplicada
+        const inputFatura = document.getElementById("inputValorFatura");
+        if (inputFatura && !inputFatura.dataset.mascaraAplicada) {
+            MainAPI.aplicarMascaraMoeda(inputFatura);
+            inputFatura.dataset.mascaraAplicada = "1";
+        }
+        if (inputFatura) MainAPI.resetarMascaraMoeda(inputFatura);
 
         // Carrega distribuição por movimento (detalhe)
         carregarDetalheInstituicao(resumo.instUsuarioId);
@@ -495,6 +508,10 @@
         if (nomAba === "parcelamentos" && _instAtual) {
             carregarParcelamentos(_instAtual.instUsuarioId);
         }
+        // Lazy load da aba de recorrentes
+        if (nomAba === "recorrentes" && _instAtual) {
+            carregarRecorrentes(_instAtual.instUsuarioId);
+        }
     };
 
     window.fecharModalInstituicao = function (event) {
@@ -539,7 +556,7 @@
 
         try {
             const res = await MainAPI.request(
-                `/registros/filtro/usuarios/${_userId}?instituicaoUsuario=${instUsuarioId}`,
+                `/registros/filtro/usuarios/${_userId}?tipo=Gasto`,
                 { method: "GET" }
             );
 
@@ -556,13 +573,22 @@
                 return;
             }
 
-            // Filtra apenas eventos com parcelas > 1
+            // Filtra apenas eventos associados a ESTA instituição E com múltiplas EIs (parcelados)
             const parcs = [];
             registros.forEach(r => {
                 const eis = r.eventoInstituicao || [];
-                // Encontra o ei desta instituição com parcelas > 1
-                const ei = eis.find(e => (e.parcelas || 1) > 1);
-                if (ei) parcs.push({ registro: r, ei });
+                // Filtra EIs desta instituição usando instUsuarioId
+                const eisDaInst = eis.filter(e => e.instUsuarioId === instUsuarioId);
+                if (eisDaInst.length === 0) return;
+
+                // Total de parcelas = número total de EIs desta instituição neste evento
+                const totalParcelas = eisDaInst.length > 1
+                    ? eisDaInst.length
+                    : Math.max(...eis.map(e => e.parcelas || 1));
+
+                if (totalParcelas > 1) {
+                    parcs.push({ registro: r, totalParcelas, ei: eisDaInst[0] });
+                }
             });
 
             if (parcs.length === 0) {
@@ -576,7 +602,7 @@
                 const dataEvt = parseDateField(p.registro.eventoFinanceiro?.dataEvento);
                 if (!dataEvt) return false;
                 const fim = new Date(dataEvt);
-                fim.setMonth(fim.getMonth() + (p.ei.parcelas || 1));
+                fim.setMonth(fim.getMonth() + p.totalParcelas);
                 return fim >= hoje;
             }).length;
 
@@ -625,12 +651,14 @@
         return null;
     }
 
-    function buildParcelamentoItemHTML({ registro, ei }) {
+    function buildParcelamentoItemHTML({ registro, ei, totalParcelas }) {
         const ef     = registro.eventoFinanceiro || {};
         const titulo = registro.gastoDetalhe?.tituloGasto || ef.descricao || "Sem título";
         const dataEvt = parseDateField(ef.dataEvento);
         let dataFmt = "–";
         let isAtivo = false;
+
+        const numParcelas = totalParcelas || ei.parcelas || 1;
 
         if (dataEvt) {
             const dia = String(dataEvt.getDate()).padStart(2, "0");
@@ -638,12 +666,16 @@
             const ano = dataEvt.getFullYear();
             dataFmt = `${dia}/${mes}/${ano}`;
             const fim = new Date(dataEvt);
-            fim.setMonth(fim.getMonth() + (ei.parcelas || 1));
+            fim.setMonth(fim.getMonth() + numParcelas);
             isAtivo = fim >= new Date();
         }
 
-        const valorTotal    = Number(ei.valor) || 0;
-        const valorParcela  = ei.parcelas > 0 ? valorTotal / ei.parcelas : valorTotal;
+        // Valor total = soma de todos os EIs, ou valor do EI x numParcelas
+        const eis = registro.eventoInstituicao || [];
+        const valorTotal = eis.length > 1
+            ? eis.reduce((s, e) => s + (Number(e.valor) || 0), 0)
+            : (Number(ei.valor) || 0) * numParcelas;
+        const valorParcela  = numParcelas > 0 ? valorTotal / numParcelas : valorTotal;
         const statusCls     = isAtivo ? "verde" : "";
         const statusTxt     = isAtivo ? "Ativo" : "Encerrado";
         const badgeCls      = isAtivo ? "ativo" : "encerrado";
@@ -656,7 +688,7 @@
             </div>
             <div class="inst-parc-valores">
                 <span class="inst-stat-valor ${statusCls}">${fmtBRL(valorTotal)}</span>
-                <span class="inst-parc-parcelas">${ei.parcelas}x de ${fmtBRL(valorParcela)}</span>
+                <span class="inst-parc-parcelas">${numParcelas}x de ${fmtBRL(valorParcela)}</span>
             </div>
             <div class="inst-parc-actions">
                 <span class="inst-parc-badge ${badgeCls}">${statusTxt}</span>
@@ -691,8 +723,173 @@
     }
 
     /* ══════════════════════════════════════════════════════════
-       SALVAR CONFIGURAÇÃO
+       ABA RECORRENTES
     ══════════════════════════════════════════════════════════ */
+    let _recorrentesCarregados = false;
+
+    async function carregarRecorrentes(instUsuarioId) {
+        if (_recorrentesCarregados) return;
+        _recorrentesCarregados = true;
+
+        const painel = document.getElementById("tab-recorrentes");
+        if (!painel) return;
+
+        painel.innerHTML = `
+            <div class="inst-loading" style="display:flex;">
+                <i class='bx bx-loader-alt bx-spin'></i> Carregando recorrentes...
+            </div>`;
+
+        try {
+            const res = await MainAPI.request(
+                `/registros/recorrentes/instituicoes/${instUsuarioId}`,
+                { method: "GET" }
+            );
+
+            if (!res.ok || res.status === 204) {
+                painel.innerHTML = buildRecorrentesVazio();
+                return;
+            }
+
+            const lista = await res.json();
+            if (!Array.isArray(lista) || lista.length === 0) {
+                painel.innerHTML = buildRecorrentesVazio();
+                return;
+            }
+
+            painel.innerHTML = `
+                <p class="kpi-label" style="margin-bottom:12px;">Eventos Recorrentes desta Instituição</p>
+                <div class="inst-rec-lista" id="recLista">
+                    ${lista.map(r => buildRecorrenteItemHTML(r)).join("")}
+                </div>`;
+
+            painel.querySelectorAll("[data-del-rec]").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const id = btn.dataset.delRec;
+                    deletarRecorrente(id, btn.closest(".inst-rec-item"), instUsuarioId);
+                });
+            });
+
+        } catch (e) {
+            console.error("Erro ao carregar recorrentes:", e);
+            painel.innerHTML = buildRecorrentesVazio();
+        }
+    }
+
+    function buildRecorrentesVazio() {
+        return `
+        <div class="inst-vazio" style="display:flex; flex-direction:column; align-items:center; gap:12px; padding:32px 0;">
+            <i class='bx bx-repeat' style="font-size:2.5rem; color:var(--cor-texto-secundario);"></i>
+            <h3>Nenhum evento recorrente</h3>
+            <p style="color:var(--cor-texto-secundario);">Nenhuma recorrência vinculada a esta instituição.</p>
+            <a href="adicionarRegistros.html" class="inst-btn-recorrente">
+                <i class='bx bx-plus-circle'></i> Criar Evento Recorrente
+            </a>
+        </div>`;
+    }
+
+    function buildRecorrenteItemHTML(r) {
+        const PERIODOS = {
+            Diario: 'Diário', Semanal: 'Semanal', Mensal: 'Mensal', Anual: 'Anual'
+        };
+        const TIPOS_LABEL = {
+            Gasto: '🔴 Gasto', Recebimento: '🟢 Recebimento'
+        };
+        const per = PERIODOS[r.periodicidade] || r.periodicidade || '–';
+        const tipo = TIPOS_LABEL[r.tipo] || r.tipo || '–';
+        const dataInicio = r.dataInicio ? new Date(r.dataInicio).toLocaleDateString('pt-BR') : '–';
+        const dataFim    = r.dataFim    ? new Date(r.dataFim).toLocaleDateString('pt-BR')    : '–';
+        const valor      = r.valor != null ? fmtBRL(r.valor) : '–';
+        const descricao  = r.descricao || '';
+
+        return `
+        <div class="inst-rec-item" style="background:var(--cor-fundo-card);border:1px solid var(--cor-tinte-borda);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:0.97rem;margin-bottom:4px;">${descricao || tipo}</div>
+                <div style="font-size:0.83rem;color:var(--cor-texto-secundario);">
+                    ${tipo} · ${per} · ${valor}
+                </div>
+                <div style="font-size:0.8rem;color:var(--cor-texto-secundario);margin-top:3px;">
+                    ${dataInicio} → ${dataFim}
+                </div>
+            </div>
+            <button class="inst-parc-del-btn" data-del-rec="${r.id}" title="Excluir recorrência">
+                <i class='bx bx-trash'></i>
+            </button>
+        </div>`;
+    }
+
+    async function deletarRecorrente(recorrenciaId, itemEl, instUsuarioId) {
+        if (!confirm("Excluir esta recorrência? Os eventos futuros vinculados serão removidos.")) return;
+        try {
+            const res = await MainAPI.request(
+                `/registros/recorrentes/${recorrenciaId}`,
+                { method: "DELETE" }
+            );
+            if (res.ok || res.status === 204) {
+                if (itemEl) itemEl.remove();
+                _recorrentesCarregados = false;
+                carregarRecorrentes(instUsuarioId);
+            } else {
+                alert("Erro ao excluir recorrência. Tente novamente.");
+            }
+        } catch (e) {
+            alert("Erro de conexão ao excluir.");
+        }
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       PAGAMENTO DE FATURA
+    ══════════════════════════════════════════════════════════ */
+    window.pagarFaturaInstituicao = async function () {
+        if (!_instAtual) return;
+
+        const inputValor = document.getElementById("inputValorFatura");
+        const feedback   = document.getElementById("faturaFeedback");
+        const btnPagar   = document.getElementById("btnPagarFatura");
+
+        const valor = window.MainAPI ? window.MainAPI.obterValorMoeda(inputValor) : Number(inputValor?.value);
+        if (!valor || valor <= 0) {
+            if (feedback) { feedback.textContent = "Informe um valor válido."; feedback.className = "inst-feedback erro"; feedback.style.display = "block"; }
+            return;
+        }
+
+        if (btnPagar) { btnPagar.disabled = true; btnPagar.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Pagando..."; }
+
+        try {
+            const res = await MainAPI.request(
+                `/instituicoes/${_instAtual.instUsuarioId}/pagar-fatura`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ valor })
+                }
+            );
+
+            if (res.ok) {
+                if (feedback) { feedback.textContent = "✔ Pagamento registrado com sucesso!"; feedback.className = "inst-feedback sucesso"; feedback.style.display = "block"; }
+                // Recarrega dados
+                await carregarInstituicoes();
+                const novo = _resumoList.find(r => r.instUsuarioId === _instAtual.instUsuarioId);
+                if (novo) {
+                    _instAtual = novo;
+                    const badge = document.getElementById("instModalBadge");
+                    const pct = novo.percentualCreditoUtilizado || 0;
+                    if (badge) { badge.textContent = `${pct}% crédito usado`; badge.className = "inst-modal-badge" + (pct > 80 ? " vermelho" : pct > 50 ? " amarelo" : ""); }
+                }
+            } else {
+                const msg = await res.text().catch(() => "Erro ao processar pagamento.");
+                if (feedback) { feedback.textContent = `✘ ${msg}`; feedback.className = "inst-feedback erro"; feedback.style.display = "block"; }
+            }
+        } catch (e) {
+            if (feedback) { feedback.textContent = "✘ Erro de conexão."; feedback.className = "inst-feedback erro"; feedback.style.display = "block"; }
+        } finally {
+            if (btnPagar) { btnPagar.disabled = false; btnPagar.innerHTML = "<i class='bx bx-credit-card'></i> Pagar Fatura"; }
+        }
+    };
+
+    /* ══════════════════════════════════════════════════════════
+       SALVAR CONFIGURAÇÃO
+    ══════���═══════════════════════════════════════════════════ */
     window.salvarConfiguracaoInstituicao = async function () {
         if (!_instAtual) return;
 

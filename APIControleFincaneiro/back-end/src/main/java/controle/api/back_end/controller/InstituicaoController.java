@@ -268,4 +268,23 @@ public class InstituicaoController {
         InstituicaoUsuario updated = instituicaoService.atualizarInstituicaoUsuario(instUsuario_id, dto);
         return ResponseEntity.ok(InstituicaoUsuarioMapper.toDto(updated));
     }
+
+    @PostMapping("/{instUsuario_id}/pagar-fatura")
+    @Operation(summary = "Pagar fatura do cartão de crédito",
+            description = "Registra o pagamento de fatura, liberando crédito disponível.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagamento registrado."),
+            @ApiResponse(responseCode = "400", description = "Valor inválido.", content = @Content),
+            @ApiResponse(responseCode = "404", content = @Content)
+    })
+    public ResponseEntity<?> pagarFatura(
+            @PathVariable Integer instUsuario_id,
+            @RequestBody java.util.Map<String, Double> body) {
+        Double valor = body.get("valor");
+        if (valor == null || valor <= 0) {
+            return ResponseEntity.badRequest().body("Informe um valor válido.");
+        }
+        instituicaoService.pagarFatura(instUsuario_id, java.math.BigDecimal.valueOf(valor));
+        return ResponseEntity.ok().build();
+    }
 }

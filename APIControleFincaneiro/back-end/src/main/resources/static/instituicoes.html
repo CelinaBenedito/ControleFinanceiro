@@ -372,30 +372,30 @@
                         <i class='bx bx-save'></i> Salvar Configurações
                     </button>
                     <div id="configFeedback" class="inst-feedback" style="display:none;"></div>
+
+                    <!-- Pagamento de Fatura (só para instituições com crédito) -->
+                    <div id="secaoPagarFatura" style="margin-top:24px;padding-top:20px;border-top:1px solid var(--cor-tinte-borda);">
+                        <p class="kpi-label" style="margin-bottom:10px;"><i class='bx bx-credit-card'></i> Pagamento de Fatura</p>
+                        <p style="font-size:0.87rem;color:var(--cor-texto-secundario);margin-bottom:12px;">
+                            Registre o pagamento da fatura do cartão de crédito para liberar o limite disponível.
+                        </p>
+                        <div class="inst-campo-wrap">
+                            <label class="inst-campo-label">Valor a pagar (R$)</label>
+                            <input type="text" id="inputValorFatura" class="inst-campo-input" placeholder="R$ 0,00" />
+                        </div>
+                        <button class="inst-btn-salvar" id="btnPagarFatura" onclick="pagarFaturaInstituicao()"
+                            style="background:var(--cor-principal);margin-top:8px;">
+                            <i class='bx bx-credit-card'></i> Pagar Fatura
+                        </button>
+                        <div id="faturaFeedback" class="inst-feedback" style="display:none;"></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- ABA: Recorrentes -->
+            <!-- ABA: Recorrentes — conteúdo carregado dinamicamente -->
             <div class="inst-tab-panel" id="tab-recorrentes">
-                <div class="inst-recorrentes-info">
-                    <div class="inst-recorrente-destaque">
-                        <i class='bx bx-repeat'></i>
-                        <div>
-                            <h3>Eventos Recorrentes</h3>
-                            <p>Gerencie os eventos recorrentes associados a esta instituição na tela de registros.</p>
-                        </div>
-                    </div>
-                    <div class="inst-recorrentes-acoes">
-                        <a href="adicionarRegistros.html" class="inst-btn-recorrente">
-                            <i class='bx bx-plus-circle'></i> Criar Evento Recorrente
-                        </a>
-                        <a href="registros.html" class="inst-btn-recorrente secundario">
-                            <i class='bx bx-list-ul'></i> Ver Todos os Registros
-                        </a>
-                        <a href="agendaGastos.html" class="inst-btn-recorrente secundario">
-                            <i class='bx bx-calendar-event'></i> Agenda de Gastos
-                        </a>
-                    </div>
+                <div class="inst-loading" style="display:none;">
+                    <i class='bx bx-loader-alt bx-spin'></i> Carregando...
                 </div>
             </div>
 
