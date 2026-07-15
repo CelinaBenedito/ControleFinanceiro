@@ -2,12 +2,16 @@ package controle.api.back_end.service;
 
 import controle.api.back_end.dto.poupanca.in.CaixinhaCreateDTO;
 import controle.api.back_end.dto.poupanca.out.CaixinhaResponseDTO;
+import controle.api.back_end.dto.poupanca.out.GraficoProgressoConsolidadoCaixinhaDto;
+import controle.api.back_end.dto.poupanca.out.KpiProgressoGeralCaixinhaDto;
+import controle.api.back_end.dto.poupanca.out.KpiRendimentoEstimadoMesCaixinhaDto;
+import controle.api.back_end.dto.poupanca.out.KpiStatusCaixinhasDto;
+import controle.api.back_end.dto.poupanca.out.KpiTotalAcumuladoCaixinhaDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.poupanca.Caixinha;
 import controle.api.back_end.model.poupanca.CaixinhaInstituicao;
-import controle.api.back_end.model.poupanca.TipoRendimento;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.poupanca.CaixinhaInstituicaoRepository;
@@ -21,8 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.ArrayList;
@@ -154,6 +159,73 @@ public class CaixinhaService {
         return caixinhaRepository.findAllByUsuario_IdAndIsAtivaTrue(usuarioId).stream()
                 .map(c -> eventoFinanceiroRepository.sumValorByCaixinha(c.getId()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    @Transactional(readOnly = true)
+    public KpiTotalAcumuladoCaixinhaDto obterKpiTotalAcumulado(UUID usuarioId) {
+        List<Caixinha> caixinhasAtivas = buscarCaixinhasAtivasPorUsuario(usuarioId);
+        BigDecimal totalAcumulado = resumoTotalPoupanca(usuarioId);
+        return new KpiTotalAcumuladoCaixinhaDto(totalAcumulado, caixinhasAtivas.size());
+    }
+
+    @Transactional(readOnly = true)
+    public KpiProgressoGeralCaixinhaDto obterKpiProgressoGeral(UUID usuarioId) {
+        List<Caixinha> caixinhasAtivas = buscarCaixinhasAtivasPorUsuario(usuarioId);
+        BigDecimal totalAcumulado = resumoTotalPoupanca(usuarioId);
+        BigDecimal totalMetas = somarMetasDasCaixinhas(caixinhasAtivas);
+
+        int percentualProgressoGeral = 0;
+        if (totalMetas.compareTo(BigDecimal.ZERO) > 0) {
+            percentualProgressoGeral = totalAcumulado
+                    .divide(totalMetas, 6, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(0, RoundingMode.HALF_UP)
+                    .intValue();
+            percentualProgressoGeral = Math.min(percentualProgressoGeral, 100);
+        }
+
+        return new KpiProgressoGeralCaixinhaDto(totalAcumulado, totalMetas, percentualProgressoGeral);
+    }
+
+    @Transactional(readOnly = true)
+    public KpiRendimentoEstimadoMesCaixinhaDto obterKpiRendimentoEstimadoMes(UUID usuarioId) {
+        List<Caixinha> caixinhasAtivas = buscarCaixinhasAtivasPorUsuario(usuarioId);
+
+        BigDecimal rendimentoEstimadoMes = caixinhasAtivas.stream()
+                .map(caixinha -> {
+                    BigDecimal valorAtual = eventoFinanceiroRepository.sumValorByCaixinha(caixinha.getId());
+                    BigDecimal taxaMensalEfetiva = BigDecimal.valueOf(calcularTaxaMensal(caixinha));
+                    return valorAtual.multiply(taxaMensalEfetiva);
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        String mesReferencia = YearMonth.now().format(DateTimeFormatter.ofPattern("MM/yyyy"));
+        return new KpiRendimentoEstimadoMesCaixinhaDto(rendimentoEstimadoMes, mesReferencia);
+    }
+
+    @Transactional(readOnly = true)
+    public KpiStatusCaixinhasDto obterKpiStatusCaixinhas(UUID usuarioId) {
+        validarUsuario(usuarioId);
+        List<Caixinha> todasCaixinhas = caixinhaRepository.findAllByUsuario_Id(usuarioId);
+
+        int quantidadeAtivas = (int) todasCaixinhas.stream()
+                .filter(caixinha -> Boolean.TRUE.equals(caixinha.getIsAtiva()))
+                .count();
+        int quantidadeEncerradas = (int) todasCaixinhas.stream()
+                .filter(caixinha -> !Boolean.TRUE.equals(caixinha.getIsAtiva()))
+                .count();
+
+        return new KpiStatusCaixinhasDto(quantidadeAtivas, quantidadeEncerradas);
+    }
+
+    @Transactional(readOnly = true)
+    public GraficoProgressoConsolidadoCaixinhaDto obterGraficoProgressoConsolidado(UUID usuarioId) {
+        KpiProgressoGeralCaixinhaDto kpiProgresso = obterKpiProgressoGeral(usuarioId);
+        return new GraficoProgressoConsolidadoCaixinhaDto(
+                kpiProgresso.percentualProgressoGeral(),
+                kpiProgresso.totalAcumulado(),
+                kpiProgresso.totalMetas());
     }
 
     // =========================================================================
@@ -341,7 +413,7 @@ public class CaixinhaService {
      * </ul>
      */
     private double calcularTaxaMensal(Caixinha c) {
-        if (c.getTipoRendimento() == null || c.getTaxaReferenciaAtual() == null) {
+        if (c.getTipoRendimento() == null) {
             return 0.0;
         }
 
@@ -349,12 +421,20 @@ public class CaixinhaService {
 
         switch (c.getTipoRendimento()) {
             case CDI, SELIC -> {
+                if (c.getTaxaReferenciaAtual() == null) {
+                    taxaAnualPercent = 0.0;
+                    break;
+                }
                 double referencia = c.getTaxaReferenciaAtual(); // % a.a.
                 double percentual = c.getPercentualRendimento() != null
                         ? c.getPercentualRendimento() / 100.0 : 1.0;
                 taxaAnualPercent = referencia * percentual;
             }
             case POUPANCA -> {
+                if (c.getTaxaReferenciaAtual() == null) {
+                    taxaAnualPercent = 0.0;
+                    break;
+                }
                 // Regra atual da poupança: 70% da SELIC quando SELIC > 8,5% a.a.
                 taxaAnualPercent = c.getTaxaReferenciaAtual() * 0.70;
             }
@@ -422,6 +502,18 @@ public class CaixinhaService {
             throw new EntidadeNaoEncontradaException(
                     "Usuário de id: %s não encontrado.".formatted(usuarioId));
         }
+    }
+
+    private List<Caixinha> buscarCaixinhasAtivasPorUsuario(UUID usuarioId) {
+        validarUsuario(usuarioId);
+        return caixinhaRepository.findAllByUsuario_IdAndIsAtivaTrue(usuarioId);
+    }
+
+    private BigDecimal somarMetasDasCaixinhas(List<Caixinha> caixinhas) {
+        return caixinhas.stream()
+                .map(Caixinha::getValorMeta)
+                .filter(valorMeta -> valorMeta != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }
 

@@ -4,6 +4,7 @@ import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,43 +30,31 @@ public class InstituicaoUsuario {
 
     private LocalDateTime ultimaModificacao;
 
-    public Usuario getUsuario() {
-        return usuario;
-    }
+    /** Limite de crédito configurado pelo usuário. Default 0. */
+    @Column(precision = 15, scale = 2)
+    private BigDecimal limiteCredito = BigDecimal.ZERO;
 
-    public void setUsuario(Usuario fkUsuario) {
-        this.usuario = fkUsuario;
-    }
+    /** Taxa de juros personalizada pelo usuário (% a.m.). Nullable. */
+    private Double taxaJuros;
 
-    public Integer getId() {
-        return id;
-    }
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario fkUsuario) { this.usuario = fkUsuario; }
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
 
-    public Instituicao getInstituicao() {
-        return instituicao;
-    }
+    public Instituicao getInstituicao() { return instituicao; }
+    public void setInstituicao(Instituicao fkInstituicao) { this.instituicao = fkInstituicao; }
 
-    public void setInstituicao(Instituicao fkInstituicao) {
-        this.instituicao = fkInstituicao;
-    }
+    public Boolean getIsAtivo() { return isAtivo; }
+    public void setIsAtivo(Boolean ativo) { isAtivo = ativo; }
 
-    public Boolean getIsAtivo() {
-        return isAtivo;
-    }
+    public LocalDateTime getUltimaModificacao() { return ultimaModificacao; }
+    public void setUltimaModificacao(LocalDateTime ultimaModificacao) { this.ultimaModificacao = ultimaModificacao; }
 
-    public void setIsAtivo(Boolean ativo) {
-        isAtivo = ativo;
-    }
+    public BigDecimal getLimiteCredito() { return limiteCredito; }
+    public void setLimiteCredito(BigDecimal limiteCredito) { this.limiteCredito = limiteCredito; }
 
-    public LocalDateTime getUltimaModificacao() {
-        return ultimaModificacao;
-    }
-
-    public void setUltimaModificacao(LocalDateTime ultimaModificacao) {
-        this.ultimaModificacao = ultimaModificacao;
-    }
+    public Double getTaxaJuros() { return taxaJuros; }
+    public void setTaxaJuros(Double taxaJuros) { this.taxaJuros = taxaJuros; }
 }
