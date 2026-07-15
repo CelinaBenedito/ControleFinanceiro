@@ -559,8 +559,8 @@ async function abrirEdicaoRegistro(registro) {
             </div>
 
             <div class="er-field-wrap">
-                <input id="erValor" type="number" placeholder=" " value="${ef.valor || ''}">
-                <label for="erValor">Valor</label>
+                <input id="erValor" type="number" min="0.01" step="0.01" placeholder=" " value="${ef.valor || ''}">
+                <label for="erValor">Valor (ex: 150.50)</label>
             </div>
 
             <div class="er-field-wrap" style="position:relative;">
@@ -632,7 +632,8 @@ async function abrirEdicaoRegistro(registro) {
         const titulo    = modal.querySelector('#erTitulo').value.trim();
         const descricao = modal.querySelector('#erDescricao').value.trim() || 'Nenhuma descrição fornecida';
         const tipo      = modal.querySelector('#erTipo').value;
-        const valor     = Number(modal.querySelector('#erValor').value);
+        const erValorEl = modal.querySelector('#erValor');
+        const valor     = parseFloat(erValorEl.value.replace(',', '.'));
         const movimento = modal.querySelector('#erMovimento').value;
         const parcelas  = Number(modal.querySelector('#erParcelas').value) || 1;
         const data      = modal.querySelector('#erData').value;
@@ -741,6 +742,8 @@ function confirmarRemocaoRegistro(registro) {
         try {
             const res = await MainAPI.deletarRegistro(popup.dataset.registroId);
             if (res.ok) {
+                btn.disabled = false;
+                btn.textContent = 'Remover';
                 popup.style.display = 'none';
                 carregarRegistros();
             } else {

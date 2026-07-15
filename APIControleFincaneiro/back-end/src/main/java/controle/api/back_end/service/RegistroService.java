@@ -414,6 +414,9 @@ public class RegistroService {
         if (novosDados.getTipo() != existente.getTipo()) {
             existente.setTipo(novosDados.getTipo());
         }
+        if (novosDados.getValor() != null && !novosDados.getValor().equals(existente.getValor())) {
+            existente.setValor(novosDados.getValor());
+        }
         return eventoFinanceiroRepository.save(existente);
     }
 
