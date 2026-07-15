@@ -36,63 +36,64 @@
 </head>
 
 <body data-tema="padrao" data-mode="light" onload="carregarRegistros()">
-    <div class="containerGeral">
-        <nav class="side-bar" id="navbar">
-            <ul>
-                <li onclick="sidebarFunction()">
-                    <i class='bx  bx-menu-closer'></i>
-                </li>
-                <li>
-                    <a href="dashboard.html"> <i class='bx  bx-home'></i> <span id="home">Home</span></a>
-                </li>
-                <li>
-                    <a href="registros.html"> <i class='bx  bx-address-book'></i> <span id="reg"> Registros
+<div class="containerGeral">
+    <nav class="side-bar" id="navbar">
+        <ul>
+            <li onclick="sidebarFunction()">
+                <i class='bx  bx-menu-closer'></i>
+            </li>
+            <li>
+                <a href="dashboard.html"> <i class='bx  bx-home'></i> <span id="home">Home</span></a>
+            </li>
+            <li>
+                <a href="registros.html"> <i class='bx  bx-address-book'></i> <span id="reg"> Registros
                         </span></a>
-                </li>
-                <li>
-                    <a href="adicionarRegistros.html"> <i class='bx  bx-file-plus'></i> <span id="add">Adicionar
+            </li>
+            <li>
+                <a href="adicionarRegistros.html"> <i class='bx  bx-file-plus'></i> <span id="add">Adicionar
                             Registros</span></a>
-                </li>
-                <li>
-                    <a href="agendaGastos.html"><i class='bx  bx-calendar-event'></i> <span
-                            id="agenda">Agenda</span></a>
-                </li>
-                <li>
-                    <a href="caixinhas.html"><i class='bx bx-piggy-bank'></i><span id="caixinhas">Poupança</span></a>
-                </li>
-                <li>
-                    <a id="toggleTheme">
-                        <span id="icone"><i class='bx bx-moon'></i></span>
-                        <span id="tema">Tema</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="configurações.html"><i class='bx  bx-cog'></i><span id="config">Configurações</span></a>
-                </li>
-            </ul>
-        </nav>
-        <div class="main" id="main">
+            </li>
+            <li>
+                <a href="agendaGastos.html"><i class='bx  bx-calendar-event'></i> <span
+                        id="agenda">Agenda</span></a>
+            </li>
+            <li>
+                <a href="caixinhas.html"><i class='bx bx-piggy-bank'></i><span id="caixinhas">Poupança</span></a>
+            </li>
+            <li>
+                <a id="toggleTheme">
+                    <span id="icone"><i class='bx bx-moon'></i></span>
+                    <span id="tema">Tema</span>
+                </a>
+            </li>
+            <li>
+                <a href="configurações.html"><i class='bx  bx-cog'></i><span id="config">Configurações</span></a>
+            </li>
+        </ul>
+    </nav>
+    <div class="main" id="main">
 
-            <div id="containerRegistros" class="containerRegistros">
+        <div id="containerRegistros" class="containerRegistros">
 
-                <h1>Registros</h1>
-                <button id="btnAbrirFiltro" title="Filtrar registros"><i class='bx  bx-filter'></i></button>
-                <div class="divimgGlaceonCostas">
-                    <img class="imgGlaceonCostas" src="assets/gif/glaceon de costas.gif" alt="">
-                </div>
+            <h1>Registros</h1>
+            <button id="btnAbrirFiltro" title="Filtrar registros"><i class='bx  bx-filter'></i></button>
+            <div class="divimgGlaceonCostas">
+                <img class="imgGlaceonCostas" src="assets/gif/glaceon de costas.gif" alt="">
             </div>
-            <div class="lista">
-
-                <div class="registros" id="registros">
-                </div>
-            </div>
-
-
         </div>
+        <div class="lista">
+
+            <div class="registros" id="registros">
+                <div class="anos-lista" id="anosLista"></div>
+            </div>
+        </div>
+
+
     </div>
-    <script src="js/main.js"></script>
-    <script src="js/navbar.js"></script>
-    <script src="js/registros.js"></script>
+</div>
+<script src="js/main.js"></script>
+<script src="js/navbar.js"></script>
+<script src="js/registros.js"></script>
 </body>
 
 </html>
