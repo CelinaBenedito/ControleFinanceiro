@@ -3,24 +3,320 @@ function getUsuarioLogadoId() {
     return usuarioLogado ? usuarioLogado.id : null;
 }
 
+// ── Nomes dos meses (índice 1-12) ──────────────────────────────────────────
+const NOMES_MESES = [
+    '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+// ── Estado global da navegação de registros ────────────────────────────────
+const _regEstado = {
+    userId: null,
+    modo: 'navegacao',      // 'navegacao' | 'filtro'
+    anoSelecionado: null,
+    mesSelecionado: null,
+    paginaAtual: 0,
+    tamanhoPagina: 20,
+    ultimoFiltro: null,      // objeto de filtro usado por último (modo filtro)
+    filtroCache: []          // resultados completos do filtro (paginação em memória)
+};
+
+const TAMANHOS_PAGINA = [5, 10, 15, 20, 30, 50];
+
+// ── Ponto de entrada ────────────────────────────────────────────────────────
 function carregarRegistros() {
     const userId = getUsuarioLogadoId();
     if (!userId) return;
 
-    MainAPI.carregarRegistros(userId)
-        .then(renderizarRegistros)
-        .catch(err => {
-            console.error("Erro ao carregar registros:", err);
-            registros.innerHTML = `<div class="aviso"><i class='bx bx-error-circle'></i><p>Erro ao carregar registros.</p></div>`;
-        });
+    _regEstado.userId = userId;
+    _regEstado.modo = 'navegacao';
+    _regEstado.anoSelecionado = null;
+    _regEstado.mesSelecionado = null;
+    _regEstado.paginaAtual = 0;
 
+    montarEstruturaBase();
+    carregarAnos();
     inicializarBotaoFiltro();
+}
+
+// ── Monta o esqueleto HTML (uma vez) dentro de #registros ──────────────────
+function montarEstruturaBase() {
+    registros.innerHTML = `
+        <div class="anos-lista" id="anosLista"></div>
+        <div class="meses-bloco hidden" id="mesesBloco">
+            <div class="meses-lista" id="mesesLista"></div>
+        </div>
+        <div class="registros-tabela-wrap hidden" id="tabelaWrap">
+            <div class="reg-paginacao topo" id="regPagTopo"></div>
+            <div class="registros-cabecalho">
+                <span>Data</span>
+                <span>Valor</span>
+                <span>Detalhes</span>
+                <span>Instituições</span>
+                <span>Categorias</span>
+                <span>Ações</span>
+            </div>
+            <div class="registros-linhas" id="registrosLinhas"></div>
+            <div class="reg-paginacao rodape" id="regPagRodape"></div>
+        </div>
+    `;
+
+    // Delegação de eventos da paginação (funciona para topo e rodapé)
+    const tabelaWrap = document.getElementById("tabelaWrap");
+    tabelaWrap.addEventListener("click", e => {
+        const voltar = e.target.closest("#btnVoltarFiltro");
+        if (voltar) { sairModoFiltro(); return; }
+
+        const btn = e.target.closest(".reg-pg-btn");
+        if (!btn || btn.disabled) return;
+
+        if (btn.classList.contains("reg-pg-prev")) {
+            irParaPagina(_regEstado.paginaAtual - 1);
+        } else if (btn.classList.contains("reg-pg-next")) {
+            irParaPagina(_regEstado.paginaAtual + 1);
+        } else if (btn.dataset.pagina !== undefined) {
+            irParaPagina(Number(btn.dataset.pagina));
+        }
+    });
+
+    tabelaWrap.addEventListener("change", e => {
+        if (e.target.classList.contains("reg-tamanho-select")) {
+            _regEstado.tamanhoPagina = Number(e.target.value);
+            _regEstado.paginaAtual = 0;
+            atualizarConteudoAtual();
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PASSO 1 — Anos
+// ══════════════════════════════════════════════════════════════════════════
+function carregarAnos() {
+    const anosLista = document.getElementById("anosLista");
+    anosLista.innerHTML = `<div class="reg-carregando"><i class='bx bx-loader-alt'></i> Carregando anos...</div>`;
+
+    MainAPI.buscarAnosRegistros(_regEstado.userId)
+        .then(anos => renderAnos(anos))
+        .catch(err => {
+            console.error("Erro ao carregar anos:", err);
+            anosLista.innerHTML = `<div class="aviso"><i class='bx bx-error-circle'></i><p>Erro ao carregar os anos disponíveis.</p></div>`;
+        });
+}
+
+function renderAnos(anos) {
+    const anosLista = document.getElementById("anosLista");
+
+    if (!Array.isArray(anos) || anos.length === 0) {
+        anosLista.innerHTML = `<div class="aviso"><i class='bx bx-search-alt'></i><p>Nenhum registro encontrado.</p></div>`;
+        document.getElementById("mesesBloco").classList.add("hidden");
+        document.getElementById("tabelaWrap").classList.add("hidden");
+        return;
+    }
+
+    anosLista.innerHTML = anos.map(ano => `
+        <button class="ano-chip" data-ano="${ano}">
+            <i class='bx bx-chevron-right'></i> ${ano}
+        </button>
+    `).join("");
+
+    anosLista.querySelectorAll(".ano-chip").forEach(chip => {
+        chip.addEventListener("click", () => selecionarAno(Number(chip.dataset.ano)));
+    });
+}
+
+function selecionarAno(ano) {
+    const jaAtivo = _regEstado.anoSelecionado === ano;
+
+    document.querySelectorAll(".ano-chip").forEach(c => {
+        c.classList.toggle("ativo", Number(c.dataset.ano) === ano && !jaAtivo);
+    });
+
+    const mesesBloco = document.getElementById("mesesBloco");
+    const tabelaWrap = document.getElementById("tabelaWrap");
+
+    if (jaAtivo) {
+        // Clicou de novo no mesmo ano → recolhe
+        _regEstado.anoSelecionado = null;
+        _regEstado.mesSelecionado = null;
+        mesesBloco.classList.add("hidden");
+        tabelaWrap.classList.add("hidden");
+        return;
+    }
+
+    _regEstado.anoSelecionado = ano;
+    _regEstado.mesSelecionado = null;
+    tabelaWrap.classList.add("hidden");
+    mesesBloco.classList.remove("hidden");
+
+    carregarMeses(ano);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PASSO 2 — Meses do ano selecionado
+// ══════════════════════════════════════════════════════════════════════════
+function carregarMeses(ano) {
+    const mesesLista = document.getElementById("mesesLista");
+    mesesLista.innerHTML = `<div class="reg-carregando"><i class='bx bx-loader-alt'></i> Carregando meses...</div>`;
+
+    MainAPI.buscarMesesRegistros(_regEstado.userId, ano)
+        .then(meses => renderMeses(meses))
+        .catch(err => {
+            console.error("Erro ao carregar meses:", err);
+            mesesLista.innerHTML = `<div class="aviso"><i class='bx bx-error-circle'></i><p>Erro ao carregar os meses deste ano.</p></div>`;
+        });
+}
+
+function renderMeses(meses) {
+    const mesesLista = document.getElementById("mesesLista");
+
+    if (!Array.isArray(meses) || meses.length === 0) {
+        mesesLista.innerHTML = `<div class="aviso"><i class='bx bx-search-alt'></i><p>Nenhum registro encontrado para este ano.</p></div>`;
+        return;
+    }
+
+    mesesLista.innerHTML = meses.map(mes => `
+        <button class="mes-chip" data-mes="${mes}">${NOMES_MESES[mes]}</button>
+    `).join("");
+
+    mesesLista.querySelectorAll(".mes-chip").forEach(chip => {
+        chip.addEventListener("click", () => selecionarMes(Number(chip.dataset.mes)));
+    });
+}
+
+function selecionarMes(mes) {
+    document.querySelectorAll(".mes-chip").forEach(c => {
+        c.classList.toggle("ativo", Number(c.dataset.mes) === mes);
+    });
+
+    _regEstado.modo = 'navegacao';
+    _regEstado.mesSelecionado = mes;
+    _regEstado.paginaAtual = 0;
+
+    document.getElementById("tabelaWrap").classList.remove("hidden");
+    atualizarConteudoAtual();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PASSO 3 — Registros do mês, paginados
+// ══════════════════════════════════════════════════════════════════════════
+function irParaPagina(pagina) {
+    if (pagina < 0) return;
+    _regEstado.paginaAtual = pagina;
+    atualizarConteudoAtual();
+}
+
+// Decide se busca da API (modo navegação) ou fatia o cache (modo filtro)
+function atualizarConteudoAtual() {
+    if (_regEstado.modo === 'filtro') {
+        renderizarPaginaFiltro();
+    } else {
+        carregarPaginaMes();
+    }
+}
+
+function carregarPaginaMes() {
+    const { userId, anoSelecionado, mesSelecionado, paginaAtual, tamanhoPagina } = _regEstado;
+    if (!anoSelecionado || !mesSelecionado) return;
+
+    const linhasEl = document.getElementById("registrosLinhas");
+    linhasEl.innerHTML = `<div class="reg-carregando"><i class='bx bx-loader-alt'></i> Carregando registros...</div>`;
+
+    MainAPI.buscarRegistrosPorMes(userId, anoSelecionado, mesSelecionado, paginaAtual, tamanhoPagina)
+        .then(dados => renderizarPaginaRegistros(dados))
+        .catch(err => {
+            console.error("Erro ao carregar registros do mês:", err);
+            linhasEl.innerHTML = `<div class="aviso"><i class='bx bx-error-circle'></i><p>Erro ao carregar os registros deste mês.</p></div>`;
+        });
+}
+
+// Renderiza uma "página" (objeto no formato Page<T> do Spring) — usado no modo navegação
+function renderizarPaginaRegistros(dados) {
+    const linhasEl = document.getElementById("registrosLinhas");
+    linhasEl.innerHTML = "";
+
+    const conteudo = dados.content || [];
+
+    if (conteudo.length === 0) {
+        linhasEl.innerHTML = `<div class="aviso"><i class='bx bx-search-alt'></i><p>Nenhum registro encontrado.</p></div>`;
+    } else {
+        conteudo.forEach(registro => {
+            const card = criarCardRegistro(registro);
+            if (card) linhasEl.appendChild(card);
+        });
+    }
+
+    renderizarBarrasPaginacao(dados);
+}
+
+// Constrói o objeto de paginação e renderiza as barras topo/rodapé
+function renderizarBarrasPaginacao(dados, extraHtml) {
+    const totalPages = dados.totalPages || 0;
+    const paginaAtual = dados.number || 0;
+    const isFirst = totalPages === 0 ? true : dados.first !== false;
+    const isLast = totalPages === 0 ? true : dados.last !== false;
+
+    const label = totalPages === 0 ? "0/0" : `${paginaAtual + 1}/${totalPages}`;
+    const atalhos = calcularAtalhosPagina(paginaAtual, totalPages);
+
+    const botoesAtalho = atalhos.map(p => `
+        <button class="reg-pg-btn${p === paginaAtual ? ' ativo' : ''}" data-pagina="${p}">${p + 1}</button>
+    `).join("");
+
+    const seletorTamanho = `
+        <div class="reg-tamanho-wrap">
+            <label style="font-size:0.78rem;">Mostrar</label>
+            <select class="reg-tamanho-select">
+                ${TAMANHOS_PAGINA.map(t => `<option value="${t}" ${t === _regEstado.tamanhoPagina ? "selected" : ""}>${t}</option>`).join("")}
+            </select>
+        </div>
+    `;
+
+    const conteudoBarra = `
+        ${extraHtml || ""}
+        <span class="reg-paginacao-info">Página ${label}</span>
+        <div class="reg-paginacao-botoes">
+            <button class="reg-pg-btn reg-pg-prev" ${isFirst ? "disabled" : ""} title="Página anterior"><i class='bx bx-chevron-left'></i></button>
+            ${botoesAtalho}
+            <button class="reg-pg-btn reg-pg-next" ${isLast ? "disabled" : ""} title="Próxima página"><i class='bx bx-chevron-right'></i></button>
+        </div>
+        ${seletorTamanho}
+    `;
+
+    document.getElementById("regPagTopo").innerHTML = conteudoBarra;
+    document.getElementById("regPagRodape").innerHTML = conteudoBarra;
+}
+
+// Calcula atalhos de página (próximas + página do meio + última), no máx. 4, 0-based
+function calcularAtalhosPagina(atual, total) {
+    if (total <= 1) return [];
+    const candidatos = new Set();
+
+    if (atual + 1 < total) candidatos.add(atual + 1);
+    if (atual + 2 < total) candidatos.add(atual + 2);
+
+    const meio = Math.floor(total / 2);
+    if (meio !== atual) candidatos.add(meio);
+
+    if (total - 1 !== atual) candidatos.add(total - 1);
+
+    return Array.from(candidatos).sort((a, b) => a - b).slice(0, 4);
+}
+
+// ── Recarrega apenas a página/visão atualmente aberta (após editar/remover) ─
+function refrescarAtual() {
+    if (_regEstado.modo === 'filtro') {
+        reaplicarFiltro();
+    } else if (_regEstado.mesSelecionado) {
+        carregarPaginaMes();
+    } else {
+        carregarRegistros();
+    }
 }
 
 // ── Formata moeda ─────────────────────────────────────────────────────────────
 const _fmtMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-// ── Constrói e retorna um elemento card para um registro ──────────────────────
+// ── Constrói e retorna um elemento "linha" (card) para um registro ────────────
 function criarCardRegistro(registro) {
     const ef = registro.eventoFinanceiro || {};
     const gd = registro.gastoDetalhe || {};
@@ -44,19 +340,20 @@ function criarCardRegistro(registro) {
         .map(c => c.titulo || null)
         .filter(Boolean);
 
+    // Cores por tipo de movimento — todas vindas do root.css (sem cor hard-coded)
     const tipoEstilos = {
-        'Gasto':                { bg: 'var(--red-100)',               color: 'var(--red-700)' },
-        'Recebimento':          { bg: 'var(--green-100)',             color: 'var(--green-700)' },
-        'Transferencia':        { bg: 'var(--cor-transferencia-bg)',  color: 'var(--cor-transferencia-texto)' },
-        'Gasto Agendado':       { bg: 'var(--cor-agendamento-bg)',    color: 'var(--cor-agendamento-texto)' },
-        'Recebimento Agendado': { bg: 'var(--cor-recebimento-bg)',    color: 'var(--cor-recebimento-texto)' },
-        'Poupanca':             { bg: 'var(--cor-poupanca-bg)',       color: 'var(--cor-poupanca-texto)' },
-        'Emprestimo':           { bg: 'var(--cor-emprestimo-bg)',     color: 'var(--cor-emprestimo-texto)' },
+        'Gasto':                { bg: 'var(--cor-gasto-bg)',         color: 'var(--cor-gasto-texto)' },
+        'Recebimento':          { bg: 'var(--cor-recebimento-bg)',   color: 'var(--cor-recebimento-texto)' },
+        'Transferencia':        { bg: 'var(--cor-transferencia-bg)', color: 'var(--cor-transferencia-texto)' },
+        'Gasto Agendado':       { bg: 'var(--cor-agendamento-bg)',   color: 'var(--cor-agendamento-texto)' },
+        'Recebimento Agendado': { bg: 'var(--cor-agendamento-bg)',   color: 'var(--cor-agendamento-texto)' },
+        'Poupanca':             { bg: 'var(--cor-poupanca-bg)',      color: 'var(--cor-poupanca-texto)' },
+        'Emprestimo':           { bg: 'var(--cor-emprestimo-bg)',    color: 'var(--cor-emprestimo-texto)' },
     };
     const tipoLabel = tipo === 'Transferencia' ? 'Transferência'
-                    : tipo === 'Poupanca'      ? 'Poupança'
-                    : tipo === 'Emprestimo'    ? 'Empréstimo'
-                    : tipo;
+        : tipo === 'Poupanca'      ? 'Poupança'
+            : tipo === 'Emprestimo'    ? 'Empréstimo'
+                : tipo;
     const est = tipoEstilos[tipo] || { bg: 'var(--cor-fundo-inativo)', color: 'var(--cor-texto-secundario)' };
     const tipoBadge = `<span class="reg-tipo-badge" style="background:${est.bg};color:${est.color};">${tipoLabel}</span>`;
 
@@ -105,102 +402,6 @@ function criarCardRegistro(registro) {
 
     return card;
 }
-
-// ── Atualiza apenas o card do registro editado sem recarregar tudo ────────────
-async function atualizarCardRegistro(eventoId, userId) {
-    try {
-        const todos = await MainAPI.carregarRegistros(userId);
-        const regAtualizado = todos.find(r => r.eventoFinanceiro && String(r.eventoFinanceiro.id) === String(eventoId));
-        const cardEl = document.querySelector(`[data-evento-id="${eventoId}"]`);
-        if (!regAtualizado || !cardEl) { carregarRegistros(); return; }
-        const novoCard = criarCardRegistro(regAtualizado);
-        if (novoCard) cardEl.parentNode.replaceChild(novoCard, cardEl);
-        else carregarRegistros();
-    } catch (e) {
-        console.error("Erro ao atualizar card:", e);
-        carregarRegistros();
-    }
-}
-
-function renderizarRegistros(json) {
-    registros.innerHTML = "";
-
-    if (!Array.isArray(json) || json.length === 0) {
-        registros.innerHTML = `<div class="aviso"><i class='bx bx-search-alt'></i><p>Nenhum registro encontrado para o filtro aplicado.</p></div>`;
-        return;
-    }
-
-    const agrupado = {};
-
-    json.forEach(registro => {
-        const dataISO = registro.eventoFinanceiro && registro.eventoFinanceiro.dataEvento;
-        if (!dataISO) return;
-        const data = new Date(dataISO + "T00:00:00");
-        const ano = data.getFullYear();
-        const mes = data.getMonth();
-
-        if (!agrupado[ano]) agrupado[ano] = {};
-        if (!agrupado[ano][mes]) agrupado[ano][mes] = [];
-
-        agrupado[ano][mes].push(registro);
-    });
-
-    Object.keys(agrupado)
-        .sort((a, b) => b - a)
-        .forEach(ano => {
-            const anoDiv = document.createElement("div");
-            anoDiv.className = "ano-bloco";
-
-            anoDiv.innerHTML = `
-                <div class="ano-header">${ano}</div>
-                <div class="mes-container hidden"></div>
-            `;
-
-            const mesContainer = anoDiv.querySelector(".mes-container");
-
-            Object.keys(agrupado[ano])
-                .sort((a, b) => b - a)
-                .forEach(mes => {
-                    const nomeMes = new Date(ano, mes).toLocaleString("pt-BR", { month: "long" });
-                    const mesDiv = document.createElement("div");
-                    mesDiv.className = "mes-bloco";
-
-                    mesDiv.innerHTML = `
-                        <div class="mes-header">${nomeMes}</div>
-                        <div class="cards hidden"></div>
-                    `;
-
-                    const cardsDiv = mesDiv.querySelector(".cards");
-
-                    agrupado[ano][mes]
-                        .sort((a, b) => new Date(a.eventoFinanceiro.dataEvento) - new Date(b.eventoFinanceiro.dataEvento))
-                        .forEach(registro => {
-                            const card = criarCardRegistro(registro);
-                            if (card) cardsDiv.appendChild(card);
-                        });
-
-                    mesContainer.appendChild(mesDiv);
-                });
-
-            registros.appendChild(anoDiv);
-        });
-
-    document.querySelectorAll(".ano-header").forEach(el => {
-        el.addEventListener("click", () => {
-            el.classList.toggle("open");
-            el.nextElementSibling.classList.toggle("hidden");
-        });
-    });
-
-    document.querySelectorAll(".mes-header").forEach(el => {
-        el.addEventListener("click", () => {
-            el.classList.toggle("open");
-            el.nextElementSibling.classList.toggle("hidden");
-        });
-    });
-}
-
-
 
 function adicionar() {
     var valor = ipt_valor.value;
@@ -277,6 +478,93 @@ function inicializarBotaoFiltro() {
     if (!btn || btn.dataset.bound === "1") return;
     btn.dataset.bound = "1";
     btn.addEventListener("click", abrirModalFiltroRegistros);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MODO FILTRO — resultados exibidos na mesma tabela paginada (em memória)
+// ══════════════════════════════════════════════════════════════════════════
+function ativarModoFiltro(filtrados, filtroObj) {
+    _regEstado.modo = 'filtro';
+    _regEstado.ultimoFiltro = filtroObj;
+    _regEstado.paginaAtual = 0;
+
+    _regEstado.filtroCache = (filtrados || []).slice().sort((a, b) => {
+        const da = a.eventoFinanceiro ? a.eventoFinanceiro.dataEvento : "";
+        const db = b.eventoFinanceiro ? b.eventoFinanceiro.dataEvento : "";
+        return new Date(da) - new Date(db);
+    });
+
+    document.getElementById("anosLista").classList.add("hidden");
+    document.getElementById("mesesBloco").classList.add("hidden");
+    document.getElementById("tabelaWrap").classList.remove("hidden");
+
+    renderizarPaginaFiltro();
+}
+
+function sairModoFiltro() {
+    _regEstado.modo = 'navegacao';
+    _regEstado.ultimoFiltro = null;
+    _regEstado.filtroCache = [];
+    _regEstado.paginaAtual = 0;
+
+    document.getElementById("anosLista").classList.remove("hidden");
+
+    if (_regEstado.anoSelecionado && _regEstado.mesSelecionado) {
+        document.getElementById("mesesBloco").classList.remove("hidden");
+        carregarPaginaMes();
+    } else {
+        document.getElementById("mesesBloco").classList.add("hidden");
+        document.getElementById("tabelaWrap").classList.add("hidden");
+    }
+}
+
+// Refaz a busca do filtro (usado após editar/remover um registro em modo filtro)
+async function reaplicarFiltro() {
+    if (!_regEstado.ultimoFiltro) { renderizarPaginaFiltro(); return; }
+    try {
+        const filtrados = await MainAPI.filtrarRegistros(_regEstado.userId, _regEstado.ultimoFiltro);
+        ativarModoFiltro(filtrados, _regEstado.ultimoFiltro);
+    } catch (e) {
+        console.error("Erro ao reaplicar filtro:", e);
+        renderizarPaginaFiltro();
+    }
+}
+
+// Fatia o cache em memória de acordo com a página/tamanho atuais e renderiza
+function renderizarPaginaFiltro() {
+    const linhasEl = document.getElementById("registrosLinhas");
+    const { filtroCache, tamanhoPagina } = _regEstado;
+
+    const totalElements = filtroCache.length;
+    const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / tamanhoPagina);
+
+    if (_regEstado.paginaAtual >= totalPages && totalPages > 0) {
+        _regEstado.paginaAtual = totalPages - 1;
+    }
+
+    const inicio = _regEstado.paginaAtual * tamanhoPagina;
+    const pagina = filtroCache.slice(inicio, inicio + tamanhoPagina);
+
+    linhasEl.innerHTML = "";
+    if (pagina.length === 0) {
+        linhasEl.innerHTML = `<div class="aviso"><i class='bx bx-search-alt'></i><p>Nenhum registro encontrado para o filtro aplicado.</p></div>`;
+    } else {
+        pagina.forEach(registro => {
+            const card = criarCardRegistro(registro);
+            if (card) linhasEl.appendChild(card);
+        });
+    }
+
+    const dadosPagina = {
+        totalElements, totalPages,
+        number: _regEstado.paginaAtual,
+        size: tamanhoPagina,
+        first: _regEstado.paginaAtual === 0,
+        last: totalPages === 0 || _regEstado.paginaAtual === totalPages - 1
+    };
+
+    const botaoVoltar = `<button class="reg-pg-btn" id="btnVoltarFiltro" title="Voltar para navegação por ano/mês"><i class='bx bx-arrow-back'></i> Voltar</button>`;
+    renderizarBarrasPaginacao(dadosPagina, botaoVoltar);
 }
 
 async function abrirModalFiltroRegistros() {
@@ -451,17 +739,18 @@ async function abrirModalFiltroRegistros() {
             descricao: campoTexto === "descricao" ? textoBusca : ""
         };
 
-        try {
-            const filtrados = await MainAPI.filtrarRegistros(userId, {
-                ...filtroTexto,
-                dataEvento,
-                tipo,
-                tipoMovimento,
-                instituicaoUsuario,
-                categoriaUsuario
-            });
+        const filtroObj = {
+            ...filtroTexto,
+            dataEvento,
+            tipo,
+            tipoMovimento,
+            instituicaoUsuario,
+            categoriaUsuario
+        };
 
-            renderizarRegistros(filtrados);
+        try {
+            const filtrados = await MainAPI.filtrarRegistros(userId, filtroObj);
+            ativarModoFiltro(filtrados, filtroObj);
             modal.remove();
         } catch (e) {
             console.error("Erro ao filtrar registros:", e);
@@ -663,8 +952,8 @@ async function abrirEdicaoRegistro(registro) {
             const res = await MainAPI.editarRegistro(ef.id, payload);
             if (res.ok) {
                 modal.remove();
-                // Atualiza apenas o card editado, sem recarregar a página inteira
-                await atualizarCardRegistro(ef.id, userId);
+                // Recarrega a página/visão atual (respeitando navegação ou filtro ativo)
+                refrescarAtual();
             } else {
                 let detalhe = `HTTP ${res.status}`;
                 try { const corpo = await res.json(); detalhe = corpo.message || JSON.stringify(corpo); } catch (_) {}
@@ -745,7 +1034,13 @@ function confirmarRemocaoRegistro(registro) {
                 btn.disabled = false;
                 btn.textContent = 'Remover';
                 popup.style.display = 'none';
-                carregarRegistros();
+
+                // Se a página atual ficar vazia após remover e não for a primeira, volta uma página
+                if (_regEstado.modo === 'navegacao' && _regEstado.paginaAtual > 0) {
+                    irParaPagina(_regEstado.paginaAtual - 1);
+                } else {
+                    refrescarAtual();
+                }
             } else {
                 btn.disabled = false;
                 btn.textContent = 'Remover';
