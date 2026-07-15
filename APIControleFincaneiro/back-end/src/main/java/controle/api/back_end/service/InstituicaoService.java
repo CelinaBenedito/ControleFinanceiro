@@ -2,9 +2,13 @@ package controle.api.back_end.service;
 
 import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
+import controle.api.back_end.dto.instituicao.in.AtualizarInstituicaoUsuarioDto;
+import controle.api.back_end.dto.instituicao.out.DetalheInstituicaoDto;
+import controle.api.back_end.dto.instituicao.out.ResumoInstituicaoDto;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
+import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
@@ -18,10 +22,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class InstituicaoService {
@@ -163,5 +167,106 @@ public class InstituicaoService {
             instituicao.setIsAtivo(false);
             instituicaoUsuarioRepository.save(instituicao);
         }
+    }
+
+    // =========================================================================
+    //  RESUMO DAS INSTITUIÇÕES DO USUÁRIO
+    // =========================================================================
+    public List<ResumoInstituicaoDto> getResumoInstituicoes(UUID userId) {
+        if (!usuarioRepository.existsById(userId)) {
+            throw new EntidadeNaoEncontradaException("Usuário de id: %s não encontrado".formatted(userId));
+        }
+        List<InstituicaoUsuario> instList = instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
+        List<ResumoInstituicaoDto> resultado = new ArrayList<>();
+        LocalDate hoje = LocalDate.now();
+
+        for (InstituicaoUsuario iu : instList) {
+            List<EventoInstituicao> eis = eventoInstituicaoRepository.findByInstituicaoUsuario_Id(iu.getId());
+
+            int transacoes = 0;
+            BigDecimal totalCredito = BigDecimal.ZERO;
+            BigDecimal totalDebito = BigDecimal.ZERO;
+            BigDecimal saldo = BigDecimal.ZERO;
+            int parcelamentosAtivos = 0;
+
+            for (EventoInstituicao ei : eis) {
+                EventoFinanceiro ef = ei.getEventoFinanceiro();
+                if (ef == null) continue;
+
+                if (ei.getParcelas() != null && ei.getParcelas() > 1) {
+                    LocalDate fimParcelamento = ef.getDataEvento().plusMonths(ei.getParcelas());
+                    if (!fimParcelamento.isBefore(hoje)) parcelamentosAtivos++;
+                }
+
+                if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) transacoes++;
+
+                saldo = getSaldo(saldo, ef);
+
+                if (ei.getTipoMovimento() == TipoMovimento.Credito) totalCredito = totalCredito.add(BigDecimal.valueOf(ei.getValor()));
+                else if (ei.getTipoMovimento() == TipoMovimento.Debito) totalDebito = totalDebito.add(BigDecimal.valueOf(ei.getValor()));
+            }
+
+            BigDecimal limite = iu.getLimiteCredito() != null ? iu.getLimiteCredito() : BigDecimal.ZERO;
+            int pctCredito = limite.compareTo(BigDecimal.ZERO) > 0
+                    ? totalCredito.divide(limite, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).intValue()
+                    : 0;
+
+            resultado.add(new ResumoInstituicaoDto(
+                    iu.getId(),
+                    iu.getInstituicao().getNome(),
+                    transacoes,
+                    saldo,
+                    totalCredito,
+                    totalDebito,
+                    limite,
+                    Math.min(pctCredito, 100),
+                    parcelamentosAtivos,
+                    iu.getTaxaJuros()
+            ));
+        }
+        return resultado;
+    }
+
+    // =========================================================================
+    //  DETALHE DA INSTITUIÇÃO COM DISTRIBUIÇÃO POR MOVIMENTO
+    // =========================================================================
+    public DetalheInstituicaoDto getDetalheInstituicao(Integer instUsuarioId) {
+        InstituicaoUsuario iu = instituicaoUsuarioRepository.findById(instUsuarioId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("InstituicaoUsuario de id: %d não encontrada.".formatted(instUsuarioId)));
+
+        List<EventoInstituicao> eis = eventoInstituicaoRepository.findByInstituicaoUsuario_Id(instUsuarioId);
+        Map<String, BigDecimal> porMovimento = new LinkedHashMap<>();
+        for (TipoMovimento tm : TipoMovimento.values()) porMovimento.put(tm.name(), BigDecimal.ZERO);
+
+        for (EventoInstituicao ei : eis) {
+            if (ei.getTipoMovimento() != null) {
+                porMovimento.merge(ei.getTipoMovimento().name(), BigDecimal.valueOf(ei.getValor()), BigDecimal::add);
+            }
+        }
+
+        List<DetalheInstituicaoDto.DistribuicaoMovimentoDto> distribuicao = porMovimento.entrySet().stream()
+                .filter(e -> e.getValue().compareTo(BigDecimal.ZERO) > 0)
+                .map(e -> new DetalheInstituicaoDto.DistribuicaoMovimentoDto(e.getKey(), e.getValue()))
+                .toList();
+
+        return new DetalheInstituicaoDto(
+                iu.getId(),
+                iu.getInstituicao().getNome(),
+                iu.getLimiteCredito() != null ? iu.getLimiteCredito() : BigDecimal.ZERO,
+                iu.getTaxaJuros(),
+                distribuicao
+        );
+    }
+
+    // =========================================================================
+    //  ATUALIZAR LIMITE DE CRÉDITO E TAXA DE JUROS DA INSTITUIÇÃO
+    // =========================================================================
+    public InstituicaoUsuario atualizarInstituicaoUsuario(Integer instUsuarioId, AtualizarInstituicaoUsuarioDto dto) {
+        InstituicaoUsuario iu = instituicaoUsuarioRepository.findById(instUsuarioId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("InstituicaoUsuario de id: %d não encontrada.".formatted(instUsuarioId)));
+        if (dto.getLimiteCredito() != null) iu.setLimiteCredito(dto.getLimiteCredito());
+        if (dto.getTaxaJuros() != null) iu.setTaxaJuros(dto.getTaxaJuros());
+        iu.setUltimaModificacao(LocalDateTime.now());
+        return instituicaoUsuarioRepository.save(iu);
     }
 }

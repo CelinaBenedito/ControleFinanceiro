@@ -1,5 +1,6 @@
 package controle.api.back_end.model.instituicao;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -17,6 +18,13 @@ public class Instituicao {
     @NotBlank
     private String nome;
 
+    /** Taxa de juros padrão (% a.m.) pré-setada pela instituição. Nullable. */
+    private Double taxaJurosPadrao;
+
+    /** Indica se é instituição financeira (não benefício). Default true. */
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private Boolean isInstituicaoFinanceira = Boolean.TRUE;
+
     public Instituicao() {
     }
 
@@ -25,19 +33,15 @@ public class Instituicao {
         this.nome = nome;
     }
 
-    public Integer getId() {
-        return id;
-    }
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
 
-    public String getNome() {
-        return nome;
-    }
+    public Double getTaxaJurosPadrao() { return taxaJurosPadrao; }
+    public void setTaxaJurosPadrao(Double taxaJurosPadrao) { this.taxaJurosPadrao = taxaJurosPadrao; }
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
+    public Boolean getIsInstituicaoFinanceira() { return isInstituicaoFinanceira; }
+    public void setIsInstituicaoFinanceira(Boolean isInstituicaoFinanceira) { this.isInstituicaoFinanceira = isInstituicaoFinanceira; }
 }

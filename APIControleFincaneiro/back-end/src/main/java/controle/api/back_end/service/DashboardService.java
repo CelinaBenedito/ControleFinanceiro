@@ -6,12 +6,17 @@ import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
+import controle.api.back_end.model.dashboard.NivelSaudeFinanceira;
 import controle.api.back_end.model.dashboard.TipoPeriodo;
 import controle.api.back_end.model.eventoFinanceiro.*;
+import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.model.poupanca.Caixinha;
 import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoDetalheRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
+import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
+import controle.api.back_end.repository.poupanca.CaixinhaRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import controle.api.back_end.utils.PeriodoTemporalUtils;
 import controle.api.back_end.utils.PeriodoTemporalUtils.Periodo;
@@ -39,6 +44,8 @@ public class DashboardService {
     private final ConfiguracoesRepository configuracoesRepository;
     private final InstituicaoService instituicaoService;
     private final RegistroService registroService;
+    private final CaixinhaRepository caixinhaRepository;
+    private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
 
     public DashboardService(UsuarioRepository usuarioRepository,
                             RegistroService registroService,
@@ -48,7 +55,9 @@ public class DashboardService {
                             InstituicaoService instituicaoService,
                             UsuarioService usuarioService,
                             ConfiguracoesService configuracoesService,
-                            ConfiguracoesRepository configuracoesRepository) {
+                            ConfiguracoesRepository configuracoesRepository,
+                            CaixinhaRepository caixinhaRepository,
+                            InstituicaoUsuarioRepository instituicaoUsuarioRepository) {
         this.usuarioRepository        = usuarioRepository;
         this.registroService          = registroService;
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
@@ -58,6 +67,8 @@ public class DashboardService {
         this.usuarioService           = usuarioService;
         this.configuracoesService     = configuracoesService;
         this.configuracoesRepository  = configuracoesRepository;
+        this.caixinhaRepository       = caixinhaRepository;
+        this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
     }
 
     // =========================================================================
@@ -738,5 +749,338 @@ public class DashboardService {
         }
         anos.sort(Comparator.reverseOrder());
         return anos;
+    }
+
+    // =========================================================================
+    //  KPI — POUPANÇA (agregado de todas as caixinhas ativas)
+    // =========================================================================
+    public KpiPoupancaDto getKpiPoupanca(UUID userId) {
+        validarUsuario(userId);
+        List<Caixinha> caixinhas = caixinhaRepository.findAllByUsuario_IdAndIsAtivaTrue(userId);
+        if (caixinhas.isEmpty()) {
+            return new KpiPoupancaDto("Sem poupança ativa", BigDecimal.ZERO, BigDecimal.ZERO, 0, BigDecimal.ZERO, "Nenhuma caixinha ativa encontrada");
+        }
+        BigDecimal valorGuardado = BigDecimal.ZERO;
+        BigDecimal valorMeta = BigDecimal.ZERO;
+        for (Caixinha c : caixinhas) {
+            BigDecimal aportado = eventoFinanceiroRepository.sumValorByCaixinha(c.getId());
+            valorGuardado = valorGuardado.add(aportado);
+            if (c.getValorMeta() != null) valorMeta = valorMeta.add(c.getValorMeta());
+        }
+        int pct = valorMeta.compareTo(BigDecimal.ZERO) > 0
+                ? valorGuardado.divide(valorMeta, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).intValue()
+                : 0;
+        BigDecimal faltante = valorMeta.subtract(valorGuardado).max(BigDecimal.ZERO);
+        String nome = caixinhas.size() == 1 ? caixinhas.get(0).getNome() : "Poupança Total";
+        String descricao = nome + " — " + pct + "% da meta atingida";
+        return new KpiPoupancaDto(nome, valorGuardado, valorMeta, pct, faltante, descricao);
+    }
+
+    // =========================================================================
+    //  KPI — EMPRÉSTIMO ATIVO (mais recente)
+    // =========================================================================
+    public KpiEmprestimoDto getKpiEmprestimo(UUID userId) {
+        validarUsuario(userId);
+        List<EventoFinanceiro> todos = eventoFinanceiroRepository.findAllByUsuario_Id(userId);
+        EventoFinanceiro emprestimo = todos.stream()
+                .filter(e -> e.getTipo() == Tipo.Emprestimo)
+                .max(Comparator.comparing(EventoFinanceiro::getDataEvento))
+                .orElse(null);
+        if (emprestimo == null) {
+            return new KpiEmprestimoDto(false, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0, 0, 0, 0, "N/A");
+        }
+        List<EventoInstituicao> insts = eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(emprestimo.getId());
+        int parcelasTotal = insts.isEmpty() ? 1 : insts.get(0).getParcelas();
+        String nomeInst = insts.isEmpty() ? "N/A" : insts.get(0).getInstituicaoUsuario().getInstituicao().getNome();
+        Double taxaJuros = insts.isEmpty() ? null : insts.get(0).getInstituicaoUsuario().getTaxaJuros();
+
+        long mesesDecorridos = java.time.temporal.ChronoUnit.MONTHS.between(emprestimo.getDataEvento(), LocalDate.now());
+        int parcelasPagas = (int) Math.min(mesesDecorridos, parcelasTotal);
+        int parcelasFaltantes = parcelasTotal - parcelasPagas;
+
+        BigDecimal valorTotal = BigDecimal.valueOf(emprestimo.getValor());
+
+        double r = (taxaJuros != null && taxaJuros > 0) ? taxaJuros / 100.0 : 0.0;
+        double pmt;
+        if (r < 1e-10) {
+            pmt = valorTotal.doubleValue() / parcelasTotal;
+        } else {
+            double fator = Math.pow(1 + r, parcelasTotal);
+            pmt = valorTotal.doubleValue() * r * fator / (fator - 1);
+        }
+        double totalPago = pmt * parcelasPagas;
+
+        double saldoDevedor;
+        if (r < 1e-10) {
+            saldoDevedor = valorTotal.doubleValue() - (valorTotal.doubleValue() / parcelasTotal) * parcelasPagas;
+        } else {
+            double fatorK = Math.pow(1 + r, parcelasPagas);
+            saldoDevedor = valorTotal.doubleValue() * fatorK - pmt * (fatorK - 1) / r;
+        }
+        double principalPago = valorTotal.doubleValue() - Math.max(saldoDevedor, 0);
+        double jurosPagosVal = totalPago - principalPago;
+
+        int pct = parcelasTotal > 0 ? (parcelasPagas * 100 / parcelasTotal) : 0;
+
+        return new KpiEmprestimoDto(
+                true,
+                valorTotal,
+                BigDecimal.valueOf(Math.max(totalPago, 0)).setScale(2, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(Math.max(saldoDevedor, 0)).setScale(2, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(Math.max(jurosPagosVal, 0)).setScale(2, RoundingMode.HALF_UP),
+                parcelasTotal,
+                parcelasPagas,
+                parcelasFaltantes,
+                pct,
+                nomeInst
+        );
+    }
+
+    // =========================================================================
+    //  KPI — SAÚDE FINANCEIRA
+    // =========================================================================
+    public KpiSaudeFinanceiraDto getKpiSaudeFinanceira(TipoPeriodo tipo, int ano, Integer mes, Integer trimestre, Integer semestre, UUID userId) {
+        validarUsuario(userId);
+        PeriodoTemporalUtils.validar(tipo, ano, mes, trimestre, semestre);
+        Periodo periodo = resolverPeriodo(userId, tipo, ano, mes, trimestre, semestre);
+        List<EventoFinanceiro> eventos = eventoFinanceiroRepository.findAllByUsuario_Id(userId);
+
+        BigDecimal receita = BigDecimal.ZERO;
+        BigDecimal gastos = BigDecimal.ZERO;
+        BigDecimal transferencias = BigDecimal.ZERO;
+        for (EventoFinanceiro e : eventos) {
+            if (!emPeriodo(e, periodo)) continue;
+            BigDecimal v = BigDecimal.valueOf(e.getValor());
+            if (e.getTipo() == Tipo.Recebimento || e.getTipo() == Tipo.Emprestimo) receita = receita.add(v);
+            else if (e.getTipo() == Tipo.Gasto) gastos = gastos.add(v);
+            else if (e.getTipo() == Tipo.Transferencia) transferencias = transferencias.add(v);
+        }
+        BigDecimal totalSaidas = gastos.add(transferencias);
+
+        int pontos = 0;
+        String motivoPrincipal = "";
+
+        // A) Relação gastos/receita (40 pts)
+        if (receita.compareTo(BigDecimal.ZERO) > 0) {
+            double ratio = totalSaidas.divide(receita, 4, RoundingMode.HALF_UP).doubleValue();
+            if (ratio <= 0.5) { pontos += 40; }
+            else if (ratio <= 0.7) { pontos += 30; }
+            else if (ratio <= 0.9) { pontos += 20; motivoPrincipal = "Seus gastos estão elevados. Reduza despesas variáveis para melhorar."; }
+            else if (ratio <= 1.0) { pontos += 10; motivoPrincipal = "Seus gastos estão muito próximos da sua receita. Atenção ao orçamento!"; }
+            else { motivoPrincipal = "Você está gastando mais do que ganha. Revise seus gastos urgentemente!"; }
+        } else {
+            motivoPrincipal = "Nenhuma receita registrada no período.";
+        }
+
+        // B) Poupança ativa (30 pts)
+        List<Caixinha> caixinhas = caixinhaRepository.findAllByUsuario_IdAndIsAtivaTrue(userId);
+        if (!caixinhas.isEmpty()) {
+            BigDecimal totalPoupado = BigDecimal.ZERO;
+            for (Caixinha c : caixinhas) totalPoupado = totalPoupado.add(eventoFinanceiroRepository.sumValorByCaixinha(c.getId()));
+            if (receita.compareTo(BigDecimal.ZERO) > 0) {
+                double taxaPoupanca = totalPoupado.divide(receita, 4, RoundingMode.HALF_UP).doubleValue();
+                if (taxaPoupanca >= 0.2) pontos += 30;
+                else if (taxaPoupanca >= 0.1) pontos += 20;
+                else if (taxaPoupanca > 0) pontos += 10;
+            }
+        }
+
+        // C) Sem empréstimos ativos (20 pts)
+        boolean temEmprestimo = eventos.stream().anyMatch(e -> e.getTipo() == Tipo.Emprestimo);
+        if (!temEmprestimo) pontos += 20;
+        else pontos += 5;
+
+        // D) Utilização de crédito (10 pts)
+        List<InstituicaoUsuario> instList = instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
+        BigDecimal totalLimite = BigDecimal.ZERO;
+        BigDecimal totalCreditoUsado = BigDecimal.ZERO;
+        for (InstituicaoUsuario iu : instList) {
+            if (iu.getLimiteCredito() != null && iu.getLimiteCredito().compareTo(BigDecimal.ZERO) > 0) {
+                totalLimite = totalLimite.add(iu.getLimiteCredito());
+            }
+            for (EventoInstituicao ei : eventoInstituicaoRepository.findByInstituicaoUsuario_Id(iu.getId())) {
+                if (ei.getTipoMovimento() == TipoMovimento.Credito && emPeriodo(ei.getEventoFinanceiro(), periodo)) {
+                    totalCreditoUsado = totalCreditoUsado.add(BigDecimal.valueOf(ei.getValor()));
+                }
+            }
+        }
+        if (totalLimite.compareTo(BigDecimal.ZERO) > 0) {
+            double pctCredito = totalCreditoUsado.divide(totalLimite, 4, RoundingMode.HALF_UP).doubleValue();
+            if (pctCredito < 0.3) pontos += 10;
+            else if (pctCredito < 0.6) pontos += 5;
+        } else {
+            pontos += 10;
+        }
+
+        pontos = Math.min(100, Math.max(0, pontos));
+
+        NivelSaudeFinanceira nivel;
+        if (pontos >= 80) nivel = NivelSaudeFinanceira.NORMAL;
+        else if (pontos >= 60) nivel = NivelSaudeFinanceira.ATENCAO;
+        else if (pontos >= 40) nivel = NivelSaudeFinanceira.BAIXO;
+        else nivel = NivelSaudeFinanceira.CRITICO;
+
+        if (motivoPrincipal.isEmpty()) motivoPrincipal = "Suas finanças estão sob controle. Continue assim!";
+
+        return new KpiSaudeFinanceiraDto(pontos, nivel, motivoPrincipal, periodo.label());
+    }
+
+    // =========================================================================
+    //  HISTÓRIA FINANCEIRA
+    // =========================================================================
+    public HistoriaFinanceiraDto getHistoriaFinanceira(TipoPeriodo tipo, int ano, Integer mes, Integer trimestre, Integer semestre, UUID userId) {
+        validarUsuario(userId);
+        PeriodoTemporalUtils.validar(tipo, ano, mes, trimestre, semestre);
+        int diaFiscal = getDiaFiscal(userId);
+        Periodo atual = PeriodoTemporalUtils.calcular(tipo, ano, mes, trimestre, semestre, diaFiscal);
+        Periodo anterior = PeriodoTemporalUtils.calcularAnterior(tipo, ano, mes, trimestre, semestre, diaFiscal);
+        List<EventoFinanceiro> todos = eventoFinanceiroRepository.findAllByUsuario_Id(userId);
+
+        BigDecimal gastosAtual = somarGastos(todos, atual.inicio(), atual.fim());
+        BigDecimal gastosAnterior = somarGastos(todos, anterior.inicio(), anterior.fim());
+        BigDecimal difGastos = gastosAtual.subtract(gastosAnterior).abs();
+
+        Map<DayOfWeek, BigDecimal> porDiaSemana = new EnumMap<>(DayOfWeek.class);
+        for (DayOfWeek d : DayOfWeek.values()) porDiaSemana.put(d, BigDecimal.ZERO);
+        for (EventoFinanceiro e : todos) {
+            if (!emPeriodo(e, atual) || e.getTipo() != Tipo.Gasto) continue;
+            porDiaSemana.merge(e.getDataEvento().getDayOfWeek(), BigDecimal.valueOf(e.getValor()), BigDecimal::add);
+        }
+        DayOfWeek diaPico = porDiaSemana.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+
+        Map<String, BigDecimal> porCategoria = somarGastosPorCategoria(todos, atual.inicio(), atual.fim());
+        String catTopo = null; BigDecimal catTopVal = BigDecimal.ZERO;
+        for (Map.Entry<String, BigDecimal> entry : porCategoria.entrySet()) {
+            if (entry.getValue().compareTo(catTopVal) > 0) { catTopVal = entry.getValue(); catTopo = entry.getKey(); }
+        }
+
+        String nomePeriodo = atual.label();
+        String titulo = "Sua história financeira de " + nomePeriodo.toLowerCase(Locale.ROOT);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("Você gastou R$ %s", gastosAtual.setScale(2, RoundingMode.HALF_UP).toPlainString().replace(".", ",")));
+        if (tipo == TipoPeriodo.MENSAL) {
+            sb.append(" este mês");
+        } else {
+            sb.append(" neste período");
+        }
+
+        if (gastosAnterior.compareTo(BigDecimal.ZERO) > 0) {
+            boolean maisQueAntes = gastosAtual.compareTo(gastosAnterior) > 0;
+            String periodoAnteriorLabel = anterior.label().toLowerCase(Locale.ROOT);
+            sb.append(String.format(" — R$ %s %s que em %s.",
+                    difGastos.setScale(2, RoundingMode.HALF_UP).toPlainString().replace(".", ","),
+                    maisQueAntes ? "a mais" : "a menos",
+                    periodoAnteriorLabel));
+        } else {
+            sb.append(".");
+        }
+
+        Locale ptBr = new Locale("pt", "BR");
+        if (diaPico != null && porDiaSemana.get(diaPico).compareTo(BigDecimal.ZERO) > 0) {
+            String nomeDia = diaPico.getDisplayName(TextStyle.FULL, ptBr);
+            nomeDia = Character.toUpperCase(nomeDia.charAt(0)) + nomeDia.substring(1) + "s";
+            sb.append(" Suas ").append(nomeDia).append(" são responsáveis pelo pico de gastos.");
+        }
+
+        if (catTopo != null && gastosAtual.compareTo(BigDecimal.ZERO) > 0) {
+            int pctCat = catTopVal.divide(gastosAtual, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).intValue();
+            sb.append(String.format(" %s sozinho consome %d%% de tudo que você gastou.", catTopo, pctCat));
+        }
+
+        return new HistoriaFinanceiraDto(titulo, sb.toString(), atual.label());
+    }
+
+    // =========================================================================
+    //  KPI — INSTITUIÇÃO MAIS UTILIZADA
+    // =========================================================================
+    public KpiInstituicaoMaisUtilizadaDto getKpiInstituicaoMaisUtilizada(TipoPeriodo tipo, int ano, Integer mes, Integer trimestre, Integer semestre, UUID userId) {
+        validarUsuario(userId);
+        PeriodoTemporalUtils.validar(tipo, ano, mes, trimestre, semestre);
+        Periodo periodo = resolverPeriodo(userId, tipo, ano, mes, trimestre, semestre);
+
+        List<InstituicaoUsuario> instList = instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
+        Map<String, Integer> transacoesPorInst = new LinkedHashMap<>();
+
+        for (InstituicaoUsuario iu : instList) {
+            List<EventoInstituicao> eis = eventoInstituicaoRepository.findByInstituicaoUsuario_Id(iu.getId());
+            int count = (int) eis.stream()
+                    .filter(ei -> {
+                        EventoFinanceiro ef = ei.getEventoFinanceiro();
+                        if (ef == null) return false;
+                        return emPeriodo(ef, periodo) && (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia);
+                    }).count();
+            if (count > 0) transacoesPorInst.put(iu.getInstituicao().getNome(), count);
+        }
+
+        if (transacoesPorInst.isEmpty()) {
+            return new KpiInstituicaoMaisUtilizadaDto("N/A", 0, 0.0, periodo.label());
+        }
+
+        String maisUsada = transacoesPorInst.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse("N/A");
+        int transMaisUsada = transacoesPorInst.get(maisUsada);
+
+        int somaOutras = transacoesPorInst.entrySet().stream().filter(e -> !e.getKey().equals(maisUsada)).mapToInt(Map.Entry::getValue).sum();
+        double pctVantagem = somaOutras > 0 ? ((double)(transMaisUsada - somaOutras / Math.max(1, transacoesPorInst.size() - 1)) / somaOutras * 100.0) : 100.0;
+
+        return new KpiInstituicaoMaisUtilizadaDto(maisUsada, transMaisUsada, Math.max(0, pctVantagem), periodo.label());
+    }
+
+    // =========================================================================
+    //  KPI — PARCELAMENTOS ATIVOS
+    // =========================================================================
+    public KpiParcelamentosAtivosDto getKpiParcelamentosAtivos(UUID userId) {
+        validarUsuario(userId);
+        List<InstituicaoUsuario> instList = instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
+        LocalDate hoje = LocalDate.now();
+        int totalAtivos = 0;
+        for (InstituicaoUsuario iu : instList) {
+            List<EventoInstituicao> eis = eventoInstituicaoRepository.findByInstituicaoUsuario_Id(iu.getId());
+            for (EventoInstituicao ei : eis) {
+                if (ei.getParcelas() != null && ei.getParcelas() > 1 && ei.getEventoFinanceiro() != null) {
+                    LocalDate fimParcelamento = ei.getEventoFinanceiro().getDataEvento().plusMonths(ei.getParcelas());
+                    if (!fimParcelamento.isBefore(hoje)) totalAtivos++;
+                }
+            }
+        }
+        return new KpiParcelamentosAtivosDto(totalAtivos);
+    }
+
+    // =========================================================================
+    //  KPI — MAIOR GASTO MÉDIO POR TRANSAÇÃO (por instituição)
+    // =========================================================================
+    public KpiMaiorGastoMedioInstituicaoDto getKpiMaiorGastoMedioInstituicao(TipoPeriodo tipo, int ano, Integer mes, Integer trimestre, Integer semestre, UUID userId) {
+        validarUsuario(userId);
+        PeriodoTemporalUtils.validar(tipo, ano, mes, trimestre, semestre);
+        Periodo periodo = resolverPeriodo(userId, tipo, ano, mes, trimestre, semestre);
+
+        List<InstituicaoUsuario> instList = instituicaoUsuarioRepository.findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
+        String melhorInst = "N/A";
+        BigDecimal melhorMedia = BigDecimal.ZERO;
+        int melhorCount = 0;
+
+        for (InstituicaoUsuario iu : instList) {
+            List<EventoInstituicao> eis = eventoInstituicaoRepository.findByInstituicaoUsuario_Id(iu.getId());
+            BigDecimal total = BigDecimal.ZERO;
+            int count = 0;
+            for (EventoInstituicao ei : eis) {
+                EventoFinanceiro ef = ei.getEventoFinanceiro();
+                if (ef == null || !emPeriodo(ef, periodo)) continue;
+                if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) {
+                    total = total.add(BigDecimal.valueOf(ei.getValor()));
+                    count++;
+                }
+            }
+            if (count > 0) {
+                BigDecimal media = total.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP);
+                if (media.compareTo(melhorMedia) > 0) {
+                    melhorMedia = media;
+                    melhorInst = iu.getInstituicao().getNome();
+                    melhorCount = count;
+                }
+            }
+        }
+
+        return new KpiMaiorGastoMedioInstituicaoDto(melhorInst, melhorMedia, melhorCount, periodo.label());
     }
 }

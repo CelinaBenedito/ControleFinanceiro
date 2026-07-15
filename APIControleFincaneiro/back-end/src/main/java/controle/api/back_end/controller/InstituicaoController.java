@@ -1,8 +1,11 @@
 package controle.api.back_end.controller;
 
+import controle.api.back_end.dto.instituicao.in.AtualizarInstituicaoUsuarioDto;
 import controle.api.back_end.dto.instituicao.in.InstituicaoCreateDTO;
+import controle.api.back_end.dto.instituicao.out.DetalheInstituicaoDto;
 import controle.api.back_end.dto.instituicao.out.InstituicaoResponseDTO;
 import controle.api.back_end.dto.instituicao.out.InstituicaoUsuarioResponseDTO;
+import controle.api.back_end.dto.instituicao.out.ResumoInstituicaoDto;
 import controle.api.back_end.dto.instituicao.mapper.InstituicaoMapper;
 import controle.api.back_end.dto.instituicao.mapper.InstituicaoUsuarioMapper;
 import controle.api.back_end.model.instituicao.Instituicao;
@@ -188,4 +191,44 @@ public class InstituicaoController {
         return ResponseEntity.status(204).build();
     }
 
+    @GetMapping("/resumo/usuarios/{user_id}")
+    @Operation(summary = "Cards de resumo das instituições do usuário",
+            description = "Retorna um resumo de cada instituição ativa do usuário com saldo, crédito, débito, parcelamentos ativos e % de crédito utilizado.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ResumoInstituicaoDto.class))),
+            @ApiResponse(responseCode = "204", content = @Content),
+            @ApiResponse(responseCode = "404", content = @Content)
+    })
+    public ResponseEntity<List<ResumoInstituicaoDto>> getResumoInstituicoes(@PathVariable UUID user_id) {
+        List<ResumoInstituicaoDto> resultado = instituicaoService.getResumoInstituicoes(user_id);
+        return resultado.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(resultado);
+    }
+
+    @GetMapping("/{instUsuario_id}/detalhe")
+    @Operation(summary = "Detalhe de uma instituição com distribuição por tipo de movimento",
+            description = "Retorna os dados da associação usuário-instituição e a distribuição dos valores por tipo de movimento (débito, crédito, pix, etc).")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = DetalheInstituicaoDto.class))),
+            @ApiResponse(responseCode = "404", content = @Content)
+    })
+    public ResponseEntity<DetalheInstituicaoDto> getDetalheInstituicao(@PathVariable Integer instUsuario_id) {
+        return ResponseEntity.ok(instituicaoService.getDetalheInstituicao(instUsuario_id));
+    }
+
+    @PatchMapping("/{instUsuario_id}/configurar")
+    @Operation(summary = "Atualizar limite de crédito e taxa de juros da instituição",
+            description = "Permite ao usuário configurar o limite de crédito disponível e a taxa de juros da instituição.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = InstituicaoUsuarioResponseDTO.class))),
+            @ApiResponse(responseCode = "404", content = @Content)
+    })
+    public ResponseEntity<InstituicaoUsuarioResponseDTO> configurarInstituicaoUsuario(
+            @PathVariable Integer instUsuario_id,
+            @RequestBody AtualizarInstituicaoUsuarioDto dto) {
+        InstituicaoUsuario updated = instituicaoService.atualizarInstituicaoUsuario(instUsuario_id, dto);
+        return ResponseEntity.ok(InstituicaoUsuarioMapper.toDto(updated));
+    }
 }

@@ -19,6 +19,8 @@
 5. [Módulo: Dashboard (`/dashboard`)](#5-módulo-dashboard)
 6. [Enums de Referência](#6-enums-de-referência)
 7. [Exemplos de Chamadas Completas em JS](#7-exemplos-de-chamadas-completas-em-js)
+8. [Atualização 07/2026 — Novas KPIs e Features](#8-atualização-072026--novas-kpis-e-features)
+9. [Atualização 07/2026 — KPIs e Gráfico de Caixinhas](#9-atualização-072026--kpis-e-gráfico-de-caixinhas)
 
 ---
 
@@ -959,5 +961,380 @@ function baixarRegistros(userId, formato = "excel") {
 
 ---
 
-*Documento gerado em 24/06/2026 — API Controle Financeiro v1.0*
+## 8. Atualização 07/2026 — Novas KPIs e Features
 
+> **Data:** 15/07/2026  
+> **Escopo:** novas KPIs de dashboard, resumo/detalhe de instituições e configuração de crédito/juros por instituição do usuário.
+
+### 8.1 Dashboard — novas KPIs
+
+> Para endpoints com período, usar os mesmos parâmetros já adotados no dashboard:  
+> `periodo` (`MENSAL|TRIMESTRAL|SEMESTRAL|ANUAL`), `ano`, e quando necessário `mes`, `trimestre` ou `semestre`.
+
+---
+
+#### `GET /dashboard/kpi/poupanca/usuarios/{user_id}`
+Retorna o consolidado das caixinhas ativas (guardado, meta, % atingido e faltante).
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "nomeCaixinha": "Poupança Total",
+  "valorGuardado": 850.00,
+  "valorMeta": 2000.00,
+  "percentualMeta": 42,
+  "valorFaltante": 1150.00,
+  "descricao": "Poupança Total — 42% da meta atingida"
+}
+```
+
+#### `GET /dashboard/kpi/emprestimo/usuarios/{user_id}`
+Retorna dados do empréstimo mais recente: evolução de parcelas, valor pago, saldo restante e juros pagos.
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "temEmprestimoAtivo": true,
+  "valorTotal": 3200.00,
+  "valorPago": 1080.00,
+  "valorRestante": 2120.00,
+  "jurosPagos": 340.00,
+  "parcelasTotal": 18,
+  "parcelasPagas": 6,
+  "parcelasFaltantes": 12,
+  "percentualQuitado": 33,
+  "nomeInstituicao": "Nubank"
+}
+```
+
+#### `GET /dashboard/kpi/saude-financeira/usuarios/{user_id}`
+Calcula pontuação de saúde financeira (0-100), nível e justificativa no período.
+
+**Exemplo de URL:**
+```text
+/dashboard/kpi/saude-financeira/usuarios/{user_id}?periodo=MENSAL&ano=2026&mes=7
+```
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "pontuacao": 68,
+  "nivel": "ATENCAO",
+  "descricao": "Seus gastos estão elevados. Reduza despesas variáveis para melhorar.",
+  "labelPeriodo": "Julho / 2026"
+}
+```
+
+#### `GET /dashboard/historia-financeira/usuarios/{user_id}`
+Retorna uma narrativa automática do período (gastos, comparação com período anterior, pico por dia da semana e categoria de maior impacto).
+
+**Exemplo de URL:**
+```text
+/dashboard/historia-financeira/usuarios/{user_id}?periodo=MENSAL&ano=2026&mes=7
+```
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "titulo": "Sua história financeira de julho / 2026",
+  "resumo": "Você gastou R$ 2847,50 este mês — R$ 597,50 a mais que em junho / 2026. Suas Segundas-feiras são responsáveis pelo pico de gastos. Aluguel sozinho consome 42% de tudo que você gastou.",
+  "labelPeriodo": "Julho / 2026"
+}
+```
+
+#### `GET /dashboard/kpi/instituicao-mais-utilizada/usuarios/{user_id}`
+Retorna a instituição com mais transações no período (`Gasto` + `Transferencia`) e a vantagem percentual em relação às demais.
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "nomeInstituicao": "Nubank",
+  "totalTransacoes": 23,
+  "percentualVantagem": 130.0,
+  "labelPeriodo": "Julho / 2026"
+}
+```
+
+#### `GET /dashboard/kpi/parcelamentos-ativos/usuarios/{user_id}`
+Retorna o total de parcelamentos ativos somando todas as instituições do usuário.
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "totalParcelamentosAtivos": 5
+}
+```
+
+#### `GET /dashboard/kpi/maior-gasto-medio/usuarios/{user_id}`
+Retorna a instituição com maior gasto médio por transação no período (`Gasto` + `Transferencia`).
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "nomeInstituicao": "Nubank",
+  "valorMedioTransacao": 36.96,
+  "totalTransacoes": 23,
+  "labelPeriodo": "Julho / 2026"
+}
+```
+
+---
+
+### 8.2 Instituições — novos endpoints
+
+#### `GET /instituicoes/resumo/usuarios/{user_id}`
+Retorna os cards de resumo das instituições ativas do usuário.
+
+**Resposta 200 (exemplo):**
+```json
+[
+  {
+    "instUsuarioId": 2,
+    "nomeInstituicao": "Nubank",
+    "quantidadeTransacoes": 23,
+    "saldoDisponivel": 1500.00,
+    "totalCredito": 500.00,
+    "totalDebito": 350.00,
+    "limiteCredito": 3000.00,
+    "percentualCreditoUtilizado": 16,
+    "parcelamentosAtivos": 3,
+    "taxaJuros": 3.49
+  }
+]
+```
+
+#### `GET /instituicoes/{instUsuario_id}/detalhe`
+Retorna dados da instituição do usuário e distribuição de gastos por tipo de movimento.
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "instUsuarioId": 2,
+  "nomeInstituicao": "Nubank",
+  "limiteCredito": 3000.00,
+  "taxaJuros": 3.49,
+  "distribuicaoPorMovimento": [
+    { "tipoMovimento": "Debito", "valorTotal": 300.00 },
+    { "tipoMovimento": "Credito", "valorTotal": 500.00 },
+    { "tipoMovimento": "Pix", "valorTotal": 1050.00 }
+  ]
+}
+```
+
+#### `PATCH /instituicoes/{instUsuario_id}/configurar`
+Permite configurar limite de crédito e taxa de juros para a associação usuário-instituição.
+
+**Request (exemplo):**
+```json
+{
+  "limiteCredito": 10000.00,
+  "taxaJuros": 2.99
+}
+```
+
+**Resposta 200:** segue o contrato padrão de `InstituicaoUsuarioResponseDTO` (dados de vínculo).  
+Para validar os valores configurados (`limiteCredito` e `taxaJuros`), consulte também `GET /instituicoes/{instUsuario_id}/detalhe`.
+
+---
+
+### 8.3 Novos campos de dados
+
+#### Entidade `Instituicao`
+- `taxaJurosPadrao` (`Double`): taxa base da instituição (referência para exibição/sugestão).
+- `isInstituicaoFinanceira` (`Boolean`): diferencia instituições financeiras de benefício (ex.: VR, Ticket, Alelo, Pluxee).
+
+#### Entidade `InstituicaoUsuario`
+- `limiteCredito` (`BigDecimal`): limite configurado pelo usuário para cálculo de crédito utilizado.
+- `taxaJuros` (`Double`): taxa personalizada configurada pelo usuário para cálculos de empréstimo/crédito.
+
+---
+
+### 8.4 Exemplos de integração em JavaScript (fetch)
+
+```js
+const BASE_URL = "http://localhost:8080";
+
+function buildPeriodoParams({ periodo, ano, mes, trimestre, semestre }) {
+  const params = new URLSearchParams({ periodo, ano: String(ano) });
+  if (mes != null) params.append("mes", String(mes));
+  if (trimestre != null) params.append("trimestre", String(trimestre));
+  if (semestre != null) params.append("semestre", String(semestre));
+  return params.toString();
+}
+
+async function getJson(path) {
+  const resp = await fetch(`${BASE_URL}${path}`);
+  if (!resp.ok) throw new Error(`Erro ${resp.status}`);
+  return resp.json();
+}
+
+async function patchJson(path, body) {
+  const resp = await fetch(`${BASE_URL}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) throw new Error(`Erro ${resp.status}`);
+  return resp.json();
+}
+
+// Dashboard
+const getKpiPoupanca = (userId) =>
+  getJson(`/dashboard/kpi/poupanca/usuarios/${userId}`);
+
+const getKpiEmprestimo = (userId) =>
+  getJson(`/dashboard/kpi/emprestimo/usuarios/${userId}`);
+
+const getKpiSaudeFinanceira = (userId, periodoCfg) =>
+  getJson(`/dashboard/kpi/saude-financeira/usuarios/${userId}?${buildPeriodoParams(periodoCfg)}`);
+
+const getHistoriaFinanceira = (userId, periodoCfg) =>
+  getJson(`/dashboard/historia-financeira/usuarios/${userId}?${buildPeriodoParams(periodoCfg)}`);
+
+const getKpiInstituicaoMaisUtilizada = (userId, periodoCfg) =>
+  getJson(`/dashboard/kpi/instituicao-mais-utilizada/usuarios/${userId}?${buildPeriodoParams(periodoCfg)}`);
+
+const getKpiParcelamentosAtivos = (userId) =>
+  getJson(`/dashboard/kpi/parcelamentos-ativos/usuarios/${userId}`);
+
+const getKpiMaiorGastoMedio = (userId, periodoCfg) =>
+  getJson(`/dashboard/kpi/maior-gasto-medio/usuarios/${userId}?${buildPeriodoParams(periodoCfg)}`);
+
+// Instituições
+const getResumoInstituicoes = (userId) =>
+  getJson(`/instituicoes/resumo/usuarios/${userId}`);
+
+const getDetalheInstituicao = (instUsuarioId) =>
+  getJson(`/instituicoes/${instUsuarioId}/detalhe`);
+
+const patchConfigurarInstituicao = (instUsuarioId, payload) =>
+  patchJson(`/instituicoes/${instUsuarioId}/configurar`, payload);
+```
+
+---
+
+### 8.5 Observações rápidas
+
+- Para endpoints de instituições, quando não houver vínculos ativos, a API pode retornar lista vazia (`204` em alguns cenários).
+
+---
+
+## 9. Atualização 07/2026 — KPIs e Gráfico de Caixinhas
+
+> **Data:** 15/07/2026  
+> **Escopo:** novos endpoints para cards de KPI e gráfico consolidado da tela de caixinhas.
+
+### 9.1 KPI — Total acumulado
+
+**GET** `/caixinhas/kpi/total-acumulado/usuarios/{user_id}`  
+Retorna o valor total acumulado em caixinhas ativas e a quantidade de caixinhas ativas.
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "totalAcumulado": 3250.75,
+  "quantidadeCaixinhasAtivas": 4
+}
+```
+
+---
+
+### 9.2 KPI — Progresso geral
+
+**GET** `/caixinhas/kpi/progresso-geral/usuarios/{user_id}`  
+Retorna acumulado total, total de metas e percentual de progresso geral.
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "totalAcumulado": 3250.75,
+  "totalMetas": 5000.00,
+  "percentualProgressoGeral": 65
+}
+```
+
+---
+
+### 9.3 KPI — Rendimento estimado/mês
+
+**GET** `/caixinhas/kpi/rendimento-estimado-mes/usuarios/{user_id}`  
+Retorna o rendimento estimado total do mês atual, consolidando todas as caixinhas ativas.
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "rendimentoEstimadoMes": 42.30,
+  "mesReferencia": "07/2026"
+}
+```
+
+---
+
+### 9.4 KPI — Status das caixinhas
+
+**GET** `/caixinhas/kpi/status/usuarios/{user_id}`  
+Retorna quantas caixinhas estão ativas e quantas estão encerradas.
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "quantidadeAtivas": 4,
+  "quantidadeEncerradas": 2
+}
+```
+
+---
+
+### 9.5 Gráfico — Progresso consolidado
+
+**GET** `/caixinhas/grafico/progresso-consolidado/usuarios/{user_id}`  
+Retorna os dados consolidados para o gráfico: percentual geral, acumulado total e metas totais.
+
+**Resposta 200 (exemplo):**
+```json
+{
+  "percentualProgressoGeral": 65,
+  "totalAcumulado": 3250.75,
+  "totalMetas": 5000.00
+}
+```
+
+---
+
+### 9.6 Exemplo de integração em JavaScript (fetch)
+
+```js
+const BASE_URL = "http://localhost:8080";
+
+async function getJson(path) {
+  const resp = await fetch(`${BASE_URL}${path}`);
+  if (!resp.ok) throw new Error(`Erro ${resp.status}`);
+  return resp.json();
+}
+
+const getKpiTotalAcumuladoCaixinhas = (userId) =>
+  getJson(`/caixinhas/kpi/total-acumulado/usuarios/${userId}`);
+
+const getKpiProgressoGeralCaixinhas = (userId) =>
+  getJson(`/caixinhas/kpi/progresso-geral/usuarios/${userId}`);
+
+const getKpiRendimentoEstimadoMesCaixinhas = (userId) =>
+  getJson(`/caixinhas/kpi/rendimento-estimado-mes/usuarios/${userId}`);
+
+const getKpiStatusCaixinhas = (userId) =>
+  getJson(`/caixinhas/kpi/status/usuarios/${userId}`);
+
+const getGraficoProgressoConsolidadoCaixinhas = (userId) =>
+  getJson(`/caixinhas/grafico/progresso-consolidado/usuarios/${userId}`);
+```
+
+---
+
+### 9.7 Observações rápidas
+
+- Quando não houver caixinhas ativas, os endpoints retornam valores zerados.
+- `percentualProgressoGeral` não ultrapassa `100`.
+
+---
+
+*Documento atualizado em 15/07/2026 com as novas KPIs/features de dashboard, instituições e caixinhas.*
