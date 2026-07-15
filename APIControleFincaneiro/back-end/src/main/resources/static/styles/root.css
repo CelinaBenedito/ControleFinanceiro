@@ -46,10 +46,10 @@
     --cor-agendamento-bg: #FFFF9E;
     --cor-agendamento-texto: #AFA900;
     /* Poupança / Empréstimo badge colors */
-    --cor-poupanca-bg: #B0D4FF;
-    --cor-poupanca-texto: #1E3A6E;
-    --cor-emprestimo-bg: #FFE0B0;
-    --cor-emprestimo-texto: #7A3800;
+    --cor-poupanca-bg: #FFCB80;
+    --cor-poupanca-texto: #8A4B00;
+    --cor-emprestimo-bg: #DBB3FF;
+    --cor-emprestimo-texto: #4B0F80;
     /* Dark-mode variants (overridden per theme) */
 }
 
@@ -94,10 +94,10 @@ body[data-tema="padrao"][data-mode="light"] {
     --cor-transferencia-texto: #006C9E;
     --cor-agendamento-bg: #FFFF9E;
     --cor-agendamento-texto: #AFA900;
-    --cor-poupanca-bg: #B0D4FF;
-    --cor-poupanca-texto: #1E3A6E;
-    --cor-emprestimo-bg: #FFE0B0;
-    --cor-emprestimo-texto: #7A3800;
+    --cor-poupanca-bg: #FFCB80;
+    --cor-poupanca-texto: #8A4B00;
+    --cor-emprestimo-bg: #DBB3FF;
+    --cor-emprestimo-texto: #4B0F80;
 }
 
 body[data-tema="padrao"][data-mode="dark"] {
@@ -140,10 +140,10 @@ body[data-tema="padrao"][data-mode="dark"] {
     --cor-transferencia-texto: #7dd3fc;
     --cor-agendamento-bg: #3a3800;
     --cor-agendamento-texto: #fef08a;
-    --cor-poupanca-bg: #0a2040;
-    --cor-poupanca-texto: #93c5fd;
-    --cor-emprestimo-bg: #3a1800;
-    --cor-emprestimo-texto: #fdba74;
+    --cor-poupanca-bg: #3a1e00;
+    --cor-poupanca-texto: #fdba74;
+    --cor-emprestimo-bg: #2e0a4a;
+    --cor-emprestimo-texto: #c4b5fd;
 }
 
 body[data-tema="vampirico"][data-mode="light"] {
@@ -186,10 +186,10 @@ body[data-tema="vampirico"][data-mode="light"] {
     --cor-transferencia-texto: #006C9E;
     --cor-agendamento-bg: #FFFF9E;
     --cor-agendamento-texto: #AFA900;
-    --cor-poupanca-bg: #B0D4FF;
-    --cor-poupanca-texto: #1E3A6E;
-    --cor-emprestimo-bg: #FFE0B0;
-    --cor-emprestimo-texto: #7A3800;
+    --cor-poupanca-bg: #FFCB80;
+    --cor-poupanca-texto: #8A4B00;
+    --cor-emprestimo-bg: #DBB3FF;
+    --cor-emprestimo-texto: #4B0F80;
 }
 
 body[data-tema="vampirico"][data-mode="dark"] {
@@ -231,10 +231,10 @@ body[data-tema="vampirico"][data-mode="dark"] {
     --cor-transferencia-texto: #7dd3fc;
     --cor-agendamento-bg: #3a3800;
     --cor-agendamento-texto: #fef08a;
-    --cor-poupanca-bg: #0a2040;
-    --cor-poupanca-texto: #93c5fd;
-    --cor-emprestimo-bg: #3a1800;
-    --cor-emprestimo-texto: #fdba74;
+    --cor-poupanca-bg: #3a1e00;
+    --cor-poupanca-texto: #fdba74;
+    --cor-emprestimo-bg: #2e0a4a;
+    --cor-emprestimo-texto: #c4b5fd;
 }
 
 body[data-tema="ceu-azul"][data-mode="light"] {
@@ -276,10 +276,10 @@ body[data-tema="ceu-azul"][data-mode="light"] {
     --cor-transferencia-texto: #006C9E;
     --cor-agendamento-bg: #FFFF9E;
     --cor-agendamento-texto: #AFA900;
-    --cor-poupanca-bg: #B0D4FF;
-    --cor-poupanca-texto: #1E3A6E;
-    --cor-emprestimo-bg: #FFE0B0;
-    --cor-emprestimo-texto: #7A3800;
+    --cor-poupanca-bg: #FFCB80;
+    --cor-poupanca-texto: #8A4B00;
+    --cor-emprestimo-bg: #DBB3FF;
+    --cor-emprestimo-texto: #4B0F80;
 }
 
 body[data-tema="ceu-azul"][data-mode="dark"] {
@@ -321,10 +321,10 @@ body[data-tema="ceu-azul"][data-mode="dark"] {
     --cor-transferencia-texto: #7dd3fc;
     --cor-agendamento-bg: #3a3800;
     --cor-agendamento-texto: #fef08a;
-    --cor-poupanca-bg: #0a2040;
-    --cor-poupanca-texto: #93c5fd;
-    --cor-emprestimo-bg: #3a1800;
-    --cor-emprestimo-texto: #fdba74;
+    --cor-poupanca-bg: #3a1e00;
+    --cor-poupanca-texto: #fdba74;
+    --cor-emprestimo-bg: #2e0a4a;
+    --cor-emprestimo-texto: #c4b5fd;
 }
 
 body[data-tema="purpura"][data-mode="light"] {
@@ -367,10 +367,10 @@ body[data-tema="purpura"][data-mode="light"] {
     --cor-transferencia-texto: #006C9E;
     --cor-agendamento-bg: #FFFF9E;
     --cor-agendamento-texto: #AFA900;
-    --cor-poupanca-bg: #B0D4FF;
-    --cor-poupanca-texto: #1E3A6E;
-    --cor-emprestimo-bg: #FFE0B0;
-    --cor-emprestimo-texto: #7A3800;
+    --cor-poupanca-bg: #FFCB80;
+    --cor-poupanca-texto: #8A4B00;
+    --cor-emprestimo-bg: #DBB3FF;
+    --cor-emprestimo-texto: #4B0F80;
 }
 
 body[data-tema="purpura"][data-mode="dark"] {
@@ -413,10 +413,10 @@ body[data-tema="purpura"][data-mode="dark"] {
     --cor-transferencia-texto: #7dd3fc;
     --cor-agendamento-bg: #3a3800;
     --cor-agendamento-texto: #fef08a;
-    --cor-poupanca-bg: #0a2040;
-    --cor-poupanca-texto: #93c5fd;
-    --cor-emprestimo-bg: #3a1800;
-    --cor-emprestimo-texto: #fdba74;
+    --cor-poupanca-bg: #3a1e00;
+    --cor-poupanca-texto: #fdba74;
+    --cor-emprestimo-bg: #2e0a4a;
+    --cor-emprestimo-texto: #c4b5fd;
 }
 
 body[data-tema="branco"][data-mode="light"] {
@@ -459,10 +459,10 @@ body[data-tema="branco"][data-mode="light"] {
     --cor-transferencia-texto: #006C9E;
     --cor-agendamento-bg: #FFFF9E;
     --cor-agendamento-texto: #AFA900;
-    --cor-poupanca-bg: #B0D4FF;
-    --cor-poupanca-texto: #1E3A6E;
-    --cor-emprestimo-bg: #FFE0B0;
-    --cor-emprestimo-texto: #7A3800;
+    --cor-poupanca-bg: #FFCB80;
+    --cor-poupanca-texto: #8A4B00;
+    --cor-emprestimo-bg: #DBB3FF;
+    --cor-emprestimo-texto: #4B0F80;
 }
 
 body[data-tema="branco"][data-mode="dark"] {
@@ -505,8 +505,8 @@ body[data-tema="branco"][data-mode="dark"] {
     --cor-transferencia-texto: #7dd3fc;
     --cor-agendamento-bg: #3a3800;
     --cor-agendamento-texto: #fef08a;
-    --cor-poupanca-bg: #0a2040;
-    --cor-poupanca-texto: #93c5fd;
-    --cor-emprestimo-bg: #3a1800;
-    --cor-emprestimo-texto: #fdba74;
+    --cor-poupanca-bg: #3a1e00;
+    --cor-poupanca-texto: #fdba74;
+    --cor-emprestimo-bg: #2e0a4a;
+    --cor-emprestimo-texto: #c4b5fd;
 }

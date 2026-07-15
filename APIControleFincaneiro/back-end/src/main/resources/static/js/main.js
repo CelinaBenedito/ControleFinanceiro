@@ -279,6 +279,32 @@
                     return res.json();
                 });
         },
+        // ── PASSO 1: anos com registros ─────────────────────────────
+        buscarAnosRegistros(userId) {
+            return request(`/registros/anos/usuarios/${userId}`, { method: "GET" })
+                .then(res => {
+                    if (res.status === 204) return [];
+                    return res.json();
+                });
+        },
+        // ── PASSO 2: meses (do ano) com registros ───────────────────
+        buscarMesesRegistros(userId, ano) {
+            return request(`/registros/meses/usuarios/${userId}?ano=${ano}`, { method: "GET" })
+                .then(res => {
+                    if (res.status === 204) return [];
+                    return res.json();
+                });
+        },
+        // ── PASSO 3: registros do mês, paginados ────────────────────
+        buscarRegistrosPorMes(userId, ano, mes, pagina = 0, tamanho = 20) {
+            return request(`/registros/mes/usuarios/${userId}?ano=${ano}&mes=${mes}&pagina=${pagina}&tamanho=${tamanho}`, { method: "GET" })
+                .then(res => {
+                    if (res.status === 204) {
+                        return { content: [], totalElements: 0, totalPages: 0, number: 0, size: tamanho, first: true, last: true, empty: true };
+                    }
+                    return res.json();
+                });
+        },
         filtrarRegistros(userId, filtros) {
             const params = new URLSearchParams();
 
