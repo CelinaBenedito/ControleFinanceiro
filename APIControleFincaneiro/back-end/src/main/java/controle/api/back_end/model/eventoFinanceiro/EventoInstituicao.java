@@ -88,11 +88,7 @@ public class EventoInstituicao {
         this.parcelas = parcelas;
     }
 
-    public RecorrenciaFinanceira getRecorrenciaFinanceira() {
-        return recorrenciaFinanceira;
-    }
-
-    public void setRecorrenciaFinanceira(RecorrenciaFinanceira recorrenciaFinanceira) {
-        this.recorrenciaFinanceira = recorrenciaFinanceira;
+    public void setRecorrenciaFinanceira(RecorrenciaFinanceira recorrenciaSalva) {
+        this.recorrenciaFinanceira = recorrenciaSalva;
     }
 }

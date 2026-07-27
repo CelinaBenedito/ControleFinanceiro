@@ -721,10 +721,10 @@ public class RegistroService {
 
     /**
      * Tipos que exigem verificação de saldo antes de processar o pagamento.
-     * Recebimento, Poupança e Empréstimo são entradas — não consomem saldo.
+     * Recebimento e Empréstimo são entradas — não consomem saldo.
      */
     private boolean tipoRequerValidacaoSaldo(Tipo tipo) {
-        return tipo == Tipo.Gasto || tipo == Tipo.Transferencia;
+        return tipo == Tipo.Gasto || tipo == Tipo.Transferencia || tipo == Tipo.Poupanca;
     }
 
     private Usuario buscarUsuarioOuErro(UUID id) {

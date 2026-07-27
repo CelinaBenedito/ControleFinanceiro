@@ -169,9 +169,9 @@ public class InstituicaoService {
     static BigDecimal getSaldo(BigDecimal saldo, EventoFinanceiro eventoFinanceiro) {
         BigDecimal valor = BigDecimal.valueOf(eventoFinanceiro.getValor());
 
-        if (eventoFinanceiro.getTipo() == Tipo.Gasto || eventoFinanceiro.getTipo() == Tipo.Transferencia) {
+        if (eventoFinanceiro.getTipo() == Tipo.Gasto || eventoFinanceiro.getTipo() == Tipo.Transferencia || eventoFinanceiro.getTipo() == Tipo.Poupanca) {
             saldo = saldo.subtract(valor);
-        } else if (eventoFinanceiro.getTipo() == Tipo.Recebimento) {
+        } else if (eventoFinanceiro.getTipo() == Tipo.Recebimento || eventoFinanceiro.getTipo() == Tipo.Emprestimo) {
             saldo = saldo.add(valor);
         }
         return saldo;
