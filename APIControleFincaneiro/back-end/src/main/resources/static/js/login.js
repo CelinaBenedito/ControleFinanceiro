@@ -83,7 +83,7 @@ function login(email, senha){
     }).then((response) => {
         console.warn("Resposta da tentativa de login:", response);
         if (response.ok) {
-            response.json().then(usuario => {
+            response.json().then(async usuario => {
                 const perfis = JSON.parse(localStorage.getItem("perfis") || "[]");
                 const idx = perfis.findIndex(p => p.id === usuario.id);
                 const perfilAtualizado = { id: usuario.id, nome: usuario.nome, sobrenome: usuario.sobrenome, imagem: usuario.imagem || null };
@@ -94,17 +94,21 @@ function login(email, senha){
                 }
                 const perfisJson = JSON.stringify(perfis);
                 localStorage.setItem("perfis", perfisJson);
+                localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
 
-                // Persiste em disco via endpoint — funciona no desktop e no navegador
+                // Persiste em disco via desktopBridge (Java lê/escreve o arquivo diretamente)
+                // — mais confiável que localStorage em callbacks async do JavaFX WebView
+                if (window.desktopBridge) {
+                    try { window.desktopBridge.savePerfis(perfisJson); } catch (_) {}
+                }
+
+                // Também persiste via HTTP (backup)
                 fetch("http://localhost:8080/perfis", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ perfis: perfisJson })
-                }).catch(() => {}); // silencia erros de rede (non-critical)
+                }).catch(() => {});
 
-                localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
-
-                // Redireciona somente após o localStorage estar preenchido
                 alerta(`Logado com sucesso!`);
                 setTimeout(() => {
                     window.location.href = "dashboard.html";

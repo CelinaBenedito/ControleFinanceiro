@@ -141,9 +141,18 @@
                 try {
                     const perfis = JSON.parse(localStorage.getItem("perfis") || "[]");
                     const idx = perfis.findIndex(p => p.id === userId);
+                    const perfilEntry = idx !== -1 ? perfis[idx] : { id: userId, nome: novoUsuario.nome, sobrenome: novoUsuario.sobrenome };
+                    const perfilAtualizado = Object.assign({}, perfilEntry, { imagem: atualizado.imagem || perfilEntry.imagem });
                     if (idx !== -1) {
-                        perfis[idx] = Object.assign({}, perfis[idx], { imagem: atualizado.imagem || perfis[idx].imagem });
-                        localStorage.setItem("perfis", JSON.stringify(perfis));
+                        perfis[idx] = perfilAtualizado;
+                    } else {
+                        perfis.push(perfilAtualizado);
+                    }
+                    const perfisJson = JSON.stringify(perfis);
+                    localStorage.setItem("perfis", perfisJson);
+                    // Salva via desktopBridge (síncrono Java → arquivo) para persistir entre sessões
+                    if (window.desktopBridge) {
+                        try { window.desktopBridge.savePerfis(perfisJson); } catch (_) {}
                     }
                 } catch (_) {}
 
@@ -324,6 +333,19 @@
             // Atualiza localStorage
             const novoUsuario = { ...usuarioLogado, ...atualizado };
             localStorage.setItem("usuarioLogado", JSON.stringify(novoUsuario));
+            // Atualiza lista de perfis
+            try {
+                const perfis = JSON.parse(localStorage.getItem("perfis") || "[]");
+                const idx = perfis.findIndex(p => p.id === userId);
+                const entrada = { id: novoUsuario.id, nome: novoUsuario.nome, sobrenome: novoUsuario.sobrenome, imagem: novoUsuario.imagem || null };
+                if (idx !== -1) { perfis[idx] = Object.assign({}, perfis[idx], entrada); }
+                else { perfis.push(entrada); }
+                const perfisJson = JSON.stringify(perfis);
+                localStorage.setItem("perfis", perfisJson);
+                if (window.desktopBridge) {
+                    try { window.desktopBridge.savePerfis(perfisJson); } catch (_) {}
+                }
+            } catch (_) {}
             popularHero(novoUsuario);
             document.getElementById("modalEdicao").style.display = "none";
         } catch (e) {
