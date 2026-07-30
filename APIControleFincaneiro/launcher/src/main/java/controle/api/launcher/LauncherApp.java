@@ -1,174 +1,270 @@
 package controle.api.launcher;
 
 import org.update4j.Configuration;
-import org.update4j.service.UpdateHandler;
-import org.update4j.service.DefaultUpdateHandler;
-
+import org.update4j.handler.DefaultUpdateHandler;
 
 import java.io.*;
 import java.net.URI;
 import java.net.http.*;
 import java.nio.file.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
  * Bootstrap do MyFinance.
  *
  * Fluxo:
- *  1. Lê launcher.properties para obter a URL do config Update4j no GitHub.
- *  2. Baixa o config XML.
- *  3. Se algum arquivo divergir do checksum → atualiza via Update4j.
- *  4. Inicia o back-end.jar como processo separado (evita conflitos de ClassLoader com Spring Boot).
- *
- * Este JAR é o que fica dentro do .exe gerado pelo jpackage.
+ *  1. Abre log em %APPDATA%\MyFinance\launcher.log (visivel mesmo sem console).
+ *  2. Detecta o diretorio do proprio launcher.jar para localizar back-end.jar.
+ *  3. Verifica atualizacoes via Update4j (se configurado).
+ *  4. Inicia back-end.jar como processo separado usando o java.home correto.
  */
 public class LauncherApp {
 
-    public static void main(String[] args) throws Exception {
-        Properties props = loadProperties();
+    private static PrintWriter logWriter;
+    private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-        String configUrl = props.getProperty("update4j.config.url");
-        String appDir    = props.getProperty("app.dir", "app");
-        String appJar    = props.getProperty("app.jar.name", "back-end.jar");
+    public static void main(String[] args) {
+        initLog();
+        log("=== MyFinance Launcher iniciado ===");
+        log("java.home  : " + System.getProperty("java.home"));
+        log("user.dir   : " + System.getProperty("user.dir"));
 
-        Path appJarPath = Path.of(appDir, appJar).toAbsolutePath();
+        try {
+            Properties props = loadProperties();
 
-        System.out.println("╔══════════════════════════════════════════╗");
-        System.out.println("║       MyFinance Launcher v1.0.0          ║");
-        System.out.println("╚══════════════════════════════════════════╝");
-        System.out.println("[Launcher] JAR da aplicação: " + appJarPath);
+            // Localiza o launcher.jar no sistema de arquivos para resolver caminhos relativos
+            Path launcherDir = detectLauncherDir();
+            log("launcherDir: " + launcherDir);
 
-        // Garante que o diretório da aplicação existe
-        Files.createDirectories(appJarPath.getParent());
+            String appDirName = props.getProperty("app.dir", "app");
+            String appJarName = props.getProperty("app.jar.name", "back-end.jar");
+            Path appJarPath   = launcherDir.resolve(appDirName).resolve(appJarName).toAbsolutePath();
+            log("appJarPath : " + appJarPath);
 
-        // Tenta verificar e aplicar atualizações via Update4j
-        boolean updated = tryUpdate(configUrl, appJarPath);
-        if (updated) {
-            System.out.println("[Launcher] Atualização aplicada com sucesso.");
+            // Garante que o diretorio de destino existe (util para Update4j criar o arquivo)
+            Files.createDirectories(appJarPath.getParent());
+
+            // Verifica e aplica atualizacoes (se houver URL configurada)
+            String configUrl = props.getProperty("update4j.config.url", "");
+            tryUpdate(configUrl, appJarPath);
+
+            // Inicia a aplicacao principal
+            launchApp(appJarPath, args);
+
+        } catch (Exception e) {
+            log("ERRO FATAL: " + e.getMessage());
+            e.printStackTrace(logWriter);
+            logWriter.flush();
+            // Mostra um dialogo de erro simples via javax.swing (disponivel em qualquer JDK)
+            showErrorDialog("Erro ao iniciar o MyFinance:\n" + e.getMessage()
+                    + "\n\nConsulte o log em: " + logFilePath());
+        } finally {
+            if (logWriter != null) logWriter.close();
         }
-
-        // Inicia a aplicação principal
-        launchApp(appJarPath, args);
     }
 
     // -------------------------------------------------------------------------
     // Update4j
     // -------------------------------------------------------------------------
 
-    private static boolean tryUpdate(String configUrl, Path appJarPath) {
+    private static void tryUpdate(String configUrl, Path appJarPath) {
         if (configUrl == null || configUrl.isBlank() || configUrl.contains("SEU_USUARIO")) {
-            System.out.println("[Launcher] URL do config não configurada — pulando verificação de atualização.");
-            return false;
+            log("[Update] URL nao configurada — pulando verificacao.");
+            return;
         }
-
         try {
-            System.out.println("[Launcher] Verificando atualizações em: " + configUrl);
-
+            log("[Update] Verificando: " + configUrl);
             HttpClient client = HttpClient.newBuilder()
-                    .followRedirects(HttpClient.Redirect.ALWAYS)
-                    .build();
-
-            HttpRequest request = HttpRequest.newBuilder()
+                    .followRedirects(HttpClient.Redirect.ALWAYS).build();
+            HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(configUrl))
-                    .header("User-Agent", "MyFinance-Launcher/1.0")
-                    .build();
+                    .header("User-Agent", "MyFinance-Launcher/1.0").build();
+            HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
 
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                System.out.println("[Launcher] Config não disponível (HTTP " + response.statusCode() + "). Iniciando sem atualizar.");
-                return false;
+            if (resp.statusCode() != 200) {
+                log("[Update] Config indisponivel (HTTP " + resp.statusCode() + ").");
+                return;
             }
 
             Configuration config;
-            try (Reader reader = new StringReader(response.body())) {
-                config = Configuration.read(reader);
+            try (Reader r = new StringReader(resp.body())) {
+                config = Configuration.read(r);
             }
 
             if (!config.requiresUpdate()) {
-                System.out.println("[Launcher] Aplicação já está atualizada.");
-                return false;
+                log("[Update] Ja esta na versao mais recente.");
+                return;
             }
 
-            System.out.println("[Launcher] Nova versão encontrada! Baixando atualização...");
+            log("[Update] Nova versao encontrada! Baixando...");
             config.update(new DefaultUpdateHandler() {
                 @Override
-                public void updateDownloadFileProgress(org.update4j.FileMetadata file, float frac) {
-                    int pct = (int) (frac * 100);
-                    System.out.printf("\r[Launcher] Baixando %s... %d%%  ", file.getPath().getFileName(), pct);
-                }
-                @Override
                 public void doneDownloadFile(org.update4j.FileMetadata file, Path path) {
-                    System.out.println("\r[Launcher] ✓ " + file.getPath().getFileName() + " baixado.");
+                    log("[Update] Baixado: " + file.getPath().getFileName());
                 }
             });
-
-            return true;
+            log("[Update] Atualizacao concluida.");
 
         } catch (Exception e) {
-            System.out.println("[Launcher] Aviso: não foi possível verificar atualizações: " + e.getMessage());
-            System.out.println("[Launcher] Continuando com a versão atual...");
-            return false;
+            log("[Update] Aviso (nao critico): " + e.getMessage());
         }
     }
 
     // -------------------------------------------------------------------------
-    // Inicialização da aplicação principal
+    // Inicializacao da aplicacao principal
     // -------------------------------------------------------------------------
 
     private static void launchApp(Path appJarPath, String[] args) throws Exception {
         if (!Files.exists(appJarPath)) {
-            System.err.println("[Launcher] ERRO: JAR não encontrado em " + appJarPath);
-            System.err.println("[Launcher] Certifique-se de que '" + appJarPath.getFileName() + "' está na pasta '" + appJarPath.getParent() + "'.");
-            System.exit(1);
+            throw new FileNotFoundException(
+                    "back-end.jar nao encontrado em: " + appJarPath
+                    + "\nVerifique se a instalacao esta completa."
+            );
         }
 
-        // Usa o mesmo executável Java desta JVM (garante compatibilidade com jpackage)
-        String javaExe = ProcessHandle.current()
-                .info()
-                .command()
-                .orElse("java");
+        String javaExe = detectJavaExecutable();
+        log("[Launch] Executavel Java: " + javaExe);
 
         List<String> command = new ArrayList<>();
         command.add(javaExe);
-        // Repassa argumentos JVM adicionais passados ao launcher (ex: -Xmx)
-        for (String arg : args) {
-            if (arg.startsWith("-X") || arg.startsWith("-D")) {
-                command.add(arg);
-            }
-        }
+
+        // Flags necessarias para JavaFX funcionar a partir de um fat-JAR
+        command.add("--add-opens=java.base/java.lang=ALL-UNNAMED");
+        command.add("--add-opens=java.base/java.util=ALL-UNNAMED");
+
         command.add("-jar");
         command.add(appJarPath.toString());
-        // Repassa argumentos de aplicação
+
+        // Repassa argumentos de aplicacao (nao flags JVM)
         for (String arg : args) {
-            if (!arg.startsWith("-X") && !arg.startsWith("-D")) {
+            if (!arg.startsWith("-X") && !arg.startsWith("-D") && !arg.startsWith("--add")) {
                 command.add(arg);
             }
         }
 
-        System.out.println("[Launcher] Iniciando: " + String.join(" ", command));
+        log("[Launch] Comando: " + String.join(" ", command));
+        logWriter.flush();
 
         ProcessBuilder pb = new ProcessBuilder(command);
-        pb.inheritIO();
-        Process process = pb.start();
+        pb.directory(appJarPath.getParent().toFile()); // CWD = pasta do JAR
+        pb.redirectErrorStream(true);
 
-        // Aguarda a aplicação encerrar e propaga o código de saída
+        // Redireciona stdout/stderr do processo filho para o arquivo de log
+        Path logFile = Path.of(logFilePath());
+        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile.toFile()));
+
+        Process process = pb.start();
+        log("[Launch] PID do processo filho: " + process.pid());
+        logWriter.flush();
+
         int exitCode = process.waitFor();
-        System.exit(exitCode);
+        log("[Launch] Processo encerrado com codigo: " + exitCode);
     }
 
     // -------------------------------------------------------------------------
-    // Utilitários
+    // Deteccao do executavel Java correto
+    // -------------------------------------------------------------------------
+
+    /**
+     * No ambiente jpackage, ProcessHandle.current().info().command() retorna o caminho
+     * do .exe nativo (MyFinance.exe), nao do java. Por isso priorizamos java.home.
+     */
+    private static String detectJavaExecutable() {
+        String javaHome = System.getProperty("java.home");
+        if (javaHome != null && !javaHome.isBlank()) {
+            // Prefere javaw.exe no Windows (sem janela de console extra)
+            String os = System.getProperty("os.name", "").toLowerCase();
+            if (os.contains("win")) {
+                Path javaw = Path.of(javaHome, "bin", "javaw.exe");
+                if (Files.exists(javaw)) {
+                    log("[Java] Usando javaw.exe do java.home.");
+                    return javaw.toString();
+                }
+                Path java = Path.of(javaHome, "bin", "java.exe");
+                if (Files.exists(java)) {
+                    log("[Java] Usando java.exe do java.home.");
+                    return java.toString();
+                }
+            } else {
+                Path java = Path.of(javaHome, "bin", "java");
+                if (Files.exists(java)) return java.toString();
+            }
+        }
+        // Fallback: ProcessHandle (funciona fora do jpackage)
+        String cmd = ProcessHandle.current().info().command().orElse("java");
+        if (cmd.endsWith(".exe") && !cmd.endsWith("java.exe") && !cmd.endsWith("javaw.exe")) {
+            log("[Java] ProcessHandle retornou launcher nativo (" + cmd + "), usando 'java' generico.");
+            return "java";
+        }
+        return cmd;
+    }
+
+    // -------------------------------------------------------------------------
+    // Deteccao do diretorio do launcher.jar
+    // -------------------------------------------------------------------------
+
+    private static Path detectLauncherDir() throws Exception {
+        URI location = LauncherApp.class
+                .getProtectionDomain()
+                .getCodeSource()
+                .getLocation()
+                .toURI();
+        Path jarPath = Path.of(location).toAbsolutePath();
+        log("[Path] launcher.jar localizado em: " + jarPath);
+        return Files.isDirectory(jarPath) ? jarPath : jarPath.getParent();
+    }
+
+    // -------------------------------------------------------------------------
+    // Logging para arquivo
+    // -------------------------------------------------------------------------
+
+    private static String logFilePath() {
+        String appData = System.getenv("APPDATA");
+        if (appData == null) appData = System.getProperty("user.home");
+        return appData + File.separator + "MyFinance" + File.separator + "launcher.log";
+    }
+
+    private static void initLog() {
+        try {
+            Path logPath = Path.of(logFilePath());
+            Files.createDirectories(logPath.getParent());
+            logWriter = new PrintWriter(new FileWriter(logPath.toFile(), true), true);
+        } catch (Exception e) {
+            logWriter = new PrintWriter(System.out, true);
+        }
+    }
+
+    private static void log(String msg) {
+        String line = "[" + LocalDateTime.now().format(TS) + "] " + msg;
+        System.out.println(line);
+        if (logWriter != null) {
+            logWriter.println(line);
+            logWriter.flush();
+        }
+    }
+
+    private static void showErrorDialog(String message) {
+        try {
+            Class<?> jOptionPane = Class.forName("javax.swing.JOptionPane");
+            jOptionPane.getMethod("showMessageDialog",
+                    Object.class, Object.class, String.class, int.class)
+                    .invoke(null, null, message, "MyFinance - Erro de Inicializacao", 0);
+        } catch (Exception ignored) {
+            // Se Swing nao estiver disponivel, o erro ja esta no log
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Utilitarios
     // -------------------------------------------------------------------------
 
     private static Properties loadProperties() throws IOException {
         Properties props = new Properties();
         try (InputStream is = LauncherApp.class.getResourceAsStream("/launcher.properties")) {
-            if (is != null) {
-                props.load(is);
-            }
+            if (is != null) props.load(is);
         }
         return props;
     }
 }
-
