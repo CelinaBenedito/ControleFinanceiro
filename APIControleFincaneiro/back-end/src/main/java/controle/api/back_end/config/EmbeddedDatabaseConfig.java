@@ -44,28 +44,53 @@ public class EmbeddedDatabaseConfig {
     }
 
     /**
-     * Mata processos mysqld residuais (de sessões anteriores encerradas abruptamente)
-     * e remove arquivos .pid obsoletos que bloqueiam o ibdata1.
-     * IMPORTANTE: so age se a porta NAO estiver respondendo ativamente —
-     * isso evita matar o mysqld de uma instancia que ainda esta rodando.
+     * Encerra todos os processos mysqld residuais e remove arquivos .pid obsoletos.
+     *
+     * NOTA: Esta aplicação usa um lock de instância única na porta 13308
+     * (BackEndApplication.acquireSingleInstanceLock). Portanto, quando este método
+     * é chamado durante a inicialização do Spring, somos SEMPRE a única instância.
+     * Qualquer mysqld rodando na porta {@code dbPort} é necessariamente órfão de uma
+     * sessão anterior que encerrou abruptamente — deve ser encerrado para liberar ibdata1.
      */
     private static void killLingeringMysqldProcesses(File dataDir, int dbPort) {
-        // Se a porta ja responde, ha um mysqld ativo — nao matar.
-        if (isPortResponding(dbPort)) {
-            System.out.println("[EmbeddedDB] Porta " + dbPort + " em uso por instancia ativa. Pulando limpeza.");
-            return;
+        boolean portActive = isPortResponding(dbPort);
+
+        if (portActive) {
+            System.out.println("[EmbeddedDB] mysqld orfao detectado na porta " + dbPort
+                    + " (sessao anterior nao encerrou corretamente). Encerrando...");
         }
 
+        // Encerra todos os processos mysqld (como somos a única instância, qualquer
+        // mysqld rodando é de uma sessão anterior que crashou)
         try {
-            ProcessHandle.allProcesses()
-                .filter(p -> p.info().command()
-                    .map(cmd -> cmd.toLowerCase().contains("mysqld"))
-                    .orElse(false))
-                .forEach(p -> {
-                    System.out.println("[EmbeddedDB] Encerrando mysqld residual: PID " + p.pid());
-                    p.destroyForcibly();
-                });
-            Thread.sleep(1500); // aguarda liberação dos locks de arquivo
+            java.util.List<ProcessHandle> mysqldProcs = ProcessHandle.allProcesses()
+                    .filter(p -> p.info().command()
+                            .map(cmd -> cmd.toLowerCase().contains("mysqld"))
+                            .orElse(false))
+                    .collect(java.util.stream.Collectors.toList());
+
+            long killed = mysqldProcs.size();
+            mysqldProcs.forEach(p -> {
+                System.out.println("[EmbeddedDB] Encerrando mysqld residual: PID " + p.pid());
+                p.destroyForcibly();
+            });
+
+            if (killed > 0 || portActive) {
+                System.out.println("[EmbeddedDB] Aguardando liberacao de recursos do banco...");
+                Thread.sleep(2000); // aguarda liberação inicial dos locks de arquivo
+
+                // Aguarda a porta ser liberada (até 8 segundos)
+                int waitMs = 0;
+                while (isPortResponding(dbPort) && waitMs < 8000) {
+                    Thread.sleep(500);
+                    waitMs += 500;
+                }
+                if (!isPortResponding(dbPort)) {
+                    System.out.println("[EmbeddedDB] Porta " + dbPort + " liberada. Prosseguindo...");
+                } else {
+                    System.out.println("[EmbeddedDB] Aviso: porta " + dbPort + " ainda ativa apos espera. Tentando mesmo assim.");
+                }
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
@@ -84,7 +109,7 @@ public class EmbeddedDatabaseConfig {
 
     private static boolean isPortResponding(int p) {
         try (java.net.Socket s = new java.net.Socket()) {
-            s.connect(new java.net.InetSocketAddress("127.0.0.1", p), 1000);
+            s.connect(new java.net.InetSocketAddress("127.0.0.1", p), 800);
             return true;
         } catch (Exception e) {
             return false;
@@ -156,13 +181,20 @@ public class EmbeddedDatabaseConfig {
         ds.setJdbcUrl("jdbc:mariadb://localhost:" + port + "/" + dbName
                 + "?useSSL=false&allowPublicKeyRetrieval=true"
                 + "&serverTimezone=America/Sao_Paulo"
-                + "&characterEncoding=UTF-8");
+                + "&characterEncoding=UTF-8"
+                + "&autoReconnect=true"
+                + "&connectTimeout=5000");
         ds.setUsername("root");
         ds.setPassword("");
         ds.setDriverClassName("org.mariadb.jdbc.Driver");
         ds.setMaximumPoolSize(10);
         ds.setMinimumIdle(2);
-        ds.setConnectionTimeout(30000);
+        ds.setConnectionTimeout(10000);          // falha rápido (10s em vez de 30s)
+        ds.setIdleTimeout(300000);               // 5 min
+        ds.setMaxLifetime(600000);               // 10 min (evita conexões fechadas pelo servidor)
+        ds.setKeepaliveTime(60000);              // ping a cada 1 min para detectar conexão morta
+        ds.setConnectionTestQuery("SELECT 1");   // query de validação simples
+        ds.setInitializationFailTimeout(-1);     // nao falha no startup se DB demora
         return ds;
     }
 }

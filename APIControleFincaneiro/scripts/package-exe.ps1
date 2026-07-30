@@ -28,7 +28,7 @@ Write-Host "=== MyFinance - Empacotamento .exe ===" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "[1/4] Compilando back-end..." -ForegroundColor Yellow
 Push-Location $BACKEND_DIR
-& mvn clean package -DskipTests -q
+& ".\mvnw.cmd" clean package -DskipTests -q
 if ($LASTEXITCODE -ne 0) { throw "Falha no build do back-end." }
 Pop-Location
 
@@ -38,7 +38,8 @@ Pop-Location
 Write-Host ""
 Write-Host "[2/4] Compilando launcher..." -ForegroundColor Yellow
 Push-Location $LAUNCHER_DIR
-& mvn clean package -DskipTests -q
+# Launcher nao tem mvnw proprio — usa o mvnw do back-end
+& "$BACKEND_DIR\mvnw.cmd" clean package -DskipTests -q -f pom.xml
 if ($LASTEXITCODE -ne 0) { throw "Falha no build do launcher." }
 Pop-Location
 
@@ -108,8 +109,7 @@ $jpArgs = @(
     "--win-shortcut-prompt",
     "--java-options", "--add-opens=java.base/java.lang=ALL-UNNAMED",
     "--java-options", "--add-opens=java.base/java.util=ALL-UNNAMED"
-) + $iconArgs
-
+)
 Write-Host "  Argumentos jpackage:"
 $jpArgs | ForEach-Object { Write-Host "    $_" }
 

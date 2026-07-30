@@ -15,6 +15,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.Base64;
@@ -83,15 +85,23 @@ public class DesktopApp extends Application {
             while (tentativas < maxTentativas) {
                 try {
                     Thread.sleep(1000);
+
+                    // Tenta primeiro apenas conectar TCP (rapido) antes de fazer HTTP completo
+                    try (Socket s = new Socket()) {
+                        s.connect(new InetSocketAddress("127.0.0.1", 8080), 500);
+                    }
+
+                    // Porta aberta — faz requisicao HTTP completa
                     HttpURLConnection conn = (HttpURLConnection) new URL(APP_URL).openConnection();
-                    conn.setConnectTimeout(1500);
-                    conn.setReadTimeout(1500);
+                    conn.setConnectTimeout(2000);
+                    conn.setReadTimeout(3000);
                     conn.setRequestMethod("GET");
+                    conn.setInstanceFollowRedirects(false);
                     int status = conn.getResponseCode();
                     conn.disconnect();
 
-                    if (status == 200 || status == 302) {
-                        System.out.println("[DesktopApp] Spring Boot pronto. Navegando para " + APP_URL);
+                    if (status >= 200 && status < 500) {
+                        System.out.println("[DesktopApp] Spring Boot pronto (HTTP " + status + "). Navegando para " + APP_URL);
                         Platform.runLater(() -> engine.load(APP_URL));
                         return;
                     }
@@ -102,29 +112,46 @@ public class DesktopApp extends Application {
                 // Atualiza mensagem de progresso a cada 5s
                 if (tentativas % 5 == 0) {
                     final int seg = tentativas;
+                    // Detecta se o Spring Boot falhou (porta 8080 nunca abriu mas processo JVM ainda existe)
+                    boolean portaDB = isPortResponding8080();
+                    String msg = portaDB
+                        ? "Aguardando servidor... (" + seg + "s)"
+                        : "Inicializando banco de dados... (" + seg + "s)";
                     Platform.runLater(() ->
                         engine.executeScript(
                             "var el = document.getElementById('mf-status');" +
-                            "if(el) el.textContent = 'Iniciando... (" + seg + "s)';"
+                            "if(el) el.textContent = '" + msg + "';"
                         )
                     );
                 }
             }
 
-            // Fallback: tenta carregar do classpath se HTTP nao responder
-            System.err.println("[DesktopApp] Timeout aguardando Spring Boot. Tentando fallback do classpath.");
-            Platform.runLater(() -> {
-                try {
-                    String fallback = getClass().getResource("/static/index.html").toExternalForm();
-                    engine.load(fallback);
-                } catch (Exception e) {
-                    engine.loadContent("<h2 style='font-family:sans-serif;color:red'>Falha ao iniciar o servidor. Tente reiniciar o aplicativo.</h2>", "text/html");
-                }
-            });
+            // Timeout — mostra mensagem de erro clara ao usuario
+            System.err.println("[DesktopApp] Timeout aguardando Spring Boot apos " + maxTentativas + "s.");
+            Platform.runLater(() ->
+                engine.loadContent(buildErrorPage(
+                    "Falha ao iniciar o servidor",
+                    "O servidor não respondeu em " + maxTentativas + " segundos.<br>" +
+                    "Possíveis causas:<br>" +
+                    "• Antivírus bloqueando o processo mysqld<br>" +
+                    "• Outra instância do banco de dados ainda em execução<br>" +
+                    "• Memória ou recursos insuficientes<br><br>" +
+                    "Tente fechar e abrir o aplicativo novamente."
+                ), "text/html")
+            );
         });
         poller.setDaemon(true);
         poller.setName("spring-boot-poller");
         poller.start();
+    }
+
+    private static boolean isPortResponding8080() {
+        try (Socket s = new Socket()) {
+            s.connect(new InetSocketAddress("127.0.0.1", 8080), 300);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -183,8 +210,29 @@ public class DesktopApp extends Application {
                "</style></head>" +
                "<body><div class='card'>" +
                "<h1>MyFinance</h1>" +
-               "<p id='mf-status'>Iniciando, aguarde...</p>" +
+               "<p id='mf-status'>Inicializando banco de dados...</p>" +
                "<div class='spinner'></div>" +
+               "</div></body></html>";
+    }
+
+    private String buildErrorPage(String titulo, String mensagem) {
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'>" +
+               "<style>" +
+               "* { margin:0; padding:0; box-sizing:border-box; }" +
+               "body { display:flex; align-items:center; justify-content:center;" +
+               "       height:100vh; background:#f0f4f8; font-family:sans-serif; }" +
+               ".card { text-align:center; background:#fff; border-radius:16px;" +
+               "        padding:48px 56px; box-shadow:0 8px 32px rgba(0,0,0,.12); max-width:480px; }" +
+               "h1 { font-size:1.4rem; color:#c0392b; margin-bottom:16px; }" +
+               "p  { font-size:0.9rem; color:#555; line-height:1.6; text-align:left; }" +
+               "button { margin-top:24px; padding:10px 24px; background:#367373; color:#fff;" +
+               "         border:none; border-radius:8px; font-size:1rem; cursor:pointer; }" +
+               "button:hover { background:#2a5858; }" +
+               "</style></head>" +
+               "<body><div class='card'>" +
+               "<h1>⚠ " + titulo + "</h1>" +
+               "<p>" + mensagem + "</p>" +
+               "<button onclick='window.location.reload()'>Tentar novamente</button>" +
                "</div></body></html>";
     }
 

@@ -1,6 +1,8 @@
 package controle.api.launcher;
 
 import org.update4j.Configuration;
+import org.update4j.FileMetadata;
+import org.update4j.UpdateHandler;
 
 import java.io.*;
 import java.net.URI;
@@ -97,7 +99,12 @@ public class LauncherApp {
                 return;
             }
 
-            log("[Update] Nova versao encontrada! Baixando...");
+            config.update(new UpdateHandler() {
+                @Override
+                public void doneDownloadFile(FileMetadata file, Path path) {
+                    log("[Update] Baixado: " + file.getPath().getFileName());
+                }
+            });
             config.update();
             log("[Update] Atualizacao concluida.");
 
