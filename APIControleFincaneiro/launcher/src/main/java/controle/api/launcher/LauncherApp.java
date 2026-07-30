@@ -16,8 +16,9 @@ import java.util.*;
  * Fluxo:
  *  1. Abre log em %APPDATA%\MyFinance\launcher.log (visivel mesmo sem console).
  *  2. Detecta o diretorio do proprio launcher.jar para localizar back-end.jar.
- *  3. Verifica atualizacoes via Update4j (se configurado).
- *  4. Inicia back-end.jar como processo separado usando o java.home correto.
+ *  3. Aplica atualizacao pendente (%APPDATA%\MyFinance\pending-update.jar), se existir.
+ *  4. Verifica atualizacoes via Update4j (se configurado).
+ *  5. Inicia back-end.jar como processo separado usando o java.home correto.
  */
 public class LauncherApp {
 
@@ -42,10 +43,13 @@ public class LauncherApp {
             Path appJarPath   = launcherDir.resolve(appDirName).resolve(appJarName).toAbsolutePath();
             log("appJarPath : " + appJarPath);
 
-            // Garante que o diretorio de destino existe (util para Update4j criar o arquivo)
+            // Garante que o diretorio de destino existe
             Files.createDirectories(appJarPath.getParent());
 
-            // Verifica e aplica atualizacoes (se houver URL configurada)
+            // Aplica atualizacao pendente baixada pelo back-end (se existir)
+            applyPendingUpdate(appJarPath);
+
+            // Verifica e aplica atualizacoes via Update4j (se configurado)
             String configUrl = props.getProperty("update4j.config.url", "");
             tryUpdate(configUrl, appJarPath);
 
@@ -56,7 +60,6 @@ public class LauncherApp {
             log("ERRO FATAL: " + e.getMessage());
             e.printStackTrace(logWriter);
             logWriter.flush();
-            // Mostra um dialogo de erro simples via javax.swing (disponivel em qualquer JDK)
             showErrorDialog("Erro ao iniciar o MyFinance:\n" + e.getMessage()
                     + "\n\nConsulte o log em: " + logFilePath());
         } finally {
@@ -65,8 +68,36 @@ public class LauncherApp {
     }
 
     // -------------------------------------------------------------------------
-    // Update4j
+    // Atualizacao pendente (baixada pelo back-end durante execucao)
     // -------------------------------------------------------------------------
+
+    /**
+     * O back-end baixa o novo JAR em %APPDATA%\MyFinance\pending-update.jar
+     * e encerra a aplicacao. Na proxima inicializacao, o launcher copia o
+     * arquivo pendente sobre o back-end.jar antes de inicia-lo.
+     * Isso evita o problema de lock de arquivo no Windows (o JAR nao esta
+     * sendo executado quando o launcher tenta substitui-lo).
+     */
+    private static void applyPendingUpdate(Path appJarPath) {
+        String appData = System.getenv("APPDATA");
+        if (appData == null) appData = System.getProperty("user.home");
+        Path pendingJar = Path.of(appData, "MyFinance", "pending-update.jar");
+
+        if (!Files.exists(pendingJar)) return;
+
+        log("[Update] Atualizacao pendente encontrada: " + pendingJar);
+        try {
+            // Pequena espera para garantir que o processo anterior liberou o JAR
+            Thread.sleep(1500);
+            Files.copy(pendingJar, appJarPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.delete(pendingJar);
+            log("[Update] Atualizacao aplicada com sucesso. Nova versao iniciando.");
+        } catch (Exception e) {
+            log("[Update] Falha ao aplicar atualizacao pendente: " + e.getMessage()
+                    + " — iniciando versao anterior.");
+            try { Files.deleteIfExists(pendingJar); } catch (Exception ignored) {}
+        }
+    }
 
     private static void tryUpdate(String configUrl, Path appJarPath) {
         if (configUrl == null || configUrl.isBlank() || configUrl.contains("SEU_USUARIO")) {
@@ -126,6 +157,9 @@ public class LauncherApp {
         // Flags necessarias para JavaFX funcionar a partir de um fat-JAR
         command.add("--add-opens=java.base/java.lang=ALL-UNNAMED");
         command.add("--add-opens=java.base/java.util=ALL-UNNAMED");
+
+        // Informa ao back-end onde ele proprio esta no disco (usado pelo UpdateService)
+        command.add("-Dmyfinance.jar.path=" + appJarPath.toString());
 
         command.add("-jar");
         command.add(appJarPath.toString());
