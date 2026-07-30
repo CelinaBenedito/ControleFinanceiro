@@ -37,9 +37,10 @@ Pop-Location
 # ----------------------------------------------------------
 Write-Host ""
 Write-Host "[2/4] Compilando launcher..." -ForegroundColor Yellow
-Push-Location $LAUNCHER_DIR
-# Launcher nao tem mvnw proprio — usa o mvnw do back-end
-& "$BACKEND_DIR\mvnw.cmd" clean package -DskipTests -q -f pom.xml
+# Executa a partir do BACKEND_DIR onde o .mvn/wrapper existe.
+# Passa o pom.xml do launcher com caminho absoluto via -f.
+Push-Location $BACKEND_DIR
+& ".\mvnw.cmd" clean package -DskipTests -q -f "$LAUNCHER_DIR\pom.xml"
 if ($LASTEXITCODE -ne 0) { throw "Falha no build do launcher." }
 Pop-Location
 
