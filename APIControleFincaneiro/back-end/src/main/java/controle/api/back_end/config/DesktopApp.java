@@ -246,9 +246,32 @@ public class DesktopApp extends Application {
 
     public static class DesktopBridge {
         private final Stage stage;
+        private static final java.nio.file.Path PERFIS_FILE = java.nio.file.Path.of(
+                System.getProperty("user.home"), ".myfinance", "perfis.json");
 
         public DesktopBridge(Stage stage) {
             this.stage = stage;
+        }
+
+        /** Carrega a lista de perfis salvos em disco. Retorna "[]" se não existir. */
+        public String loadPerfis() {
+            try {
+                if (!Files.exists(PERFIS_FILE)) return "[]";
+                return Files.readString(PERFIS_FILE);
+            } catch (Exception e) {
+                System.out.println("[DesktopBridge] Erro ao carregar perfis: " + e.getMessage());
+                return "[]";
+            }
+        }
+
+        /** Salva a lista de perfis em disco (JSON). */
+        public void savePerfis(String json) {
+            try {
+                Files.createDirectories(PERFIS_FILE.getParent());
+                Files.writeString(PERFIS_FILE, json == null ? "[]" : json);
+            } catch (Exception e) {
+                System.out.println("[DesktopBridge] Erro ao salvar perfis: " + e.getMessage());
+            }
         }
 
         public boolean saveBase64File(String fileName, String base64Content) {

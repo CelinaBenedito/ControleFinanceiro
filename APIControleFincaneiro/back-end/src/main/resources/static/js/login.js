@@ -86,13 +86,18 @@ function login(email, senha){
             response.json().then(usuario => {
                 const perfis = JSON.parse(localStorage.getItem("perfis") || "[]");
                 const idx = perfis.findIndex(p => p.id === usuario.id);
-                const perfilAtualizado = { id: usuario.id, nome: usuario.nome, imagem: usuario.imagem || null };
+                const perfilAtualizado = { id: usuario.id, nome: usuario.nome, sobrenome: usuario.sobrenome, imagem: usuario.imagem || null };
                 if (idx === -1) {
                     perfis.push(perfilAtualizado);
                 } else {
                     perfis[idx] = Object.assign({}, perfis[idx], perfilAtualizado);
                 }
-                localStorage.setItem("perfis", JSON.stringify(perfis));
+                const perfisJson = JSON.stringify(perfis);
+                localStorage.setItem("perfis", perfisJson);
+                // Persiste em disco no app desktop (bridge injetada pelo Java)
+                if (window.desktopBridge && window.desktopBridge.savePerfis) {
+                    window.desktopBridge.savePerfis(perfisJson);
+                }
                 localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
 
                 // Redireciona somente após o localStorage estar preenchido

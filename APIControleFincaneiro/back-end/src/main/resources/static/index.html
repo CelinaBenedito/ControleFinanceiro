@@ -52,26 +52,49 @@
 <script>
     (async function () {
         const API = "http://localhost:8080";
-        const perfis = JSON.parse(localStorage.getItem("perfis") || "[]");
         const lista = document.getElementById("listaUsuarios");
         const btnAdd = lista.querySelector(".addUsuario");
 
-        // Busca dados atualizados de cada usuário para ter a imagem mais recente
-        const perfisAtualizados = await Promise.all(
-            perfis.map(async function (perfil) {
+        // Aguarda o desktopBridge ser injetado pelo Java (ocorre após Worker.State.SUCCEEDED).
+        // No navegador comum, o bridge não existe e o timeout resolve sem ele.
+        await new Promise(function(resolve) {
+            if (window.desktopBridge) { resolve(); return; }
+            var t = 0;
+            var iv = setInterval(function() {
+                t += 50;
+                if (window.desktopBridge || t >= 1500) { clearInterval(iv); resolve(); }
+            }, 50);
+        });
+
+        // Carrega perfis: do arquivo em disco (app desktop) ou do localStorage (navegador)
+        var perfis = [];
+        try {
+            var raw = (window.desktopBridge && window.desktopBridge.loadPerfis)
+                ? window.desktopBridge.loadPerfis()
+                : localStorage.getItem("perfis");
+            perfis = JSON.parse(raw || "[]");
+        } catch (e) { perfis = []; }
+
+        // Atualiza dados de cada perfil salvo (imagem, nome, etc.) via API
+        var perfisAtualizados = await Promise.all(
+            perfis.map(async function(perfil) {
                 try {
-                    const res = await fetch(API + "/usuarios/" + perfil.id);
+                    var res = await fetch(API + "/usuarios/" + perfil.id);
                     if (res.ok) {
-                        const usuario = await res.json();
-                        return Object.assign({}, perfil, usuario);
+                        var u = await res.json();
+                        return Object.assign({}, perfil, u);
                     }
                 } catch (e) {}
                 return perfil;
             })
         );
-        if (perfisAtualizados.length > 0) {
-            localStorage.setItem("perfis", JSON.stringify(perfisAtualizados));
+
+        // Persiste lista atualizada
+        var perfisJson = JSON.stringify(perfisAtualizados);
+        if (window.desktopBridge && window.desktopBridge.savePerfis) {
+            window.desktopBridge.savePerfis(perfisJson);
         }
+        localStorage.setItem("perfis", perfisJson);
 
         function resolverImg(perfil) {
             if (window.MainAPI && window.MainAPI.resolverUrlImagem) {
@@ -82,35 +105,35 @@
             return API + (perfil.imagem.startsWith("/") ? perfil.imagem : "/" + perfil.imagem);
         }
 
-        perfisAtualizados.forEach(function (perfil, index) {
-            const card = document.createElement("div");
+        if (perfisAtualizados.length === 0) {
+            var aviso = document.createElement("p");
+            aviso.textContent = "Nenhum perfil salvo. Faça login ou cadastre-se.";
+            aviso.style.cssText = "color: var(--text-muted, #888); font-size: 0.9rem; margin-bottom: 1rem;";
+            lista.insertBefore(aviso, btnAdd);
+            return;
+        }
+
+        perfisAtualizados.forEach(function(perfil) {
+            var card = document.createElement("div");
             card.className = "usuario-card";
-            card.dataset.index = index;
 
-            const imgUrl = resolverImg(perfil);
-            const imgFinal = imgUrl && /^data:image\//i.test(imgUrl)
-                ? imgUrl
-                : (imgUrl ? imgUrl + (imgUrl.includes("?") ? "&" : "?") + "v=" + Date.now() : null);
+            var imgUrl = resolverImg(perfil);
+            var imgFinal = imgUrl
+                ? imgUrl + (imgUrl.includes("?") ? "&" : "?") + "v=" + Date.now()
+                : null;
 
-            const avatarHtml = imgFinal
+            var avatarHtml = imgFinal
                 ? '<img src="' + imgFinal + '" alt="' + perfil.nome + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'\'"><i class="bx bx-user" style="display:none;"></i>'
                 : '<i class="bx bx-user"></i>';
 
             card.innerHTML = '<div class="usuario">' + avatarHtml + '</div><span>' + perfil.nome + '</span>';
             card.style.cursor = "pointer";
-            card.addEventListener("click", function () {
+            card.addEventListener("click", function() {
                 localStorage.setItem("usuarioLogado", JSON.stringify(perfil));
                 window.location.href = "dashboard.html";
             });
             lista.insertBefore(card, btnAdd);
         });
-
-        if (perfisAtualizados.length === 0) {
-            const aviso = document.createElement("p");
-            aviso.textContent = "Nenhum perfil salvo. Fa\u00e7a login ou cadastre-se.";
-            aviso.style.cssText = "color: var(--text-muted, #888); font-size: 0.9rem; margin-bottom: 1rem;";
-            lista.insertBefore(aviso, btnAdd);
-        }
     })();
 </script>
 </body>
