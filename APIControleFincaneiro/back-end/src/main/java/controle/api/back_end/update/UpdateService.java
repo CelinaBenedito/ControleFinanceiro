@@ -77,15 +77,25 @@ public class UpdateService {
     // -------------------------------------------------------------------------
 
     /**
-     * Baixa o novo JAR, gera um script de reinicialização e encerra a aplicação.
-     * O script aguarda o processo morrer, substitui o JAR e reinicia.
+     * Estratégia de atualização sem janela CMD e sem conflito de lock de arquivo:
+     *
+     * 1. Baixa o novo JAR em %APPDATA%\MyFinance\pending-update.jar
+     *    (local gravável, fora da pasta de instalação)
+     * 2. Lança MyFinance.exe como novo processo (o launcher verifica e aplica
+     *    o pending-update.jar ANTES de iniciar o back-end, portanto sem lock)
+     * 3. Encerra esta instância normalmente
+     *
+     * O launcher (LauncherApp) é responsável por mover pending-update.jar → back-end.jar.
      */
     public void applyUpdate(String downloadUrl) throws Exception {
-        Path currentJar  = detectCurrentJar();
-        Path parentDir   = currentJar.getParent() != null ? currentJar.getParent() : Path.of(".");
-        Path newJar      = parentDir.resolve("back-end-new.jar");
+        // Diretório de dados gravável em qualquer ambiente
+        String appData = System.getenv("APPDATA");
+        if (appData == null) appData = System.getProperty("user.home");
+        Path myfinanceDir = Path.of(appData, "MyFinance");
+        Files.createDirectories(myfinanceDir);
+        Path pendingJar = myfinanceDir.resolve("pending-update.jar");
 
-        System.out.println("[Update] Baixando nova versão para: " + newJar);
+        System.out.println("[Update] Baixando nova versao para: " + pendingJar);
 
         HttpClient client = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.ALWAYS)
@@ -96,73 +106,54 @@ public class UpdateService {
                 .header("User-Agent", "MyFinance-AutoUpdate/1.0")
                 .build();
 
-        HttpResponse<Path> response = client.send(request, HttpResponse.BodyHandlers.ofFile(newJar));
+        HttpResponse<Path> response = client.send(request, HttpResponse.BodyHandlers.ofFile(pendingJar));
 
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            Files.deleteIfExists(newJar);
+            Files.deleteIfExists(pendingJar);
             throw new RuntimeException("Falha no download: HTTP " + response.statusCode());
         }
 
-        System.out.println("[Update] Download concluído. Gerando script de reinicialização.");
+        System.out.println("[Update] Download concluido. Reiniciando via launcher...");
 
-        // Detecta o executável Java desta JVM (funciona tanto com JDK avulso quanto jpackage)
-        String javaExe = ProcessHandle.current()
-                .info()
-                .command()
-                .orElse("javaw");
+        // Lança MyFinance.exe (o launcher aplica o pending-update.jar antes de iniciar o back-end)
+        Path exePath = detectMyFinanceExe();
+        if (exePath != null) {
+            System.out.println("[Update] Iniciando: " + exePath);
+            new ProcessBuilder(exePath.toString())
+                    .directory(exePath.getParent().toFile())
+                    .start();
+        } else {
+            System.out.println("[Update] MyFinance.exe nao encontrado — usuario devera reabrir manualmente.");
+        }
 
-        Path restartScript = parentDir.resolve("myfinance-restart.bat");
-        String bat = "@echo off\r\n"
-                + "echo [MyFinance Updater] Aguardando o fechamento da aplicacao...\r\n"
-                + "timeout /t 6 /nobreak > nul\r\n"
-                + "if exist \"" + currentJar.toAbsolutePath() + ".bak\" del /f \"" + currentJar.toAbsolutePath() + ".bak\"\r\n"
-                + "ren \"" + currentJar.toAbsolutePath() + "\" \"" + currentJar.getFileName() + ".bak\"\r\n"
-                + "ren \"" + newJar.toAbsolutePath() + "\" \"" + currentJar.getFileName() + "\"\r\n"
-                + "echo [MyFinance Updater] Reiniciando...\r\n"
-                + "start \"\" \"" + javaExe + "\" -jar \"" + currentJar.toAbsolutePath() + "\"\r\n"
-                + "del \"%~f0\"\r\n";  // auto-remove script
-
-        Files.writeString(restartScript, bat);
-
-        // Executa o script minimizado em segundo plano
-        new ProcessBuilder("cmd.exe", "/c", "start", "/min", "MyFinance Updater", restartScript.toAbsolutePath().toString())
-                .start();
-
-        System.out.println("[Update] Script de reinicialização iniciado. Encerrando aplicação.");
-
-        // Encerra o JavaFX e a JVM após um breve delay
+        // Encerra esta instância para liberar o lock do JAR
+        System.out.println("[Update] Encerrando instancia atual.");
         Platform.exit();
         new Thread(() -> {
-            try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
+            try { Thread.sleep(800); } catch (InterruptedException ignored) {}
             System.exit(0);
         }).start();
+    }
+
+    /**
+     * Em jpackage, java.home aponta para o runtime bundlado dentro da instalação.
+     * Ex: C:\Users\User\AppData\Local\MyFinance\runtime
+     * O MyFinance.exe está no diretório pai:
+     *    C:\Users\User\AppData\Local\MyFinance\MyFinance.exe
+     */
+    private Path detectMyFinanceExe() {
+        String javaHome = System.getProperty("java.home");
+        if (javaHome != null && !javaHome.isBlank()) {
+            Path exePath = Path.of(javaHome).getParent().resolve("MyFinance.exe");
+            if (Files.exists(exePath)) return exePath;
+        }
+        return null;
     }
 
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
-    /**
-     * Tenta detectar o JAR que está sendo executado atualmente.
-     * Fallback: ~/.myfinance/back-end.jar
-     */
-    private Path detectCurrentJar() {
-        try {
-            URI location = UpdateService.class
-                    .getProtectionDomain()
-                    .getCodeSource()
-                    .getLocation()
-                    .toURI();
-            Path path = Path.of(location);
-            if (path.toString().endsWith(".jar")) {
-                return path.toAbsolutePath();
-            }
-        } catch (Exception ignored) {}
-
-        // Fallback para ambiente de desenvolvimento / instalação jpackage
-        Path home = Path.of(System.getProperty("user.home"));
-        return home.resolve(".myfinance").resolve("back-end.jar");
-    }
 
     /** Retorna true se {@code latest} é mais recente que {@code current}. */
     private boolean isNewerVersion(String latest, String current) {
