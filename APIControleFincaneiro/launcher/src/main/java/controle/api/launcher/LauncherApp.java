@@ -1,8 +1,9 @@
 package controle.api.launcher;
 
 import org.update4j.Configuration;
-import org.update4j.UpdateHandler;
-import org.update4j.handler.DefaultUpdateHandler;
+import org.update4j.service.UpdateHandler;
+import org.update4j.service.DefaultUpdateHandler;
+
 
 import java.io.*;
 import java.net.URI;
