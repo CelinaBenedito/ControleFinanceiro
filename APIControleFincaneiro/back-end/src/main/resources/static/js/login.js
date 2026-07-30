@@ -90,16 +90,19 @@ function login(email, senha){
                 if (idx === -1) {
                     perfis.push(perfilAtualizado);
                 } else {
-                    // Atualiza dados existentes (ex.: nova imagem)
                     perfis[idx] = Object.assign({}, perfis[idx], perfilAtualizado);
                 }
                 localStorage.setItem("perfis", JSON.stringify(perfis));
                 localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
+
+                // Redireciona somente após o localStorage estar preenchido
+                alerta(`Logado com sucesso!`);
+                setTimeout(() => {
+                    window.location.href = "dashboard.html";
+                }, 1500);
+            }).catch(() => {
+                alerta(`Erro ao processar resposta do servidor. <button onclick='div_alerta.style.display="none"'>OK</button>`);
             });
-            alerta(`Logado com sucesso!`);
-            setTimeout(() => {
-                window.location.href = "dashboard.html";
-            }, 1500);
         } else {
             alerta(`Email ou senha incorretos. <button onclick='div_alerta.style.display="none"'>OK</button>`);
         }

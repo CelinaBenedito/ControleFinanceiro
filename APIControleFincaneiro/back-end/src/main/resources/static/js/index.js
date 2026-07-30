@@ -2,6 +2,18 @@
 const API_BASE = 'http://localhost:8080';
 const CURRENCY = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
+// Guard: redireciona para seleção de perfil se não houver usuário logado
+(function () {
+    try {
+        const u = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+        if (!u || !u.id) {
+            window.location.href = 'index.html';
+        }
+    } catch (_) {
+        window.location.href = 'index.html';
+    }
+})();
+
 const semDados = `
   <div class="aviso">
     <i class='bx bx-search-alt'></i>
