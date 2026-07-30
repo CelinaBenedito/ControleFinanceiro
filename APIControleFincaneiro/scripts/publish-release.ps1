@@ -26,11 +26,15 @@ $TAG         = "v$Version"
 
 Write-Host "=== MyFinance - Publicando Release $TAG ===" -ForegroundColor Cyan
 
-# 1. Atualiza version.properties
+# 1. Atualiza app.version em application.properties
 Write-Host ""
-Write-Host "[1/5] Atualizando version.properties para $Version..." -ForegroundColor Yellow
-$versionFile = Join-Path $BACKEND_DIR "src\main\resources\version.properties"
-Set-Content -Path $versionFile -Value "app.version=$Version" -Encoding UTF8
+Write-Host "[1/5] Atualizando app.version para $Version em application.properties..." -ForegroundColor Yellow
+$appPropsPath = Join-Path $BACKEND_DIR "src\main\resources\application.properties"
+$appPropsContent = Get-Content $appPropsPath
+$appPropsContent = $appPropsContent | ForEach-Object {
+    if ($_ -match "^app\.version=") { "app.version=$Version" } else { $_ }
+}
+Set-Content -Path $appPropsPath -Value $appPropsContent -Encoding UTF8
 
 # 2. Build do back-end
 Write-Host ""
@@ -115,7 +119,7 @@ Push-Location $ROOT
 $RELEASE_JAR = Join-Path $BACKEND_DIR "target\back-end.jar"
 Copy-Item $JAR_PATH $RELEASE_JAR -Force
 
-& git add "update4j-config.xml" "back-end/src/main/resources/version.properties"
+& git add "update4j-config.xml" "back-end/src/main/resources/application.properties"
 & git commit -m "chore: release $TAG - atualiza version.properties e update4j-config.xml"
 & git push origin HEAD
 
