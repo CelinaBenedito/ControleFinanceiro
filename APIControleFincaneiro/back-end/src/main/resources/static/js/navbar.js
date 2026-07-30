@@ -86,8 +86,8 @@ function sidebarFunction() {
             <p style="
                 font-size:0.9rem; color:var(--cor-texto-secundario);
                 text-align:center; margin:0; line-height:1.55;">
-                Isso irá retirar sua conta deste dispositivo.<br>
-                Para acessar novamente, você deverá fazer login.
+                Você será desconectado desta sessão.<br>
+                Seu perfil continuará salvo neste dispositivo.
             </p>
             <div style="display:flex; gap:12px; width:100%; margin-top:8px;">
                 <button id="uwLogoutCancelar" style="
@@ -135,12 +135,7 @@ function sidebarFunction() {
     });
 
     btnConf.addEventListener('click', function () {
-        const user = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-        if (user && user.id) {
-            let perfis = JSON.parse(localStorage.getItem('perfis') || '[]');
-            perfis = perfis.filter(function (p) { return p.id !== user.id; });
-            localStorage.setItem('perfis', JSON.stringify(perfis));
-        }
+        // Encerra apenas a sessão atual — o perfil permanece salvo para seleção futura
         localStorage.removeItem('usuarioLogado');
         window.location.href = 'index.html';
     });
