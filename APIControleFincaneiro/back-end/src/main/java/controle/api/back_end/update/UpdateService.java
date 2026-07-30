@@ -122,17 +122,57 @@ public class UpdateService {
         System.out.println("[Update] Download concluido (" + (tamanho / 1048576) + " MB). Agendando reinicio...");
 
         // Agenda o reinicio via VBScript (silencioso, sem janela CMD, processo independente).
-        // Aguarda 3s para garantir que o processo atual encerrou e liberou o lock do JAR.
+        // O VBScript realiza a cópia do pending-update.jar → back-end.jar com elevation automática
+        // via PowerShell, evitando AccessDeniedException em instalações dentro de C:\Program Files\.
         Path exePath = detectMyFinanceExe();
         if (exePath != null) {
-            Path vbsPath = myfinanceDir.resolve("restart.vbs");            String exe = exePath.toString();
-            // VBS: Sleep 3s, Run exe entre aspas duplas, auto-deleta o script
+            Path vbsPath = myfinanceDir.resolve("restart.vbs");
+            String exe = exePath.toString();
+            // Determina o destino do JAR a partir da propriedade injetada pelo launcher
+            String jarDest = System.getProperty("myfinance.jar.path");
+            if (jarDest == null || jarDest.isBlank()) {
+                // Fallback: infere a partir do caminho do exe  (<install>/MyFinance.exe → <install>/app/app/back-end.jar)
+                jarDest = exePath.getParent().resolve("app").resolve("app").resolve("back-end.jar").toString();
+            }
+            String src  = pendingJar.toString().replace("'", "''");
+            String dst  = jarDest.replace("'", "''");
+            String exeQ = exe.replace("\"", "\\\"");
+
+            // Estratégia:
+            // 1. Tenta copiar diretamente (funciona se o usuário tem permissão).
+            // 2. Se falhar, usa PowerShell com "Run As" para elevar e copiar.
+            // 3. Após cópia bem-sucedida, apaga o pending-update.jar para que o
+            //    launcher não tente copiá-lo novamente (e falhe com AccessDenied).
+            // 4. Reinicia MyFinance.exe.
             String vbs = "WScript.Sleep 3000\r\n"
-                    + "CreateObject(\"WScript.Shell\").Run \"\"\"" + exe + "\"\"\", 1, False\r\n"
-                    + "CreateObject(\"Scripting.FileSystemObject\").DeleteFile WScript.ScriptFullName\r\n";
+                    + "Dim fso, src, dst\r\n"
+                    + "src = \"" + src.replace("\"", "\"\"") + "\"\r\n"
+                    + "dst = \"" + dst.replace("\"", "\"\"") + "\"\r\n"
+                    + "Set fso = CreateObject(\"Scripting.FileSystemObject\")\r\n"
+                    + "If fso.FileExists(src) Then\r\n"
+                    + "    On Error Resume Next\r\n"
+                    + "    fso.CopyFile src, dst, True\r\n"
+                    + "    Dim copyErr : copyErr = Err.Number\r\n"
+                    + "    On Error GoTo 0\r\n"
+                    + "    If copyErr <> 0 Then\r\n"
+                    + "        ' Copia falhou (sem permissao) — eleva via PowerShell\r\n"
+                    + "        Dim psCmd\r\n"
+                    + "        psCmd = \"Copy-Item -LiteralPath '" + src + "' -Destination '" + dst + "' -Force; Remove-Item -LiteralPath '" + src + "' -Force\"\r\n"
+                    + "        CreateObject(\"Shell.Application\").ShellExecute \"powershell.exe\", \"-NonInteractive -NoProfile -Command \" & Chr(34) & psCmd & Chr(34), \"\", \"runas\", 0\r\n"
+                    + "        WScript.Sleep 10000\r\n"
+                    + "    Else\r\n"
+                    + "        On Error Resume Next\r\n"
+                    + "        fso.DeleteFile src, True\r\n"
+                    + "        On Error GoTo 0\r\n"
+                    + "    End If\r\n"
+                    + "End If\r\n"
+                    + "CreateObject(\"WScript.Shell\").Run \"\"\"" + exeQ + "\"\"\", 1, False\r\n"
+                    + "On Error Resume Next\r\n"
+                    + "fso.DeleteFile WScript.ScriptFullName, True\r\n";
             Files.writeString(vbsPath, vbs, java.nio.charset.StandardCharsets.UTF_8);
             new ProcessBuilder("wscript.exe", "/nologo", vbsPath.toString()).start();
             System.out.println("[Update] Reinicio agendado via wscript para: " + exe);
+            System.out.println("[Update] Copia pendente: " + pendingJar + " -> " + jarDest);
         } else {
             System.out.println("[Update] MyFinance.exe nao localizado — usuario devera reabrir manualmente.");
         }
