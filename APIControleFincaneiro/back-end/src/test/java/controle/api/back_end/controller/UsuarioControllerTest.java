@@ -18,7 +18,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.data.domain.PageImpl;
+
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,18 +64,18 @@ class UsuarioControllerTest {
     @Test
     @DisplayName("GET /usuarios: retorna 200 com lista quando há usuários")
     void getUsuarios_retornaLista() throws Exception {
-        when(usuarioService.getUsuarios()).thenReturn(List.of(usuario));
+        when(usuarioService.getUsuarios(any())).thenReturn(new PageImpl<>(List.of(usuario)));
 
         mockMvc.perform(get("/usuarios"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].nome", is("Carlos")));
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].nome", is("Carlos")));
     }
 
     @Test
     @DisplayName("GET /usuarios: retorna 204 quando lista vazia")
     void getUsuarios_retorna204QuandoVazio() throws Exception {
-        when(usuarioService.getUsuarios()).thenReturn(List.of());
+        when(usuarioService.getUsuarios(any())).thenReturn(new PageImpl<>(Collections.emptyList()));
 
         mockMvc.perform(get("/usuarios"))
                 .andExpect(status().isNoContent());

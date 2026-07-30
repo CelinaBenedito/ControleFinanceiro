@@ -22,7 +22,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -76,17 +80,19 @@ class ConfiguracoesControllerTest {
     @Test
     @DisplayName("GET /configuracoes: retorna 200 com lista quando há configurações")
     void getConfiguracoes_retornaLista() throws Exception {
-        when(configuracoesService.getConfiguracoes()).thenReturn(List.of(configuracoes));
+        when(configuracoesService.getConfiguracoes(any()))
+                .thenReturn(new PageImpl<>(List.of(configuracoes)));
 
         mockMvc.perform(get("/configuracoes"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)));
+                .andExpect(jsonPath("$.content", hasSize(1)));
     }
 
     @Test
     @DisplayName("GET /configuracoes: retorna 204 quando lista vazia")
     void getConfiguracoes_retorna204QuandoVazio() throws Exception {
-        when(configuracoesService.getConfiguracoes()).thenReturn(List.of());
+        when(configuracoesService.getConfiguracoes(any()))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
 
         mockMvc.perform(get("/configuracoes"))
                 .andExpect(status().isNoContent());

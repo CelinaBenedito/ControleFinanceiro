@@ -24,6 +24,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -79,11 +83,12 @@ class ConfiguracoesServiceTest {
     @Test
     @DisplayName("getConfiguracoes: retorna todas as configurações")
     void getConfiguracoes_retornaLista() {
-        when(configuracoesRepository.findAll()).thenReturn(List.of(configuracoes));
+        when(configuracoesRepository.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(configuracoes)));
 
-        List<Configuracoes> resultado = configuracoesService.getConfiguracoes();
+        Page<Configuracoes> resultado = configuracoesService.getConfiguracoes(PageRequest.of(0, 10));
 
-        assertEquals(1, resultado.size());
+        assertEquals(1, resultado.getContent().size());
     }
 
     // ── createConfiguracao ─────────────────────────────────────────────────
