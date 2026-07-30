@@ -8,7 +8,6 @@ import java.io.*;
 import java.net.URI;
 import java.net.http.*;
 import java.nio.file.*;
-import java.util.Properties;
 import java.util.regex.*;
 
 @Service
@@ -26,26 +25,8 @@ public class UpdateService {
     @Value("${app.update.enabled:true}")
     private boolean updateEnabled;
 
-    private final String currentVersion;
-
-    public UpdateService() {
-        this.currentVersion = loadCurrentVersion();
-    }
-
-    // -------------------------------------------------------------------------
-    // Versão atual
-    // -------------------------------------------------------------------------
-
-    private String loadCurrentVersion() {
-        try (InputStream is = getClass().getResourceAsStream("/version.properties")) {
-            if (is == null) return "0.0.0";
-            Properties props = new Properties();
-            props.load(is);
-            return props.getProperty("app.version", "0.0.0");
-        } catch (IOException e) {
-            return "0.0.0";
-        }
-    }
+    @Value("${app.version:0.0.0}")
+    private String currentVersion;
 
     public String getCurrentVersion() {
         return currentVersion;
