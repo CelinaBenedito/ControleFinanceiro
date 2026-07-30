@@ -87,8 +87,10 @@ public class LauncherApp {
 
         log("[Update] Atualizacao pendente encontrada: " + pendingJar);
         try {
-            // Pequena espera para garantir que o processo anterior liberou o JAR
-            Thread.sleep(1500);
+            // Aguarda o processo anterior encerrar e liberar o lock do back-end.jar
+            // (o back-end agenda o restart via VBScript que espera 3s antes de abrir o launcher,
+            //  mas o JVM pode demorar um pouco mais para liberar todos os file handles)
+            Thread.sleep(5000);
             Files.copy(pendingJar, appJarPath, StandardCopyOption.REPLACE_EXISTING);
             Files.delete(pendingJar);
             log("[Update] Atualizacao aplicada com sucesso. Nova versao iniciando.");
