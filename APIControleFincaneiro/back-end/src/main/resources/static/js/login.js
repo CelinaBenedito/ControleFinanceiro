@@ -94,10 +94,14 @@ function login(email, senha){
                 }
                 const perfisJson = JSON.stringify(perfis);
                 localStorage.setItem("perfis", perfisJson);
-                // Persiste em disco no app desktop (bridge injetada pelo Java)
-                if (window.desktopBridge && window.desktopBridge.savePerfis) {
-                    window.desktopBridge.savePerfis(perfisJson);
-                }
+
+                // Persiste em disco via endpoint — funciona no desktop e no navegador
+                fetch("http://localhost:8080/perfis", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ perfis: perfisJson })
+                }).catch(() => {}); // silencia erros de rede (non-critical)
+
                 localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
 
                 // Redireciona somente após o localStorage estar preenchido
