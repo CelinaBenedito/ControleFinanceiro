@@ -46,9 +46,16 @@ public class EmbeddedDatabaseConfig {
     /**
      * Mata processos mysqld residuais (de sessões anteriores encerradas abruptamente)
      * e remove arquivos .pid obsoletos que bloqueiam o ibdata1.
-     * Sem isso, o erro "InnoDB: The data file './ibdata1' must be writable" impede o start.
+     * IMPORTANTE: so age se a porta NAO estiver respondendo ativamente —
+     * isso evita matar o mysqld de uma instancia que ainda esta rodando.
      */
-    private static void killLingeringMysqldProcesses(File dataDir) {
+    private static void killLingeringMysqldProcesses(File dataDir, int dbPort) {
+        // Se a porta ja responde, ha um mysqld ativo — nao matar.
+        if (isPortResponding(dbPort)) {
+            System.out.println("[EmbeddedDB] Porta " + dbPort + " em uso por instancia ativa. Pulando limpeza.");
+            return;
+        }
+
         try {
             ProcessHandle.allProcesses()
                 .filter(p -> p.info().command()
@@ -75,6 +82,15 @@ public class EmbeddedDatabaseConfig {
         }
     }
 
+    private static boolean isPortResponding(int p) {
+        try (java.net.Socket s = new java.net.Socket()) {
+            s.connect(new java.net.InetSocketAddress("127.0.0.1", p), 1000);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @Bean(destroyMethod = "stop")
     public DB embeddedMariaDB() throws ManagedProcessException {
         File dataDir = new File(
@@ -82,8 +98,7 @@ public class EmbeddedDatabaseConfig {
                 ".myfinance" + File.separator + "db"
         );
 
-        // Garante limpeza de sessões anteriores encerradas abruptamente
-        killLingeringMysqldProcesses(dataDir);
+        killLingeringMysqldProcesses(dataDir, port);
 
         DBConfigurationBuilder config = DBConfigurationBuilder.newBuilder();
         config.setPort(port);

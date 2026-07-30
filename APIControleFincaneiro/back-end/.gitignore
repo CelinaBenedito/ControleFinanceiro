@@ -1,2 +1,4 @@
 target/
 .vscode/
+uploads/
+resources/static/assets/user_images/
