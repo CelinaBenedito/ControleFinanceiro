@@ -204,8 +204,13 @@ public class UsuarioService {
         Usuario usuario = getUsuario(id);
 
         try {
-            // Definir pasta de destino
-            String pastaDestino = System.getProperty("user.dir") + "/uploads/user_images/";
+            // Usa ~/.myfinance/uploads/user_images/ para garantir permissao de escrita
+            // em qualquer ambiente (dev, .exe instalado, etc.)
+            String pastaDestino = System.getProperty("user.home")
+                    + File.separator + ".myfinance"
+                    + File.separator + "uploads"
+                    + File.separator + "user_images"
+                    + File.separator;
             File diretorio = new File(pastaDestino);
             if (!diretorio.exists()) {
                 diretorio.mkdirs();
