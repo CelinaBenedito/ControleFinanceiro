@@ -329,3 +329,164 @@ function atualizarIconeTema() {
 }
 
 atualizarIconeTema();
+
+/*---------------- Auto-Update: verificação e notificação ----------------*/
+(function () {
+    const CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutos
+    const API_BASE = 'http://localhost:8080';
+
+    // ── Injeta o banner de atualização no DOM ──
+    const bannerHtml = `
+    <div id="mf-update-banner" style="
+        display:none; position:fixed; bottom:24px; right:24px; z-index:99998;
+        background:var(--cor-fundo-card,#fff);
+        border:1.5px solid var(--cor-principal,#6366f1);
+        border-radius:16px;
+        box-shadow:0 8px 32px rgba(0,0,0,0.18);
+        padding:18px 22px 16px;
+        min-width:300px; max-width:360px;
+        animation:mfBannerIn 0.25s ease;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <span style="
+                background:var(--cor-principal,#6366f1);
+                color:#fff; border-radius:50%; width:34px;height:34px;
+                display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class='bx bx-cloud-download' style="font-size:1.2rem;"></i>
+            </span>
+            <div>
+                <div style="font-weight:700;font-size:0.95rem;color:var(--cor-titulo);">Nova versão disponível!</div>
+                <div id="mf-update-versions" style="font-size:0.78rem;color:var(--cor-texto-secundario);margin-top:2px;"></div>
+            </div>
+            <button id="mf-update-close" title="Fechar" style="
+                margin-left:auto;background:none;border:none;cursor:pointer;
+                color:var(--cor-texto-secundario);font-size:1.2rem;padding:2px 4px;line-height:1;">✕</button>
+        </div>
+        <p style="font-size:0.83rem;color:var(--cor-texto-secundario);margin:0 0 14px;line-height:1.5;">
+            Clique em <strong>Atualizar agora</strong> para baixar e reiniciar automaticamente.
+        </p>
+        <div style="display:flex;gap:8px;">
+            <button id="mf-update-btn" style="
+                flex:1;padding:9px 0;border-radius:9px;border:none;cursor:pointer;
+                background:var(--cor-principal,#6366f1);color:#fff;
+                font-size:0.88rem;font-weight:600;transition:opacity 0.18s;">
+                <i class='bx bx-refresh'></i> Atualizar agora
+            </button>
+            <button id="mf-update-later" style="
+                padding:9px 14px;border-radius:9px;cursor:pointer;
+                background:var(--cor-fundo-pagina);color:var(--cor-texto-principal);
+                font-size:0.88rem;font-weight:600;border:1px solid var(--cor-tinte-borda,#ccc);
+                transition:background 0.18s;">
+                Depois
+            </button>
+        </div>
+        <div id="mf-update-progress" style="display:none;margin-top:12px;text-align:center;">
+            <div style="
+                width:100%;height:6px;border-radius:3px;
+                background:var(--cor-tinte-borda,#e2e8f0);overflow:hidden;">
+                <div id="mf-update-bar" style="
+                    height:100%;width:0%;border-radius:3px;
+                    background:var(--cor-principal,#6366f1);
+                    transition:width 0.4s ease;"></div>
+            </div>
+            <span id="mf-update-status" style="font-size:0.78rem;color:var(--cor-texto-secundario);margin-top:6px;display:block;">
+                Baixando atualização...
+            </span>
+        </div>
+    </div>
+    <style>
+        @keyframes mfBannerIn {
+            from { opacity:0; transform:translateY(16px) scale(0.97); }
+            to   { opacity:1; transform:translateY(0)   scale(1);     }
+        }
+        #mf-update-btn:hover   { opacity:0.85; }
+        #mf-update-later:hover { background:var(--cor-hover,#e2e8f0)!important; }
+    </style>`;
+
+    document.body.insertAdjacentHTML('beforeend', bannerHtml);
+
+    const banner        = document.getElementById('mf-update-banner');
+    const btnAtualizar  = document.getElementById('mf-update-btn');
+    const btnDepois     = document.getElementById('mf-update-later');
+    const btnFechar     = document.getElementById('mf-update-close');
+    const versionsEl    = document.getElementById('mf-update-versions');
+    const progressArea  = document.getElementById('mf-update-progress');
+    const progressBar   = document.getElementById('mf-update-bar');
+    const statusEl      = document.getElementById('mf-update-status');
+
+    let _downloadUrl = null;
+
+    function mostrarBanner(info) {
+        versionsEl.textContent = 'Atual: v' + info.currentVersion + '  →  Nova: v' + info.latestVersion;
+        banner.style.display = 'block';
+    }
+
+    function ocultarBanner() {
+        banner.style.display = 'none';
+    }
+
+    btnFechar.addEventListener('click', ocultarBanner);
+    btnDepois.addEventListener('click', ocultarBanner);
+
+    btnAtualizar.addEventListener('click', async function () {
+        if (!_downloadUrl) return;
+
+        btnAtualizar.disabled = true;
+        btnDepois.disabled    = true;
+        btnFechar.disabled    = true;
+        progressArea.style.display = 'block';
+
+        // Simula progresso visual enquanto o download ocorre no backend
+        let pct = 0;
+        const interval = setInterval(function() {
+            pct = Math.min(pct + Math.random() * 8, 85);
+            progressBar.style.width = pct + '%';
+        }, 400);
+
+        try {
+            statusEl.textContent = 'Baixando atualização...';
+            const res = await fetch(API_BASE + '/api/update/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ downloadUrl: _downloadUrl })
+            });
+
+            clearInterval(interval);
+
+            if (res.ok) {
+                progressBar.style.width = '100%';
+                statusEl.textContent = 'Atualização baixada! Reiniciando a aplicação...';
+            } else {
+                throw new Error('Falha na requisição: ' + res.status);
+            }
+        } catch (e) {
+            clearInterval(interval);
+            progressBar.style.width = '0%';
+            progressBar.style.background = '#ef4444';
+            statusEl.textContent = 'Erro ao atualizar. Tente novamente.';
+            btnAtualizar.disabled = false;
+            btnDepois.disabled    = false;
+            btnFechar.disabled    = false;
+            console.error('[Update] Erro:', e);
+        }
+    });
+
+    // ── Verifica se há atualização disponível ──
+    async function verificarAtualizacao() {
+        try {
+            const res = await fetch(API_BASE + '/api/update/check');
+            if (!res.ok) return;
+            const info = await res.json();
+            if (info.hasUpdate && info.downloadUrl) {
+                _downloadUrl = info.downloadUrl;
+                mostrarBanner(info);
+            }
+        } catch (e) {
+            // Silencioso: sem internet ou backend ainda não inicializado
+        }
+    }
+
+    // Primeira verificação após 10s (dá tempo ao Spring Boot inicializar)
+    setTimeout(verificarAtualizacao, 10000);
+    // Verificações subsequentes a cada 30 minutos
+    setInterval(verificarAtualizacao, CHECK_INTERVAL_MS);
+})();

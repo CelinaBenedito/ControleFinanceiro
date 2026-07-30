@@ -17,8 +17,20 @@ import java.util.Base64;
 import java.util.Locale;
 
 public class DesktopApp extends Application {
+
+    /** Referência estática ao Stage principal — usada pelo UpdateService para fechar a janela. */
+    private static volatile Stage primaryStage;
+
+    /** Fecha a janela JavaFX de forma segura a partir de qualquer thread. */
+    public static void exitApplication() {
+        javafx.application.Platform.runLater(() -> {
+            if (primaryStage != null) primaryStage.close();
+        });
+    }
+
     @Override
     public void start(Stage stage) {
+        primaryStage = stage;
         WebView webView = new WebView();
         WebEngine engine = webView.getEngine();
         engine.load(
