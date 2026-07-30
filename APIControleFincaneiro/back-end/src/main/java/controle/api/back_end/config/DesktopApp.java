@@ -46,7 +46,7 @@ public class DesktopApp extends Application {
         });
 
         try {
-            stage.getIcons().add(new Image(getClass().getResourceAsStream("/static/assets/glaceonIcon .ico")));
+            stage.getIcons().add(new Image(getClass().getResourceAsStream("/static/assets/glaceonIcon.ico")));
         } catch (Exception e) {
             System.out.println("Não foi possível carregar o ícone: " + e.getMessage());
         }
