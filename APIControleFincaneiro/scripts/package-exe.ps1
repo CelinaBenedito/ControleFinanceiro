@@ -114,7 +114,7 @@ $jpArgs = @(
 Write-Host "  Argumentos jpackage:"
 $jpArgs | ForEach-Object { Write-Host "    $_" }
 
-& jpackage @jpArgs
+& jpackage @jpArgs @iconArgs
 
 if ($LASTEXITCODE -ne 0) {
     throw "jpackage falhou. Verifique se WiX Toolset v4 esta instalado: https://wixtoolset.org/releases/"
