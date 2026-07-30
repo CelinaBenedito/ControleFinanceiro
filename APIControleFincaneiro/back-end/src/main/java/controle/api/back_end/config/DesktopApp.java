@@ -222,9 +222,15 @@ public class DesktopApp extends Application {
                "h1 { font-size:1.6rem; color:#1a3a3a; margin-bottom:8px; }" +
                "p  { font-size:0.95rem; color:#667; margin-bottom:24px; }" +
                ".spinner { width:40px; height:40px; border:4px solid #e0e7ef;" +
-               "           border-top-color:#367373; border-radius:50%;" +
-               "           animation:spin .8s linear infinite; margin:0 auto; }" +
-               "@keyframes spin { to { transform:rotate(360deg); } }" +
+               "           border-top-color:#367373; border-radius:50%; margin:0 auto;" +
+               "           -webkit-animation:spin .8s linear infinite;" +
+               "           animation:spin .8s linear infinite; }" +
+               "@-webkit-keyframes spin {" +
+               "  0%   { -webkit-transform:rotate(0deg);   transform:rotate(0deg); }" +
+               "  100% { -webkit-transform:rotate(360deg); transform:rotate(360deg); } }" +
+               "@keyframes spin {" +
+               "  0%   { transform:rotate(0deg); }" +
+               "  100% { transform:rotate(360deg); } }" +
                "</style></head>" +
                "<body><div class='card'>" +
                "<h1>MyFinance</h1>" +
