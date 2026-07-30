@@ -46,9 +46,27 @@ public class DesktopApp extends Application {
         // Injeta a DesktopBridge em cada pagina carregada
         engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
             if (newState == Worker.State.SUCCEEDED) {
+                DesktopBridge bridge = new DesktopBridge(stage);
                 JSObject window = (JSObject) engine.executeScript("window");
-                window.setMember("desktopBridge", new DesktopBridge(stage));
+                window.setMember("desktopBridge", bridge);
                 System.out.println("[DesktopApp] desktopBridge injetada com sucesso.");
+
+                // Se estiver na tela de seleção de perfil, injeta os perfis diretamente
+                // via Java (evita dependência de localStorage em contexto async do WebView)
+                String loc = engine.getLocation();
+                if (loc != null && (loc.contains("/index.html") || loc.matches(".*localhost:8080/?$"))) {
+                    try {
+                        String perfisJson = bridge.loadPerfis();
+                        window.setMember("_perfisJsonFromBridge", perfisJson);
+                        engine.executeScript(
+                            "if (typeof window._carregarPerfisViaBridge === 'function') " +
+                            "  window._carregarPerfisViaBridge(window._perfisJsonFromBridge);"
+                        );
+                        System.out.println("[DesktopApp] Perfis injetados na index.html via bridge.");
+                    } catch (Exception ex) {
+                        System.out.println("[DesktopApp] Aviso ao injetar perfis: " + ex.getMessage());
+                    }
+                }
             }
         });
 

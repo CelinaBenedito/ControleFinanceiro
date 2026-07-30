@@ -50,105 +50,100 @@
 
 <script src="js/main.js"></script>
 <script>
-    (async function () {
-        const API = "http://localhost:8080";
-        const lista = document.getElementById("listaUsuarios");
-        const btnAdd = lista.querySelector(".addUsuario");
+    (function () {
+        var _lista = document.getElementById("listaUsuarios");
+        // Referência CORRETA: o <a href="cadastrar.html"> é filho DIRETO de _lista.
+        // Usar .addUsuario causava NotFoundError silencioso porque ele é neto (está dentro do <a>).
+        var _btnAdd = _lista.querySelector("a[href='cadastrar.html']") || _lista.lastElementChild;
+        var _API = "http://localhost:8080";
+        var _jaRenderizou = false;
 
-        // Carrega perfis: API (arquivo em disco) tem prioridade, localStorage é fallback.
-        // Se a API retornar vazio mas localStorage tiver dados, usa localStorage
-        // e salva no arquivo para sincronizar (útil na primeira execução com novo código).
-        var perfis = [];
-        var perfisDoArquivo = [];
-        var perfisDoLocalStorage = [];
-
-        try {
-            var res = await fetch(API + "/perfis");
-            if (res.ok) {
-                var raw = await res.text();
-                perfisDoArquivo = JSON.parse(raw || "[]");
-            }
-        } catch (e) {}
-
-        try {
-            perfisDoLocalStorage = JSON.parse(localStorage.getItem("perfis") || "[]");
-        } catch (_) {}
-
-        if (perfisDoArquivo.length > 0) {
-            perfis = perfisDoArquivo;
-        } else if (perfisDoLocalStorage.length > 0) {
-            // Arquivo ainda não existe — usa localStorage e persiste no arquivo
-            perfis = perfisDoLocalStorage;
-            try {
-                await fetch(API + "/perfis", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ perfis: JSON.stringify(perfis) })
-                });
-            } catch (e) {}
-        }
-
-        // Atualiza dados de cada perfil (imagem, nome, etc.) via API
-        var perfisAtualizados = await Promise.all(
-            perfis.map(async function(perfil) {
-                try {
-                    var r = await fetch(API + "/usuarios/" + perfil.id);
-                    if (r.ok) {
-                        var u = await r.json();
-                        return Object.assign({}, perfil, u);
-                    }
-                } catch (e) {}
-                return perfil;
-            })
-        );
-
-        // Persiste lista atualizada no arquivo e no localStorage
-        var perfisJson = JSON.stringify(perfisAtualizados);
-        localStorage.setItem("perfis", perfisJson);
-        try {
-            await fetch(API + "/perfis", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ perfis: perfisJson })
-            });
-        } catch (e) {}
-
-        function resolverImg(perfil) {
+        function _resolverImg(perfil) {
             if (!perfil.imagem) return null;
             if (/^data:image\//i.test(perfil.imagem) || /^https?:\/\//i.test(perfil.imagem)) return perfil.imagem;
-            return API + (perfil.imagem.startsWith("/") ? perfil.imagem : "/" + perfil.imagem);
+            return _API + (perfil.imagem.startsWith("/") ? perfil.imagem : "/" + perfil.imagem);
         }
 
-        if (perfisAtualizados.length === 0) {
-            var aviso = document.createElement("p");
-            aviso.textContent = "Nenhum perfil salvo. Faça login ou cadastre-se.";
-            aviso.style.cssText = "color: var(--text-muted, #888); font-size: 0.9rem; margin-bottom: 1rem;";
-            lista.insertBefore(aviso, btnAdd);
-            return;
-        }
-
-        perfisAtualizados.forEach(function(perfil) {
-            var card = document.createElement("div");
-            card.className = "usuario-card";
-
-            var imgUrl = resolverImg(perfil);
-            var imgFinal = imgUrl
-                ? imgUrl + (imgUrl.includes("?") ? "&" : "?") + "v=" + Date.now()
-                : null;
-
-            var avatarHtml = imgFinal
-                ? '<img src="' + imgFinal + '" alt="' + perfil.nome + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'\'"><i class="bx bx-user" style="display:none;"></i>'
-                : '<i class="bx bx-user"></i>';
-
-            card.innerHTML = '<div class="usuario">' + avatarHtml + '</div><span>' + perfil.nome + '</span>';
-            card.style.cursor = "pointer";
-            card.addEventListener("click", function() {
-                localStorage.setItem("usuarioLogado", JSON.stringify(perfil));
-                window.location.href = "dashboard.html";
+        function _renderPerfis(perfis) {
+            if (!Array.isArray(perfis) || perfis.length === 0) return false;
+            _lista.querySelectorAll("p, .usuario-card").forEach(function (el) { el.remove(); });
+            perfis.forEach(function (perfil) {
+                var card = document.createElement("div");
+                card.className = "usuario-card";
+                var imgUrl = _resolverImg(perfil);
+                var imgFinal = imgUrl ? imgUrl + (imgUrl.includes("?") ? "&" : "?") + "v=" + Date.now() : null;
+                var avatarHtml = imgFinal
+                    ? '<img src="' + imgFinal + '" alt="' + (perfil.nome || "") + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'\'"><i class="bx bx-user" style="display:none;"></i>'
+                    : '<i class="bx bx-user"></i>';
+                card.innerHTML = '<div class="usuario">' + avatarHtml + '</div><span>' + (perfil.nome || "") + '</span>';
+                card.style.cursor = "pointer";
+                card.addEventListener("click", function () {
+                    localStorage.setItem("usuarioLogado", JSON.stringify(perfil));
+                    window.location.href = "dashboard.html";
+                });
+                // insertBefore precisa de filho DIRETO como referência
+                _lista.insertBefore(card, _btnAdd);
             });
-            lista.insertBefore(card, btnAdd);
-        });
-    })();
+            _jaRenderizou = true;
+            return true;
+        }
+
+        function _mostrarAviso(txt) {
+            _lista.querySelectorAll("p").forEach(function (el) { el.remove(); });
+            var av = document.createElement("p");
+            av.textContent = txt;
+            av.style.cssText = "color:var(--text-muted,#888);font-size:0.9rem;margin-bottom:1rem;";
+            _lista.insertBefore(av, _btnAdd);
+        }
+
+        // ── 1. localStorage (síncrono, como os temas) ───────────────────────
+        try {
+            var raw = localStorage.getItem("perfis");
+            var lsData = raw ? JSON.parse(raw) : [];
+            if (_renderPerfis(lsData)) { /* renderizado */ }
+        } catch (_) {}
+
+        if (!_jaRenderizou) {
+            _mostrarAviso("Carregando perfis...");
+        }
+
+        // ── 2. Polling para desktopBridge ────────────────────────────────────
+        // Após Worker.State.SUCCEEDED o JavaFX injeta window.desktopBridge.
+        // loadPerfis() é uma chamada Java síncrona — sem async, sem Promise.
+        (function poll(tentativa) {
+            if (window.desktopBridge) {
+                try {
+                    var json = window.desktopBridge.loadPerfis();
+                    var data = JSON.parse(json || "[]");
+                    if (Array.isArray(data) && data.length > 0) {
+                        try { localStorage.setItem("perfis", json); } catch (_) {}
+                        _renderPerfis(data);
+                    } else if (!_jaRenderizou) {
+                        _mostrarAviso("Nenhum perfil salvo. Faça login ou cadastre-se.");
+                    }
+                } catch (e) {
+                    if (!_jaRenderizou) _mostrarAviso("Nenhum perfil salvo. Faça login ou cadastre-se.");
+                }
+                return;
+            }
+            if (tentativa < 30) {
+                setTimeout(function () { poll(tentativa + 1); }, 100);
+            } else if (!_jaRenderizou) {
+                _mostrarAviso("Nenhum perfil salvo. Faça login ou cadastre-se.");
+            }
+        }(0));
+
+        // ── 3. Atalho: chamado diretamente pelo Java (DesktopApp) ───────────
+        window._carregarPerfisViaBridge = function (jsonString) {
+            try {
+                var data = JSON.parse(jsonString || "[]");
+                if (Array.isArray(data) && data.length > 0) {
+                    try { localStorage.setItem("perfis", jsonString); } catch (_) {}
+                    _renderPerfis(data);
+                }
+            } catch (e) {}
+        };
+    }());
 </script>
 </body>
 
