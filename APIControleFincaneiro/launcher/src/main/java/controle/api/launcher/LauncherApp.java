@@ -79,25 +79,39 @@ public class LauncherApp {
      * sendo executado quando o launcher tenta substitui-lo).
      */
     private static void applyPendingUpdate(Path appJarPath) {
-        String appData = System.getenv("APPDATA");
-        if (appData == null) appData = System.getProperty("user.home");
-        Path pendingJar = Path.of(appData, "MyFinance", "pending-update.jar");
+        // Mesmo caminho base usado pelo UpdateService: user.home/.myfinance/
+        Path pendingJar = java.nio.file.Path.of(
+                System.getProperty("user.home"), ".myfinance", "pending-update.jar");
 
-        if (!Files.exists(pendingJar)) return;
+        log("[Update] Verificando atualizacao pendente em: " + pendingJar);
+        log("[Update] Destino do back-end.jar: " + appJarPath);
 
-        log("[Update] Atualizacao pendente encontrada: " + pendingJar);
+        if (!Files.exists(pendingJar)) {
+            log("[Update] Nenhuma atualizacao pendente encontrada.");
+            return;
+        }
+
+        log("[Update] Atualizacao pendente encontrada (" + pendingJar.toFile().length() + " bytes). Aguardando liberacao de locks...");
         try {
             // Aguarda o processo anterior encerrar e liberar o lock do back-end.jar
-            // (o back-end agenda o restart via VBScript que espera 3s antes de abrir o launcher,
-            //  mas o JVM pode demorar um pouco mais para liberar todos os file handles)
             Thread.sleep(5000);
+
+            // Verifica se o destino existe e é acessível
+            if (!Files.exists(appJarPath.getParent())) {
+                log("[Update] ERRO: Diretorio destino nao existe: " + appJarPath.getParent());
+                return;
+            }
+
+            log("[Update] Copiando " + pendingJar + " -> " + appJarPath);
             Files.copy(pendingJar, appJarPath, StandardCopyOption.REPLACE_EXISTING);
             Files.delete(pendingJar);
-            log("[Update] Atualizacao aplicada com sucesso. Nova versao iniciando.");
+            log("[Update] Atualizacao aplicada com sucesso! Tamanho novo JAR: "
+                    + appJarPath.toFile().length() + " bytes. Nova versao iniciando.");
         } catch (Exception e) {
-            log("[Update] Falha ao aplicar atualizacao pendente: " + e.getMessage()
-                    + " — iniciando versao anterior.");
-            try { Files.deleteIfExists(pendingJar); } catch (Exception ignored) {}
+            log("[Update] FALHA ao aplicar atualizacao: " + e.getClass().getSimpleName()
+                    + ": " + e.getMessage());
+            log("[Update] O arquivo pending-update.jar sera mantido para nova tentativa.");
+            // NÃO deleta o pendingJar em caso de falha — permite retry na próxima abertura
         }
     }
 
