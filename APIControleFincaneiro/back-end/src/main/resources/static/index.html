@@ -55,33 +55,28 @@
         const lista = document.getElementById("listaUsuarios");
         const btnAdd = lista.querySelector(".addUsuario");
 
-        // Aguarda o desktopBridge ser injetado pelo Java (ocorre após Worker.State.SUCCEEDED).
-        // No navegador comum, o bridge não existe e o timeout resolve sem ele.
-        await new Promise(function(resolve) {
-            if (window.desktopBridge) { resolve(); return; }
-            var t = 0;
-            var iv = setInterval(function() {
-                t += 50;
-                if (window.desktopBridge || t >= 1500) { clearInterval(iv); resolve(); }
-            }, 50);
-        });
-
-        // Carrega perfis: do arquivo em disco (app desktop) ou do localStorage (navegador)
+        // Carrega perfis do arquivo em disco via API (funciona no desktop e no navegador).
+        // O endpoint /perfis persiste os dados em ~/.myfinance/perfis.json,
+        // resolvendo o problema do localStorage do WebView ser apagado a cada restart.
         var perfis = [];
         try {
-            var raw = (window.desktopBridge && window.desktopBridge.loadPerfis)
-                ? window.desktopBridge.loadPerfis()
-                : localStorage.getItem("perfis");
-            perfis = JSON.parse(raw || "[]");
-        } catch (e) { perfis = []; }
+            var res = await fetch(API + "/perfis");
+            if (res.ok) {
+                var raw = await res.text();
+                perfis = JSON.parse(raw || "[]");
+            }
+        } catch (e) {
+            // Fallback para localStorage caso a API não esteja disponível
+            try { perfis = JSON.parse(localStorage.getItem("perfis") || "[]"); } catch (_) {}
+        }
 
-        // Atualiza dados de cada perfil salvo (imagem, nome, etc.) via API
+        // Atualiza dados de cada perfil (imagem, nome, etc.) via API
         var perfisAtualizados = await Promise.all(
             perfis.map(async function(perfil) {
                 try {
-                    var res = await fetch(API + "/usuarios/" + perfil.id);
-                    if (res.ok) {
-                        var u = await res.json();
+                    var r = await fetch(API + "/usuarios/" + perfil.id);
+                    if (r.ok) {
+                        var u = await r.json();
                         return Object.assign({}, perfil, u);
                     }
                 } catch (e) {}
@@ -89,17 +84,18 @@
             })
         );
 
-        // Persiste lista atualizada
+        // Persiste lista atualizada no arquivo e no localStorage
         var perfisJson = JSON.stringify(perfisAtualizados);
-        if (window.desktopBridge && window.desktopBridge.savePerfis) {
-            window.desktopBridge.savePerfis(perfisJson);
-        }
         localStorage.setItem("perfis", perfisJson);
+        try {
+            await fetch(API + "/perfis", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ perfis: perfisJson })
+            });
+        } catch (e) {}
 
         function resolverImg(perfil) {
-            if (window.MainAPI && window.MainAPI.resolverUrlImagem) {
-                return window.MainAPI.resolverUrlImagem(perfil.imagem, perfil.id);
-            }
             if (!perfil.imagem) return null;
             if (/^data:image\//i.test(perfil.imagem) || /^https?:\/\//i.test(perfil.imagem)) return perfil.imagem;
             return API + (perfil.imagem.startsWith("/") ? perfil.imagem : "/" + perfil.imagem);
