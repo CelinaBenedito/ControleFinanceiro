@@ -23,64 +23,6 @@ $OUTPUT       = Join-Path $ROOT "instalador"
 Write-Host "=== MyFinance - Empacotamento .exe ===" -ForegroundColor Cyan
 
 # ----------------------------------------------------------
-# Funcao: converte PNG para ICO usando .NET System.Drawing
-# ----------------------------------------------------------
-function Convert-PngToIco {
-    param([string]$PngPath, [string]$IcoPath)
-
-    Add-Type -AssemblyName System.Drawing
-
-    $sizes = @(16, 32, 48, 256)
-    $ms    = [System.IO.MemoryStream]::new()
-    $bw    = [System.IO.BinaryWriter]::new($ms)
-
-    $pngDataList = @()
-    foreach ($sz in $sizes) {
-        $bmp = [System.Drawing.Bitmap]::new($PngPath)
-        $resized = [System.Drawing.Bitmap]::new($bmp, $sz, $sz)
-        $imgStream = [System.IO.MemoryStream]::new()
-        $resized.Save($imgStream, [System.Drawing.Imaging.ImageFormat]::Png)
-        $pngDataList += ,($imgStream.ToArray())
-        $resized.Dispose()
-        $bmp.Dispose()
-        $imgStream.Dispose()
-    }
-
-    # ICO header
-    $bw.Write([uint16]0)                     # Reserved
-    $bw.Write([uint16]1)                     # Type: 1 = ICO
-    $bw.Write([uint16]$pngDataList.Count)    # Number of images
-
-    # Calcula o offset inicial dos dados (header 6 + 16 bytes por entrada)
-    $dataOffset = 6 + 16 * $pngDataList.Count
-
-    for ($i = 0; $i -lt $pngDataList.Count; $i++) {
-        $sz   = $sizes[$i]
-        $data = $pngDataList[$i]
-        $dim  = if ($sz -eq 256) { 0 } else { $sz }   # 256 = 0 no formato ICO
-        $bw.Write([byte]$dim)      # Width
-        $bw.Write([byte]$dim)      # Height
-        $bw.Write([byte]0)         # Color count
-        $bw.Write([byte]0)         # Reserved
-        $bw.Write([uint16]1)       # Color planes
-        $bw.Write([uint16]32)      # Bits per pixel
-        $bw.Write([uint32]$data.Length)
-        $bw.Write([uint32]$dataOffset)
-        $dataOffset += $data.Length
-    }
-
-    # Dados das imagens
-    foreach ($data in $pngDataList) {
-        $bw.Write($data)
-    }
-
-    $bw.Flush()
-    [System.IO.File]::WriteAllBytes($IcoPath, $ms.ToArray())
-    $bw.Dispose()
-    $ms.Dispose()
-}
-
-# ----------------------------------------------------------
 # 1. Build do back-end
 # ----------------------------------------------------------
 Write-Host ""
@@ -130,24 +72,16 @@ Write-Host "  launcher.jar -> input\launcher.jar"
 Write-Host "  back-end.jar -> input\app\back-end.jar"
 
 # ----------------------------------------------------------
-# 4. Converte icone PNG -> ICO
+# 4. Icone
 # ----------------------------------------------------------
-$PNG_ICON = Join-Path $BACKEND_DIR "src\main\resources\static\assets\glaceonIcon .png"
-$ICO_ICON = Join-Path $DIST_DIR "icon.ico"
+$ICO_ICON = Join-Path $BACKEND_DIR "src\main\resources\static\assets\glaceonIcon.ico"
 $iconArgs = @()
 
-if (Test-Path $PNG_ICON) {
-    try {
-        Write-Host "  Convertendo icone PNG para ICO..." -NoNewline
-        Convert-PngToIco -PngPath $PNG_ICON -IcoPath $ICO_ICON
-        Write-Host " OK" -ForegroundColor Green
-        $iconArgs = @("--icon", $ICO_ICON)
-    } catch {
-        Write-Host " FALHOU (usando padrao do sistema)" -ForegroundColor Yellow
-        Write-Host "  Detalhes: $_"
-    }
+if (Test-Path $ICO_ICON) {
+    Write-Host "  Icone encontrado: $ICO_ICON"
+    $iconArgs = @("--icon", $ICO_ICON)
 } else {
-    Write-Host "  Icone nao encontrado - usando padrao do sistema."
+    Write-Host "  Icone .ico nao encontrado em $ICO_ICON - usando padrao do sistema."
 }
 
 # ----------------------------------------------------------
