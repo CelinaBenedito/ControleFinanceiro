@@ -55,19 +55,37 @@
         const lista = document.getElementById("listaUsuarios");
         const btnAdd = lista.querySelector(".addUsuario");
 
-        // Carrega perfis do arquivo em disco via API (funciona no desktop e no navegador).
-        // O endpoint /perfis persiste os dados em ~/.myfinance/perfis.json,
-        // resolvendo o problema do localStorage do WebView ser apagado a cada restart.
+        // Carrega perfis: API (arquivo em disco) tem prioridade, localStorage é fallback.
+        // Se a API retornar vazio mas localStorage tiver dados, usa localStorage
+        // e salva no arquivo para sincronizar (útil na primeira execução com novo código).
         var perfis = [];
+        var perfisDoArquivo = [];
+        var perfisDoLocalStorage = [];
+
         try {
             var res = await fetch(API + "/perfis");
             if (res.ok) {
                 var raw = await res.text();
-                perfis = JSON.parse(raw || "[]");
+                perfisDoArquivo = JSON.parse(raw || "[]");
             }
-        } catch (e) {
-            // Fallback para localStorage caso a API não esteja disponível
-            try { perfis = JSON.parse(localStorage.getItem("perfis") || "[]"); } catch (_) {}
+        } catch (e) {}
+
+        try {
+            perfisDoLocalStorage = JSON.parse(localStorage.getItem("perfis") || "[]");
+        } catch (_) {}
+
+        if (perfisDoArquivo.length > 0) {
+            perfis = perfisDoArquivo;
+        } else if (perfisDoLocalStorage.length > 0) {
+            // Arquivo ainda não existe — usa localStorage e persiste no arquivo
+            perfis = perfisDoLocalStorage;
+            try {
+                await fetch(API + "/perfis", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ perfis: JSON.stringify(perfis) })
+                });
+            } catch (e) {}
         }
 
         // Atualiza dados de cada perfil (imagem, nome, etc.) via API

@@ -88,10 +88,9 @@ public class UpdateService {
      * O launcher (LauncherApp) é responsável por mover pending-update.jar → back-end.jar.
      */
     public void applyUpdate(String downloadUrl) throws Exception {
-        // Diretório de dados gravável em qualquer ambiente
-        String appData = System.getenv("APPDATA");
-        if (appData == null) appData = System.getProperty("user.home");
-        Path myfinanceDir = Path.of(appData, "MyFinance");
+        // Usa user.home/.myfinance/ — mesmo diretório base do banco de dados e uploads.
+        // Mais confiável que %APPDATA% que pode variar entre processos no Windows.
+        Path myfinanceDir = java.nio.file.Path.of(System.getProperty("user.home"), ".myfinance");
         Files.createDirectories(myfinanceDir);
         Path pendingJar = myfinanceDir.resolve("pending-update.jar");
 
@@ -126,8 +125,7 @@ public class UpdateService {
         // Aguarda 3s para garantir que o processo atual encerrou e liberou o lock do JAR.
         Path exePath = detectMyFinanceExe();
         if (exePath != null) {
-            Path vbsPath = myfinanceDir.resolve("restart.vbs");
-            String exe = exePath.toString();
+            Path vbsPath = myfinanceDir.resolve("restart.vbs");            String exe = exePath.toString();
             // VBS: Sleep 3s, Run exe entre aspas duplas, auto-deleta o script
             String vbs = "WScript.Sleep 3000\r\n"
                     + "CreateObject(\"WScript.Shell\").Run \"\"\"" + exe + "\"\"\", 1, False\r\n"
