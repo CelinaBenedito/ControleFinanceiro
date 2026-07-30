@@ -113,17 +113,30 @@ public class UpdateService {
             throw new RuntimeException("Falha no download: HTTP " + response.statusCode());
         }
 
-        System.out.println("[Update] Download concluido. Reiniciando via launcher...");
+        // Valida que o arquivo baixado tem conteudo real
+        long tamanho = Files.size(pendingJar);
+        if (tamanho < 1024) {
+            Files.deleteIfExists(pendingJar);
+            throw new RuntimeException("Arquivo baixado invalido (tamanho: " + tamanho + " bytes).");
+        }
 
-        // Lança MyFinance.exe (o launcher aplica o pending-update.jar antes de iniciar o back-end)
+        System.out.println("[Update] Download concluido (" + (tamanho / 1048576) + " MB). Agendando reinicio...");
+
+        // Agenda o reinicio via VBScript (silencioso, sem janela CMD, processo independente).
+        // Aguarda 3s para garantir que o processo atual encerrou e liberou o lock do JAR.
         Path exePath = detectMyFinanceExe();
         if (exePath != null) {
-            System.out.println("[Update] Iniciando: " + exePath);
-            new ProcessBuilder(exePath.toString())
-                    .directory(exePath.getParent().toFile())
-                    .start();
+            Path vbsPath = myfinanceDir.resolve("restart.vbs");
+            String exe = exePath.toString();
+            // VBS: Sleep 3s, Run exe entre aspas duplas, auto-deleta o script
+            String vbs = "WScript.Sleep 3000\r\n"
+                    + "CreateObject(\"WScript.Shell\").Run \"\"\"" + exe + "\"\"\", 1, False\r\n"
+                    + "CreateObject(\"Scripting.FileSystemObject\").DeleteFile WScript.ScriptFullName\r\n";
+            Files.writeString(vbsPath, vbs, java.nio.charset.StandardCharsets.UTF_8);
+            new ProcessBuilder("wscript.exe", "/nologo", vbsPath.toString()).start();
+            System.out.println("[Update] Reinicio agendado via wscript para: " + exe);
         } else {
-            System.out.println("[Update] MyFinance.exe nao encontrado — usuario devera reabrir manualmente.");
+            System.out.println("[Update] MyFinance.exe nao localizado — usuario devera reabrir manualmente.");
         }
 
         // Encerra esta instância para liberar o lock do JAR
@@ -136,17 +149,33 @@ public class UpdateService {
     }
 
     /**
-     * Em jpackage, java.home aponta para o runtime bundlado dentro da instalação.
-     * Ex: C:\Users\User\AppData\Local\MyFinance\runtime
-     * O MyFinance.exe está no diretório pai:
-     *    C:\Users\User\AppData\Local\MyFinance\MyFinance.exe
+     * Localiza MyFinance.exe usando duas estratégias:
+     * 1. myfinance.jar.path (passado pelo launcher via -D):
+     *    <install>/app/app/back-end.jar → subir 3 níveis → <install>/MyFinance.exe
+     * 2. java.home (JRE bundlado pelo jpackage):
+     *    <install>/runtime/ → subir 1 nível → <install>/MyFinance.exe
      */
     private Path detectMyFinanceExe() {
+        // Estratégia 1: via propriedade myfinance.jar.path
+        String jarPath = System.getProperty("myfinance.jar.path");
+        if (jarPath != null && !jarPath.isBlank()) {
+            try {
+                Path candidate = Path.of(jarPath).getParent().getParent().getParent().resolve("MyFinance.exe");
+                System.out.println("[Update] Candidato exe (jar.path): " + candidate);
+                if (Files.exists(candidate)) return candidate;
+            } catch (Exception ignored) {}
+        }
+
+        // Estratégia 2: via java.home
         String javaHome = System.getProperty("java.home");
         if (javaHome != null && !javaHome.isBlank()) {
-            Path exePath = Path.of(javaHome).getParent().resolve("MyFinance.exe");
-            if (Files.exists(exePath)) return exePath;
+            try {
+                Path candidate = Path.of(javaHome).getParent().resolve("MyFinance.exe");
+                System.out.println("[Update] Candidato exe (java.home): " + candidate);
+                if (Files.exists(candidate)) return candidate;
+            } catch (Exception ignored) {}
         }
+
         return null;
     }
 
@@ -201,4 +230,3 @@ public class UpdateService {
         return m.find() ? m.group(1) : "";
     }
 }
-
