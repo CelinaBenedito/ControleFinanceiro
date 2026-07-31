@@ -61,9 +61,10 @@ function sidebarFunction() {
     // Cria o modal de confirmação de logout dinamicamente
     const modalHtml = `
     <div id="uwLogoutOverlay" style="
-        display:none; position:fixed; inset:0; z-index:99999;
-        background:rgba(0,0,0,0.45); backdrop-filter:blur(2px);
-        align-items:center; justify-content:center;">
+        display:none; position:fixed; top:0; right:0; bottom:0; left:0; z-index:99999;
+        background:rgba(0,0,0,0.45);
+        -webkit-align-items:center; align-items:center;
+        -webkit-justify-content:center; justify-content:center;">
         <div id="uwLogoutModal" style="
             background:var(--cor-fundo-card, #fff);
             border-radius:18px;
@@ -135,7 +136,22 @@ function sidebarFunction() {
     });
 
     btnConf.addEventListener('click', function () {
-        // Encerra apenas a sessão atual — o perfil permanece salvo para seleção futura
+        // Remove o perfil do usuário logado da lista de seleção (index.html)
+        try {
+            var usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+            if (usuarioLogado && (usuarioLogado.id !== undefined)) {
+                var raw = localStorage.getItem('perfis');
+                var perfis = raw ? JSON.parse(raw) : [];
+                var perfisAtualizados = perfis.filter(function(p) {
+                    return String(p.id) !== String(usuarioLogado.id);
+                });
+                var perfisJson = JSON.stringify(perfisAtualizados);
+                localStorage.setItem('perfis', perfisJson);
+                if (window.desktopBridge) {
+                    try { window.desktopBridge.savePerfis(perfisJson); } catch (_) {}
+                }
+            }
+        } catch (_) {}
         localStorage.removeItem('usuarioLogado');
         window.location.href = 'index.html';
     });
