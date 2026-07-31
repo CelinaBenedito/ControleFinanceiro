@@ -11,47 +11,20 @@ const caixinhaN = document.getElementById("caixinhas"); // pode ser null em pág
 let ativo = false;
 
 navbar.style.width = "70px";
-home.style.display = "none";
-reg.style.display = "none";
-add.style.display = "none";
-agenda.style.display = "none";
-config.style.display = "none";
-tema.style.display = "none";
-if (caixinhaN) caixinhaN.style.display = "none";
 main.style.marginLeft = "70px";
 
 
 function sidebarFunction() {
-    console.log("Entrei na funciton", ativo)
     if (!ativo) {
         ativo = true;
-
-        navbar.style.width = "290px";
-        main.style.marginLeft = "290px";
-        home.style.display = "";
-        reg.style.display = "";
-        add.style.display = "";
-        agenda.style.display = "";
-        config.style.display = "";
-        tema.style.display = "";
-        if (caixinhaN) caixinhaN.style.display = "";
-
-        console.log("Abriu", ativo);
-
+        navbar.classList.add('sidebar--aberta');
+        navbar.style.width = "300px";
+        main.style.marginLeft = "300px";
     } else {
         ativo = false;
-
+        navbar.classList.remove('sidebar--aberta');
         navbar.style.width = "70px";
         main.style.marginLeft = "70px";
-        home.style.display = "none";
-        reg.style.display = "none";
-        add.style.display = "none";
-        agenda.style.display = "none";
-        config.style.display = "none";
-        tema.style.display = "none";
-        if (caixinhaN) caixinhaN.style.display = "none";
-
-        console.log("Fechou", ativo);
     }
 
 }
@@ -210,7 +183,7 @@ function sidebarFunction() {
         if (url) {
             const urlFinal = /^data:image\//i.test(url)
                 ? url
-                : `${url}${url.includes("?") ? "&" : "?"}v=${Date.now()}`;
+                : `${url}${url.includes("?") ? "&" : "?"}v=${usuarioAtual?.id || 0}`;
             uwAvatar.innerHTML = `<img src="${urlFinal}" alt="Foto de perfil" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
         } else {
             uwAvatar.innerHTML = "<i class='bx bx-user' style='font-size:1.6rem; color:var(--cor-principal);'></i>";
@@ -245,14 +218,30 @@ function sidebarFunction() {
     async function atualizarXPWidget() {
         if (!uwXp || !uwLvl || !user?.id) return;
         try {
-            const res = await fetch(`http://localhost:8080/usuarios/calculo-xp/${user.id}`);
-            if (!res.ok) {
-                uwXp.style.width = "0%";
-                uwLvl.textContent = "LVL 1";
-                return;
+            // Cache de 5 minutos no sessionStorage para evitar fetch em toda navegação
+            const cacheKey = `xp_cache_${user.id}`;
+            const cacheTs  = `xp_cache_ts_${user.id}`;
+            const cached   = sessionStorage.getItem(cacheKey);
+            const ts       = Number(sessionStorage.getItem(cacheTs) || 0);
+            const AGE_MS   = 5 * 60 * 1000; // 5 minutos
+
+            let xp;
+            if (cached !== null && (Date.now() - ts) < AGE_MS) {
+                xp = Number(cached);
+            } else {
+                const res = await fetch(`http://localhost:8080/usuarios/calculo-xp/${user.id}`);
+                if (!res.ok) {
+                    uwXp.style.width = "0%";
+                    uwLvl.textContent = "LVL 1";
+                    return;
+                }
+                xp = Number(await res.json());
+                try {
+                    sessionStorage.setItem(cacheKey, String(xp));
+                    sessionStorage.setItem(cacheTs, String(Date.now()));
+                } catch(_) {}
             }
 
-            const xp = Number(await res.json());
             const info = calcularNivelEProgresso(xp);
 
             uwXp.style.width = `${info.progresso.toFixed(2)}%`;
@@ -264,7 +253,13 @@ function sidebarFunction() {
     }
 
     window.atualizarXPWidget = atualizarXPWidget;
-    window.addEventListener("xp:refresh", atualizarXPWidget);
+    window.addEventListener("xp:refresh", () => {
+        try {
+            sessionStorage.removeItem(`xp_cache_${user?.id}`);
+            sessionStorage.removeItem(`xp_cache_ts_${user?.id}`);
+        } catch(_) {}
+        atualizarXPWidget();
+    });
     window.addEventListener("usuario:imagemAtualizada", () => {
         const usuarioAtual = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
         renderizarAvatarWidget(usuarioAtual);
@@ -298,7 +293,6 @@ document.getElementById("toggleTheme").addEventListener("click", () => {
     document.body.setAttribute("data-mode", modo);
     localStorage.setItem("modo", modo);
     atualizarIconeTema();
-    console.log("mudei")
 });
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -321,7 +315,6 @@ window.addEventListener("DOMContentLoaded", () => {
     if (modoSalvo) {
         document.body.setAttribute("data-mode", modoSalvo);
         atualizarIconeTema();
-        console.log("mudei 2")
     }
 });
 
@@ -330,14 +323,13 @@ function atualizarIconeTema() {
     const modoSalvo = localStorage.getItem("modo");
     if (modoSalvo === "dark") {
         icone.innerHTML = "<i class='bx bx-sun'></i>";
-            console.log("cheguei 2")
-
     } else {
         icone.innerHTML = "<i class='bx bx-moon'></i>";
-            console.log("cheguei 1")
 
     }
 }
+
+
 
 atualizarIconeTema();
 
