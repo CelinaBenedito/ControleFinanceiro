@@ -267,71 +267,187 @@ function sidebarFunction() {
     atualizarXPWidget();
 })();
 
-/*---------------- Tema dark ----------------*/
-const modoSalvo = localStorage.getItem("modo");
+/*---------------- Tema dark — FAB flutuante ----------------*/
 
-if (modoSalvo === "dark") {
+// Aplica modo salvo antes do render para evitar flash
+var _modoSalvo = localStorage.getItem("modo");
+if (_modoSalvo === "dark") {
     document.body.setAttribute("data-mode", "dark");
 }
 
-const temas = document.querySelectorAll(".pf-tema-item");
-const btnEscolher = document.getElementById("btnEscolherTema");
+// ── Seletor de temas coloridos (página Configurações) ──
+var _temas = document.querySelectorAll(".pf-tema-item");
+var _temaSelecionado = "padrao";
 
-let temaSelecionado = "padrao";
-
-temas.forEach((tema) => {
-    tema.addEventListener("click", () => {
-        temas.forEach(t => t.classList.remove("ativo"));
+_temas.forEach(function (tema) {
+    tema.addEventListener("click", function () {
+        _temas.forEach(function (t) { t.classList.remove("ativo"); });
         tema.classList.add("ativo");
-        temaSelecionado = tema.dataset.tema;
+        _temaSelecionado = tema.dataset.tema;
     });
 });
 
-document.getElementById("toggleTheme").addEventListener("click", () => {
-
-    const modo =  document.body.getAttribute("data-mode") == "dark" ? "light" : "dark";
-    document.body.setAttribute("data-mode", modo);
-    localStorage.setItem("modo", modo);
-    atualizarIconeTema();
-});
-
-window.addEventListener("DOMContentLoaded", () => {
-
-    const temaSalvo = localStorage.getItem("tema");
-    const modoSalvo = localStorage.getItem("modo");
+window.addEventListener("DOMContentLoaded", function () {
+    var temaSalvo = localStorage.getItem("tema");
+    var modoSalvo = localStorage.getItem("modo");
 
     if (temaSalvo) {
         document.body.setAttribute("data-tema", temaSalvo);
-        temas.forEach(t => {
+        _temas.forEach(function (t) {
             t.classList.remove("ativo");
-
-            if (t.dataset.tema === temaSalvo) {
-                t.classList.add("ativo");
-            }
+            if (t.dataset.tema === temaSalvo) t.classList.add("ativo");
         });
-        temaSelecionado = temaSalvo;
+        _temaSelecionado = temaSalvo;
     }
-
     if (modoSalvo) {
         document.body.setAttribute("data-mode", modoSalvo);
-        atualizarIconeTema();
     }
 });
 
-function atualizarIconeTema() {
-    const icone = document.getElementById("icone");
-    const modoSalvo = localStorage.getItem("modo");
-    if (modoSalvo === "dark") {
-        icone.innerHTML = "<i class='bx bx-sun'></i>";
-    } else {
-        icone.innerHTML = "<i class='bx bx-moon'></i>";
+// ── Botão de alternância claro/escuro (ao lado do user widget) ──
+(function () {
+    var moonSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    var sunSvg  = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 
+    var styles = [
+        /* ── Botão inline (ao lado do user widget) ── */
+        "#theme-fab {",
+        "    width: 46px;",
+        "    height: 46px;",
+        "    border-radius: 50%;",
+        "    border: none;",
+        "    cursor: pointer;",
+        "    background: var(--cor-fundo-card);",
+        "    color: var(--cor-principal);",
+        "    display: flex;",
+        "    align-items: center;",
+        "    justify-content: center;",
+        "    flex-shrink: 0;",
+        "    align-self: center;",
+        "    position: relative;",
+        "    overflow: visible;",
+        "    box-shadow: 0px 4px 4px var(--sombra-caixa), 0 0 0 2px var(--cor-tinte-borda);",
+        "    transition: box-shadow 0.35s ease, transform 0.22s cubic-bezier(0.34,1.56,0.64,1), color 0.35s ease;",
+        "}",
+        "#theme-fab:hover {",
+        "    box-shadow: 0px 4px 8px var(--sombra-caixa), 0 0 0 2px var(--cor-principal);",
+        "    transform: scale(1.1);",
+        "}",
+        "#theme-fab:active { transform: scale(0.92); }",
+        "body[data-mode='dark']  #theme-fab { box-shadow: 0px 4px 4px var(--sombra-caixa), 0 0 0 2px var(--cor-principal), 0 0 18px rgba(255,195,30,0.35); }",
+        "body[data-mode='dark']  #theme-fab:hover { box-shadow: 0px 4px 8px var(--sombra-caixa), 0 0 0 2px var(--cor-principal), 0 0 26px rgba(255,195,30,0.55); }",
+        /* ── Fallback fixo (páginas sem user widget) ── */
+        "#theme-fab.theme-fab--fixed {",
+        "    position: fixed;",
+        "    bottom: 28px;",
+        "    right: 28px;",
+        "    z-index: 99990;",
+        "    width: 52px;",
+        "    height: 52px;",
+        "    background: var(--cor-principal);",
+        "    color: var(--cor-texto-claro, #fff);",
+        "    align-self: unset;",
+        "    box-shadow: 0 4px 20px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10);",
+        "}",
+        "body[data-mode='dark']  #theme-fab.theme-fab--fixed { box-shadow: 0 4px 24px rgba(255,195,30,0.50), 0 2px 10px rgba(0,0,0,0.35); }",
+        "body[data-mode='light'] #theme-fab.theme-fab--fixed { box-shadow: 0 4px 24px rgba(54,115,115,0.32), 0 2px 8px rgba(0,0,0,0.12); }",
+        "#theme-fab.theme-fab--fixed:hover { box-shadow: 0 6px 28px rgba(0,0,0,0.24); }",
+        /* ── Track dos ícones ── */
+        ".theme-fab-track {",
+        "    position: relative;",
+        "    width: 22px;",
+        "    height: 22px;",
+        "}",
+        ".theme-fab-icon {",
+        "    position: absolute;",
+        "    inset: 0;",
+        "    display: flex;",
+        "    align-items: center;",
+        "    justify-content: center;",
+        "    transition: transform 0.55s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease;",
+        "    will-change: transform, opacity;",
+        "}",
+        /* Modo claro: lua visível, sol entra de baixo */
+        "body[data-mode='light'] .theme-fab-moon { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }",
+        "body[data-mode='light'] .theme-fab-sun  { transform: translateY(46px) rotate(180deg) scale(0.15); opacity: 0; }",
+        /* Modo escuro: sol visível, lua sai para cima */
+        "body[data-mode='dark']  .theme-fab-sun  { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }",
+        "body[data-mode='dark']  .theme-fab-moon { transform: translateY(-46px) rotate(-180deg) scale(0.15); opacity: 0; }",
+        /* ── Tooltip ── */
+        ".theme-fab-tooltip {",
+        "    position: absolute;",
+        "    bottom: calc(100% + 10px);",
+        "    left: 50%;",
+        "    transform: translateX(-50%) translateY(6px);",
+        "    white-space: nowrap;",
+        "    background: var(--cor-fundo-card, #fff);",
+        "    color: var(--cor-texto-principal, #1a1a1a);",
+        "    font-size: 0.72rem;",
+        "    font-weight: 600;",
+        "    font-family: 'Open Sans', sans-serif;",
+        "    padding: 5px 10px;",
+        "    border-radius: 7px;",
+        "    box-shadow: 0 4px 14px rgba(0,0,0,0.12);",
+        "    border: 1px solid var(--cor-tinte-borda, rgba(0,0,0,0.08));",
+        "    pointer-events: none;",
+        "    opacity: 0;",
+        "    transition: opacity 0.2s ease, transform 0.2s ease;",
+        "    z-index: 10;",
+        "}",
+        "#theme-fab:hover .theme-fab-tooltip { opacity: 1; transform: translateX(-50%) translateY(0); }"
+    ].join("\n");
+
+    var fabHtml = '<button id="theme-fab" aria-label="Alternar modo claro/escuro">'
+        + '<span class="theme-fab-track">'
+        + '<span class="theme-fab-icon theme-fab-moon">' + moonSvg + '</span>'
+        + '<span class="theme-fab-icon theme-fab-sun">'  + sunSvg  + '</span>'
+        + '</span>'
+        + '<span class="theme-fab-tooltip" id="theme-fab-tooltip"></span>'
+        + '</button>';
+
+    function atualizarTooltip() {
+        var tip = document.getElementById("theme-fab-tooltip");
+        if (!tip) return;
+        tip.textContent = document.body.getAttribute("data-mode") === "dark"
+            ? "Modo claro"
+            : "Modo escuro";
     }
-}
 
+    function injectFab() {
+        if (document.getElementById("theme-fab")) return;
 
+        var styleEl = document.createElement("style");
+        styleEl.id = "theme-fab-styles";
+        styleEl.textContent = styles;
+        document.head.appendChild(styleEl);
 
-atualizarIconeTema();
+        var userWidget = document.getElementById("userWidget");
+        if (userWidget) {
+            // Injeta inline antes do user widget
+            userWidget.insertAdjacentHTML("beforebegin", fabHtml);
+        } else {
+            // Fallback fixo para páginas sem user widget
+            document.body.insertAdjacentHTML("beforeend", fabHtml);
+            document.getElementById("theme-fab").classList.add("theme-fab--fixed");
+        }
+
+        atualizarTooltip();
+
+        document.getElementById("theme-fab").addEventListener("click", function () {
+            var atual = document.body.getAttribute("data-mode");
+            var novo  = atual === "dark" ? "light" : "dark";
+            document.body.setAttribute("data-mode", novo);
+            localStorage.setItem("modo", novo);
+            atualizarTooltip();
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", injectFab);
+    } else {
+        injectFab();
+    }
+})();
 
 /*---------------- Auto-Update: verificação e notificação ----------------*/
 (function () {
