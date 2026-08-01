@@ -61,7 +61,7 @@ function sidebarFunction() {
                 font-size:0.9rem; color:var(--cor-texto-secundario);
                 text-align:center; margin:0; line-height:1.55;">
                 Você será desconectado desta sessão.<br>
-                Seu perfil continuará salvo neste dispositivo.
+                Seu perfil será removido da tela inicial neste dispositivo.
             </p>
             <div style="display:flex; gap:12px; width:100%; margin-top:8px;">
                 <button id="uwLogoutCancelar" style="
@@ -109,14 +109,15 @@ function sidebarFunction() {
     });
 
     btnConf.addEventListener('click', function () {
-        // Remove o perfil do usuário logado da lista de seleção (index.html)
+        // Mesma regra do "excluir conta": remove apenas o perfil da tela inicial/local.
         try {
             var usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
-            if (usuarioLogado && (usuarioLogado.id !== undefined)) {
+            var userId = usuarioLogado ? usuarioLogado.id : null;
+            if (userId !== null && userId !== undefined) {
                 var raw = localStorage.getItem('perfis');
                 var perfis = raw ? JSON.parse(raw) : [];
                 var perfisAtualizados = perfis.filter(function(p) {
-                    return String(p.id) !== String(usuarioLogado.id);
+                    return p.id !== userId && String(p.id) !== String(userId);
                 });
                 var perfisJson = JSON.stringify(perfisAtualizados);
                 localStorage.setItem('perfis', perfisJson);
@@ -124,9 +125,14 @@ function sidebarFunction() {
                     try { window.desktopBridge.savePerfis(perfisJson); } catch (_) {}
                 }
             }
-        } catch (_) {}
+        } catch (errPerfis) {
+            console.error('Erro ao remover perfil da lista no logout:', errPerfis);
+        }
+
         localStorage.removeItem('usuarioLogado');
-        window.location.href = 'index.html';
+        setTimeout(function () {
+            window.location.href = 'index.html';
+        }, 150);
     });
 })();
 
@@ -483,6 +489,21 @@ window.addEventListener("DOMContentLoaded", function () {
         <p style="font-size:0.83rem;color:var(--cor-texto-secundario);margin:0 0 14px;line-height:1.5;">
             Clique em <strong>Atualizar agora</strong> para baixar e reiniciar automaticamente.
         </p>
+        <button id="mf-update-toggle" style="
+            display:none;align-items:center;gap:6px;background:none;border:none;padding:0;
+            margin:0 0 10px;cursor:pointer;font-size:0.82rem;font-weight:600;
+            color:var(--cor-principal,#6366f1);">
+            <span id="mf-update-toggle-text">Mostrar mais detalhes</span>
+            <span id="mf-update-arrow" aria-hidden="true" style="font-size:0.9rem;line-height:1;transition:transform 0.18s ease;">
+                <i class='bx bx-chevron-down'></i>
+            </span>
+        </button>
+        <div id="mf-update-details" style="
+            display:none;max-height:160px;overflow:auto;
+            border:1px solid var(--cor-tinte-borda,#e2e8f0);border-radius:8px;
+            padding:10px 12px;margin:0 0 12px;
+            background:var(--cor-fundo-pagina,#f8fafc);font-size:0.8rem;
+            color:var(--cor-texto-secundario);line-height:1.45;white-space:pre-line;"></div>
         <div style="display:flex;gap:8px;">
             <button id="mf-update-btn" style="
                 flex:1;padding:9px 0;border-radius:9px;border:none;cursor:pointer;
@@ -528,14 +549,41 @@ window.addEventListener("DOMContentLoaded", function () {
     const btnDepois     = document.getElementById('mf-update-later');
     const btnFechar     = document.getElementById('mf-update-close');
     const versionsEl    = document.getElementById('mf-update-versions');
+    const btnDetalhes   = document.getElementById('mf-update-toggle');
+    const txtDetalhes   = document.getElementById('mf-update-toggle-text');
+    const setaDetalhes  = document.getElementById('mf-update-arrow');
+    const detailsEl     = document.getElementById('mf-update-details');
     const progressArea  = document.getElementById('mf-update-progress');
     const progressBar   = document.getElementById('mf-update-bar');
     const statusEl      = document.getElementById('mf-update-status');
 
     let _downloadUrl = null;
+    let _showingDetails = false;
+
+    function setDetalhesVisiveis(visible) {
+        _showingDetails = !!visible;
+        detailsEl.style.display = _showingDetails ? 'block' : 'none';
+        setaDetalhes.style.transform = _showingDetails ? 'rotate(180deg)' : 'rotate(0deg)';
+        txtDetalhes.textContent = _showingDetails
+            ? 'Ocultar detalhes'
+            : 'Mostrar mais detalhes';
+    }
 
     function mostrarBanner(info) {
         versionsEl.textContent = 'Atual: v' + info.currentVersion + '  →  Nova: v' + info.latestVersion;
+        _downloadUrl = info.downloadUrl || null;
+
+        const releaseNotes = (info.releaseNotes || '').trim();
+        if (releaseNotes) {
+            detailsEl.textContent = releaseNotes;
+            btnDetalhes.style.display = 'inline-flex';
+            setDetalhesVisiveis(false);
+        } else {
+            detailsEl.textContent = '';
+            btnDetalhes.style.display = 'none';
+            setDetalhesVisiveis(false);
+        }
+
         banner.style.display = 'block';
     }
 
@@ -545,6 +593,9 @@ window.addEventListener("DOMContentLoaded", function () {
 
     btnFechar.addEventListener('click', ocultarBanner);
     btnDepois.addEventListener('click', ocultarBanner);
+    btnDetalhes.addEventListener('click', function () {
+        setDetalhesVisiveis(!_showingDetails);
+    });
 
     btnAtualizar.addEventListener('click', async function () {
         if (!_downloadUrl) return;
@@ -596,7 +647,6 @@ window.addEventListener("DOMContentLoaded", function () {
             if (!res.ok) return;
             const info = await res.json();
             if (info.hasUpdate && info.downloadUrl) {
-                _downloadUrl = info.downloadUrl;
                 mostrarBanner(info);
             }
         } catch (e) {

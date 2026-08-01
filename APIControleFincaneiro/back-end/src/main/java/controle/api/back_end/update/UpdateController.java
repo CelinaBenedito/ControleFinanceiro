@@ -29,7 +29,7 @@ public class UpdateController {
             // Retorna "sem atualização" em caso de falha (ex: sem internet)
             return ResponseEntity.ok(
                     new UpdateInfo(false, updateService.getCurrentVersion(),
-                            updateService.getCurrentVersion(), null, null)
+                            updateService.getCurrentVersion(), null, null, null)
             );
         }
     }
