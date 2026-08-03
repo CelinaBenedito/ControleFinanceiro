@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <link rel="icon" type="image/png" href="assets/glaceonIcon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empréstimos</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap"></noscript>
+    <link href='assets/boxicons/boxicons.min.css' rel='stylesheet' id='bx-local'>
+    <script>
+        (function(){
+            function checkAndFallback(){
+                var el = document.createElement('i');
+                el.className = 'bx bx-check';
+                el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;font-size:20px;visibility:hidden';
+                document.body.appendChild(el);
+                var ff = window.getComputedStyle(el).fontFamily || '';
+                document.body.removeChild(el);
+                if(ff.toLowerCase().indexOf('boxicons') === -1){
+                    var l = document.createElement('link');
+                    l.rel = 'stylesheet';
+                    l.href = 'https://cdn.boxicons.com/3.0.6/fonts/basic/boxicons.min.css';
+                    document.head.appendChild(l);
+                }
+            }
+            if(document.readyState === 'loading'){
+                document.addEventListener('DOMContentLoaded', checkAndFallback);
+            } else { checkAndFallback(); }
+        })();
+    </script>
+    <link rel="stylesheet" href="styles/Estilos.css">
+    <link rel="stylesheet" href="styles/root.css">
+    <link rel="stylesheet" href="styles/emprestimos.css">
+</head>
+
+<body data-tema="padrao" data-mode="light">
+    <div class="containerGeral">
+        <nav class="side-bar" id="navbar">
+            <ul>
+                <li onclick="sidebarFunction()">
+                    <i class='bx bx-menu-closer'></i>
+                </li>
+                <li>
+                    <a href="dashboard.html"><i class='bx bx-home'></i><span id="home">Home</span></a>
+                </li>
+                <li>
+                    <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i><span id="add">Adicionar Registros</span></a>
+                </li>
+                <li>
+                    <a href="registros.html"><i class='bx bx-address-book'></i><span id="reg"> Registros </span></a>
+                </li>
+                <li>
+                    <a href="agendaGastos.html"><i class='bx bx-calendar-event'></i><span id="agenda">Agenda</span></a>
+                </li>
+                <li>
+                    <a href="caixinhas.html"><i class='bx bx-piggy-bank'></i><span id="caixinhas">Poupança</span></a>
+                </li>
+                <li>
+                    <a href="emprestimos.html"><i class='bx bx-transfer'></i><span id="emprestimos">Empréstimos</span></a>
+                </li>
+                <li>
+                    <a href="configurações.html"><i class='bx bx-cog'></i><span id="config">Configurações</span></a>
+                </li>
+            </ul>
+        </nav>
+
+        <div id="main" class="main">
+            <div class="page-title-row">
+                <h1><i class='bx bx-transfer'></i> Empréstimos</h1>
+                <div class="top-actions">
+                    <div class="user-widget" id="userWidget">
+                        <div class="uw-info">
+                            <span class="uw-nome" id="uw_nome">Usuário</span>
+                            <div class="uw-xp-track">
+                                <div class="uw-xp-fill" id="uw_xp"></div>
+                                <span class="uw-lvl" id="uw_lvl">LVL 1</span>
+                            </div>
+                        </div>
+                        <div class="uw-avatar">
+                            <i class='bx bx-user' style="font-size:1.6rem; color:var(--cor-principal);"></i>
+                        </div>
+                        <div class="uw-dropdown" id="uwDropdown">
+                            <a href="meuPerfil.html" class="uw-dropdown-item">
+                                <i class='bx bx-user-circle'></i> Perfil
+                            </a>
+                            <a href="index.html" class="uw-dropdown-item">
+                                <i class='bx bx-arrow-back'></i> Voltar para seleção de usuário
+                            </a>
+                            <button class="uw-dropdown-item uw-logout-btn" id="btnLogout">
+                                <i class='bx bx-log-out'></i> LogOut
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumo Cards -->
+            <div class="emprestimos-resumo-grid">
+                <div class="emprestimo-resumo-card receber">
+                    <div class="resumo-icon">
+                        <i class='bx bx-down-arrow-circle'></i>
+                    </div>
+                    <div class="resumo-info">
+                        <p class="resumo-label">A Receber</p>
+                        <h2 class="resumo-valor" id="valorAReceber">R$ 0,00</h2>
+                        <p class="resumo-detalhes" id="detalhesReceber">0 pessoa(s)</p>
+                    </div>
+                </div>
+
+                <div class="emprestimo-resumo-card pagar">
+                    <div class="resumo-icon">
+                        <i class='bx bx-up-arrow-circle'></i>
+                    </div>
+                    <div class="resumo-info">
+                        <p class="resumo-label">A Pagar</p>
+                        <h2 class="resumo-valor" id="valorAPagar">R$ 0,00</h2>
+                        <p class="resumo-detalhes" id="detalhesPagar">0 pessoa(s)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="emprestimos-acoes">
+                <button class="btn-primario" onclick="abrirModalNovoEmprestimo()">
+                    <i class='bx bx-plus'></i> Novo Empréstimo
+                </button>
+
+                <div class="filtros-emprestimo">
+                    <button class="btn-filtro ativo" data-filtro="todos" onclick="filtrarEmprestimos('todos')">
+                        Todos
+                    </button>
+                    <button class="btn-filtro" data-filtro="EMPRESTEI" onclick="filtrarEmprestimos('EMPRESTEI')">
+                        Emprestei
+                    </button>
+                    <button class="btn-filtro" data-filtro="PEDI_EMPRESTADO" onclick="filtrarEmprestimos('PEDI_EMPRESTADO')">
+                        Peguei Emprestado
+                    </button>
+                    <button class="btn-filtro" data-filtro="pendentes" onclick="filtrarEmprestimos('pendentes')">
+                        Pendentes
+                    </button>
+                    <button class="btn-filtro" data-filtro="quitados" onclick="filtrarEmprestimos('quitados')">
+                        Quitados
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Empréstimos -->
+            <div class="emprestimos-lista" id="listaEmprestimos">
+                <!-- Será preenchido dinamicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novo/Editar Empréstimo -->
+    <div id="modalEmprestimo" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitulo">Novo Empréstimo</h2>
+                <button class="btn-fechar" onclick="fecharModalEmprestimo()">
+                    <i class='bx bx-x'></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formEmprestimo" onsubmit="salvarEmprestimo(event)">
+                    <div class="campo">
+                        <label>Tipo de Empréstimo *</label>
+                        <select id="inputTipo" required>
+                            <option value="">Selecione...</option>
+                            <option value="EMPRESTEI">Eu emprestei para alguém</option>
+                            <option value="PEDI_EMPRESTADO">Eu peguei emprestado</option>
+                        </select>
+                    </div>
+
+                    <div class="campo">
+                        <label>Nome da Pessoa ou Grupo *</label>
+                        <input type="text" id="inputPessoa" required maxlength="150"
+                               placeholder="Ex: João Silva, Grupo da faculdade">
+                    </div>
+
+                    <div class="campo">
+                        <label>Valor Total *</label>
+                        <input type="number" id="inputValor" required step="0.01" min="0.01"
+                               placeholder="0.00">
+                    </div>
+
+                    <div class="campo">
+                        <label>Data de Previsão de Pagamento</label>
+                        <input type="date" id="inputDataPrevisao">
+                    </div>
+
+                    <div class="campo">
+                        <label>Observações</label>
+                        <textarea id="inputObservacoes" rows="4" maxlength="1000"
+                                  placeholder="Anotações sobre o empréstimo..."></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secundario" onclick="fecharModalEmprestimo()">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn-primario">
+                            <i class='bx bx-save'></i> Salvar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pagamento Parcial -->
+    <div id="modalPagamento" class="modal">
+        <div class="modal-content modal-pequeno">
+            <div class="modal-header">
+                <h2>Registrar Pagamento</h2>
+                <button class="btn-fechar" onclick="fecharModalPagamento()">
+                    <i class='bx bx-x'></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formPagamento" onsubmit="salvarPagamento(event)">
+                    <p id="infoPagamento" class="info-pagamento"></p>
+
+                    <div class="campo">
+                        <label>Valor Pago *</label>
+                        <input type="number" id="inputValorPagamento" required step="0.01" min="0.01"
+                               placeholder="0.00">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secundario" onclick="fecharModalPagamento()">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn-primario">
+                            <i class='bx bx-check'></i> Confirmar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/navbar.js"></script>
+    <script src="js/emprestimos.js"></script>
+</body>
+
+</html>
+
