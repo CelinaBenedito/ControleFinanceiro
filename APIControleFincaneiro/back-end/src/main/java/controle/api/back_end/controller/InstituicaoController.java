@@ -80,8 +80,8 @@ public class InstituicaoController {
     }
 
     @GetMapping("/saldo/{instituicaoUsuario_id}")
-    @Operation(summary = "Buscar o saldo pelo id da instituição",
-            description = "Busca o saldo de uma instituição pela assosiação do usuário e da instituição.")
+    @Operation(summary = "Buscar o saldo/crédito disponível pelo id da instituição",
+            description = "Para cartão de crédito retorna o crédito disponível (limite - usado). Para conta débito retorna o fluxo de caixa.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Busca feita com sucesso e a dados para retornar",
                     content = @Content(mediaType = "application/json",
@@ -93,6 +93,21 @@ public class InstituicaoController {
         BigDecimal saldoByInstituicao = instituicaoService
                 .getSaldoByInstituicao(instituicaoUsuario_id);
         return ResponseEntity.status(200).body(saldoByInstituicao);
+    }
+
+    @GetMapping("/saldo-debito/{instituicaoUsuario_id}")
+    @Operation(summary = "Buscar o saldo de débito (fluxo de caixa) pelo id da instituição",
+            description = "Retorna apenas o saldo de débito (entradas - saídas débito), sem considerar o limite de crédito. Use para validar transações no débito.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Busca feita com sucesso",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = BigDecimal.class))),
+            @ApiResponse(responseCode = "404", description = "Dados Inválidos",
+                    content = @Content)
+    })
+    public ResponseEntity<BigDecimal> getSaldoDebitoByInstituicao(@PathVariable Integer instituicaoUsuario_id){
+        BigDecimal saldo = instituicaoService.getSaldoDebitoByInstituicao(instituicaoUsuario_id);
+        return ResponseEntity.status(200).body(saldo);
     }
 
     @PostMapping

@@ -1,0 +1,31 @@
+package controle.api.back_end.dto.emprestimo.bancario;
+import controle.api.back_end.model.emprestimo.ModalidadeEmprestimoBancario;
+import controle.api.back_end.model.emprestimo.StatusEmprestimoBancario;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
+public record EmprestimoBancarioResponseDTO(
+    UUID id,
+    UUID usuarioId,
+    String bancoNome,
+    ModalidadeEmprestimoBancario modalidade,
+    BigDecimal valorPrincipal,
+    BigDecimal taxaJurosMensal,
+    Integer totalParcelas,
+    Integer parcelasPagas,
+    Integer parcelasRestantes,
+    BigDecimal valorParcela,
+    BigDecimal valorTotalComJuros,
+    BigDecimal valorTotalPago,
+    BigDecimal saldoDevedor,
+    double percentualPago,
+    LocalDate dataContratacao,
+    LocalDate dataPrimeiraParcela,
+    LocalDate proximaParcela,
+    LocalDateTime dataCriacao,
+    LocalDateTime dataQuitacao,
+    StatusEmprestimoBancario status,
+    String observacoes,
+    boolean atrasado
+) {}

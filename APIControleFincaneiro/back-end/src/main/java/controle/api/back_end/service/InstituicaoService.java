@@ -125,6 +125,11 @@ public class InstituicaoService {
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
     }
 
+    /**
+     * Retorna o crédito disponível do cartão de crédito: limite - totalCreditoUsado.
+     * Para instituições sem limite configurado, retorna o saldo de débito (fluxo de caixa).
+     * Use este método apenas para EXIBIÇÃO do saldo do cartão de crédito.
+     */
     public BigDecimal getSaldoByInstituicao(Integer instituicaoUsuarioId) {
         InstituicaoUsuario iu = instituicaoUsuarioRepository.findById(instituicaoUsuarioId)
                 .orElseThrow(() ->
@@ -141,33 +146,51 @@ public class InstituicaoService {
 
         for (EventoInstituicao ei : eventosInstituicao) {
             EventoFinanceiro eventoFinanceiro = ei.getEventoFinanceiro();
-
-            if (eventoFinanceiro == null) {
-                continue;
-            }
+            if (eventoFinanceiro == null) continue;
 
             saldo = getSaldoPorMovimento(saldo, eventoFinanceiro, ei);
 
-            // Acumula crédito utilizado (gastos no cartão de crédito)
-            // e reduz com pagamentos de fatura
             if (ei.getTipoMovimento() == TipoMovimento.Credito) {
                 BigDecimal v = BigDecimal.valueOf(ei.getValor());
                 String descricao = eventoFinanceiro.getDescricao() != null ? eventoFinanceiro.getDescricao() : "";
-
                 if (descricao.contains("Pagamento da fatura")) {
-                    totalCreditoUsado = totalCreditoUsado.subtract(v); // pagamento de fatura
+                    totalCreditoUsado = totalCreditoUsado.subtract(v);
                 } else if (eventoFinanceiro.getTipo() == Tipo.Gasto || eventoFinanceiro.getTipo() == Tipo.Transferencia) {
-                    totalCreditoUsado = totalCreditoUsado.add(v); // compra no crédito
+                    totalCreditoUsado = totalCreditoUsado.add(v);
                 }
             }
         }
 
-        // Para instituições com limite de crédito: saldo disponível = limite - crédito utilizado
+        // Para cartão de crédito: retorna crédito disponível (limite - crédito utilizado)
         BigDecimal limite = iu.getLimiteCredito();
         if (limite != null && limite.compareTo(BigDecimal.ZERO) > 0) {
             return limite.subtract(totalCreditoUsado).max(BigDecimal.ZERO);
         }
 
+        return saldo;
+    }
+
+    /**
+     * Retorna o saldo de débito (fluxo de caixa) da instituição, ignorando o limite de crédito.
+     * Use este método para validar transações no débito e para exibição em contexto de débito.
+     * O limite de crédito do cartão NÃO é considerado aqui.
+     */
+    public BigDecimal getSaldoDebitoByInstituicao(Integer instituicaoUsuarioId) {
+        if (!instituicaoUsuarioRepository.existsById(instituicaoUsuarioId)) {
+            throw new EntidadeNaoEncontradaException(
+                    "Associação de instituição e usuário de id: %d não encontrada."
+                            .formatted(instituicaoUsuarioId)
+            );
+        }
+        List<EventoInstituicao> eventosInstituicao =
+                eventoInstituicaoRepository.findByInstituicaoUsuario_Id(instituicaoUsuarioId);
+
+        BigDecimal saldo = BigDecimal.ZERO;
+        for (EventoInstituicao ei : eventosInstituicao) {
+            EventoFinanceiro ef = ei.getEventoFinanceiro();
+            if (ef == null) continue;
+            saldo = getSaldoPorMovimento(saldo, ef, ei);
+        }
         return saldo;
     }
 
@@ -244,14 +267,27 @@ public class InstituicaoService {
             BigDecimal totalCredito = BigDecimal.ZERO;
             BigDecimal totalDebito = BigDecimal.ZERO;
             BigDecimal saldo = BigDecimal.ZERO;
+            BigDecimal totalCreditoUsadoAllTime = BigDecimal.ZERO; // rastreia crédito utilizado all-time
             int parcelamentosAtivos = 0;
 
             for (EventoInstituicao ei : eis) {
                 EventoFinanceiro ef = ei.getEventoFinanceiro();
                 if (ef == null) continue;
 
-                // Saldo acumulado é sempre all-time (saldo atual da conta)
+                // Saldo acumulado é sempre all-time (fluxo de caixa da conta)
                 saldo = getSaldoPorMovimento(saldo, ef, ei);
+
+                // Rastreia crédito utilizado all-time (antes do filtro de período)
+                // para calcular o saldo disponível do cartão de crédito
+                if (ei.getTipoMovimento() == TipoMovimento.Credito) {
+                    BigDecimal vAt = BigDecimal.valueOf(ei.getValor());
+                    String descAt = ef.getDescricao() != null ? ef.getDescricao() : "";
+                    if (descAt.contains("Pagamento da fatura")) {
+                        totalCreditoUsadoAllTime = totalCreditoUsadoAllTime.subtract(vAt);
+                    } else if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) {
+                        totalCreditoUsadoAllTime = totalCreditoUsadoAllTime.add(vAt);
+                    }
+                }
 
                 // Parcelamentos ativos: sobreposição com período (se fornecido) ou ainda não vencido
                 if (ei.getParcelas() != null && ei.getParcelas() > 1) {
@@ -292,13 +328,19 @@ public class InstituicaoService {
                     ? totalCredito.divide(limite, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).intValue()
                     : 0;
 
+            // Saldo disponível: para cartão de crédito usa limite - crédito utilizado (all-time)
+            // Para conta débito usa o fluxo de caixa acumulado
+            BigDecimal saldoDisponivel = (limite.compareTo(BigDecimal.ZERO) > 0)
+                    ? limite.subtract(totalCreditoUsadoAllTime).max(BigDecimal.ZERO)
+                    : saldo;
+
             boolean temCredito = calcularTemCredito(iu.getInstituicao().getNome());
 
             resultado.add(new ResumoInstituicaoDto(
                     iu.getId(),
                     iu.getInstituicao().getNome(),
                     transacoes,
-                    saldo,
+                    saldoDisponivel,
                     totalCredito,
                     totalDebito,
                     limite,
