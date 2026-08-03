@@ -626,8 +626,8 @@ async function registrar() {
         if (!algumValor) return alerta("Informe o valor para cada instituição");
     }
 
-    // Verificar saldo quando o tipo exige débito
-    if ((tipo === 'Gasto' || tipo === 'Transferencia') && selectedInst.length === 1) {
+    // Verificar saldo quando o tipo exige débito (exceto crédito, que não debita imediatamente)
+    if ((tipo === 'Gasto' || tipo === 'Transferencia') && selectedInst.length === 1 && movimento !== 'Credito') {
         try {
             const resSaldo = await fetch(`http://localhost:8080/instituicoes/saldo/${Number(selectedInst[0].id)}`);
             if (resSaldo.ok) {

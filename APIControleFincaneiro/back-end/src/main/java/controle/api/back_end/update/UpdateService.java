@@ -1,5 +1,7 @@
 package controle.api.back_end.update;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.application.Platform;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -8,10 +10,11 @@ import java.io.*;
 import java.net.URI;
 import java.net.http.*;
 import java.nio.file.*;
-import java.util.regex.*;
 
 @Service
 public class UpdateService {
+
+    private static final int RELEASE_NOTES_MAX_LENGTH = 3500;
 
     @Value("${app.update.github.owner}")
     private String githubOwner;
@@ -38,7 +41,7 @@ public class UpdateService {
 
     public UpdateInfo checkForUpdate() throws Exception {
         if (!updateEnabled) {
-            return new UpdateInfo(false, currentVersion, currentVersion, null, null);
+            return new UpdateInfo(false, currentVersion, currentVersion, null, null, null);
         }
 
         String apiUrl = String.format(
@@ -59,17 +62,20 @@ public class UpdateService {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 200) {
-            return new UpdateInfo(false, currentVersion, currentVersion, null, null);
+            return new UpdateInfo(false, currentVersion, currentVersion, null, null, null);
         }
 
-        String body = response.body();
-        String latestTag     = extractJsonString(body, "tag_name");
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode release = mapper.readTree(response.body());
+
+        String latestTag     = release.path("tag_name").asText("");
         String latestVersion = latestTag.replaceFirst("^v", "");
-        String releaseUrl    = extractJsonString(body, "html_url");
-        String downloadUrl   = extractAssetDownloadUrl(body, assetName);
+        String releaseNotes  = normalizeReleaseNotes(release.path("body").asText(""));
+        String releaseUrl    = release.path("html_url").asText("");
+        String downloadUrl   = extractAssetDownloadUrl(release.path("assets"), assetName);
 
         boolean hasUpdate = isNewerVersion(latestVersion, currentVersion);
-        return new UpdateInfo(hasUpdate, currentVersion, latestVersion, releaseUrl, downloadUrl);
+        return new UpdateInfo(hasUpdate, currentVersion, latestVersion, releaseNotes, releaseUrl, downloadUrl);
     }
 
     // -------------------------------------------------------------------------
@@ -238,33 +244,25 @@ public class UpdateService {
         return false;
     }
 
-    private String extractJsonString(String json, String key) {
-        Pattern p = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*\"([^\"\\\\]*)\"");
-        Matcher m = p.matcher(json);
-        return m.find() ? m.group(1) : "";
+    /**
+     * Procura o browser_download_url do asset com o nome informado no array assets.
+     */
+    private String extractAssetDownloadUrl(JsonNode assetsNode, String targetAssetName) {
+        if (assetsNode == null || !assetsNode.isArray()) return "";
+        for (JsonNode asset : assetsNode) {
+            if (targetAssetName.equals(asset.path("name").asText(""))) {
+                return asset.path("browser_download_url").asText("");
+            }
+        }
+        return "";
     }
 
-    /**
-     * Procura o browser_download_url do asset com o nome informado dentro
-     * do array "assets" do JSON de release do GitHub.
-     */
-    private String extractAssetDownloadUrl(String json, String targetAssetName) {
-        // Localiza o bloco do asset pelo name
-        int nameIdx = json.indexOf("\"" + targetAssetName + "\"");
-        if (nameIdx < 0) return "";
-
-        // Vai um pouco para trás para pegar o início do objeto do asset
-        int objectStart = json.lastIndexOf("{", nameIdx);
-        if (objectStart < 0) objectStart = nameIdx;
-
-        // Pega o próximo bloco de objeto (até a próxima ocorrência de "name": após nameIdx)
-        int nextName = json.indexOf("\"name\"", nameIdx + 1);
-        String segment = nextName > 0
-                ? json.substring(objectStart, nextName)
-                : json.substring(objectStart);
-
-        Pattern p = Pattern.compile("\"browser_download_url\"\\s*:\\s*\"([^\"]+)\"");
-        Matcher m = p.matcher(segment);
-        return m.find() ? m.group(1) : "";
+    private String normalizeReleaseNotes(String notes) {
+        if (notes == null) return "";
+        String normalized = notes.replace("\r\n", "\n").replace("\r", "\n").trim();
+        if (normalized.length() > RELEASE_NOTES_MAX_LENGTH) {
+            return normalized.substring(0, RELEASE_NOTES_MAX_LENGTH) + "\n...";
+        }
+        return normalized;
     }
 }

@@ -4,6 +4,7 @@ public record UpdateInfo(
         boolean hasUpdate,
         String currentVersion,
         String latestVersion,
+        String releaseNotes,
         String releaseUrl,
         String downloadUrl
 ) {}
