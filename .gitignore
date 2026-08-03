@@ -1,21 +1,4 @@
 # Build artifacts
-target/
-*.class
-*.log
-
-# IDE files
-.vscode/
-.idea/
-*.iml
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Local data / uploads
-uploads/
-src/main/resources/static/assets/user_images/
-# Build artifacts
 **/target/
 *.class
 *.log
@@ -39,5 +22,4 @@ Thumbs.db
 # User-generated uploads
 APIControleFincaneiro/back-end/uploads/
 APIControleFincaneiro/back-end/src/main/resources/static/assets/user_images/
-
 
