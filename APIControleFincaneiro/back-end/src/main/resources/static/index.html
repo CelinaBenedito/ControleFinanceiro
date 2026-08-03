@@ -53,8 +53,8 @@
 <script>
     (function () {
         var _lista = document.getElementById("listaUsuarios");
-        // Referência CORRETA: o <a href="cadastrar.html"> é filho DIRETO de _lista.
-        // Usar .addUsuario causava NotFoundError silencioso porque ele é neto (está dentro do <a>).
+        // Referï¿½ncia CORRETA: o <a href="cadastrar.html"> ï¿½ filho DIRETO de _lista.
+        // Usar .addUsuario causava NotFoundError silencioso porque ele ï¿½ neto (estï¿½ dentro do <a>).
         var _btnAdd = _lista.querySelector("a[href='cadastrar.html']") || _lista.lastElementChild;
         var _API = "http://localhost:8080";
         var _jaRenderizou = false;
@@ -82,7 +82,7 @@
                     localStorage.setItem("usuarioLogado", JSON.stringify(perfil));
                     window.location.href = "dashboard.html";
                 });
-                // insertBefore precisa de filho DIRETO como referência
+                // insertBefore precisa de filho DIRETO como referï¿½ncia
                 _lista.insertBefore(card, _btnAdd);
             });
             _jaRenderizou = true;
@@ -97,7 +97,7 @@
             _lista.insertBefore(av, _btnAdd);
         }
 
-        // -- 1. localStorage (síncrono, como os temas) -----------------------
+        // -- 1. localStorage (sï¿½ncrono, como os temas) -----------------------
         try {
             var raw = localStorage.getItem("perfis");
             var lsData = raw ? JSON.parse(raw) : [];
@@ -109,8 +109,8 @@
         }
 
         // -- 2. Polling para desktopBridge ------------------------------------
-        // Após Worker.State.SUCCEEDED o JavaFX injeta window.desktopBridge.
-        // loadPerfis() é uma chamada Java síncrona — sem async, sem Promise.
+        // Apï¿½s Worker.State.SUCCEEDED o JavaFX injeta window.desktopBridge.
+        // loadPerfis() ï¿½ uma chamada Java sï¿½ncrona ï¿½ sem async, sem Promise.
         (function poll(tentativa) {
             if (window.desktopBridge) {
                 try {
@@ -120,17 +120,17 @@
                         try { localStorage.setItem("perfis", json); } catch (_) {}
                         _renderPerfis(data);
                     } else if (!_jaRenderizou) {
-                        _mostrarAviso("Nenhum perfil salvo. Faça login ou cadastre-se.");
+                        _mostrarAviso("Nenhum perfil salvo. Faï¿½a login ou cadastre-se.");
                     }
                 } catch (e) {
-                    if (!_jaRenderizou) _mostrarAviso("Nenhum perfil salvo. Faça login ou cadastre-se.");
+                    if (!_jaRenderizou) _mostrarAviso("Nenhum perfil salvo. Faï¿½a login ou cadastre-se.");
                 }
                 return;
             }
             if (tentativa < 30) {
                 setTimeout(function () { poll(tentativa + 1); }, 100);
             } else if (!_jaRenderizou) {
-                _mostrarAviso("Nenhum perfil salvo. Faça login ou cadastre-se.");
+                _mostrarAviso("Nenhum perfil salvo. Faï¿½a login ou cadastre-se.");
             }
         }(0));
 
