@@ -7,9 +7,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/**
- * DTO para criação e edição de empréstimos.
- */
 public record EmprestimoCreateDTO(
         @NotNull(message = "ID do usuário é obrigatório")
         UUID usuarioId,
@@ -24,6 +21,11 @@ public record EmprestimoCreateDTO(
         @NotNull(message = "Valor total é obrigatório")
         @Positive(message = "Valor total deve ser positivo")
         BigDecimal valorTotal,
+
+        @NotNull(message = "Institui\u00e7\u00e3o \u00e9 obrigat\u00f3ria")
+        Integer instituicaoUsuarioId,
+
+        LocalDate dataEmprestimo,
 
         LocalDate dataPrevisao,
 

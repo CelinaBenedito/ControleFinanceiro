@@ -8,6 +8,7 @@ let emprestimos = [];
 let emprestimoEmEdicao = null;
 let emprestimoParaPagamento = null;
 let filtroAtual = 'todos';
+let _instituicoes = []; // cache das instituições do usuário
 
 // ── Inicialização ──
 window.addEventListener('DOMContentLoaded', () => {
@@ -18,9 +19,61 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     usuarioLogado = JSON.parse(userData);
 
+    // Aplicar máscaras
+    const iValor  = document.getElementById('inputValor');
+    const iData   = document.getElementById('inputDataPrevisao');
+    const iDataEmp = document.getElementById('inputDataEmprestimo');
+    const iPag    = document.getElementById('inputValorPagamento');
+    if (iValor  && window.MainAPI?.aplicarMascaraMoeda)  window.MainAPI.aplicarMascaraMoeda(iValor);
+    if (iData   && window.MainAPI?.aplicarMascaraData)   window.MainAPI.aplicarMascaraData(iData);
+    if (iDataEmp && window.MainAPI?.aplicarMascaraData)  window.MainAPI.aplicarMascaraData(iDataEmp);
+    if (iPag    && window.MainAPI?.aplicarMascaraMoeda)  window.MainAPI.aplicarMascaraMoeda(iPag);
+    const iDataPag = document.getElementById('inputDataPagamento');
+    if (iDataPag && window.MainAPI?.aplicarMascaraData)  window.MainAPI.aplicarMascaraData(iDataPag);
+
+    carregarInstituicoes();
     carregarResumo();
     carregarEmprestimos();
 });
+
+// ============================================================================
+// INSTITUIÇÕES
+// ============================================================================
+
+async function carregarInstituicoes() {
+    try {
+        _instituicoes = await window.MainAPI.getInstituicoes(usuarioLogado.id);
+        popularSelectInstituicoes('inputInstituicao');
+        popularSelectInstituicoes('inputInstituicaoPagamento');
+    } catch (e) {
+        console.error('Erro ao carregar instituições:', e);
+    }
+}
+
+function popularSelectInstituicoes(selectId) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Selecione a conta...</option>';
+    _instituicoes.forEach(inst => {
+        const opt = document.createElement('option');
+        opt.value = inst.id;
+        opt.textContent = inst.intituicao.nome;
+        sel.appendChild(opt);
+    });
+}
+
+function atualizarLabelInstituicao() {
+    const tipo = document.getElementById('inputTipo')?.value;
+    const label = document.getElementById('labelInstituicao');
+    if (!label) return;
+    if (tipo === 'EMPRESTEI') {
+        label.textContent = 'Conta de onde sairá o dinheiro *';
+    } else if (tipo === 'PEDI_EMPRESTADO') {
+        label.textContent = 'Conta onde o dinheiro será recebido *';
+    } else {
+        label.textContent = 'Conta *';
+    }
+}
 
 // ============================================================================
 // CARREGAR DADOS
@@ -118,13 +171,21 @@ function criarCardEmprestimo(emprestimo) {
     const isQuitado = emprestimo.status === 'QUITADO';
 
     let dataInfo = '';
+    if (emprestimo.dataEmprestimo) {
+        dataInfo += `
+            <div class="emprestimo-data">
+                <i class='bx bx-calendar-check'></i>
+                Emprestado em: ${formatarData(emprestimo.dataEmprestimo)}
+            </div>
+        `;
+    }
     if (emprestimo.dataPrevisao) {
         const dataPrevisao = new Date(emprestimo.dataPrevisao);
         const hoje = new Date();
         const atrasado = !isQuitado && dataPrevisao < hoje;
         const icon = atrasado ? 'bx-error-circle' : 'bx-calendar';
         const classe = atrasado ? 'style="color: #ef4444;"' : '';
-        dataInfo = `
+        dataInfo += `
             <div class="emprestimo-data" ${classe}>
                 <i class='bx ${icon}'></i>
                 Previsão: ${formatarData(emprestimo.dataPrevisao)}
@@ -236,8 +297,19 @@ function filtrarEmprestimos(filtro) {
 
 function abrirModalNovoEmprestimo() {
     emprestimoEmEdicao = null;
-    document.getElementById('modalTitulo').textContent = 'Novo Empréstimo';
+    document.getElementById('modalTitulo').textContent = 'Novo Empréstimo Pessoal';
     document.getElementById('formEmprestimo').reset();
+    const iValor = document.getElementById('inputValor');
+    if (iValor && window.MainAPI?.resetarMascaraMoeda) window.MainAPI.resetarMascaraMoeda(iValor);
+    // Pré-preenche data do empréstimo com hoje
+    const iDataEmpNovo = document.getElementById('inputDataEmprestimo');
+    if (iDataEmpNovo) {
+        const hoje = new Date();
+        iDataEmpNovo.value = String(hoje.getDate()).padStart(2,'0') + '/' +
+            String(hoje.getMonth()+1).padStart(2,'0') + '/' + hoje.getFullYear();
+    }
+    popularSelectInstituicoes('inputInstituicao');
+    atualizarLabelInstituicao();
     document.getElementById('modalEmprestimo').classList.add('aberto');
 }
 
@@ -246,11 +318,28 @@ function editarEmprestimo(emprestimoId) {
     if (!emprestimoEmEdicao) return;
 
     document.getElementById('modalTitulo').textContent = 'Editar Empréstimo';
-    document.getElementById('inputTipo').value = emprestimoEmEdicao.tipo;
-    document.getElementById('inputPessoa').value = emprestimoEmEdicao.pessoaOuGrupo;
-    document.getElementById('inputValor').value = emprestimoEmEdicao.valorTotal;
-    document.getElementById('inputDataPrevisao').value = emprestimoEmEdicao.dataPrevisao || '';
+    document.getElementById('inputTipo').value    = emprestimoEmEdicao.tipo;
+    document.getElementById('inputPessoa').value  = emprestimoEmEdicao.pessoaOuGrupo;
     document.getElementById('inputObservacoes').value = emprestimoEmEdicao.observacoes || '';
+
+    // Valor com máscara
+    const iValor = document.getElementById('inputValor');
+    const cents  = Math.round((emprestimoEmEdicao.valorTotal || 0) * 100);
+    iValor.dataset.centavos = String(cents);
+    const reais = Math.floor(cents / 100);
+    iValor.value = 'R$ ' + String(reais).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + String(cents % 100).padStart(2, '0');
+
+    // Data do empréstimo
+    const iDataEmpEdit = document.getElementById('inputDataEmprestimo');
+    iDataEmpEdit.value = (window.MainAPI?.dataDeISO && emprestimoEmEdicao.dataEmprestimo)
+        ? window.MainAPI.dataDeISO(emprestimoEmEdicao.dataEmprestimo)
+        : '';
+
+    // Data com máscara (ISO → dd/mm/aaaa)
+    const iData = document.getElementById('inputDataPrevisao');
+    iData.value = (window.MainAPI?.dataDeISO && emprestimoEmEdicao.dataPrevisao)
+        ? window.MainAPI.dataDeISO(emprestimoEmEdicao.dataPrevisao)
+        : '';
 
     document.getElementById('modalEmprestimo').classList.add('aberto');
 }
@@ -271,7 +360,25 @@ function abrirModalPagamento(emprestimoId) {
         <strong>Restante:</strong> ${formatarMoeda(emprestimoParaPagamento.valorRestante)}
     `;
 
+    // Atualizar label da conta conforme o tipo
+    const labelPag = document.getElementById('labelInstituicaoPagamento');
+    if (labelPag) {
+        labelPag.textContent = emprestimoParaPagamento.tipo === 'EMPRESTEI'
+            ? 'Conta onde receberá o pagamento *'
+            : 'Conta de onde sairá o pagamento *';
+    }
+
     document.getElementById('formPagamento').reset();
+    const iPag = document.getElementById('inputValorPagamento');
+    if (iPag && window.MainAPI?.resetarMascaraMoeda) window.MainAPI.resetarMascaraMoeda(iPag);
+    // Pré-preenche data do pagamento com hoje
+    const iDataPagModal = document.getElementById('inputDataPagamento');
+    if (iDataPagModal) {
+        const hoje = new Date();
+        iDataPagModal.value = String(hoje.getDate()).padStart(2,'0') + '/' +
+            String(hoje.getMonth()+1).padStart(2,'0') + '/' + hoje.getFullYear();
+    }
+    popularSelectInstituicoes('inputInstituicaoPagamento');
     document.getElementById('modalPagamento').classList.add('aberto');
 }
 
@@ -287,12 +394,24 @@ function fecharModalPagamento() {
 async function salvarEmprestimo(event) {
     event.preventDefault();
 
+    const iValor = document.getElementById('inputValor');
+    const iData  = document.getElementById('inputDataPrevisao');
+    const iDataEmp = document.getElementById('inputDataEmprestimo');
+    const valorTotal = window.MainAPI ? window.MainAPI.obterValorMoeda(iValor) : parseFloat(iValor.value);
+    const dataISO    = window.MainAPI ? window.MainAPI.dataParaISO(iData.value) : iData.value;
+    const dataEmpISO = window.MainAPI ? window.MainAPI.dataParaISO(iDataEmp?.value || '') : null;
+    const instituicaoUsuarioId = parseInt(document.getElementById('inputInstituicao').value);
+
+    if (!instituicaoUsuarioId) return mostrarNotificacao('Selecione uma conta!', 'erro');
+
     const dados = {
         usuarioId: usuarioLogado.id,
         tipo: document.getElementById('inputTipo').value,
         pessoaOuGrupo: document.getElementById('inputPessoa').value,
-        valorTotal: parseFloat(document.getElementById('inputValor').value),
-        dataPrevisao: document.getElementById('inputDataPrevisao').value || null,
+        valorTotal,
+        instituicaoUsuarioId,
+        dataEmprestimo: dataEmpISO || null,
+        dataPrevisao: dataISO || null,
         observacoes: document.getElementById('inputObservacoes').value || null
     };
 
@@ -331,7 +450,11 @@ async function salvarEmprestimo(event) {
 async function salvarPagamento(event) {
     event.preventDefault();
 
-    const valorPagamento = parseFloat(document.getElementById('inputValorPagamento').value);
+    const iPag = document.getElementById('inputValorPagamento');
+    const valorPagamento = window.MainAPI ? window.MainAPI.obterValorMoeda(iPag) : parseFloat(iPag.value);
+    const instituicaoUsuarioId = parseInt(document.getElementById('inputInstituicaoPagamento').value);
+
+    if (!instituicaoUsuarioId) return mostrarNotificacao('Selecione uma conta!', 'erro');
 
     if (valorPagamento > emprestimoParaPagamento.valorRestante) {
         mostrarNotificacao('Valor não pode ser maior que o restante!', 'erro');
@@ -344,7 +467,11 @@ async function salvarPagamento(event) {
             {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ valorPago: valorPagamento })
+                body: JSON.stringify({
+                    valorPago: valorPagamento,
+                    instituicaoUsuarioId,
+                    dataPagamento: window.MainAPI?.dataParaISO(document.getElementById('inputDataPagamento')?.value) || null
+                })
             }
         );
 
@@ -361,60 +488,106 @@ async function salvarPagamento(event) {
 }
 
 async function quitarEmprestimo(emprestimoId) {
-    if (!confirm('Deseja marcar este empréstimo como quitado?')) return;
+    const emprestimo = emprestimos.find(e => e.id === emprestimoId);
+    const tipoLabel = emprestimo?.tipo === 'EMPRESTEI' ? 'receberá o valor restante' : 'pagará o valor restante';
 
-    try {
-        const response = await fetch(`${API_BASE}/emprestimos/${emprestimoId}/quitar`, {
-            method: 'PATCH'
-        });
+    _abrirSeletorInstituicaoEQuitar(emprestimoId, tipoLabel, emprestimo);
+}
 
-        if (!response.ok) throw new Error('Erro ao quitar empréstimo');
+function _abrirSeletorInstituicaoEQuitar(emprestimoId, tipoLabel, emprestimo) {
+    const div = document.getElementById('div_alerta');
+    const conteudo = document.getElementById('conteudoAlerta');
+    if (!div || !conteudo) return;
 
-        mostrarNotificacao('Empréstimo quitado!', 'sucesso');
-        await carregarResumo();
-        await carregarEmprestimos();
-    } catch (error) {
-        console.error('Erro ao quitar:', error);
-        mostrarNotificacao('Erro ao quitar empréstimo', 'erro');
-    }
+    conteudo.innerHTML = '';
+
+    const msg = document.createElement('p');
+    msg.style.cssText = 'margin-bottom:10px;text-align:center;line-height:1.5;';
+    msg.textContent = `Em qual conta ${tipoLabel}?`;
+    conteudo.appendChild(msg);
+
+    const sel = document.createElement('select');
+    sel.style.cssText = 'width:100%;padding:8px;border-radius:8px;border:1px solid var(--cor-principal);background:var(--cor-fundo-campo,#fff);color:var(--cor-texto-principal);margin-bottom:12px;';
+    sel.innerHTML = '<option value="">Selecione a conta...</option>';
+    _instituicoes.forEach(inst => {
+        const opt = document.createElement('option');
+        opt.value = inst.id;
+        opt.textContent = inst.intituicao.nome;
+        sel.appendChild(opt);
+    });
+    conteudo.appendChild(sel);
+
+    const btns = document.createElement('div');
+    btns.style.cssText = 'display:flex;gap:8px;justify-content:center;';
+
+    const btnNao = document.createElement('button');
+    btnNao.textContent = 'Cancelar';
+    btnNao.style.cssText = 'background:var(--cor-fundo-pagina,#e5e7eb);color:var(--cor-texto-principal);border:1px solid var(--cor-tinte-borda,#ccc);';
+    btnNao.onclick = () => { div.style.display = 'none'; };
+
+    const btnSim = document.createElement('button');
+    btnSim.textContent = 'Quitar';
+    btnSim.onclick = async () => {
+        const instId = parseInt(sel.value);
+        if (!instId) { mostrarNotificacao('Selecione uma conta!', 'erro'); return; }
+        div.style.display = 'none';
+        try {
+            const response = await fetch(`${API_BASE}/emprestimos/${emprestimoId}/quitar`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ instituicaoUsuarioId: instId })
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.message || `HTTP ${response.status}`);
+            }
+            mostrarNotificacao('Empréstimo quitado!', 'sucesso');
+            await carregarResumo();
+            await carregarEmprestimos();
+        } catch (error) {
+            console.error('Erro ao quitar:', error);
+            mostrarNotificacao('Erro ao quitar: ' + error.message, 'erro');
+        }
+    };
+
+    btns.appendChild(btnNao);
+    btns.appendChild(btnSim);
+    conteudo.appendChild(btns);
+    div.style.display = 'flex';
 }
 
 async function reabrirEmprestimo(emprestimoId) {
-    if (!confirm('Deseja reabrir este empréstimo?')) return;
-
-    try {
-        const response = await fetch(`${API_BASE}/emprestimos/${emprestimoId}/reabrir`, {
-            method: 'PATCH'
-        });
-
-        if (!response.ok) throw new Error('Erro ao reabrir empréstimo');
-
-        mostrarNotificacao('Empréstimo reaberto!', 'sucesso');
-        await carregarResumo();
-        await carregarEmprestimos();
-    } catch (error) {
-        console.error('Erro ao reabrir:', error);
-        mostrarNotificacao('Erro ao reabrir empréstimo', 'erro');
-    }
+    confirmar('Deseja reabrir este empréstimo?', async () => {
+        try {
+            const response = await fetch(`${API_BASE}/emprestimos/${emprestimoId}/reabrir`, {
+                method: 'PATCH'
+            });
+            if (!response.ok) throw new Error('Erro ao reabrir empréstimo');
+            mostrarNotificacao('Empréstimo reaberto!', 'sucesso');
+            await carregarResumo();
+            await carregarEmprestimos();
+        } catch (error) {
+            console.error('Erro ao reabrir:', error);
+            mostrarNotificacao('Erro ao reabrir empréstimo', 'erro');
+        }
+    });
 }
 
 async function confirmarDeletar(emprestimoId) {
-    if (!confirm('Deseja realmente deletar este empréstimo? Esta ação não pode ser desfeita.')) return;
-
-    try {
-        const response = await fetch(`${API_BASE}/emprestimos/${emprestimoId}`, {
-            method: 'DELETE'
-        });
-
-        if (!response.ok) throw new Error('Erro ao deletar empréstimo');
-
-        mostrarNotificacao('Empréstimo deletado!', 'sucesso');
-        await carregarResumo();
-        await carregarEmprestimos();
-    } catch (error) {
-        console.error('Erro ao deletar:', error);
-        mostrarNotificacao('Erro ao deletar empréstimo', 'erro');
-    }
+    confirmar('Deseja realmente deletar este empréstimo? Esta ação não pode ser desfeita.', async () => {
+        try {
+            const response = await fetch(`${API_BASE}/emprestimos/${emprestimoId}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Erro ao deletar empréstimo');
+            mostrarNotificacao('Empréstimo deletado!', 'sucesso');
+            await carregarResumo();
+            await carregarEmprestimos();
+        } catch (error) {
+            console.error('Erro ao deletar:', error);
+            mostrarNotificacao('Erro ao deletar empréstimo', 'erro');
+        }
+    });
 }
 
 // ============================================================================
@@ -450,6 +623,36 @@ function getStatusIcon(status) {
         'QUITADO': 'bx-check-circle'
     };
     return iconMap[status] || 'bx-info-circle';
+}
+
+function confirmar(mensagem, onConfirm) {
+    const div = document.getElementById('div_alerta');
+    const conteudo = document.getElementById('conteudoAlerta');
+    if (!div || !conteudo) { if (window.confirm(mensagem)) onConfirm(); return; }
+
+    conteudo.innerHTML = '';
+
+    const msg = document.createElement('p');
+    msg.style.cssText = 'margin-bottom:16px;text-align:center;line-height:1.5;';
+    msg.textContent = mensagem;
+
+    const btns = document.createElement('div');
+    btns.style.cssText = 'display:flex;gap:8px;justify-content:center;';
+
+    const btnNao = document.createElement('button');
+    btnNao.textContent = 'Cancelar';
+    btnNao.style.cssText = 'background:var(--cor-fundo-pagina,#e5e7eb);color:var(--cor-texto-principal);border:1px solid var(--cor-tinte-borda,#ccc);';
+    btnNao.onclick = () => { div.style.display = 'none'; };
+
+    const btnSim = document.createElement('button');
+    btnSim.textContent = 'Confirmar';
+    btnSim.onclick = () => { div.style.display = 'none'; onConfirm(); };
+
+    btns.appendChild(btnNao);
+    btns.appendChild(btnSim);
+    conteudo.appendChild(msg);
+    conteudo.appendChild(btns);
+    div.style.display = 'flex';
 }
 
 function mostrarNotificacao(mensagem, tipo = 'info') {

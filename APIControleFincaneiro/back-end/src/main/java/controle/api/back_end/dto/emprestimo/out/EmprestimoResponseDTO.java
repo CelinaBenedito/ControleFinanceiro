@@ -21,6 +21,7 @@ public record EmprestimoResponseDTO(
         BigDecimal valorPago,
         BigDecimal valorRestante,
         Double percentualPago,
+        LocalDate dataEmprestimo,
         LocalDate dataPrevisao,
         LocalDateTime dataCriacao,
         LocalDateTime dataQuitacao,

@@ -5,7 +5,7 @@
     <link rel="icon" type="image/png" href="assets/glaceonIcon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Empréstimos</title>
+    <title>Empréstimos Pessoais</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,6 +39,9 @@
 </head>
 
 <body data-tema="padrao" data-mode="light">
+    <div class="alerta" id="div_alerta">
+        <div class="conteudoAlerta" id="conteudoAlerta"></div>
+    </div>
     <div class="containerGeral">
         <nav class="side-bar" id="navbar">
             <ul>
@@ -61,7 +64,7 @@
                     <a href="caixinhas.html"><i class='bx bx-piggy-bank'></i><span id="caixinhas">Poupança</span></a>
                 </li>
                 <li>
-                    <a href="emprestimos.html"><i class='bx bx-transfer'></i><span id="emprestimos">Empréstimos</span></a>
+                    <a href="emprestimos.html"><i class='bx bx-handshake'></i><span id="emprestimos">Empréstimos Pessoais</span></a>
                 </li>
                 <li>
                     <a href="configurações.html"><i class='bx bx-cog'></i><span id="config">Configurações</span></a>
@@ -71,7 +74,7 @@
 
         <div id="main" class="main">
             <div class="page-title-row">
-                <h1><i class='bx bx-transfer'></i> Empréstimos</h1>
+                <h1><i class='bx bx-handshake'></i> Empréstimos Pessoais</h1>
                 <div class="top-actions">
                     <div class="user-widget" id="userWidget">
                         <div class="uw-info">
@@ -168,35 +171,44 @@
             <div class="modal-body">
                 <form id="formEmprestimo" onsubmit="salvarEmprestimo(event)">
                     <div class="campo">
-                        <label>Tipo de Empréstimo *</label>
-                        <select id="inputTipo" required>
+                        <select id="inputTipo" required onchange="atualizarLabelInstituicao()">
                             <option value="">Selecione...</option>
                             <option value="EMPRESTEI">Eu emprestei para alguém</option>
                             <option value="PEDI_EMPRESTADO">Eu peguei emprestado</option>
                         </select>
+                        <label for="inputTipo">Tipo de Empréstimo *</label>
                     </div>
 
                     <div class="campo">
-                        <label>Nome da Pessoa ou Grupo *</label>
-                        <input type="text" id="inputPessoa" required maxlength="150"
-                               placeholder="Ex: João Silva, Grupo da faculdade">
+                        <input type="text" id="inputPessoa" required maxlength="150" placeholder=" ">
+                        <label for="inputPessoa">Nome da Pessoa ou Grupo *</label>
                     </div>
 
                     <div class="campo">
-                        <label>Valor Total *</label>
-                        <input type="number" id="inputValor" required step="0.01" min="0.01"
-                               placeholder="0.00">
+                        <input type="text" id="inputValor" required placeholder=" " inputmode="numeric" autocomplete="off">
+                        <label for="inputValor">Valor Total *</label>
                     </div>
 
                     <div class="campo">
-                        <label>Data de Previsão de Pagamento</label>
-                        <input type="date" id="inputDataPrevisao">
+                        <input type="text" id="inputDataEmprestimo" placeholder=" " maxlength="10" inputmode="numeric">
+                        <label for="inputDataEmprestimo">Data do Empréstimo *</label>
                     </div>
 
                     <div class="campo">
-                        <label>Observações</label>
-                        <textarea id="inputObservacoes" rows="4" maxlength="1000"
-                                  placeholder="Anotações sobre o empréstimo..."></textarea>
+                        <select id="inputInstituicao" required>
+                            <option value="">Carregando...</option>
+                        </select>
+                        <label for="inputInstituicao" id="labelInstituicao">Conta *</label>
+                    </div>
+
+                    <div class="campo">
+                        <input type="text" id="inputDataPrevisao" placeholder=" " maxlength="10" inputmode="numeric">
+                        <label for="inputDataPrevisao">Data de Previsão de Pagamento</label>
+                    </div>
+
+                    <div class="campo">
+                        <textarea id="inputObservacoes" rows="4" maxlength="1000" placeholder=" "></textarea>
+                        <label for="inputObservacoes">Observações</label>
                     </div>
 
                     <div class="modal-footer">
@@ -226,9 +238,20 @@
                     <p id="infoPagamento" class="info-pagamento"></p>
 
                     <div class="campo">
-                        <label>Valor Pago *</label>
-                        <input type="number" id="inputValorPagamento" required step="0.01" min="0.01"
-                               placeholder="0.00">
+                        <input type="text" id="inputValorPagamento" required placeholder=" " inputmode="numeric" autocomplete="off">
+                        <label for="inputValorPagamento">Valor Pago *</label>
+                    </div>
+
+                    <div class="campo">
+                        <input type="text" id="inputDataPagamento" placeholder=" " maxlength="10" inputmode="numeric">
+                        <label for="inputDataPagamento">Data do Pagamento</label>
+                    </div>
+
+                    <div class="campo">
+                        <select id="inputInstituicaoPagamento" required>
+                            <option value="">Carregando...</option>
+                        </select>
+                        <label for="inputInstituicaoPagamento" id="labelInstituicaoPagamento">Conta *</label>
                     </div>
 
                     <div class="modal-footer">

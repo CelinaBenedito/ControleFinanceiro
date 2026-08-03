@@ -2,6 +2,7 @@ package controle.api.back_end.controller;
 
 import controle.api.back_end.dto.emprestimo.in.EmprestimoCreateDTO;
 import controle.api.back_end.dto.emprestimo.in.EmprestimoPagamentoParcialDTO;
+import controle.api.back_end.dto.emprestimo.in.EmprestimoQuitarDTO;
 import controle.api.back_end.dto.emprestimo.out.EmprestimoResponseDTO;
 import controle.api.back_end.dto.emprestimo.out.EmprestimoResumoDTO;
 import controle.api.back_end.model.emprestimo.TipoEmprestimo;
@@ -191,8 +192,10 @@ public class EmprestimoController {
                             schema = @Schema(implementation = EmprestimoResponseDTO.class))),
             @ApiResponse(responseCode = "404", description = "Empréstimo não encontrado.", content = @Content)
     })
-    public ResponseEntity<EmprestimoResponseDTO> marcarComoQuitado(@PathVariable UUID emprestimoId) {
-        return ResponseEntity.ok(emprestimoService.marcarComoQuitado(emprestimoId));
+    public ResponseEntity<EmprestimoResponseDTO> marcarComoQuitado(
+            @PathVariable UUID emprestimoId,
+            @Valid @RequestBody EmprestimoQuitarDTO dto) {
+        return ResponseEntity.ok(emprestimoService.marcarComoQuitado(emprestimoId, dto));
     }
 
     @PatchMapping("/{emprestimoId}/reabrir")

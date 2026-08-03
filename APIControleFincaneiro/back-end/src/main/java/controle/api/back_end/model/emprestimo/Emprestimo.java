@@ -73,6 +73,11 @@ public class Emprestimo {
     private BigDecimal valorPago = BigDecimal.ZERO;
 
     /**
+     * Data em que o empréstimo foi realizado (pode ser retroativa).
+     */
+    private LocalDate dataEmprestimo;
+
+    /**
      * Data prevista para pagamento/recebimento.
      */
     private LocalDate dataPrevisao;
@@ -93,6 +98,13 @@ public class Emprestimo {
      */
     @Size(max = 1000)
     private String observacoes;
+
+    /**
+     * ID da InstituicaoUsuario vinculada ao criar o empréstimo.
+     * Usada como padrão na quitação caso não seja informada outra.
+     */
+    @Column
+    private Integer instituicaoUsuarioId;
 
     // ── Getters e Setters ────────────────────────────────────────────────────
 
@@ -182,6 +194,22 @@ public class Emprestimo {
 
     public void setObservacoes(String observacoes) {
         this.observacoes = observacoes;
+    }
+
+    public Integer getInstituicaoUsuarioId() {
+        return instituicaoUsuarioId;
+    }
+
+    public void setInstituicaoUsuarioId(Integer instituicaoUsuarioId) {
+        this.instituicaoUsuarioId = instituicaoUsuarioId;
+    }
+
+    public LocalDate getDataEmprestimo() {
+        return dataEmprestimo;
+    }
+
+    public void setDataEmprestimo(LocalDate dataEmprestimo) {
+        this.dataEmprestimo = dataEmprestimo;
     }
 }
 
