@@ -198,5 +198,51 @@ class RegistroServiceTest {
         assertNotNull(resultado);
         assertEquals("Cinema", resultado.getTituloGasto());
     }
+
+    // ── createEventoInstituicao com Crédito ──────────────────────────────────
+    @Test
+    @DisplayName("createEventoInstituicao: permite compra no crédito mesmo sem saldo")
+    void createEventoInstituicao_permiteCreditoSemSaldo() {
+        // Arrange: Instituição com limite de crédito mas saldo zero
+        Instituicao inst = new Instituicao();
+        inst.setId(1);
+        inst.setNome("Banco XYZ");
+
+        InstituicaoUsuario instUsuario = new InstituicaoUsuario();
+        instUsuario.setId(1);
+        instUsuario.setInstituicao(inst);
+        instUsuario.setUsuario(usuario);
+        instUsuario.setIsAtivo(true);
+        instUsuario.setLimiteCredito(java.math.BigDecimal.valueOf(5000.0));
+
+        EventoInstituicao pagamento = new EventoInstituicao();
+        pagamento.setInstituicaoUsuario(instUsuario);
+        pagamento.setTipoMovimento(TipoMovimento.Credito);
+        pagamento.setValor(300.0);
+        pagamento.setParcelas(1);
+
+        // Mock: estratégia de movimento
+        controle.api.back_end.strategy.movimento.MovimentoStrategy strategy = mock(controle.api.back_end.strategy.movimento.MovimentoStrategy.class);
+        controle.api.back_end.strategy.movimento.MovimentoResultado resultado =
+            new controle.api.back_end.strategy.movimento.MovimentoResultado(pagamento, 1, 300.0);
+
+        when(instituicaoUsuarioRepository.findById(1)).thenReturn(Optional.of(instUsuario));
+        when(movimentoFactory.getStrategy(eq(TipoMovimento.Credito), any())).thenReturn(strategy);
+        when(strategy.processar(pagamento)).thenReturn(resultado);
+        when(eventoFinanceiroRepository.existsById(eventoId)).thenReturn(true);
+        when(eventoInstituicaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act: cria evento de compra no crédito (mesmo sem saldo disponível)
+        List<EventoInstituicao> resultados = registroService.createEventoInstituicao(
+            List.of(pagamento), eventoFinanceiro, true);
+
+        // Assert: deve criar o evento SEM lançar SaldoInsuficienteException
+        assertNotNull(resultados);
+        assertEquals(1, resultados.size());
+        assertEquals(TipoMovimento.Credito, resultados.get(0).getTipoMovimento());
+
+        // Verifica que NÃO consultou saldo (porque crédito não precisa validar)
+        verify(instituicaoService, never()).getSaldoByInstituicao(anyInt());
+    }
 }
 

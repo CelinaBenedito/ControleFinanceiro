@@ -8,10 +8,12 @@ import controle.api.back_end.exception.SenhasNaoCoincidemException;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import org.springframework.data.domain.Page;
@@ -36,17 +38,20 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final ConfiguracoesService configuracoesService;
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
+    private final EventoInstituicaoRepository eventoInstituicaoRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final CategoriaUsuarioRepository categoriaUsuarioRepository;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
                           ConfiguracoesService configuracoesService,
                           EventoFinanceiroRepository eventoFinanceiroRepository,
+                          EventoInstituicaoRepository eventoInstituicaoRepository,
                           InstituicaoUsuarioRepository instituicaoUsuarioRepository,
                           CategoriaUsuarioRepository categoriaUsuarioRepository) {
         this.usuarioRepository = usuarioRepository;
         this.configuracoesService = configuracoesService;
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
+        this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
     }
@@ -75,7 +80,17 @@ public class UsuarioService {
         BigDecimal saldo = BigDecimal.ZERO;
 
         for (EventoFinanceiro evento : eventosFinanceiros) {
-            saldo = InstituicaoService.getSaldo(saldo, evento);
+            List<EventoInstituicao> instituicoes = eventoInstituicaoRepository
+                    .findEventoInstituicaoByEventoFinanceiro_Id(evento.getId());
+
+            if (instituicoes == null || instituicoes.isEmpty()) {
+                saldo = InstituicaoService.getSaldo(saldo, evento);
+                continue;
+            }
+
+            for (EventoInstituicao ei : instituicoes) {
+                saldo = InstituicaoService.getSaldoPorMovimento(saldo, evento, ei);
+            }
         }
         return saldo;
     }

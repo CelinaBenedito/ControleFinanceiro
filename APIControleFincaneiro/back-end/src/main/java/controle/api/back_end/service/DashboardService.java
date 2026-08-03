@@ -89,7 +89,17 @@ public class DashboardService {
         BigDecimal saldo = BigDecimal.ZERO;
         for (EventoFinanceiro e : todos) {
             if (!e.getDataEvento().isAfter(corte)) {
-                saldo = saldoContribuicao(saldo, e);
+                List<EventoInstituicao> instituicoes = eventoInstituicaoRepository
+                        .findEventoInstituicaoByEventoFinanceiro_Id(e.getId());
+
+                if (instituicoes == null || instituicoes.isEmpty()) {
+                    saldo = saldoContribuicao(saldo, e, null);
+                    continue;
+                }
+
+                for (EventoInstituicao ei : instituicoes) {
+                    saldo = saldoContribuicao(saldo, e, ei);
+                }
             }
         }
 
@@ -219,7 +229,24 @@ public class DashboardService {
         for (EventoFinanceiro e : eventos) {
             if (!emPeriodo(e, periodo)) continue;
             if (e.getTipo() == Tipo.Gasto) {
-                porDia.merge(e.getDataEvento(), BigDecimal.valueOf(e.getValor()), BigDecimal::add);
+                // Verifica se é gasto no crédito (não pagamento de fatura)
+                List<EventoInstituicao> instituicoes = eventoInstituicaoRepository
+                        .findEventoInstituicaoByEventoFinanceiro_Id(e.getId());
+
+                boolean isGastoCredito = false;
+                boolean isPagamentoFatura = e.getDescricao() != null && e.getDescricao().contains("Pagamento da fatura");
+
+                for (EventoInstituicao ei : instituicoes) {
+                    if (ei.getTipoMovimento() == TipoMovimento.Credito && !isPagamentoFatura) {
+                        isGastoCredito = true;
+                        break;
+                    }
+                }
+
+                // Só soma se não for gasto no crédito
+                if (!isGastoCredito) {
+                    porDia.merge(e.getDataEvento(), BigDecimal.valueOf(e.getValor()), BigDecimal::add);
+                }
             } else if (e.getTipo() == Tipo.Recebimento || e.getTipo() == Tipo.Emprestimo) {
                 porDiaRec.merge(e.getDataEvento(), BigDecimal.valueOf(e.getValor()), BigDecimal::add);
             }
@@ -599,12 +626,8 @@ public class DashboardService {
      *   <li>Gasto / Transferência / Poupança → -valor</li>
      * </ul>
      */
-    private BigDecimal saldoContribuicao(BigDecimal acc, EventoFinanceiro e) {
-        BigDecimal v = BigDecimal.valueOf(e.getValor());
-        return switch (e.getTipo()) {
-            case Recebimento, Emprestimo   -> acc.add(v);
-            case Gasto, Transferencia, Poupanca -> acc.subtract(v);
-        };
+    private BigDecimal saldoContribuicao(BigDecimal acc, EventoFinanceiro e, EventoInstituicao ei) {
+        return InstituicaoService.getSaldoPorMovimento(acc, e, ei);
     }
 
     /** Soma apenas Gastos (sem transferências) dentro do intervalo. */
@@ -614,7 +637,24 @@ public class DashboardService {
         for (EventoFinanceiro e : eventos) {
             LocalDate d = e.getDataEvento();
             if (!d.isBefore(inicio) && !d.isAfter(fim) && e.getTipo() == Tipo.Gasto) {
-                total = total.add(BigDecimal.valueOf(e.getValor()));
+                // Verifica se é gasto no crédito (não pagamento de fatura)
+                List<EventoInstituicao> instituicoes = eventoInstituicaoRepository
+                        .findEventoInstituicaoByEventoFinanceiro_Id(e.getId());
+
+                boolean isGastoCredito = false;
+                boolean isPagamentoFatura = e.getDescricao() != null && e.getDescricao().contains("Pagamento da fatura");
+
+                for (EventoInstituicao ei : instituicoes) {
+                    if (ei.getTipoMovimento() == TipoMovimento.Credito && !isPagamentoFatura) {
+                        isGastoCredito = true;
+                        break;
+                    }
+                }
+
+                // Só soma se não for gasto no crédito (gastos no crédito não impactam o saldo imediatamente)
+                if (!isGastoCredito) {
+                    total = total.add(BigDecimal.valueOf(e.getValor()));
+                }
             }
         }
         return total;
@@ -627,11 +667,28 @@ public class DashboardService {
         for (EventoFinanceiro e : eventos) {
             LocalDate d = e.getDataEvento();
             if (!d.isBefore(inicio) && !d.isAfter(fim) && e.getTipo() == Tipo.Gasto) {
-                EventoDetalhe det = e.getGastoDetalhe();
-                if (det == null || det.getCategoriaUsuario() == null) continue;
-                for (CategoriaUsuario cu : det.getCategoriaUsuario()) {
-                    mapa.merge(cu.getCategoria().getTitulo(),
-                               BigDecimal.valueOf(e.getValor()), BigDecimal::add);
+                // Verifica se é gasto no crédito (não pagamento de fatura)
+                List<EventoInstituicao> instituicoes = eventoInstituicaoRepository
+                        .findEventoInstituicaoByEventoFinanceiro_Id(e.getId());
+
+                boolean isGastoCredito = false;
+                boolean isPagamentoFatura = e.getDescricao() != null && e.getDescricao().contains("Pagamento da fatura");
+
+                for (EventoInstituicao ei : instituicoes) {
+                    if (ei.getTipoMovimento() == TipoMovimento.Credito && !isPagamentoFatura) {
+                        isGastoCredito = true;
+                        break;
+                    }
+                }
+
+                // Só processa se não for gasto no crédito
+                if (!isGastoCredito) {
+                    EventoDetalhe det = e.getGastoDetalhe();
+                    if (det == null || det.getCategoriaUsuario() == null) continue;
+                    for (CategoriaUsuario cu : det.getCategoriaUsuario()) {
+                        mapa.merge(cu.getCategoria().getTitulo(),
+                                   BigDecimal.valueOf(e.getValor()), BigDecimal::add);
+                    }
                 }
             }
         }
@@ -900,7 +957,14 @@ public class DashboardService {
             }
             for (EventoInstituicao ei : eventoInstituicaoRepository.findByInstituicaoUsuario_Id(iu.getId())) {
                 if (ei.getTipoMovimento() == TipoMovimento.Credito && emPeriodo(ei.getEventoFinanceiro(), periodo)) {
-                    totalCreditoUsado = totalCreditoUsado.add(BigDecimal.valueOf(ei.getValor()));
+                    EventoFinanceiro ef = ei.getEventoFinanceiro();
+                    String descricao = ef != null && ef.getDescricao() != null ? ef.getDescricao() : "";
+
+                    if (descricao.contains("Pagamento da fatura")) {
+                        totalCreditoUsado = totalCreditoUsado.subtract(BigDecimal.valueOf(ei.getValor()));
+                    } else {
+                        totalCreditoUsado = totalCreditoUsado.add(BigDecimal.valueOf(ei.getValor()));
+                    }
                 }
             }
         }

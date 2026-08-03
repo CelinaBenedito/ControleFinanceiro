@@ -14,6 +14,7 @@ import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoDetalheRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
@@ -35,17 +36,19 @@ public class InstituicaoService {
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final EventoInstituicaoRepository eventoInstituicaoRepository;
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
+    private final EventoDetalheRepository eventoDetalheRepository;
     private final UsuarioService usuarioService;
 
 
     public InstituicaoService(InstituicaoRepository instituicaoRepository,
                               UsuarioRepository usuarioRepository,
-                              InstituicaoUsuarioRepository instituicaoUsuarioRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoFinanceiroRepository eventoFinanceiroRepository, UsuarioService usuarioService) {
+                              InstituicaoUsuarioRepository instituicaoUsuarioRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoFinanceiroRepository eventoFinanceiroRepository, EventoDetalheRepository eventoDetalheRepository, UsuarioService usuarioService) {
         this.instituicaoRepository = instituicaoRepository;
         this.usuarioRepository = usuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
+        this.eventoDetalheRepository = eventoDetalheRepository;
         this.usuarioService = usuarioService;
     }
 
@@ -143,16 +146,18 @@ public class InstituicaoService {
                 continue;
             }
 
-            saldo = getSaldo(saldo, eventoFinanceiro);
+            saldo = getSaldoPorMovimento(saldo, eventoFinanceiro, ei);
 
             // Acumula crédito utilizado (gastos no cartão de crédito)
-            // e reduz com pagamentos de fatura (Recebimento/Credito = quitação da fatura)
+            // e reduz com pagamentos de fatura
             if (ei.getTipoMovimento() == TipoMovimento.Credito) {
                 BigDecimal v = BigDecimal.valueOf(ei.getValor());
-                if (eventoFinanceiro.getTipo() == Tipo.Gasto || eventoFinanceiro.getTipo() == Tipo.Transferencia) {
-                    totalCreditoUsado = totalCreditoUsado.add(v);
-                } else if (eventoFinanceiro.getTipo() == Tipo.Recebimento) {
+                String descricao = eventoFinanceiro.getDescricao() != null ? eventoFinanceiro.getDescricao() : "";
+
+                if (descricao.contains("Pagamento da fatura")) {
                     totalCreditoUsado = totalCreditoUsado.subtract(v); // pagamento de fatura
+                } else if (eventoFinanceiro.getTipo() == Tipo.Gasto || eventoFinanceiro.getTipo() == Tipo.Transferencia) {
+                    totalCreditoUsado = totalCreditoUsado.add(v); // compra no crédito
                 }
             }
         }
@@ -173,6 +178,35 @@ public class InstituicaoService {
             saldo = saldo.subtract(valor);
         } else if (eventoFinanceiro.getTipo() == Tipo.Recebimento || eventoFinanceiro.getTipo() == Tipo.Emprestimo) {
             saldo = saldo.add(valor);
+        }
+        return saldo;
+    }
+
+    static BigDecimal getSaldoPorMovimento(BigDecimal saldo,
+                                           EventoFinanceiro eventoFinanceiro,
+                                           EventoInstituicao eventoInstituicao) {
+        BigDecimal valor = (eventoInstituicao != null && eventoInstituicao.getValor() != null)
+                ? BigDecimal.valueOf(eventoInstituicao.getValor())
+                : BigDecimal.valueOf(eventoFinanceiro.getValor());
+
+        TipoMovimento tipoMovimento = eventoInstituicao != null ? eventoInstituicao.getTipoMovimento() : null;
+        String descricao = eventoFinanceiro.getDescricao() != null ? eventoFinanceiro.getDescricao() : "";
+
+        // Pagamento de fatura: debita do saldo mesmo sendo Credito
+        if (tipoMovimento == TipoMovimento.Credito && descricao.contains("Pagamento da fatura")) {
+            return saldo.subtract(valor);
+        }
+
+        // Compra no cartão (Credito sem ser pagamento) não altera caixa
+        if (tipoMovimento == TipoMovimento.Credito) {
+            return saldo;
+        }
+
+        if (eventoFinanceiro.getTipo() == Tipo.Gasto || eventoFinanceiro.getTipo() == Tipo.Transferencia || eventoFinanceiro.getTipo() == Tipo.Poupanca) {
+            return saldo.subtract(valor);
+        }
+        if (eventoFinanceiro.getTipo() == Tipo.Recebimento || eventoFinanceiro.getTipo() == Tipo.Emprestimo) {
+            return saldo.add(valor);
         }
         return saldo;
     }
@@ -217,7 +251,7 @@ public class InstituicaoService {
                 if (ef == null) continue;
 
                 // Saldo acumulado é sempre all-time (saldo atual da conta)
-                saldo = getSaldo(saldo, ef);
+                saldo = getSaldoPorMovimento(saldo, ef, ei);
 
                 // Parcelamentos ativos: sobreposição com período (se fornecido) ou ainda não vencido
                 if (ei.getParcelas() != null && ei.getParcelas() > 1) {
@@ -242,10 +276,12 @@ public class InstituicaoService {
 
                 if (ei.getTipoMovimento() == TipoMovimento.Credito) {
                     BigDecimal v = BigDecimal.valueOf(ei.getValor());
-                    if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) {
-                        totalCredito = totalCredito.add(v);
-                    } else if (ef.getTipo() == Tipo.Recebimento) {
+                    String descricao = ef.getDescricao() != null ? ef.getDescricao() : "";
+
+                    if (descricao.contains("Pagamento da fatura")) {
                         totalCredito = totalCredito.subtract(v); // pagamento de fatura reduz crédito usado
+                    } else if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) {
+                        totalCredito = totalCredito.add(v); // compra no crédito
                     }
                 } else if (ei.getTipoMovimento() == TipoMovimento.Debito)
                     totalDebito = totalDebito.add(BigDecimal.valueOf(ei.getValor()));
@@ -303,6 +339,12 @@ public class InstituicaoService {
 
         for (EventoInstituicao ei : eis) {
             if (ei.getTipoMovimento() != null) {
+                EventoFinanceiro ef = ei.getEventoFinanceiro();
+                String descricao = ef != null && ef.getDescricao() != null ? ef.getDescricao() : "";
+
+                // Não incluir pagamento de fatura na distribuição (ele já quita o crédito usado)
+                if (descricao.contains("Pagamento da fatura")) continue;
+
                 porMovimento.merge(ei.getTipoMovimento().name(), BigDecimal.valueOf(ei.getValor()), BigDecimal::add);
             }
         }
@@ -354,18 +396,33 @@ public class InstituicaoService {
             throw new IllegalArgumentException("Valor do pagamento deve ser maior que zero.");
         }
 
-        // Cria o EventoFinanceiro de Recebimento (representa o crédito de volta ao limite)
+        // Verifica se o usuário tem saldo suficiente para pagar a fatura
+        BigDecimal saldoTotal = usuarioService.getSaldoByUsuario(iu.getUsuario().getId());
+
+        if (saldoTotal.compareTo(valorPagamento) < 0) {
+            throw new controle.api.back_end.exception.SaldoInsuficienteException(
+                    "Saldo insuficiente para pagar a fatura.");
+        }
+
+        // Cria o EventoFinanceiro de Gasto (pagamento saindo do saldo)
         EventoFinanceiro pagamento = new EventoFinanceiro();
         pagamento.setUsuario(iu.getUsuario());
-        pagamento.setTipo(Tipo.Recebimento);
+        pagamento.setTipo(Tipo.Gasto);
         pagamento.setValor(valorPagamento.doubleValue());
-        pagamento.setDescricao("Pagamento de fatura — " + iu.getInstituicao().getNome());
+        pagamento.setDescricao("Pagamento da fatura " + iu.getInstituicao().getNome());
         pagamento.setDataEvento(java.time.LocalDate.now());
         pagamento.setDataRegistro(java.time.LocalDateTime.now());
         EventoFinanceiro eventoSalvo = eventoFinanceiroRepository.save(pagamento);
 
-        // Vincula o evento à instituição com movimento Credito
-        // (pagamento de fatura = quitação do crédito usado, reduz totalCreditoUsado)
+        // Cria EventoDetalhe para que apareça nos registros
+        EventoDetalhe detalhe = new EventoDetalhe();
+        detalhe.setEventoFinanceiro(eventoSalvo);
+        detalhe.setTituloGasto("Pagamento da fatura " + iu.getInstituicao().getNome());
+        detalhe.setCategoriaUsuario(new java.util.ArrayList<>());
+        eventoDetalheRepository.save(detalhe);
+
+        // Vincula o evento apenas com Credito (quita o crédito usado)
+        // O débito do saldo é calculado automaticamente pelo getSaldoPorMovimento
         EventoInstituicao ei = new EventoInstituicao();
         ei.setEventoFinanceiro(eventoSalvo);
         ei.setInstituicaoUsuario(iu);

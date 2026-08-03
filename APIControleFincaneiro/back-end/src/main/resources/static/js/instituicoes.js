@@ -877,7 +877,17 @@
                     if (badge) { badge.textContent = `${pct}% crédito usado`; badge.className = "inst-modal-badge" + (pct > 80 ? " vermelho" : pct > 50 ? " amarelo" : ""); }
                 }
             } else {
-                const msg = await res.text().catch(() => "Erro ao processar pagamento.");
+                let msg = "Erro ao processar pagamento.";
+                try {
+                    const errorData = await res.json();
+                    msg = errorData.message || errorData.error || msg;
+                } catch {
+                    // Se não for JSON, tenta pegar como texto
+                    try {
+                        const textMsg = await res.text();
+                        if (textMsg) msg = textMsg;
+                    } catch {}
+                }
                 if (feedback) { feedback.textContent = `✘ ${msg}`; feedback.className = "inst-feedback erro"; feedback.style.display = "block"; }
             }
         } catch (e) {

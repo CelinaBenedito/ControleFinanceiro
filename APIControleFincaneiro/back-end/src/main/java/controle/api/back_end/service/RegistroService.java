@@ -665,7 +665,9 @@ public class RegistroService {
         MovimentoResultado resultado = movimentoStrategy.processar(pagamento);
 
         // Gastos e transferências requerem saldo suficiente — exceto para recorrentes (validarSaldo=false)
-        if (validarSaldo && tipoRequerValidacaoSaldo(evento.getTipo())) {
+        // e exceto para compras no crédito (que não debitam na hora, só no pagamento da fatura)
+        if (validarSaldo && tipoRequerValidacaoSaldo(evento.getTipo())
+                && pagamento.getTipoMovimento() != TipoMovimento.Credito) {
             BigDecimal saldoDisponivel = instituicaoService.getSaldoByInstituicao(instUsuario.getId());
             if (BigDecimal.valueOf(resultado.getValorParcela()).compareTo(saldoDisponivel) > 0) {
                 throw new SaldoInsuficienteException(
