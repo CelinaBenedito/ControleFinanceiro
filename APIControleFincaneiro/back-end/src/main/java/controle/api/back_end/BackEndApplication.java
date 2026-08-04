@@ -5,12 +5,14 @@ import javafx.application.Application;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.net.InetAddress;
 import java.net.ServerSocket;
 
 @SpringBootApplication
 @EntityScan(basePackages = "controle.api.back_end.model")
+@EnableScheduling
 public class BackEndApplication {
 
 	/**

@@ -455,10 +455,230 @@ window.addEventListener("DOMContentLoaded", function () {
     }
 })();
 
+/*---------------- Toast de Status de Atualização ----------------*/
+(function () {
+    // Cria toast persistente de status de atualização
+    const updateToastHtml = `
+    <div id="mf-update-toast" style="
+        position:fixed; top:80px; right:24px; z-index:99999;
+        background:var(--cor-fundo-card,#fff);
+        border:1.5px solid var(--cor-principal,#6366f1);
+        border-radius:16px;
+        box-shadow:0 12px 40px rgba(0,0,0,0.25);
+        padding:20px 24px;
+        min-width:320px; max-width:380px;
+        display:none;
+        animation:mfToastSlide 0.3s ease;">
+        <div style="display:flex; align-items:flex-start; gap:14px;">
+            <div id="mf-toast-spinner" style="
+                width:40px; height:40px; border-radius:50%;
+                border:3px solid var(--cor-tinte-borda,#e2e8f0);
+                border-top-color:var(--cor-principal,#6366f1);
+                animation:mfSpin 0.8s linear infinite;
+                flex-shrink:0;
+                margin-top:2px;">
+            </div>
+            <div style="flex:1; min-width:0;">
+                <h3 id="mf-toast-title" style="
+                    font-size:1rem; font-weight:700; margin:0 0 6px 0;
+                    color:var(--cor-titulo);">
+                    Atualizando...
+                </h3>
+                <p id="mf-toast-message" style="
+                    font-size:0.85rem; color:var(--cor-texto-secundario);
+                    margin:0; line-height:1.5;">
+                    Baixando nova versão...
+                </p>
+                <div id="mf-toast-progress-wrap" style="
+                    margin-top:12px; width:100%; height:6px;
+                    background:var(--cor-tinte-borda,#e2e8f0);
+                    border-radius:3px; overflow:hidden;">
+                    <div id="mf-toast-progress-bar" style="
+                        height:100%; width:0%; border-radius:3px;
+                        background:linear-gradient(90deg, var(--cor-principal,#6366f1), var(--cor-principal-hover,#4f46e5));
+                        transition:width 0.4s ease;">
+                    </div>
+                </div>
+                <span id="mf-toast-percentage" style="
+                    display:block; margin-top:6px; font-size:0.75rem;
+                    color:var(--cor-texto-secundario); font-weight:600;">
+                    0%
+                </span>
+            </div>
+        </div>
+    </div>
+    <style>
+        @keyframes mfToastSlide {
+            from { opacity:0; transform:translateX(100px); }
+            to   { opacity:1; transform:translateX(0); }
+        }
+        @keyframes mfSpin {
+            0%   { transform:rotate(0deg); }
+            100% { transform:rotate(360deg); }
+        }
+        #mf-update-toast.success #mf-toast-spinner {
+            border:3px solid transparent;
+            background:var(--green-500,#22c55e);
+            display:flex; align-items:center; justify-content:center;
+            animation:none;
+        }
+        #mf-update-toast.success #mf-toast-spinner::after {
+            content:'✓';
+            color:#fff;
+            font-size:1.4rem;
+            font-weight:700;
+        }
+    </style>`;
+
+    document.body.insertAdjacentHTML('beforeend', updateToastHtml);
+
+    const toast = document.getElementById('mf-update-toast');
+    const toastTitle = document.getElementById('mf-toast-title');
+    const toastMessage = document.getElementById('mf-toast-message');
+    const toastProgress = document.getElementById('mf-toast-progress-bar');
+    const toastPercentage = document.getElementById('mf-toast-percentage');
+    const toastSpinner = document.getElementById('mf-toast-spinner');
+
+    // Verifica se há atualização em progresso ao carregar a página
+    function checkUpdateInProgress() {
+        const updateStatus = localStorage.getItem('mf-update-status');
+        if (updateStatus) {
+            const status = JSON.parse(updateStatus);
+            if (status.inProgress) {
+                showUpdateToast(status.title, status.message, status.progress);
+            }
+        }
+    }
+
+    function showUpdateToast(title, message, progress) {
+        toast.style.display = 'block';
+        toastTitle.textContent = title;
+        toastMessage.textContent = message;
+        toastProgress.style.width = progress + '%';
+        toastPercentage.textContent = Math.round(progress) + '%';
+
+        // Salva o estado no localStorage
+        localStorage.setItem('mf-update-status', JSON.stringify({
+            inProgress: true,
+            title: title,
+            message: message,
+            progress: progress
+        }));
+    }
+
+    function updateToastProgress(progress) {
+        toastProgress.style.width = progress + '%';
+        toastPercentage.textContent = Math.round(progress) + '%';
+
+        const status = JSON.parse(localStorage.getItem('mf-update-status') || '{}');
+        status.progress = progress;
+        localStorage.setItem('mf-update-status', JSON.stringify(status));
+    }
+
+    function completeUpdateToast() {
+        toast.classList.add('success');
+        toastTitle.textContent = 'Atualização Concluída!';
+        toastMessage.textContent = 'Reiniciando aplicação...';
+        toastProgress.style.width = '100%';
+        toastPercentage.textContent = '100%';
+
+        localStorage.removeItem('mf-update-status');
+
+        setTimeout(function() {
+            toast.style.display = 'none';
+            toast.classList.remove('success');
+        }, 3000);
+    }
+
+    function hideUpdateToast() {
+        toast.style.display = 'none';
+        localStorage.removeItem('mf-update-status');
+    }
+
+    // Exporta funções globalmente
+    window._showUpdateToast = showUpdateToast;
+    window._updateToastProgress = updateToastProgress;
+    window._completeUpdateToast = completeUpdateToast;
+    window._hideUpdateToast = hideUpdateToast;
+
+    // Verifica ao carregar
+    checkUpdateInProgress();
+})();
+
+/*---------------- Ícone de Notificações ----------------*/
+(function () {
+    // Cria o ícone de notificações dinamicamente
+    const notificationIconHtml = `
+    <div id="mf-notification-icon" style="
+        position:relative; cursor:pointer; margin-right:12px;
+        width:40px; height:40px; border-radius:50%;
+        display:flex; align-items:center; justify-content:center;
+        background:var(--cor-fundo-card,#fff);
+        border:1.5px solid var(--cor-tinte-borda,#e2e8f0);
+        transition:all 0.2s ease;">
+        <i class='bx bx-bell' style="font-size:1.3rem; color:var(--cor-texto-principal);"></i>
+        <span id="mf-notification-badge" style="
+            position:absolute; top:-4px; right:-4px;
+            background:var(--red-600,#dc2626); color:#fff;
+            border-radius:50%; width:20px; height:20px;
+            display:none; align-items:center; justify-content:center;
+            font-size:0.7rem; font-weight:700; border:2px solid var(--cor-fundo-pagina,#fff);">
+            0
+        </span>
+    </div>
+    <style>
+        #mf-notification-icon:hover {
+            background:var(--cor-hover,#f1f5f9);
+            border-color:var(--cor-principal,#6366f1);
+        }
+        #mf-notification-icon:hover i {
+            color:var(--cor-principal,#6366f1);
+        }
+    </style>`;
+
+    // Injeta o ícone ao lado do user widget em todas as páginas
+    function injectNotificationIcon() {
+        const topActions = document.querySelector('.top-actions');
+        if (topActions) {
+            topActions.insertAdjacentHTML('afterbegin', notificationIconHtml);
+
+            const notifIcon = document.getElementById('mf-notification-icon');
+            if (notifIcon) {
+                notifIcon.addEventListener('click', function() {
+                    window._showUpdateNotifications();
+                });
+            }
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', injectNotificationIcon);
+    } else {
+        injectNotificationIcon();
+    }
+
+    // Função global para atualizar contador de notificações
+    window._updateNotificationBadge = function(count) {
+        const badge = document.getElementById('mf-notification-badge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count > 9 ? '9+' : count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    };
+})();
+
 /*---------------- Auto-Update: verificação e notificação ----------------*/
 (function () {
     const CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutos
+    const SNOOZE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 horas
     const API_BASE = 'http://localhost:8080';
+
+    let _updateInfo = null;
+    let _isDismissed = false;
 
     // ── Injeta o banner de atualização no DOM ──
     const bannerHtml = `
@@ -570,6 +790,7 @@ window.addEventListener("DOMContentLoaded", function () {
     }
 
     function mostrarBanner(info) {
+        _updateInfo = info;
         versionsEl.textContent = 'Atual: v' + info.currentVersion + '  →  Nova: v' + info.latestVersion;
         _downloadUrl = info.downloadUrl || null;
 
@@ -585,14 +806,37 @@ window.addEventListener("DOMContentLoaded", function () {
         }
 
         banner.style.display = 'block';
+
+        // Remove a notificação do badge quando o banner é mostrado
+        if (_isDismissed) {
+            _isDismissed = false;
+            localStorage.removeItem('mf-update-dismissed');
+            window._updateNotificationBadge(0);
+        }
     }
 
     function ocultarBanner() {
         banner.style.display = 'none';
     }
 
-    btnFechar.addEventListener('click', ocultarBanner);
-    btnDepois.addEventListener('click', ocultarBanner);
+    function dismissarAtualizacao() {
+        _isDismissed = true;
+        localStorage.setItem('mf-update-dismissed', 'true');
+        ocultarBanner();
+
+        // Adiciona ao contador de notificações
+        if (_updateInfo) {
+            window._updateNotificationBadge(1);
+        }
+    }
+
+    function adiarAtualizacao() {
+        localStorage.setItem('mf-update-snoozed', Date.now().toString());
+        ocultarBanner();
+    }
+
+    btnFechar.addEventListener('click', dismissarAtualizacao);
+    btnDepois.addEventListener('click', adiarAtualizacao);
     btnDetalhes.addEventListener('click', function () {
         setDetalhesVisiveis(!_showingDetails);
     });
@@ -600,20 +844,28 @@ window.addEventListener("DOMContentLoaded", function () {
     btnAtualizar.addEventListener('click', async function () {
         if (!_downloadUrl) return;
 
+        // Desabilita botões e esconde o banner
         btnAtualizar.disabled = true;
         btnDepois.disabled    = true;
         btnFechar.disabled    = true;
-        progressArea.style.display = 'block';
+        ocultarBanner();
+
+        // Mostra toast de atualização persistente
+        window._showUpdateToast('Atualizando MyFinance', 'Iniciando download da nova versão...', 0);
 
         // Simula progresso visual enquanto o download ocorre no backend
         let pct = 0;
         const interval = setInterval(function() {
-            pct = Math.min(pct + Math.random() * 8, 85);
-            progressBar.style.width = pct + '%';
-        }, 400);
+            pct = Math.min(pct + Math.random() * 5, 85);
+            window._updateToastProgress(pct);
+        }, 500);
 
         try {
-            statusEl.textContent = 'Baixando atualização...';
+            // Aguarda 800ms para dar tempo do toast aparecer
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            window._showUpdateToast('Baixando Atualização', 'Fazendo download do servidor...', pct);
+
             const res = await fetch(API_BASE + '/api/update/apply', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -623,19 +875,36 @@ window.addEventListener("DOMContentLoaded", function () {
             clearInterval(interval);
 
             if (res.ok) {
-                progressBar.style.width = '100%';
-                statusEl.textContent = 'Atualização baixada! Reiniciando a aplicação...';
+                window._showUpdateToast('Download Concluído', 'Preparando atualização...', 90);
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                window._completeUpdateToast();
+
+                // Monitora se a aplicação realmente fechou
+                setTimeout(function() {
+                    // Se ainda estiver aqui após 10s, mostra mensagem
+                    window._showUpdateToast('Aguardando Fechamento', 'Aguarde o aplicativo reiniciar...', 100);
+                }, 10000);
             } else {
                 throw new Error('Falha na requisição: ' + res.status);
             }
         } catch (e) {
             clearInterval(interval);
-            progressBar.style.width = '0%';
-            progressBar.style.background = '#ef4444';
-            statusEl.textContent = 'Erro ao atualizar. Tente novamente.';
+            window._hideUpdateToast();
+
+            // Reativa botões do banner
             btnAtualizar.disabled = false;
             btnDepois.disabled    = false;
             btnFechar.disabled    = false;
+            mostrarBanner(_updateInfo);
+
+            // Mostra erro no banner original
+            progressBar.style.width = '0%';
+            progressBar.style.background = '#ef4444';
+            statusEl.textContent = 'Erro ao atualizar. Tente novamente.';
+            progressArea.style.display = 'block';
+
             console.error('[Update] Erro:', e);
         }
     });
@@ -646,13 +915,49 @@ window.addEventListener("DOMContentLoaded", function () {
             const res = await fetch(API_BASE + '/api/update/check');
             if (!res.ok) return;
             const info = await res.json();
+
             if (info.hasUpdate && info.downloadUrl) {
+                _updateInfo = info;
+
+                // Verifica se o usuário clicou em X (dismissed)
+                const dismissed = localStorage.getItem('mf-update-dismissed');
+                if (dismissed === 'true') {
+                    _isDismissed = true;
+                    window._updateNotificationBadge(1);
+                    return; // Não mostra o banner automaticamente
+                }
+
+                // Verifica se o usuário clicou em "depois" recentemente
+                const snoozed = localStorage.getItem('mf-update-snoozed');
+                if (snoozed) {
+                    const snoozedTime = parseInt(snoozed, 10);
+                    const elapsed = Date.now() - snoozedTime;
+                    if (elapsed < SNOOZE_DURATION_MS) {
+                        return; // Ainda no período de adiamento
+                    }
+                    localStorage.removeItem('mf-update-snoozed');
+                }
+
+                // Mostra o banner se não foi dismissed nem snoozed
                 mostrarBanner(info);
+            } else {
+                // Se não há atualização, limpa o dismissed e badge
+                _isDismissed = false;
+                _updateInfo = null;
+                localStorage.removeItem('mf-update-dismissed');
+                window._updateNotificationBadge(0);
             }
         } catch (e) {
             // Silencioso: sem internet ou backend ainda não inicializado
         }
     }
+
+    // ── Função para mostrar notificações quando clicar no sino ──
+    window._showUpdateNotifications = function() {
+        if (_updateInfo && _isDismissed) {
+            mostrarBanner(_updateInfo);
+        }
+    };
 
     // Primeira verificação após 10s (dá tempo ao Spring Boot inicializar)
     setTimeout(verificarAtualizacao, 10000);

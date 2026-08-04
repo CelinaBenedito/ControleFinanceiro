@@ -1,5 +1,7 @@
 package controle.api.back_end.update;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -9,6 +11,7 @@ import java.util.Map;
 @RequestMapping("/api/update")
 public class UpdateController {
 
+    private static final Logger log = LoggerFactory.getLogger(UpdateController.class);
     private final UpdateService updateService;
 
     public UpdateController(UpdateService updateService) {
@@ -25,7 +28,7 @@ public class UpdateController {
             UpdateInfo info = updateService.checkForUpdate();
             return ResponseEntity.ok(info);
         } catch (Exception e) {
-            System.err.println("[Update] Erro ao verificar atualizações: " + e.getMessage());
+            log.error("[UpdateController] Erro ao verificar atualizações: {}", e.getMessage(), e);
             // Retorna "sem atualização" em caso de falha (ex: sem internet)
             return ResponseEntity.ok(
                     new UpdateInfo(false, updateService.getCurrentVersion(),
@@ -43,9 +46,12 @@ public class UpdateController {
     public ResponseEntity<?> applyUpdate(@RequestBody Map<String, String> body) {
         String downloadUrl = body.get("downloadUrl");
         if (downloadUrl == null || downloadUrl.isBlank()) {
+            log.warn("[UpdateController] Tentativa de atualização sem URL");
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "O campo 'downloadUrl' é obrigatório."));
         }
+
+        log.info("[UpdateController] Requisição de atualização recebida. URL: {}", downloadUrl);
 
         // Executa em thread separada para que a resposta HTTP seja enviada antes de o app fechar
         Thread updateThread = new Thread(() -> {
@@ -53,10 +59,11 @@ public class UpdateController {
                 Thread.sleep(800); // Aguarda a resposta ser despachada
                 updateService.applyUpdate(downloadUrl);
             } catch (Exception e) {
-                System.err.println("[Update] Falha ao aplicar atualização: " + e.getMessage());
+                log.error("[UpdateController] Falha ao aplicar atualização: {}", e.getMessage(), e);
             }
         });
         updateThread.setDaemon(true);
+        updateThread.setName("update-applier");
         updateThread.start();
 
         return ResponseEntity.ok(Map.of(
