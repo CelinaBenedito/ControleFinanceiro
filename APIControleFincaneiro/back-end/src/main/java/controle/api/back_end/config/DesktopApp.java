@@ -11,6 +11,9 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import netscape.javascript.JSObject;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +31,10 @@ public class DesktopApp extends Application {
 
     /** Referencia estatica ao Stage principal — usada pelo UpdateService para fechar a janela. */
     private static volatile Stage primaryStage;
+
+    /** System Tray icon */
+    private TrayIcon trayIcon;
+    private boolean exitingApp = false;
 
     /** Fecha a janela JavaFX de forma segura a partir de qualquer thread. */
     public static void exitApplication() {
@@ -79,6 +86,24 @@ public class DesktopApp extends Application {
         Scene scene = new Scene(webView, 1200, 800);
         stage.setTitle("MyFinance");
         stage.setScene(scene);
+
+        // Configura o comportamento ao fechar a janela
+        stage.setOnCloseRequest(event -> {
+            if (!exitingApp) {
+                // Minimiza para a bandeja ao invés de fechar
+                event.consume();
+                stage.hide();
+                showTrayNotification("MyFinance", "Aplicação minimizada para a bandeja do sistema");
+            } else {
+                // Encerra a aplicação completamente
+                cleanup();
+            }
+        });
+
+        // Configura o system tray antes de mostrar a janela
+        Platform.setImplicitExit(false); // Não encerra o JavaFX quando todas as janelas são fechadas
+        setupSystemTray(stage);
+
         stage.show();
 
         // Aguarda o Spring Boot estar pronto e depois navega via HTTP
@@ -205,6 +230,118 @@ public class DesktopApp extends Application {
         }
 
         System.out.println("[DesktopApp] Nenhum icone PNG encontrado. Usando icone padrao do sistema.");
+    }
+
+    // -------------------------------------------------------------------------
+    // System Tray
+    // -------------------------------------------------------------------------
+
+    /**
+     * Configura o ícone na bandeja do sistema com menu de contexto.
+     */
+    private void setupSystemTray(Stage stage) {
+        if (!SystemTray.isSupported()) {
+            System.out.println("[DesktopApp] System Tray não suportado neste sistema.");
+            return;
+        }
+
+        SystemTray tray = SystemTray.getSystemTray();
+        java.awt.Image trayImage = loadTrayIcon();
+
+        // Menu popup do tray
+        PopupMenu popup = new PopupMenu();
+
+        MenuItem showItem = new MenuItem("Mostrar MyFinance");
+        showItem.addActionListener(e -> Platform.runLater(() -> {
+            stage.show();
+            stage.toFront();
+        }));
+
+        MenuItem exitItem = new MenuItem("Sair");
+        exitItem.addActionListener(e -> {
+            exitingApp = true;
+            Platform.runLater(() -> {
+                stage.close();
+                Platform.exit();
+            });
+        });
+
+        popup.add(showItem);
+        popup.addSeparator();
+        popup.add(exitItem);
+
+        trayIcon = new TrayIcon(trayImage, "MyFinance", popup);
+        trayIcon.setImageAutoSize(true);
+
+        // Duplo clique no ícone mostra a janela
+        trayIcon.addActionListener(e -> Platform.runLater(() -> {
+            stage.show();
+            stage.toFront();
+        }));
+
+        try {
+            tray.add(trayIcon);
+            System.out.println("[DesktopApp] Ícone adicionado à bandeja do sistema.");
+        } catch (AWTException e) {
+            System.err.println("[DesktopApp] Falha ao adicionar ícone à bandeja: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Carrega o ícone para o system tray (AWT Image).
+     */
+    private java.awt.Image loadTrayIcon() {
+        String[] caminhos = {
+            "/static/assets/glaceonIcon .png",
+            "/static/assets/glaceonIcon.png",
+            "/static/assets/icon.png"
+        };
+
+        for (String caminho : caminhos) {
+            try (InputStream is = getClass().getResourceAsStream(caminho)) {
+                if (is != null) {
+                    BufferedImage img = ImageIO.read(is);
+                    if (img != null) {
+                        System.out.println("[DesktopApp] Ícone do tray carregado: " + caminho);
+                        return img;
+                    }
+                }
+            } catch (Exception e) {
+                // Continua tentando outros caminhos
+            }
+        }
+
+        // Fallback: cria um ícone simples se não encontrar nenhum
+        System.out.println("[DesktopApp] Usando ícone padrão para o tray.");
+        BufferedImage fallback = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = fallback.createGraphics();
+        g2d.setColor(new Color(54, 115, 115)); // Cor tema da aplicação
+        g2d.fillOval(0, 0, 16, 16);
+        g2d.dispose();
+        return fallback;
+    }
+
+    /**
+     * Mostra uma notificação na bandeja do sistema.
+     */
+    private void showTrayNotification(String title, String message) {
+        if (trayIcon != null) {
+            trayIcon.displayMessage(title, message, TrayIcon.MessageType.INFO);
+        }
+    }
+
+    /**
+     * Limpeza ao encerrar a aplicação: remove o ícone do tray e encerra o Spring Boot.
+     */
+    private void cleanup() {
+        if (trayIcon != null) {
+            SystemTray.getSystemTray().remove(trayIcon);
+            trayIcon = null;
+        }
+
+        // Encerra o Spring Boot
+        System.out.println("[DesktopApp] Encerrando aplicação...");
+        System.exit(0);
     }
 
     // -------------------------------------------------------------------------

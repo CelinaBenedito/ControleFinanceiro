@@ -284,6 +284,7 @@ if (_modoSalvo === "dark") {
 // ── Seletor de temas coloridos (página Configurações) ──
 var _temas = document.querySelectorAll(".pf-tema-item");
 var _temaSelecionado = "padrao";
+var _btnEscolherTema = document.getElementById("btnEscolherTema");
 
 _temas.forEach(function (tema) {
     tema.addEventListener("click", function () {
@@ -292,6 +293,13 @@ _temas.forEach(function (tema) {
         _temaSelecionado = tema.dataset.tema;
     });
 });
+
+if (_btnEscolherTema) {
+    _btnEscolherTema.addEventListener("click", function () {
+        document.body.setAttribute("data-tema", _temaSelecionado);
+        localStorage.setItem("tema", _temaSelecionado);
+    });
+}
 
 window.addEventListener("DOMContentLoaded", function () {
     var temaSalvo = localStorage.getItem("tema");
