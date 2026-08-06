@@ -209,7 +209,7 @@ public class EmprestimoService {
         ef.setDataRegistro(LocalDateTime.now());
         EventoInstituicao ei = new EventoInstituicao();
         ei.setInstituicaoUsuario(inst);
-        ei.setTipoMovimento(TipoMovimento.Dinheiro);
+        ei.setTipoMovimento(TipoMovimento.Debito);
         ei.setValor(valor);
         ei.setParcelas(1);
         EventoDetalhe detalhe = new EventoDetalhe();

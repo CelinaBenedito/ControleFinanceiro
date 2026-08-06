@@ -124,7 +124,7 @@ public class EmprestimoBancarioService {
             // Prepara instituição para o strategy
             EventoInstituicao ei = new EventoInstituicao();
             ei.setInstituicaoUsuario(inst);
-            ei.setTipoMovimento(TipoMovimento.Dinheiro);
+            ei.setTipoMovimento(TipoMovimento.Debito);
             ei.setValor(dto.valorPrincipal().doubleValue());
             ei.setParcelas(dto.totalParcelas());
 
