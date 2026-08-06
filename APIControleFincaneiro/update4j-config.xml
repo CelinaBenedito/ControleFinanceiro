@@ -1,19 +1,19 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<!-- Gerado automaticamente por publish-release.ps1 | Versao: 1.1.10 | Data: 2026-08-04T15:54:32 -->
-<configuration timestamp="2026-08-04T15:54:32">
+<!-- Gerado automaticamente por publish-release.ps1 | Versao: 1.1.11 | Data: 2026-08-06T19:35:14 -->
+<configuration timestamp="2026-08-06T19:35:14">
 
-    <base uri="https://github.com/CelinaBenedito/ControleFinanceiro/releases/download/v1.1.10/"
+    <base uri="https://github.com/CelinaBenedito/ControleFinanceiro/releases/download/v1.1.11/"
           path="app/" />
 
     <properties>
-        <property key="app.version" value="1.1.10" />
+        <property key="app.version" value="1.1.11" />
     </properties>
 
     <files>
         <file path="back-end.jar"
               uri="back-end.jar"
-              size="315752116"
-              checksum="45c38a47bfe3f252afad8103e62c38666c3d8a83f7a7703492e75b498de42905"
+              size="315771669"
+              checksum="d285f61f0470116e141ae694c187219003c2f518de8a0fbbe0fa3d9fd32a9c9d"
               os="ANY" />
     </files>
 
