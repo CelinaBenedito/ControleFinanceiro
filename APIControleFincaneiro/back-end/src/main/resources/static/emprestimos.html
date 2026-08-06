@@ -214,6 +214,25 @@
             </div>
         </form></div></div>
     </div>
+     <div id="modalParcelas" class="modal">
+        <div class="modal-content modal-parcelas"><div class="modal-header">
+            <h2><i class='bx bx-list-ul'></i> <span id="modalParcelasTitulo">Parcelas do Empréstimo</span></h2>
+            <button class="btn-fechar" onclick="fecharModalParcelas()"><i class='bx bx-x'></i></button>
+        </div><div class="modal-body">
+            <div id="parcelasModalConteudo" class="parcelas-modal-conteudo">
+                <div class="parcelas-loading">Carregando parcelas...</div>
+            </div>
+            <div class="parcelas-paginacao" id="parcelasPaginacao" style="display:none;">
+                <button class="btn-pag" id="btnPagAnterior" onclick="mudarPaginaParcelas(-1)">
+                    <i class='bx bx-chevron-left'></i> Anterior
+                </button>
+                <span class="pag-info" id="pagInfo">Página 1 de 1</span>
+                <button class="btn-pag" id="btnPagProxima" onclick="mudarPaginaParcelas(1)">
+                    Próxima <i class='bx bx-chevron-right'></i>
+                </button>
+            </div>
+        </div></div>
+    </div>
     <script src="js/main.js"></script>
     <script src="js/navbar.js"></script>
     <script src="js/emprestimos.js"></script>

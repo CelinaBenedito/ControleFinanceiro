@@ -61,4 +61,7 @@ public interface EventoFinanceiroRepository extends JpaRepository<EventoFinancei
 
     /** Eventos do tipo Poupança vinculados a uma caixinha. */
     List<EventoFinanceiro> findAllByCaixinha_Id(java.util.UUID caixinhaId);
+
+    /** Eventos vinculados a um empréstimo bancário. */
+    List<EventoFinanceiro> findAllByEmprestimoBancario_Id(java.util.UUID emprestimoBancarioId);
 }

@@ -205,8 +205,11 @@ public class UpdateService {
             // 2. Se falhar, usa PowerShell com "Run As" para elevar e copiar.
             // 3. Após cópia bem-sucedida, apaga o pending-update.jar para que o
             //    launcher não tente copiá-lo novamente (e falhe com AccessDenied).
-            // 4. Reinicia MyFinance.exe.
-            String vbs = "WScript.Sleep 3000\r\n"
+            // 4. Aguarda 8 segundos para garantir que a instância antiga encerrou completamente
+            //    (liberar lock de porta 13308 e fechar conexões do banco).
+            // 5. Verifica se a porta 13308 foi liberada (lock de instância única).
+            // 6. Reinicia MyFinance.exe.
+            String vbs = "WScript.Sleep 8000\r\n"
                     + "Dim fso, src, dst, logFile\r\n"
                     + "src = \"" + src.replace("\"", "\"\"") + "\"\r\n"
                     + "dst = \"" + dst.replace("\"", "\"\"") + "\"\r\n"
@@ -218,6 +221,26 @@ public class UpdateService {
                     + "    f.WriteLine msg\r\n"
                     + "    f.Close\r\n"
                     + "End Sub\r\n"
+                    + "' Verifica se a porta 13308 foi liberada (lock de instância única)\r\n"
+                    + "Function IsPortFree()\r\n"
+                    + "    On Error Resume Next\r\n"
+                    + "    Dim objWMI, colItems, objItem\r\n"
+                    + "    Set objWMI = GetObject(\"winmgmts:\\\\\\\\localhost\\\\root\\\\CIMV2\")\r\n"
+                    + "    Set colItems = objWMI.ExecQuery(\"SELECT * FROM Win32_Process WHERE Name = 'java.exe' OR Name = 'javaw.exe'\")\r\n"
+                    + "    IsPortFree = (colItems.Count = 0)\r\n"
+                    + "    On Error GoTo 0\r\n"
+                    + "End Function\r\n"
+                    + "' Aguarda até 30 segundos para a instância antiga encerrar\r\n"
+                    + "Dim tentativas : tentativas = 0\r\n"
+                    + "While tentativas < 15 And Not IsPortFree()\r\n"
+                    + "    WScript.Sleep 2000\r\n"
+                    + "    tentativas = tentativas + 1\r\n"
+                    + "Wend\r\n"
+                    + "If tentativas >= 15 Then\r\n"
+                    + "    LogMsg \"[VBScript] AVISO: Timeout aguardando encerramento da instância anterior\"\r\n"
+                    + "Else\r\n"
+                    + "    LogMsg \"[VBScript] Instância anterior encerrada com sucesso\"\r\n"
+                    + "End If\r\n"
                     + "LogMsg \"[VBScript] Iniciando aplicação da atualização...\"\r\n"
                     + "If fso.FileExists(src) Then\r\n"
                     + "    On Error Resume Next\r\n"
@@ -262,9 +285,14 @@ public class UpdateService {
         // Encerra esta instância para liberar o lock do JAR
         log.info("[Update] Encerrando instância atual para aplicar atualização...");
         log.info("[Update] ========================================");
+        
+        // Encerra o JavaFX imediatamente
         Platform.exit();
+        
+        // Thread agressiva para garantir o encerramento
         new Thread(() -> {
-            try { Thread.sleep(800); } catch (InterruptedException ignored) {}
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            log.info("[Update] Forçando encerramento da aplicação...");
             System.exit(0);
         }).start();
     }

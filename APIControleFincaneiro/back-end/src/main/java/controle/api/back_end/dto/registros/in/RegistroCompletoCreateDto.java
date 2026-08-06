@@ -12,6 +12,8 @@ public class RegistroCompletoCreateDto {
     private List<EventoInstituicaoCreateDto> instituicao;
     @Valid
     private EventoDetalheCreateDto detalhe;
+    @Valid
+    private RecorrenciaCreateDto recorrencia;
 
     public List<EventoInstituicaoCreateDto> getInstituicao() {
         return instituicao;
@@ -35,5 +37,13 @@ public class RegistroCompletoCreateDto {
 
     public void setDetalhe(EventoDetalheCreateDto detalhe) {
         this.detalhe = detalhe;
+    }
+
+    public RecorrenciaCreateDto getRecorrencia() {
+        return recorrencia;
+    }
+
+    public void setRecorrencia(RecorrenciaCreateDto recorrencia) {
+        this.recorrencia = recorrencia;
     }
 }

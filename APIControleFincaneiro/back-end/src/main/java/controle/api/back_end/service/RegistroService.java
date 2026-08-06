@@ -2,6 +2,7 @@ package controle.api.back_end.service;
 
 import controle.api.back_end.dto.registros.in.BulkAlteracoesDto;
 import controle.api.back_end.dto.registros.in.RegistroCompletoEditDto;
+import controle.api.back_end.dto.registros.in.RegistroCompletoCreateDto;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.BulkDeleteResultDto;
 import controle.api.back_end.dto.registros.out.BulkEditResultDto;
@@ -393,6 +394,147 @@ public class RegistroService {
         recorrenciaFinanceiraRepository.delete(recorrencia);
     }
 
+    /** Busca todos os eventos (passados e futuros) vinculados a uma recorrência. */
+    @Transactional(readOnly = true)
+    public List<RegistroResponseDto> getEventosByRecorrencia(UUID recorrenciaId) {
+        RecorrenciaFinanceira recorrencia = recorrenciaFinanceiraRepository.findById(recorrenciaId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Recorrência de id: %s não encontrada.".formatted(recorrenciaId)));
+
+        List<EventoInstituicao> eis = recorrencia.getEventoInstituicaos();
+        if (eis == null || eis.isEmpty()) {
+            return List.of();
+        }
+
+        // Agrupa por evento financeiro e mapeia para DTO
+        return eis.stream()
+                .map(EventoInstituicao::getEventoFinanceiro)
+                .filter(ev -> ev != null)
+                .distinct()
+                .sorted((a, b) -> a.getDataEvento().compareTo(b.getDataEvento()))
+                .map(ev -> {
+                    List<EventoInstituicao> instsEvento = eventoInstituicaoRepository
+                            .findEventoInstituicaoByEventoFinanceiro_Id(ev.getId());
+                    EventoDetalhe detalhe = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro(ev);
+                    return RegistrosMapper.toResponse(ev, instsEvento, detalhe);
+                })
+                .toList();
+    }
+
+    /** Atualiza uma recorrência e recria os eventos futuros com os novos dados. */
+    public RecorrenciaFinanceira updateRecorrencia(UUID recorrenciaId, RegistroCompletoCreateDto dto) {
+        RecorrenciaFinanceira recorrencia = recorrenciaFinanceiraRepository.findById(recorrenciaId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Recorrência de id: %s não encontrada.".formatted(recorrenciaId)));
+
+        // Remove eventos futuros vinculados a esta recorrência
+        List<EventoInstituicao> eis = recorrencia.getEventoInstituicaos();
+        if (eis != null && !eis.isEmpty()) {
+            LocalDate hoje = LocalDate.now();
+            List<EventoFinanceiro> eventosFuturos = eis.stream()
+                    .map(EventoInstituicao::getEventoFinanceiro)
+                    .filter(ev -> ev != null && !ev.getDataEvento().isBefore(hoje))
+                    .distinct()
+                    .toList();
+
+            // Desvincula as EIs da recorrência antes de deletar eventos futuros
+            eis.stream()
+                    .filter(ei -> ei.getEventoFinanceiro() != null
+                            && !ei.getEventoFinanceiro().getDataEvento().isBefore(hoje))
+                    .forEach(ei -> {
+                        ei.setRecorrenciaFinanceira(null);
+                        eventoInstituicaoRepository.save(ei);
+                    });
+
+            eventosFuturos.forEach(eventoFinanceiroRepository::delete);
+        }
+
+        // Atualiza os dados da recorrência
+        RecorrenciaFinanceira novosDados = RegistrosMapper.toEntity(dto.getRecorrencia());
+        recorrencia.setValor(novosDados.getValor());
+        recorrencia.setDescricao(novosDados.getDescricao());
+        recorrencia.setPeriodicidade(novosDados.getPeriodicidade());
+        recorrencia.setDataFim(novosDados.getDataFim());
+        recorrencia.setIntervalo(novosDados.getIntervalo());
+        recorrencia.setDia(novosDados.getDia());
+        recorrencia.setDiasDaSemana(novosDados.getDiasDaSemana());
+
+        RecorrenciaFinanceira recorrenciaAtualizada = recorrenciaFinanceiraRepository.save(recorrencia);
+
+        // Recria eventos futuros com os novos dados
+        RecorrenciaStrategy strategy = recorrenciaFactory.getStrategy(recorrenciaAtualizada.getPeriodicidade());
+        // Usa dataInicio como hoje para gerar apenas eventos futuros
+        recorrenciaAtualizada.setDataInicio(LocalDate.now());
+        List<EventoFinanceiro> eventosGerados = strategy.gerarEventos(recorrenciaAtualizada, recorrenciaAtualizada.getDataFim());
+
+        // Busca as instituições e detalhe dos eventos existentes da recorrência
+        List<EventoInstituicao> instituicoesOriginais = new ArrayList<>();
+        EventoDetalhe detalheOriginal = null;
+
+        if (eis != null && !eis.isEmpty()) {
+            // Pega as instituições do primeiro evento para usar como template
+            EventoInstituicao primeiraEI = eis.stream()
+                    .filter(ei -> ei.getEventoFinanceiro() != null)
+                    .findFirst()
+                    .orElse(null);
+
+            if (primeiraEI != null) {
+                // Cria cópias das instituições originais
+                instituicoesOriginais = eventoInstituicaoRepository
+                        .findEventoInstituicaoByEventoFinanceiro_Id(primeiraEI.getEventoFinanceiro().getId())
+                        .stream()
+                        .map(ei -> {
+                            EventoInstituicao nova = new EventoInstituicao();
+                            nova.setInstituicaoUsuario(ei.getInstituicaoUsuario());
+                            nova.setTipoMovimento(ei.getTipoMovimento());
+                            nova.setValor(ei.getValor());
+                            nova.setParcelas(ei.getParcelas());
+                            return nova;
+                        })
+                        .toList();
+
+                // Busca o detalhe original
+                detalheOriginal = eventoDetalheRepository
+                        .findGastoDetalheByEventoFinanceiro(primeiraEI.getEventoFinanceiro());
+            }
+        }
+
+        // Se não encontrou instituições/detalhe originais, tenta usar do DTO
+        final List<EventoInstituicao> instituicoes = !instituicoesOriginais.isEmpty()
+                ? instituicoesOriginais
+                : (dto.getInstituicao() != null && !dto.getInstituicao().isEmpty()
+                    ? RegistrosMapper.toEntityEvento(dto.getInstituicao())
+                    : new ArrayList<>());
+
+        final EventoDetalhe detalhe = detalheOriginal != null
+                ? detalheOriginal
+                : (dto.getDetalhe() != null
+                    ? RegistrosMapper.toEntityGasto(dto.getDetalhe())
+                    : null);
+
+        eventosGerados.forEach(evento -> {
+            evento.setDataRegistro(LocalDateTime.now());
+            EventoFinanceiro salvo = eventoFinanceiroRepository.save(evento);
+
+            if (!instituicoes.isEmpty()) {
+                List<EventoInstituicao> insts = createEventoInstituicaoComRecorrencia(instituicoes, salvo, recorrenciaAtualizada);
+            }
+
+            if (detalhe != null) {
+                // Cria novo detalhe para cada evento
+                EventoDetalhe novoDetalhe = new EventoDetalhe();
+                novoDetalhe.setEventoFinanceiro(salvo);
+                novoDetalhe.setTituloGasto(detalhe.getTituloGasto());
+                novoDetalhe.setCategoriaUsuario(detalhe.getCategoriaUsuario() != null
+                        ? new ArrayList<>(detalhe.getCategoriaUsuario())
+                        : new ArrayList<>());
+                eventoDetalheRepository.save(novoDetalhe);
+            }
+        });
+
+        return recorrenciaAtualizada;
+    }
+
     /**
      * Valida e persiste os meios de pagamento de um evento.
      *
@@ -420,6 +562,24 @@ public class RegistroService {
         // Cada instituição pode gerar 1 ou N registros (parcelamento)
         return instituicoes.stream()
                 .flatMap(inst -> processarPagamento(inst, evento, validarSaldo).stream())
+                .toList();
+    }
+
+    /**
+     * Cria EventoInstituicao vinculados a uma recorrência.
+     * Este método garante que a recorrência seja vinculada antes do save inicial.
+     */
+    public List<EventoInstituicao> createEventoInstituicaoComRecorrencia(List<EventoInstituicao> instituicoes,
+                                                                          EventoFinanceiro evento,
+                                                                          RecorrenciaFinanceira recorrencia) {
+        if (!eventoFinanceiroRepository.existsById(evento.getId())) {
+            throw new EntidadeNaoEncontradaException(
+                    "Evento Financeiro de id: %s não encontrado.".formatted(evento.getId()));
+        }
+
+        // Cada instituição pode gerar 1 ou N registros (parcelamento)
+        return instituicoes.stream()
+                .flatMap(inst -> processarPagamentoComRecorrencia(inst, evento, recorrencia).stream())
                 .toList();
     }
 
@@ -680,6 +840,24 @@ public class RegistroService {
     }
 
     /**
+     * Processa um pagamento e vincula à recorrência.
+     * Usado especificamente para eventos recorrentes.
+     */
+    private List<EventoInstituicao> processarPagamentoComRecorrencia(EventoInstituicao pagamento,
+                                                                       EventoFinanceiro evento,
+                                                                       RecorrenciaFinanceira recorrencia) {
+        InstituicaoUsuario instUsuario = buscarInstituicaoAtivaOuErro(pagamento.getInstituicaoUsuario().getId());
+
+        Map<String, Object> params = Map.of("parcelas", pagamento.getParcelas());
+        MovimentoStrategy movimentoStrategy = movimentoFactory.getStrategy(pagamento.getTipoMovimento(), params);
+        movimentoStrategy.validar(instUsuario);
+        MovimentoResultado resultado = movimentoStrategy.processar(pagamento);
+
+        // Eventos recorrentes não validam saldo — o gasto ocorrerá no futuro
+        return salvarParcelasComRecorrencia(resultado, pagamento, instUsuario, evento, recorrencia);
+    }
+
+    /**
      * Salva os registros de parcelas de um pagamento.
      *
      * <ul>
@@ -712,6 +890,42 @@ public class RegistroService {
                     parcela.setInstituicaoUsuario(instUsuario);
                     parcela.setTipoMovimento(pagamento.getTipoMovimento());
                     parcela.setValor(resultado.getValorParcela());
+                    return eventoInstituicaoRepository.save(parcela);
+                })
+                .toList();
+    }
+
+    /**
+     * Salva os registros de parcelas vinculados a uma recorrência.
+     * Garante que a recorrência seja vinculada antes do save.
+     */
+    private List<EventoInstituicao> salvarParcelasComRecorrencia(MovimentoResultado resultado,
+                                                                  EventoInstituicao pagamento,
+                                                                  InstituicaoUsuario instUsuario,
+                                                                  EventoFinanceiro evento,
+                                                                  RecorrenciaFinanceira recorrencia) {
+        if (resultado.getParcelas() == 1) {
+            // Sempre cria um NOVO objeto para não reutilizar o mesmo pagamento em recorrentes
+            EventoInstituicao novaInst = new EventoInstituicao();
+            novaInst.setInstituicaoUsuario(instUsuario);
+            novaInst.setEventoFinanceiro(evento);
+            novaInst.setParcelas(1);
+            novaInst.setTipoMovimento(pagamento.getTipoMovimento());
+            novaInst.setValor(resultado.getValorParcela());
+            novaInst.setRecorrenciaFinanceira(recorrencia); // Vincula a recorrência
+            return List.of(eventoInstituicaoRepository.save(novaInst));
+        }
+
+        // Parcelado: cria um registro por número de parcela
+        return IntStream.rangeClosed(1, resultado.getParcelas())
+                .mapToObj(numeroParcela -> {
+                    EventoInstituicao parcela = new EventoInstituicao();
+                    parcela.setParcelas(numeroParcela);
+                    parcela.setEventoFinanceiro(evento);
+                    parcela.setInstituicaoUsuario(instUsuario);
+                    parcela.setTipoMovimento(pagamento.getTipoMovimento());
+                    parcela.setValor(resultado.getValorParcela());
+                    parcela.setRecorrenciaFinanceira(recorrencia); // Vincula a recorrência
                     return eventoInstituicaoRepository.save(parcela);
                 })
                 .toList();

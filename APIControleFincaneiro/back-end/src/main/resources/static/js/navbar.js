@@ -487,11 +487,19 @@ window.addEventListener("DOMContentLoaded", function () {
                 margin-top:2px;">
             </div>
             <div style="flex:1; min-width:0;">
-                <h3 id="mf-toast-title" style="
-                    font-size:1rem; font-weight:700; margin:0 0 6px 0;
-                    color:var(--cor-titulo);">
-                    Atualizando...
-                </h3>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                    <h3 id="mf-toast-title" style="
+                        font-size:1rem; font-weight:700; margin:0;
+                        color:var(--cor-titulo);">
+                        Atualizando...
+                    </h3>
+                    <button id="mf-toast-close" title="Fechar" style="
+                        background:none; border:none; cursor:pointer;
+                        color:var(--cor-texto-secundario); font-size:1.3rem;
+                        padding:0; line-height:1; width:20px; height:20px;
+                        display:flex; align-items:center; justify-content:center;
+                        transition:color 0.2s;">✕</button>
+                </div>
                 <p id="mf-toast-message" style="
                     font-size:0.85rem; color:var(--cor-texto-secundario);
                     margin:0; line-height:1.5;">
@@ -536,6 +544,9 @@ window.addEventListener("DOMContentLoaded", function () {
             font-size:1.4rem;
             font-weight:700;
         }
+        #mf-toast-close:hover {
+            color:var(--red-600,#dc2626);
+        }
     </style>`;
 
     document.body.insertAdjacentHTML('beforeend', updateToastHtml);
@@ -546,12 +557,52 @@ window.addEventListener("DOMContentLoaded", function () {
     const toastProgress = document.getElementById('mf-toast-progress-bar');
     const toastPercentage = document.getElementById('mf-toast-percentage');
     const toastSpinner = document.getElementById('mf-toast-spinner');
+    const toastClose = document.getElementById('mf-toast-close');
+
+    // Botão X para fechar manualmente
+    toastClose.addEventListener('click', function() {
+        hideUpdateToast();
+    });
 
     // Verifica se há atualização em progresso ao carregar a página
-    function checkUpdateInProgress() {
+    async function checkUpdateInProgress() {
         const updateStatus = localStorage.getItem('mf-update-status');
         if (updateStatus) {
             const status = JSON.parse(updateStatus);
+
+            // Verifica se a versão armazenada mudou (indica que a atualização foi concluída)
+            try {
+                const res = await fetch('http://localhost:8080/api/update/check');
+                if (res.ok) {
+                    const info = await res.json();
+                    const currentVersion = info.currentVersion;
+                    const storedVersion = localStorage.getItem('mf-app-version');
+
+                    if (currentVersion && storedVersion && currentVersion !== storedVersion) {
+                        // Versão mudou! A atualização foi bem-sucedida
+                        localStorage.setItem('mf-app-version', currentVersion);
+                        localStorage.removeItem('mf-update-status');
+                        return; // Não mostra o toast
+                    }
+
+                    // Armazena a versão atual se ainda não foi armazenada
+                    if (currentVersion && !storedVersion) {
+                        localStorage.setItem('mf-app-version', currentVersion);
+                    }
+                }
+            } catch (e) {
+                // Se falhar ao buscar a versão, continua com a lógica de timeout
+            }
+
+            // Se a versão não mudou mas já passou tempo suficiente, limpa o status
+            if (status.timestamp) {
+                const elapsed = Date.now() - status.timestamp;
+                if (elapsed > 60000) { // 60 segundos
+                    localStorage.removeItem('mf-update-status');
+                    return;
+                }
+            }
+
             if (status.inProgress) {
                 showUpdateToast(status.title, status.message, status.progress);
             }
@@ -565,12 +616,13 @@ window.addEventListener("DOMContentLoaded", function () {
         toastProgress.style.width = progress + '%';
         toastPercentage.textContent = Math.round(progress) + '%';
 
-        // Salva o estado no localStorage
+        // Salva o estado no localStorage com timestamp
         localStorage.setItem('mf-update-status', JSON.stringify({
             inProgress: true,
             title: title,
             message: message,
-            progress: progress
+            progress: progress,
+            timestamp: Date.now()
         }));
     }
 

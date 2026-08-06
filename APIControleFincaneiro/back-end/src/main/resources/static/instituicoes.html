@@ -269,6 +269,15 @@
 
             <!-- ABA: Resumo -->
             <div class="inst-tab-panel ativo" id="tab-resumo">
+                <!-- Explicação sobre diferença de valores -->
+                <div style="background: var(--cor-fundo-card); border: 1px solid var(--cor-borda); border-left: 3px solid var(--cor-principal); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px;">
+                    <p style="font-size: 0.85rem; color: var(--cor-texto-principal); margin: 0; line-height: 1.6;">
+                        <strong style="color: var(--cor-principal);">ℹ️ Importante:</strong>
+                        <strong>Saldo Disponível</strong> mostra quanto você tem acumulado até o final do período.
+                        <strong>Gastos no Débito/Crédito</strong> mostram os gastos realizados dentro do período selecionado (débito inclui PIX).
+                    </p>
+                </div>
+
                 <div class="inst-resumo-grid">
                     <div class="inst-stat-card">
                         <span class="inst-stat-label">Saldo Disponível</span>
@@ -279,11 +288,11 @@
                         <span class="inst-stat-valor" id="mdTransacoes">0</span>
                     </div>
                     <div class="inst-stat-card">
-                        <span class="inst-stat-label">Total Crédito</span>
+                        <span class="inst-stat-label">Gastos no Crédito</span>
                         <span class="inst-stat-valor vermelho" id="mdCredito">R$ 0,00</span>
                     </div>
                     <div class="inst-stat-card">
-                        <span class="inst-stat-label">Total Débito</span>
+                        <span class="inst-stat-label">Gastos no Débito</span>
                         <span class="inst-stat-valor vermelho" id="mdDebito">R$ 0,00</span>
                     </div>
                     <div class="inst-stat-card">

@@ -46,14 +46,33 @@ public class BackEndApplication {
 
 	private static void showAlreadyRunningMessage() {
 		try {
+			// Tenta enviar sinal para a instância existente mostrar a janela
+			tryNotifyExistingInstance();
+
 			javax.swing.JOptionPane.showMessageDialog(
 				null,
-				"O MyFinance já está em execução.\nVerifique a barra de tarefas.",
-				"MyFinance",
+				"O MyFinance já está em execução.\n\n" +
+				"Se a janela não estiver visível, verifique:\n" +
+				"• Ícone na bandeja do sistema (próximo ao relógio)\n" +
+				"• Gerenciador de Tarefas (processos em segundo plano)\n\n" +
+				"Se o problema persistir, encerre o processo pelo\n" +
+				"Gerenciador de Tarefas e tente novamente.",
+				"MyFinance - Já em Execução",
 				javax.swing.JOptionPane.INFORMATION_MESSAGE
 			);
 		} catch (Exception e) {
 			System.out.println("[MyFinance] Já existe uma instância em execução.");
+		}
+	}
+
+	private static void tryNotifyExistingInstance() {
+		try {
+			// Tenta conectar à porta 13308 para notificar a instância existente
+			java.net.Socket socket = new java.net.Socket("127.0.0.1", 13308);
+			socket.getOutputStream().write("SHOW".getBytes());
+			socket.close();
+		} catch (Exception ignored) {
+			// Silencioso - é apenas uma tentativa de notificar
 		}
 	}
 }

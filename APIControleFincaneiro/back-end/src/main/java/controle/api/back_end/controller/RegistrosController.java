@@ -451,6 +451,32 @@ public class RegistrosController {
         return lista.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(lista);
     }
 
+    @GetMapping("/recorrentes/{recorrencia_id}/eventos")
+    @Operation(summary = "Listar eventos de uma recorrência",
+               description = "Retorna todos os eventos (passados e futuros) vinculados a uma recorrência específica.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "204", content = @Content)
+    })
+    public ResponseEntity<List<RegistroResponseDto>> listarEventosRecorrencia(@PathVariable UUID recorrencia_id) {
+        List<RegistroResponseDto> eventos = registroService.getEventosByRecorrencia(recorrencia_id);
+        return eventos.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(eventos);
+    }
+
+    @PatchMapping("/recorrentes/{recorrencia_id}")
+    @Operation(summary = "Editar uma recorrência",
+               description = "Atualiza os dados de uma recorrência. Os eventos futuros serão recriados com os novos dados.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "404", content = @Content)
+    })
+    public ResponseEntity<RecorrenciaFinanceira> editarRecorrencia(
+            @PathVariable UUID recorrencia_id,
+            @RequestBody @Valid RegistroCompletoCreateDto dto) {
+        RecorrenciaFinanceira atualizada = registroService.updateRecorrencia(recorrencia_id, dto);
+        return ResponseEntity.ok(atualizada);
+    }
+
     @DeleteMapping("/recorrentes/{recorrencia_id}")
     @Operation(summary = "Deletar uma recorrência",
                description = "Remove a regra de recorrência e todos os eventos futuros vinculados a ela.")

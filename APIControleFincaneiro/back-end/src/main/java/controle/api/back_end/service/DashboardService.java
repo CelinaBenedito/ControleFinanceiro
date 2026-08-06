@@ -8,9 +8,12 @@ import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.dashboard.NivelSaudeFinanceira;
 import controle.api.back_end.model.dashboard.TipoPeriodo;
+import controle.api.back_end.model.emprestimo.EmprestimoBancario;
+import controle.api.back_end.model.emprestimo.StatusEmprestimoBancario;
 import controle.api.back_end.model.eventoFinanceiro.*;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.poupanca.Caixinha;
+import controle.api.back_end.repository.EmprestimoBancarioRepository;
 import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoDetalheRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
@@ -46,6 +49,7 @@ public class DashboardService {
     private final RegistroService registroService;
     private final CaixinhaRepository caixinhaRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
+    private final EmprestimoBancarioRepository emprestimoBancarioRepository;
 
     public DashboardService(UsuarioRepository usuarioRepository,
                             RegistroService registroService,
@@ -57,7 +61,8 @@ public class DashboardService {
                             ConfiguracoesService configuracoesService,
                             ConfiguracoesRepository configuracoesRepository,
                             CaixinhaRepository caixinhaRepository,
-                            InstituicaoUsuarioRepository instituicaoUsuarioRepository) {
+                            InstituicaoUsuarioRepository instituicaoUsuarioRepository,
+                            EmprestimoBancarioRepository emprestimoBancarioRepository) {
         this.usuarioRepository        = usuarioRepository;
         this.registroService          = registroService;
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
@@ -69,6 +74,7 @@ public class DashboardService {
         this.configuracoesRepository  = configuracoesRepository;
         this.caixinhaRepository       = caixinhaRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
+        this.emprestimoBancarioRepository = emprestimoBancarioRepository;
     }
 
     // =========================================================================
@@ -247,7 +253,7 @@ public class DashboardService {
                 if (!isGastoCredito) {
                     porDia.merge(e.getDataEvento(), BigDecimal.valueOf(e.getValor()), BigDecimal::add);
                 }
-            } else if (e.getTipo() == Tipo.Recebimento || e.getTipo() == Tipo.Emprestimo) {
+            } else if (e.getTipo() == Tipo.Recebimento) {
                 porDiaRec.merge(e.getDataEvento(), BigDecimal.valueOf(e.getValor()), BigDecimal::add);
             }
         }
@@ -464,7 +470,7 @@ public class DashboardService {
             BigDecimal valor = BigDecimal.valueOf(e.getValor());
 
             switch (e.getTipo()) {
-                case Recebimento, Emprestimo -> {
+                case Recebimento -> {
                     instEntrada.merge(instId, valor, BigDecimal::add);
                     // link: "entrada" → instituição
                     String entradaId = "entrada";
@@ -591,10 +597,9 @@ public class DashboardService {
         return PeriodoTemporalUtils.calcular(tipo, ano, mes, trimestre, semestre, getDiaFiscal(userId));
     }
 
-    /** Para KPI 1: corta o cálculo em hoje se o período ainda não terminou. */
+    /** Para KPI 1: retorna a data final do período (mesmo que seja futura). */
     private LocalDate dataCorte(Periodo p) {
-        LocalDate hoje = LocalDate.now();
-        return p.fim().isAfter(hoje) ? hoje : p.fim();
+        return p.fim();
     }
 
     private int getDiaFiscal(UUID userId) {
@@ -834,62 +839,49 @@ public class DashboardService {
     }
 
     // =========================================================================
-    //  KPI — EMPRÉSTIMO ATIVO (mais recente)
+    //  KPI — EMPRÉSTIMO BANCÁRIO ATIVO (mais recente)
     // =========================================================================
     public KpiEmprestimoDto getKpiEmprestimo(UUID userId) {
         validarUsuario(userId);
-        List<EventoFinanceiro> todos = eventoFinanceiroRepository.findAllByUsuario_Id(userId);
-        EventoFinanceiro emprestimo = todos.stream()
-                .filter(e -> e.getTipo() == Tipo.Emprestimo)
-                .max(Comparator.comparing(EventoFinanceiro::getDataEvento))
-                .orElse(null);
-        if (emprestimo == null) {
-            return new KpiEmprestimoDto(false, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0, 0, 0, 0, "N/A");
+        
+        // Busca empréstimos bancários ativos
+        List<EmprestimoBancario> emprestimos = emprestimoBancarioRepository
+                .findByUsuarioIdAndStatusOrderByDataCriacaoDesc(userId, StatusEmprestimoBancario.ATIVO);
+        
+        if (emprestimos.isEmpty()) {
+            return new KpiEmprestimoDto(false, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 
+                    BigDecimal.ZERO, 0, 0, 0, 0, "N/A");
         }
-        List<EventoInstituicao> insts = eventoInstituicaoRepository.findEventoInstituicaoByEventoFinanceiro_Id(emprestimo.getId());
-        int parcelasTotal = insts.isEmpty() ? 1 : insts.get(0).getParcelas();
-        String nomeInst = insts.isEmpty() ? "N/A" : insts.get(0).getInstituicaoUsuario().getInstituicao().getNome();
-        Double taxaJuros = insts.isEmpty() ? null : insts.get(0).getInstituicaoUsuario().getTaxaJuros();
-
-        long mesesDecorridos = java.time.temporal.ChronoUnit.MONTHS.between(emprestimo.getDataEvento(), LocalDate.now());
-        int parcelasPagas = (int) Math.min(mesesDecorridos, parcelasTotal);
+        
+        // Pega o mais recente
+        EmprestimoBancario eb = emprestimos.get(0);
+        
+        int parcelasPagas = eb.getParcelasPagas();
+        int parcelasTotal = eb.getTotalParcelas();
         int parcelasFaltantes = parcelasTotal - parcelasPagas;
-
-        BigDecimal valorTotal = BigDecimal.valueOf(emprestimo.getValor());
-
-        double r = (taxaJuros != null && taxaJuros > 0) ? taxaJuros / 100.0 : 0.0;
-        double pmt;
-        if (r < 1e-10) {
-            pmt = valorTotal.doubleValue() / parcelasTotal;
-        } else {
-            double fator = Math.pow(1 + r, parcelasTotal);
-            pmt = valorTotal.doubleValue() * r * fator / (fator - 1);
-        }
-        double totalPago = pmt * parcelasPagas;
-
-        double saldoDevedor;
-        if (r < 1e-10) {
-            saldoDevedor = valorTotal.doubleValue() - (valorTotal.doubleValue() / parcelasTotal) * parcelasPagas;
-        } else {
-            double fatorK = Math.pow(1 + r, parcelasPagas);
-            saldoDevedor = valorTotal.doubleValue() * fatorK - pmt * (fatorK - 1) / r;
-        }
-        double principalPago = valorTotal.doubleValue() - Math.max(saldoDevedor, 0);
-        double jurosPagosVal = totalPago - principalPago;
-
+        
+        BigDecimal valorTotal = eb.getValorPrincipal();
+        BigDecimal valorTotalComJuros = eb.getValorParcela().multiply(BigDecimal.valueOf(parcelasTotal));
+        BigDecimal valorPago = eb.getValorParcela().multiply(BigDecimal.valueOf(parcelasPagas));
+        BigDecimal saldoDevedor = eb.getValorParcela().multiply(BigDecimal.valueOf(parcelasFaltantes));
+        BigDecimal jurosPagos = valorPago.subtract(
+                eb.getValorPrincipal().multiply(BigDecimal.valueOf(parcelasPagas))
+                        .divide(BigDecimal.valueOf(parcelasTotal), 2, RoundingMode.HALF_UP)
+        );
+        
         int pct = parcelasTotal > 0 ? (parcelasPagas * 100 / parcelasTotal) : 0;
-
+        
         return new KpiEmprestimoDto(
                 true,
                 valorTotal,
-                BigDecimal.valueOf(Math.max(totalPago, 0)).setScale(2, RoundingMode.HALF_UP),
-                BigDecimal.valueOf(Math.max(saldoDevedor, 0)).setScale(2, RoundingMode.HALF_UP),
-                BigDecimal.valueOf(Math.max(jurosPagosVal, 0)).setScale(2, RoundingMode.HALF_UP),
+                valorPago,
+                saldoDevedor,
+                jurosPagos.max(BigDecimal.ZERO),
                 parcelasTotal,
                 parcelasPagas,
                 parcelasFaltantes,
                 pct,
-                nomeInst
+                eb.getBancoNome()
         );
     }
 
@@ -908,7 +900,7 @@ public class DashboardService {
         for (EventoFinanceiro e : eventos) {
             if (!emPeriodo(e, periodo)) continue;
             BigDecimal v = BigDecimal.valueOf(e.getValor());
-            if (e.getTipo() == Tipo.Recebimento || e.getTipo() == Tipo.Emprestimo) receita = receita.add(v);
+            if (e.getTipo() == Tipo.Recebimento) receita = receita.add(v);
             else if (e.getTipo() == Tipo.Gasto) gastos = gastos.add(v);
             else if (e.getTipo() == Tipo.Transferencia) transferencias = transferencias.add(v);
         }
@@ -942,9 +934,10 @@ public class DashboardService {
             }
         }
 
-        // C) Sem empréstimos ativos (20 pts)
-        boolean temEmprestimo = eventos.stream().anyMatch(e -> e.getTipo() == Tipo.Emprestimo);
-        if (!temEmprestimo) pontos += 20;
+        // C) Sem empréstimos bancários ativos (20 pts)
+        List<EmprestimoBancario> emprestimosAtivos = emprestimoBancarioRepository
+                .findByUsuarioIdAndStatusOrderByDataCriacaoDesc(userId, StatusEmprestimoBancario.ATIVO);
+        if (emprestimosAtivos.isEmpty()) pontos += 20;
         else pontos += 5;
 
         // D) Utilização de crédito (10 pts)

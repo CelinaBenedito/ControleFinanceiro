@@ -40,5 +40,6 @@ INSERT IGNORE INTO categoria (titulo) VALUES
     ('Faculdade'),
     ('Restaurante'),
     ('Praia'),
+    ('Parcela Empréstimo'),
     ('Outros');
 

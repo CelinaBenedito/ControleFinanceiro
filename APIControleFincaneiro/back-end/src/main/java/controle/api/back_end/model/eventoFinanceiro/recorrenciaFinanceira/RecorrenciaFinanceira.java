@@ -1,5 +1,6 @@
 package controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.usuario.Usuario;
@@ -41,6 +42,7 @@ public class RecorrenciaFinanceira {
     @Enumerated(EnumType.STRING)
     private List<DayOfWeek> diasDaSemana;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "recorrenciaFinanceira", cascade = CascadeType.ALL, orphanRemoval = true)
     List<EventoInstituicao> eventoInstituicaos;
 

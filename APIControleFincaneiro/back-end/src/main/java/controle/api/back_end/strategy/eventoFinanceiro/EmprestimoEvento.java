@@ -1,10 +1,13 @@
 package controle.api.back_end.strategy.eventoFinanceiro;
 
+import controle.api.back_end.model.categoria.Categoria;
+import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
-import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.repository.categoria.CategoriaRepository;
+import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -17,6 +20,15 @@ import java.util.Map;
 
 @Component
 public class EmprestimoEvento implements EventoFinanceiroStrategy {
+
+    private final CategoriaRepository categoriaRepository;
+    private final CategoriaUsuarioRepository categoriaUsuarioRepository;
+
+    public EmprestimoEvento(CategoriaRepository categoriaRepository,
+                           CategoriaUsuarioRepository categoriaUsuarioRepository) {
+        this.categoriaRepository = categoriaRepository;
+        this.categoriaUsuarioRepository = categoriaUsuarioRepository;
+    }
 
     @Override
     public Registro processar(EventoFinanceiro evento,
@@ -64,33 +76,72 @@ public class EmprestimoEvento implements EventoFinanceiroStrategy {
             BigDecimal valorParcela = BigDecimal.valueOf(valorTotal)
                     .divide(BigDecimal.valueOf(parcelas), 2, RoundingMode.HALF_UP);
 
+            // Busca ou cria a categoria "Parcela Empréstimo" para o usuário
+            CategoriaUsuario categoriaParcelaEmprestimo = obterOuCriarCategoriaParcelaEmprestimo(evento);
+
             for (int i = 1; i <= parcelas; i++) {
                 EventoFinanceiro debito = new EventoFinanceiro();
                 debito.setUsuario(evento.getUsuario());
                 debito.setTipo(Tipo.Gasto);
                 debito.setValor(valorParcela.doubleValue());
                 debito.setDescricao("Parcela " + i + "/" + parcelas + " do empréstimo");
-                debito.setDataEvento(evento.getDataEvento().plusMonths(i));
+                // Primeira parcela no mesmo mês, demais nos meses seguintes
+                debito.setDataEvento(evento.getDataEvento().plusMonths(i - 1));
                 debito.setDataRegistro(LocalDateTime.now());
                 eventos.add(debito);
 
                 List<EventoInstituicao> instsDebito = new ArrayList<>();
                 EventoInstituicao instDebito = new EventoInstituicao();
                 instDebito.setEventoFinanceiro(debito);
-                instDebito.setInstituicaoUsuario(eventoInstituicoes.get(0).getInstituicaoUsuario());
-                instDebito.setTipoMovimento(eventoInstituicoes.get(0).getTipoMovimento());
+                instDebito.setInstituicaoUsuario(eventoInstituicoes.getFirst().getInstituicaoUsuario());
+                instDebito.setTipoMovimento(eventoInstituicoes.getFirst().getTipoMovimento());
                 instDebito.setValor(valorParcela.doubleValue());
                 instDebito.setParcelas(i);
                 instsDebito.add(instDebito);
 
                 instituicoesPorEvento.put(debito, instsDebito);
 
-                if (eventoDetalhe != null) {
-                    detalhePorEvento.put(debito, eventoDetalhe);
-                }
+                // Cria um EventoDetalhe específico para cada parcela com a categoria "Parcela Empréstimo"
+                EventoDetalhe detalheParcela = new EventoDetalhe();
+                detalheParcela.setEventoFinanceiro(debito);
+                detalheParcela.setTituloGasto("Parcela " + i + "/" + parcelas + " do empréstimo");
+                detalheParcela.setCategoriaUsuario(List.of(categoriaParcelaEmprestimo));
+                detalhePorEvento.put(debito, detalheParcela);
             }
         }
         return new Registro(eventos, instituicoesPorEvento, detalhePorEvento);
     }
-}
 
+    /**
+     * Busca ou cria a CategoriaUsuario "Parcela Empréstimo" para o usuário.
+     * Se a categoria não existir no sistema, será criada.
+     * Se o usuário não tiver essa categoria associada, será criada a associação.
+     */
+    private CategoriaUsuario obterOuCriarCategoriaParcelaEmprestimo(EventoFinanceiro evento) {
+        String tituloCat = "Parcela Empréstimo";
+
+        // Busca a categoria "Parcela Empréstimo" no sistema
+        Categoria categoria = categoriaRepository.findAll().stream()
+                .filter(c -> tituloCat.equals(c.getTitulo()))
+                .findFirst()
+                .orElseGet(() -> {
+                    // Se não existe, cria a categoria
+                    Categoria novaCat = new Categoria();
+                    novaCat.setTitulo(tituloCat);
+                    return categoriaRepository.save(novaCat);
+                });
+
+        // Busca se o usuário já tem essa categoria associada
+        return categoriaUsuarioRepository
+                .findByUsuario_IdAndCategoria_Titulo(evento.getUsuario().getId(), tituloCat)
+                .orElseGet(() -> {
+                    // Se não tem, cria a associação
+                    CategoriaUsuario categoriaUsuario = new CategoriaUsuario();
+                    categoriaUsuario.setUsuario(evento.getUsuario());
+                    categoriaUsuario.setCategoria(categoria);
+                    categoriaUsuario.setAtivo(true);
+                    categoriaUsuario.setUltimaAtualizacao(LocalDateTime.now());
+                    return categoriaUsuarioRepository.save(categoriaUsuario);
+                });
+    }
+}

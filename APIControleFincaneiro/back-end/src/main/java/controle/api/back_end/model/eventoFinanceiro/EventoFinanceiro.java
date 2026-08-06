@@ -1,5 +1,6 @@
 package controle.api.back_end.model.eventoFinanceiro;
 
+import controle.api.back_end.model.emprestimo.EmprestimoBancario;
 import controle.api.back_end.model.poupanca.Caixinha;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
@@ -48,6 +49,13 @@ public class EventoFinanceiro {
 
     @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime dataRegistro;
+
+    /**
+     * Empréstimo bancário ao qual este evento pertence.
+     * Preenchido para eventos gerados por um empréstimo bancário.
+     */
+    @ManyToOne
+    private EmprestimoBancario emprestimoBancario;
 
     /**
      * Caixinha de poupança à qual este evento pertence.
@@ -152,6 +160,9 @@ public class EventoFinanceiro {
     public void setGastoDetalhe(EventoDetalhe eventoDetalhe) {
         this.eventoDetalhe = eventoDetalhe;
     }
+
+    public EmprestimoBancario getEmprestimoBancario() { return emprestimoBancario; }
+    public void setEmprestimoBancario(EmprestimoBancario emprestimoBancario) { this.emprestimoBancario = emprestimoBancario; }
 
     public Caixinha getCaixinha() { return caixinha; }
     public void setCaixinha(Caixinha caixinha) { this.caixinha = caixinha; }

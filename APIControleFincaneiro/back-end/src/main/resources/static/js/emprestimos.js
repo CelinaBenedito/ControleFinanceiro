@@ -14,6 +14,10 @@ let _instituicoes = [];
 let bancarios = [];
 let bancarioParaPagamento = null;
 let filtroBancarioAtual = 'todos';
+let parcelasCarregadas = {};
+let parcelasPaginaAtual = 1;
+let parcelasPorPagina = 5;
+let emprestimoIdAtualParcelas = null;
 
 // ── Inicialização ──
 window.addEventListener('DOMContentLoaded', () => {
@@ -783,7 +787,8 @@ function criarCardBancario(b) {
     const ph = b.proximaParcela ? '<div class="emprestimo-data"' + (atr ? ' style="color:#ef4444;"' : '') + '><i class=\'bx ' + (atr ? 'bx-error-circle' : 'bx-calendar') + '\'></i> ' + (atr ? 'Vencida: ' : 'Próxima: ') + formatarData(b.proximaParcela) + '</div>' : '';
     const ch = b.dataContratacao ? '<div class="emprestimo-data"><i class=\'bx bx-calendar-check\'></i> Contratado: ' + formatarData(b.dataContratacao) + '</div>' : '';
     const ba = isQ ? '<button class="btn-acao deletar" onclick="confirmarDeletarBancario(\'' + b.id + '\')"><i class=\'bx bx-trash\'></i> Deletar</button>'
-        : '<button class="btn-acao registrar" onclick="abrirModalPagarParcela(\'' + b.id + '\')"><i class=\'bx bx-money\'></i> Pagar Parcela</button><button class="btn-acao quitar" onclick="quitarBancario(\'' + b.id + '\')"><i class=\'bx bx-check-circle\'></i> Quitar</button><button class="btn-acao deletar" onclick="confirmarDeletarBancario(\'' + b.id + '\')"><i class=\'bx bx-trash\'></i> Deletar</button>';
+        : '<button class="btn-acao visualizar" onclick="abrirModalParcelas(\'' + b.id + '\')"><i class=\'bx bx-list-ul\'></i> Ver Parcelas</button><button class="btn-acao registrar" onclick="abrirModalPagarParcela(\'' + b.id + '\')"><i class=\'bx bx-money\'></i> Pagar Parcela</button><button class="btn-acao quitar" onclick="quitarBancario(\'' + b.id + '\')"><i class=\'bx bx-check-circle\'></i> Quitar</button><button class="btn-acao deletar" onclick="confirmarDeletarBancario(\'' + b.id + '\')"><i class=\'bx bx-trash\'></i> Deletar</button>';
+
     return '<div class="emprestimo-item emprestei' + (isQ ? ' quitado' : '') + '"><div class="emprestimo-header"><div class="emprestimo-info"><div class="emprestimo-tipo emprestei"><i class=\'bx bx-bank\'></i> ' + (_modLabel[b.modalidade] || b.modalidade) + '</div><h3 class="emprestimo-pessoa">' + b.bancoNome + '</h3>' + ch + ph + '</div><div class="emprestimo-status ' + sc + '"><i class=\'bx ' + si + '\'></i> ' + sl + '</div></div><div class="emprestimo-valores"><div class="emprestimo-valor-item"><span class="emprestimo-valor-label">Valor Contratado</span><span class="emprestimo-valor-numero">' + formatarMoeda(b.valorPrincipal) + '</span></div><div class="emprestimo-valor-item"><span class="emprestimo-valor-label">Parcela (' + b.taxaJurosMensal + '% a.m.)</span><span class="emprestimo-valor-numero">' + formatarMoeda(b.valorParcela) + '</span></div><div class="emprestimo-valor-item"><span class="emprestimo-valor-label">Saldo Devedor</span><span class="emprestimo-valor-numero">' + formatarMoeda(b.saldoDevedor) + '</span></div></div>' + (!isQ ? '<div class="emprestimo-progresso"><div class="progresso-bar-container"><div class="progresso-bar" style="width:' + pct + '%"></div></div><div class="progresso-texto">' + b.parcelasPagas + '/' + b.totalParcelas + ' parcelas (' + pct + '%)</div></div>' : '') + (b.observacoes ? '<div class="emprestimo-observacoes"><strong>Obs:</strong> ' + b.observacoes + '</div>' : '') + '<div class="emprestimo-acoes-item">' + ba + '</div></div>';
 }
 function calcularParcelaEstimada() {
@@ -801,9 +806,7 @@ function abrirModalNovoBancario() {
     document.getElementById('bParcelaEstimada').textContent = 'R$ 0,00';
     const h = new Date(); const hs = String(h.getDate()).padStart(2,'0') + '/' + String(h.getMonth()+1).padStart(2,'0') + '/' + h.getFullYear();
     const bc = document.getElementById('bInputContratacao'); if (bc) bc.value = hs;
-    ['bInputPrincipal','bInputContratacao','bInputPrimeiraParcela'].forEach(id => { const el=document.getElementById(id); if(el && window.MainAPI) { if(id==='bInputPrincipal' && window.MainAPI.aplicarMascaraMoeda) window.MainAPI.aplicarMascaraMoeda(el); else if(window.MainAPI.aplicarMascaraData) window.MainAPI.aplicarMascaraData(el); } });
     popularSelectInstituicoes('bInputInstituicao');
-    ['bInputTaxa','bInputParcelas'].forEach(id => { const el=document.getElementById(id); if(el) el.addEventListener('input', calcularParcelaEstimada); });
     document.getElementById('modalBancario').classList.add('aberto');
 }
 function fecharModalBancario() { document.getElementById('modalBancario').classList.remove('aberto'); }
@@ -818,9 +821,9 @@ async function salvarBancario(event) {
     const dados = { usuarioId: usuarioLogado.id, bancoNome: document.getElementById('bInputBanco').value, modalidade: document.getElementById('bInputModalidade').value, valorPrincipal: pv, taxaJurosMensal: tx, totalParcelas: n, dataContratacao: dataC, dataPrimeiraParcela: dataP, instituicaoUsuarioId: instId, observacoes: document.getElementById('bInputObs').value || null };
     try {
         const resp = await fetch(API_BASE + '/emprestimos-bancarios', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(dados) });
-        if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.message || 'HTTP ' + resp.status); }
+        if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.message || 'Erro ao registrar empréstimo bancário'); }
         mostrarNotificacao('Empréstimo bancário registrado!', 'sucesso'); fecharModalBancario(); await carregarBancarios();
-    } catch(err) { mostrarNotificacao('Erro: ' + err.message, 'erro'); }
+    } catch(err) { mostrarNotificacao(err.message, 'erro'); }
 }
 function abrirModalPagarParcela(bid) {
     bancarioParaPagamento = bancarios.find(b => b.id === bid); if (!bancarioParaPagamento) return;
@@ -838,8 +841,23 @@ async function confirmarPagarParcela(event) {
     const dp = window.MainAPI?.dataParaISO(document.getElementById('bPagDataPagamento').value) || null;
     try {
         const resp = await fetch(API_BASE+'/emprestimos-bancarios/'+bancarioParaPagamento.id+'/pagar-parcela', { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({instituicaoUsuarioId:instId,dataPagamento:dp}) });
-        if (!resp.ok) throw new Error('Erro'); mostrarNotificacao('Parcela paga!','sucesso'); fecharModalPagarParcela(); await carregarBancarios();
-    } catch(err) { mostrarNotificacao('Erro: '+err.message,'erro'); }
+        if (!resp.ok) {
+            const errorData = await resp.text();
+            let errorMessage = 'Erro ao pagar parcela';
+            try {
+                const jsonError = JSON.parse(errorData);
+                errorMessage = jsonError.message || jsonError.error || errorData;
+            } catch {
+                errorMessage = errorData || errorMessage;
+            }
+            throw new Error(errorMessage);
+        }
+        mostrarNotificacao('Parcela paga!','sucesso');
+        fecharModalPagarParcela();
+        await carregarBancarios();
+    } catch(err) {
+        mostrarNotificacao(err.message,'erro');
+    }
 }
 function quitarBancario(bid) {
     const b = bancarios.find(b => b.id === bid);
@@ -853,17 +871,186 @@ function quitarBancario(bid) {
     const btns=document.createElement('div'); btns.style.cssText='display:flex;gap:8px;justify-content:center;';
     const bn=document.createElement('button'); bn.textContent='Cancelar'; bn.style.cssText='background:var(--cor-fundo-pagina,#e5e7eb);color:var(--cor-texto-principal);border:1px solid #ccc;'; bn.onclick=()=>{div.style.display='none';};
     const bs=document.createElement('button'); bs.textContent='Confirmar';
-    bs.onclick=async()=>{ const ii=parseInt(sel.value)||null; div.style.display='none'; try { const resp=await fetch(API_BASE+'/emprestimos-bancarios/'+bid+'/quitar',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({instituicaoUsuarioId:ii,dataPagamento:null})}); if(!resp.ok) throw new Error('Erro'); mostrarNotificacao('Quitado!','sucesso'); await carregarBancarios(); } catch(err){mostrarNotificacao('Erro: '+err.message,'erro');} };
+    bs.onclick=async()=>{
+        const ii=parseInt(sel.value)||null;
+        div.style.display='none';
+        try {
+            const resp=await fetch(API_BASE+'/emprestimos-bancarios/'+bid+'/quitar',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({instituicaoUsuarioId:ii,dataPagamento:null})});
+            if(!resp.ok) {
+                const errorData = await resp.text();
+                let errorMessage = 'Erro ao quitar empréstimo';
+                try {
+                    const jsonError = JSON.parse(errorData);
+                    errorMessage = jsonError.message || jsonError.error || errorData;
+                } catch {
+                    errorMessage = errorData || errorMessage;
+                }
+                throw new Error(errorMessage);
+            }
+            mostrarNotificacao('Quitado!','sucesso');
+            await carregarBancarios();
+        } catch(err){
+            mostrarNotificacao(err.message,'erro');
+        }
+    };
     btns.appendChild(bn); btns.appendChild(bs); cnt.appendChild(btns); div.style.display='flex';
 }
 function confirmarDeletarBancario(bid) {
     confirmar('Deletar este empréstimo bancário?', async () => {
-        try { const r=await fetch(API_BASE+'/emprestimos-bancarios/'+bid,{method:'DELETE'}); if(!r.ok) throw new Error('Erro'); mostrarNotificacao('Deletado!','sucesso'); await carregarBancarios(); }
-        catch(err) { mostrarNotificacao('Erro: '+err.message,'erro'); }
+        try {
+            const r=await fetch(API_BASE+'/emprestimos-bancarios/'+bid,{method:'DELETE'});
+            if(!r.ok) {
+                const errorData = await r.text();
+                let errorMessage = 'Erro ao deletar empréstimo';
+                try {
+                    const jsonError = JSON.parse(errorData);
+                    errorMessage = jsonError.message || jsonError.error || errorData;
+                } catch {
+                    errorMessage = errorData || errorMessage;
+                }
+                throw new Error(errorMessage);
+            }
+            mostrarNotificacao('Deletado!','sucesso');
+            await carregarBancarios();
+        }
+        catch(err) { mostrarNotificacao(err.message,'erro'); }
     });
 }
+
+// ============================================================================
+// EXPANSÃO DE PARCELAS - MODAL COM PAGINAÇÃO
+// ============================================================================
+function abrirModalParcelas(bid) {
+    emprestimoIdAtualParcelas = bid;
+    parcelasPaginaAtual = 1;
+
+    // Busca o empréstimo para pegar o nome
+    const emprestimo = bancarios.find(b => b.id === bid);
+    if (emprestimo) {
+        document.getElementById('modalParcelasTitulo').textContent = `Parcelas - ${emprestimo.bancoNome}`;
+    }
+
+    document.getElementById('modalParcelas').classList.add('aberto');
+    carregarParcelasBancario(bid);
+}
+
+function fecharModalParcelas() {
+    document.getElementById('modalParcelas').classList.remove('aberto');
+    emprestimoIdAtualParcelas = null;
+    parcelasCarregadas = {};
+}
+
+async function carregarParcelasBancario(bid) {
+    const container = document.getElementById('parcelasModalConteudo');
+    if (!container) return;
+
+    container.innerHTML = '<div class="parcelas-loading"><i class="bx bx-loader-alt bx-spin" style="font-size:2rem;"></i><p>Carregando parcelas...</p></div>';
+
+    try {
+        const resp = await fetch(`${API_BASE}/emprestimos-bancarios/${bid}/parcelas`);
+        if (!resp.ok) throw new Error('Erro ao carregar parcelas');
+
+        const parcelas = await resp.json();
+        parcelasCarregadas[bid] = parcelas;
+        renderizarParcelasPaginadas(bid);
+    } catch(err) {
+        container.innerHTML = '<div class="parcelas-erro"><i class="bx bx-error-circle" style="font-size:2rem;color:#ef4444;"></i><p>Erro ao carregar parcelas</p></div>';
+        console.error(err);
+    }
+}
+
+function renderizarParcelasPaginadas(bid) {
+    const container = document.getElementById('parcelasModalConteudo');
+    const paginacao = document.getElementById('parcelasPaginacao');
+    if (!container) return;
+
+    const parcelas = parcelasCarregadas[bid];
+    if (!parcelas || parcelas.length === 0) {
+        container.innerHTML = '<div class="parcelas-vazio"><i class="bx bx-info-circle" style="font-size:2rem;"></i><p>Nenhuma parcela encontrada</p></div>';
+        paginacao.style.display = 'none';
+        return;
+    }
+
+    // Calcular paginação
+    const totalPaginas = Math.ceil(parcelas.length / parcelasPorPagina);
+    const inicio = (parcelasPaginaAtual - 1) * parcelasPorPagina;
+    const fim = inicio + parcelasPorPagina;
+    const parcelasPagina = parcelas.slice(inicio, fim);
+
+    // Renderizar parcelas da página atual
+    let html = '<div class="parcelas-lista">';
+
+    parcelasPagina.forEach(p => {
+        const statusClass = p.status === 'PAGA' ? 'paga' : (p.status === 'ATRASADA' ? 'atrasada' : 'a-vencer');
+        const statusLabel = p.status === 'PAGA' ? 'Paga' : (p.status === 'ATRASADA' ? 'Atrasada' : 'A Vencer');
+        const statusIcon = p.status === 'PAGA' ? 'bx-check-circle' : (p.status === 'ATRASADA' ? 'bx-error-circle' : 'bx-time-five');
+
+        html += `
+            <div class="parcela-item ${statusClass}">
+                <div class="parcela-header">
+                    <div class="parcela-numero">
+                        <i class='bx ${statusIcon}'></i>
+                        Parcela ${p.numeroParcela}/${p.totalParcelas}
+                    </div>
+                    <div class="parcela-status ${statusClass}">${statusLabel}</div>
+                </div>
+                <div class="parcela-info">
+                    <div class="parcela-info-item">
+                        <span class="parcela-label">Vencimento:</span>
+                        <span class="parcela-valor">${formatarData(p.dataVencimento)}</span>
+                    </div>
+                    <div class="parcela-info-item">
+                        <span class="parcela-label">Valor:</span>
+                        <span class="parcela-valor">${formatarMoeda(p.valor)}</span>
+                    </div>
+                </div>
+                ${p.podeSerPaga ? `
+                    <div class="parcela-acao">
+                        <button class="btn-pagar-parcela" onclick="pagarParcelaDoModal('${bid}')">
+                            <i class='bx bx-money'></i> Pagar Esta Parcela
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Atualizar controles de paginação
+    if (totalPaginas > 1) {
+        paginacao.style.display = 'flex';
+        document.getElementById('pagInfo').textContent = `Página ${parcelasPaginaAtual} de ${totalPaginas}`;
+        document.getElementById('btnPagAnterior').disabled = parcelasPaginaAtual === 1;
+        document.getElementById('btnPagProxima').disabled = parcelasPaginaAtual === totalPaginas;
+    } else {
+        paginacao.style.display = 'none';
+    }
+}
+
+function mudarPaginaParcelas(direcao) {
+    if (!emprestimoIdAtualParcelas) return;
+
+    const parcelas = parcelasCarregadas[emprestimoIdAtualParcelas];
+    if (!parcelas) return;
+
+    const totalPaginas = Math.ceil(parcelas.length / parcelasPorPagina);
+    parcelasPaginaAtual += direcao;
+
+    if (parcelasPaginaAtual < 1) parcelasPaginaAtual = 1;
+    if (parcelasPaginaAtual > totalPaginas) parcelasPaginaAtual = totalPaginas;
+
+    renderizarParcelasPaginadas(emprestimoIdAtualParcelas);
+}
+
+function pagarParcelaDoModal(bid) {
+    fecharModalParcelas();
+    abrirModalPagarParcela(bid);
+}
+
 // Fechar modal ao clicar fora
 window.onclick = function(event) {
-    [['modalEmprestimo',fecharModalEmprestimo],['modalPagamento',fecharModalPagamento],['modalBancario',fecharModalBancario],['modalPagarParcela',fecharModalPagarParcela]]
+    [['modalEmprestimo',fecharModalEmprestimo],['modalPagamento',fecharModalPagamento],['modalBancario',fecharModalBancario],['modalPagarParcela',fecharModalPagarParcela],['modalParcelas',fecharModalParcelas]]
         .forEach(([id,fn]) => { const m=document.getElementById(id); if(event.target===m) fn(); });
 };

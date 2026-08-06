@@ -259,14 +259,50 @@ public class InstituicaoController {
 
     @GetMapping("/{instUsuario_id}/detalhe")
     @Operation(summary = "Detalhe de uma instituição com distribuição por tipo de movimento",
-            description = "Retorna os dados da associação usuário-instituição e a distribuição dos valores por tipo de movimento (débito, crédito, pix, etc).")
+            description = "Retorna os dados da associação usuário-instituição e a distribuição dos valores por tipo de movimento (débito, crédito, pix, etc) filtrados por período.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = DetalheInstituicaoDto.class))),
             @ApiResponse(responseCode = "404", content = @Content)
     })
-    public ResponseEntity<DetalheInstituicaoDto> getDetalheInstituicao(@PathVariable Integer instUsuario_id) {
-        return ResponseEntity.ok(instituicaoService.getDetalheInstituicao(instUsuario_id));
+    public ResponseEntity<DetalheInstituicaoDto> getDetalheInstituicao(
+            @PathVariable Integer instUsuario_id,
+            @RequestParam(required = false) String periodo,
+            @RequestParam(required = false) Integer ano,
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) Integer trimestre,
+            @RequestParam(required = false) Integer semestre) {
+
+        LocalDate dataInicio = null;
+        LocalDate dataFim = null;
+
+        if (periodo != null && ano != null) {
+            switch (periodo) {
+                case "MENSAL" -> {
+                    int m = mes != null ? mes : 1;
+                    dataInicio = LocalDate.of(ano, m, 1);
+                    dataFim = dataInicio.withDayOfMonth(dataInicio.lengthOfMonth());
+                }
+                case "TRIMESTRAL" -> {
+                    int t = trimestre != null ? trimestre : 1;
+                    int mesInicio = (t - 1) * 3 + 1;
+                    dataInicio = LocalDate.of(ano, mesInicio, 1);
+                    dataFim = dataInicio.plusMonths(3).minusDays(1);
+                }
+                case "SEMESTRAL" -> {
+                    int s = semestre != null ? semestre : 1;
+                    int mesInicio = (s - 1) * 6 + 1;
+                    dataInicio = LocalDate.of(ano, mesInicio, 1);
+                    dataFim = dataInicio.plusMonths(6).minusDays(1);
+                }
+                case "ANUAL" -> {
+                    dataInicio = LocalDate.of(ano, 1, 1);
+                    dataFim = LocalDate.of(ano, 12, 31);
+                }
+            }
+        }
+
+        return ResponseEntity.ok(instituicaoService.getDetalheInstituicao(instUsuario_id, dataInicio, dataFim));
     }
 
     @PatchMapping("/{instUsuario_id}/configurar")

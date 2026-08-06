@@ -267,31 +267,38 @@ public class InstituicaoService {
             BigDecimal totalCredito = BigDecimal.ZERO;
             BigDecimal totalDebito = BigDecimal.ZERO;
             BigDecimal saldo = BigDecimal.ZERO;
-            BigDecimal totalCreditoUsadoAllTime = BigDecimal.ZERO; // rastreia crédito utilizado all-time
+            BigDecimal totalCreditoAcumulado = BigDecimal.ZERO;
             int parcelamentosAtivos = 0;
 
             for (EventoInstituicao ei : eis) {
                 EventoFinanceiro ef = ei.getEventoFinanceiro();
                 if (ef == null) continue;
 
-                // Saldo acumulado é sempre all-time (fluxo de caixa da conta)
-                saldo = getSaldoPorMovimento(saldo, ef, ei);
+                LocalDate dataEvento = ef.getDataEvento();
+                if (dataEvento == null) continue;
 
-                // Rastreia crédito utilizado all-time (antes do filtro de período)
-                // para calcular o saldo disponível do cartão de crédito
-                if (ei.getTipoMovimento() == TipoMovimento.Credito) {
-                    BigDecimal vAt = BigDecimal.valueOf(ei.getValor());
-                    String descAt = ef.getDescricao() != null ? ef.getDescricao() : "";
-                    if (descAt.contains("Pagamento da fatura")) {
-                        totalCreditoUsadoAllTime = totalCreditoUsadoAllTime.subtract(vAt);
-                    } else if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) {
-                        totalCreditoUsadoAllTime = totalCreditoUsadoAllTime.add(vAt);
+                // Saldo acumulado: calcula TODOS os eventos até o final do período selecionado
+                // Se dataFim é null, calcula all-time
+                boolean dentroDoAcumulado = (dataFim == null) || (!dataEvento.isAfter(dataFim));
+
+                if (dentroDoAcumulado) {
+                    saldo = getSaldoPorMovimento(saldo, ef, ei);
+
+                    // Rastreia crédito utilizado acumulado até dataFim
+                    if (ei.getTipoMovimento() == TipoMovimento.Credito) {
+                        BigDecimal vAt = BigDecimal.valueOf(ei.getValor());
+                        String descAt = ef.getDescricao() != null ? ef.getDescricao() : "";
+                        if (descAt.contains("Pagamento da fatura")) {
+                            totalCreditoAcumulado = totalCreditoAcumulado.subtract(vAt);
+                        } else if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) {
+                            totalCreditoAcumulado = totalCreditoAcumulado.add(vAt);
+                        }
                     }
                 }
 
                 // Parcelamentos ativos: sobreposição com período (se fornecido) ou ainda não vencido
                 if (ei.getParcelas() != null && ei.getParcelas() > 1) {
-                    LocalDate inicioParc = ef.getDataEvento();
+                    LocalDate inicioParc = dataEvento;
                     LocalDate fimParc = inicioParc.plusMonths(ei.getParcelas());
                     if (dataInicio != null && dataFim != null) {
                         if (!fimParc.isBefore(dataInicio) && !inicioParc.isAfter(dataFim)) {
@@ -302,11 +309,11 @@ public class InstituicaoService {
                     }
                 }
 
-                // Totais de crédito/débito e transações: filtrados pelo período
-                if (dataInicio != null && dataFim != null) {
-                    LocalDate dataEvento = ef.getDataEvento();
-                    if (dataEvento == null || dataEvento.isBefore(dataInicio) || dataEvento.isAfter(dataFim)) continue;
-                }
+                // Totais de crédito/débito e transações: apenas DENTRO do período selecionado
+                boolean dentroDoPeriodo = (dataInicio == null || dataFim == null) ||
+                                         (!dataEvento.isBefore(dataInicio) && !dataEvento.isAfter(dataFim));
+
+                if (!dentroDoPeriodo) continue;
 
                 if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) transacoes++;
 
@@ -315,24 +322,26 @@ public class InstituicaoService {
                     String descricao = ef.getDescricao() != null ? ef.getDescricao() : "";
 
                     if (descricao.contains("Pagamento da fatura")) {
-                        totalCredito = totalCredito.subtract(v); // pagamento de fatura reduz crédito usado
+                        totalCredito = totalCredito.subtract(v);
                     } else if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) {
-                        totalCredito = totalCredito.add(v); // compra no crédito
+                        totalCredito = totalCredito.add(v);
                     }
-                } else if (ei.getTipoMovimento() == TipoMovimento.Debito)
-                    totalDebito = totalDebito.add(BigDecimal.valueOf(ei.getValor()));
+                } else if (ei.getTipoMovimento() == TipoMovimento.Debito || ei.getTipoMovimento() == TipoMovimento.Pix) {
+                    // Soma apenas gastos no débito/pix (não recebimentos)
+                    if (ef.getTipo() == Tipo.Gasto || ef.getTipo() == Tipo.Transferencia) {
+                        totalDebito = totalDebito.add(BigDecimal.valueOf(ei.getValor()));
+                    }
+                }
             }
 
             BigDecimal limite = iu.getLimiteCredito() != null ? iu.getLimiteCredito() : BigDecimal.ZERO;
             int pctCredito = limite.compareTo(BigDecimal.ZERO) > 0
-                    ? totalCredito.divide(limite, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).intValue()
+                    ? totalCreditoAcumulado.divide(limite, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).intValue()
                     : 0;
 
-            // Saldo disponível: para cartão de crédito usa limite - crédito utilizado (all-time)
-            // Para conta débito usa o fluxo de caixa acumulado
-            BigDecimal saldoDisponivel = (limite.compareTo(BigDecimal.ZERO) > 0)
-                    ? limite.subtract(totalCreditoUsadoAllTime).max(BigDecimal.ZERO)
-                    : saldo;
+            // Saldo disponível: sempre mostra o fluxo de caixa (débito/pix)
+            // O limite de crédito é mostrado separadamente na UI
+            BigDecimal saldoDisponivel = saldo;
 
             boolean temCredito = calcularTemCredito(iu.getInstituicao().getNome());
 
@@ -372,22 +381,48 @@ public class InstituicaoService {
     //  DETALHE DA INSTITUIÇÃO COM DISTRIBUIÇÃO POR MOVIMENTO
     // =========================================================================
     public DetalheInstituicaoDto getDetalheInstituicao(Integer instUsuarioId) {
+        return getDetalheInstituicao(instUsuarioId, null, null);
+    }
+
+    public DetalheInstituicaoDto getDetalheInstituicao(Integer instUsuarioId, LocalDate dataInicio, LocalDate dataFim) {
         InstituicaoUsuario iu = instituicaoUsuarioRepository.findById(instUsuarioId)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("InstituicaoUsuario de id: %d não encontrada.".formatted(instUsuarioId)));
 
         List<EventoInstituicao> eis = eventoInstituicaoRepository.findByInstituicaoUsuario_Id(instUsuarioId);
         Map<String, BigDecimal> porMovimento = new LinkedHashMap<>();
-        for (TipoMovimento tm : TipoMovimento.values()) porMovimento.put(tm.name(), BigDecimal.ZERO);
+        for (TipoMovimento tm : TipoMovimento.values()) {
+            // Pular Pix pois será agrupado com Débito
+            if (tm != TipoMovimento.Pix) {
+                porMovimento.put(tm.name(), BigDecimal.ZERO);
+            }
+        }
 
         for (EventoInstituicao ei : eis) {
             if (ei.getTipoMovimento() != null) {
                 EventoFinanceiro ef = ei.getEventoFinanceiro();
-                String descricao = ef != null && ef.getDescricao() != null ? ef.getDescricao() : "";
+                if (ef == null) continue;
+
+                // Filtrar por período se fornecido
+                if (dataInicio != null && dataFim != null) {
+                    LocalDate dataEvento = ef.getDataEvento();
+                    if (dataEvento == null || dataEvento.isBefore(dataInicio) || dataEvento.isAfter(dataFim)) {
+                        continue;
+                    }
+                }
+
+                String descricao = ef.getDescricao() != null ? ef.getDescricao() : "";
 
                 // Não incluir pagamento de fatura na distribuição (ele já quita o crédito usado)
                 if (descricao.contains("Pagamento da fatura")) continue;
 
-                porMovimento.merge(ei.getTipoMovimento().name(), BigDecimal.valueOf(ei.getValor()), BigDecimal::add);
+                // Somar apenas gastos/transferências (não recebimentos)
+                if (ef.getTipo() != Tipo.Gasto && ef.getTipo() != Tipo.Transferencia) continue;
+
+                // Agrupar Pix com Débito
+                String chave = ei.getTipoMovimento() == TipoMovimento.Pix
+                    ? TipoMovimento.Debito.name()
+                    : ei.getTipoMovimento().name();
+                porMovimento.merge(chave, BigDecimal.valueOf(ei.getValor()), BigDecimal::add);
             }
         }
 

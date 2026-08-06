@@ -3,6 +3,7 @@ package controle.api.back_end.dto.registros.mapper;
 import controle.api.back_end.dto.registros.in.EventoFinanceiroCreateDto;
 import controle.api.back_end.dto.registros.in.EventoInstituicaoCreateDto;
 import controle.api.back_end.dto.registros.in.EventoDetalheCreateDto;
+import controle.api.back_end.dto.registros.in.RecorrenciaCreateDto;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.dto.registros.out.RegistroUsuarioResponseDto;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
@@ -314,6 +315,25 @@ public class RegistrosMapper {
         }
 
         return toResponseUser(eventoFinanceiro, eventoInstituicoes, eventoDetalhe);
+    }
+
+    /**
+     * Converte RecorrenciaCreateDto para entidade RecorrenciaFinanceira.
+     * Usado na edição de recorrências.
+     */
+    public static RecorrenciaFinanceira toEntity(RecorrenciaCreateDto dto) {
+        if (dto == null) return null;
+
+        RecorrenciaFinanceira entity = new RecorrenciaFinanceira();
+        entity.setValor(dto.getValor());
+        entity.setDescricao(dto.getDescricao());
+        entity.setPeriodicidade(dto.getPeriodicidade());
+        entity.setDataFim(dto.getDataFim());
+        entity.setIntervalo(dto.getIntervalo());
+        entity.setDia(dto.getDia());
+        entity.setDiasDaSemana(dto.getDiasDaSemana());
+
+        return entity;
     }
 
 }

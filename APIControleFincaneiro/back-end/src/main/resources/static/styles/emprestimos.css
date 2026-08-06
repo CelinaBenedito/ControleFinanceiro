@@ -336,6 +336,15 @@
     background: #2563eb;
 }
 
+.btn-acao.visualizar {
+    background: #8b5cf6;
+    color: #fff;
+}
+
+.btn-acao.visualizar:hover {
+    background: #7c3aed;
+}
+
 .btn-acao.quitar {
     background: #10b981;
     color: #fff;
@@ -414,6 +423,11 @@
 
 .modal-content.modal-pequeno {
     max-width: 400px;
+}
+
+.modal-content.modal-parcelas {
+    max-width: 700px;
+    max-height: 85vh;
 }
 
 @keyframes slideUp {
@@ -612,3 +626,225 @@
     }
 }
 
+/* ── Parcelas do Empréstimo Bancário (Modal) ── */
+.parcelas-modal-conteudo {
+    min-height: 200px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.parcelas-loading, .parcelas-erro, .parcelas-vazio {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--cor-texto-secundario);
+}
+
+.parcelas-loading p, .parcelas-erro p, .parcelas-vazio p {
+    margin-top: 1rem;
+    font-size: 0.95rem;
+}
+
+.parcelas-erro {
+    color: #ef4444;
+}
+
+.parcelas-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.5rem;
+}
+
+.parcela-item {
+    background: var(--cor-fundo-pagina);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    border-left: 4px solid;
+    transition: all 0.2s ease;
+}
+
+.parcela-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px var(--sombra-card);
+}
+
+.parcela-item.paga {
+    border-left-color: #10b981;
+    opacity: 0.85;
+}
+
+.parcela-item.atrasada {
+    border-left-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.parcela-item.a-vencer {
+    border-left-color: #3b82f6;
+}
+
+.parcela-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.65rem;
+}
+
+.parcela-numero {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--cor-titulo);
+}
+
+.parcela-numero i {
+    font-size: 1.15rem;
+}
+
+.parcela-status {
+    padding: 0.3rem 0.85rem;
+    border-radius: 15px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.parcela-status.paga {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.parcela-status.atrasada {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.parcela-status.a-vencer {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.parcela-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.parcela-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.parcela-label {
+    font-size: 0.8rem;
+    color: var(--cor-texto-secundario);
+    font-weight: 500;
+}
+
+.parcela-valor {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--cor-titulo);
+}
+
+.parcela-acao {
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--cor-tinte-borda);
+    margin-top: 0.5rem;
+}
+
+.btn-pagar-parcela {
+    width: 100%;
+    padding: 0.7rem 1.2rem;
+    background: var(--cor-principal);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn-pagar-parcela:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Paginação de Parcelas ── */
+.parcelas-paginacao {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0.5rem 0.5rem;
+    border-top: 2px solid var(--cor-tinte-borda);
+    margin-top: 0.5rem;
+    gap: 1rem;
+}
+
+.btn-pag {
+    padding: 0.6rem 1.2rem;
+    background: var(--cor-principal);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+}
+
+.btn-pag:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.btn-pag:disabled {
+    background: var(--cor-tinte-borda);
+    color: var(--cor-texto-secundario);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.pag-info {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--cor-titulo);
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .parcela-info {
+        grid-template-columns: 1fr;
+    }
+
+    .parcelas-paginacao {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .btn-pag {
+        flex: 1;
+        min-width: 120px;
+        justify-content: center;
+    }
+
+    .pag-info {
+        width: 100%;
+        text-align: center;
+        order: -1;
+        margin-bottom: 0.5rem;
+    }
+}

@@ -2,6 +2,7 @@ package controle.api.back_end.controller;
 import controle.api.back_end.dto.emprestimo.bancario.EmprestimoBancarioCreateDTO;
 import controle.api.back_end.dto.emprestimo.bancario.EmprestimoBancarioPagamentoDTO;
 import controle.api.back_end.dto.emprestimo.bancario.EmprestimoBancarioResponseDTO;
+import controle.api.back_end.dto.emprestimo.bancario.ParcelaEmprestimoBancarioDTO;
 import controle.api.back_end.service.EmprestimoBancarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,11 @@ public class EmprestimoBancarioController {
             @PathVariable UUID usuarioId) {
         List<EmprestimoBancarioResponseDTO> lista = service.listarPorUsuario(usuarioId);
         return lista.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(lista);
+    }
+    @GetMapping("/{id}/parcelas")
+    public ResponseEntity<List<ParcelaEmprestimoBancarioDTO>> listarParcelas(
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(service.listarParcelas(id));
     }
     @PatchMapping("/{id}/pagar-parcela")
     public ResponseEntity<EmprestimoBancarioResponseDTO> pagarParcela(

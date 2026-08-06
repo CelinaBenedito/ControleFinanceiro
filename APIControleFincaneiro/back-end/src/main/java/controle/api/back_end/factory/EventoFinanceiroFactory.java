@@ -5,16 +5,34 @@ import controle.api.back_end.strategy.eventoFinanceiro.*;
 import org.springframework.stereotype.Component;
 
 @Component
-    public class EventoFinanceiroFactory {
+public class EventoFinanceiroFactory {
 
-        public EventoFinanceiroStrategy getStrategy(Tipo tipo){
-            return switch (tipo){
-                case Gasto -> new GastoEvento();
-                case Recebimento -> new RecebimentoEvento();
-                case Transferencia -> new TransferenciaEvento();
-                case Poupanca -> new PoupancaEvento();
-                case Emprestimo -> new EmprestimoEvento();
-            };
-        }
+    private final GastoEvento gastoEvento;
+    private final RecebimentoEvento recebimentoEvento;
+    private final TransferenciaEvento transferenciaEvento;
+    private final PoupancaEvento poupancaEvento;
+    private final EmprestimoEvento emprestimoEvento;
 
+    public EventoFinanceiroFactory(GastoEvento gastoEvento,
+                                  RecebimentoEvento recebimentoEvento,
+                                  TransferenciaEvento transferenciaEvento,
+                                  PoupancaEvento poupancaEvento,
+                                  EmprestimoEvento emprestimoEvento) {
+        this.gastoEvento = gastoEvento;
+        this.recebimentoEvento = recebimentoEvento;
+        this.transferenciaEvento = transferenciaEvento;
+        this.poupancaEvento = poupancaEvento;
+        this.emprestimoEvento = emprestimoEvento;
     }
+
+    public EventoFinanceiroStrategy getStrategy(Tipo tipo){
+        return switch (tipo){
+            case Gasto -> gastoEvento;
+            case Recebimento -> recebimentoEvento;
+            case Transferencia -> transferenciaEvento;
+            case Poupanca -> poupancaEvento;
+            case Emprestimo -> emprestimoEvento;
+        };
+    }
+
+}
