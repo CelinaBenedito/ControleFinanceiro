@@ -4,6 +4,9 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Worker;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.image.Image;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
@@ -35,6 +38,7 @@ public class DesktopApp extends Application {
     /** System Tray icon */
     private TrayIcon trayIcon;
     private boolean exitingApp = false;
+    private volatile boolean trayInitialized = false;
 
     /** Fecha a janela JavaFX de forma segura a partir de qualquer thread. */
     public static void exitApplication() {
@@ -45,7 +49,24 @@ public class DesktopApp extends Application {
 
     @Override
     public void start(Stage stage) {
+        // Garantir que headless está desabilitado (CRITICAL para System Tray)
+        String headlessValue = System.getProperty("java.awt.headless");
+        if ("true".equals(headlessValue)) {
+            System.err.println("[DesktopApp] ✗ ATENÇÃO: Modo headless detectado como TRUE!");
+            System.err.println("[DesktopApp] Forçando java.awt.headless=false...");
+            System.setProperty("java.awt.headless", "false");
+        }
+
         primaryStage = stage;
+
+        // Verificação inicial do System Tray
+        System.out.println("[DesktopApp] ========================================");
+        System.out.println("[DesktopApp] Iniciando aplicação MyFinance");
+        System.out.println("[DesktopApp] java.awt.headless = " + System.getProperty("java.awt.headless"));
+        System.out.println("[DesktopApp] System Tray suportado: " + SystemTray.isSupported());
+        System.out.println("[DesktopApp] Java Version: " + System.getProperty("java.version"));
+        System.out.println("[DesktopApp] OS: " + System.getProperty("os.name"));
+        System.out.println("[DesktopApp] ========================================");
 
         WebView webView = new WebView();
         WebEngine engine = webView.getEngine();
@@ -90,10 +111,8 @@ public class DesktopApp extends Application {
         // Configura o comportamento ao fechar a janela
         stage.setOnCloseRequest(event -> {
             if (!exitingApp) {
-                // Minimiza para a bandeja ao invés de fechar
                 event.consume();
-                stage.hide();
-                showTrayNotification("MyFinance", "Aplicação minimizada para a bandeja do sistema");
+                showCloseDialog(stage);
             } else {
                 // Encerra a aplicação completamente
                 cleanup();
@@ -240,50 +259,75 @@ public class DesktopApp extends Application {
      * Configura o ícone na bandeja do sistema com menu de contexto.
      */
     private void setupSystemTray(Stage stage) {
+        System.out.println("[DesktopApp] Configurando System Tray...");
+
         if (!SystemTray.isSupported()) {
-            System.out.println("[DesktopApp] System Tray não suportado neste sistema.");
+            System.err.println("[DesktopApp] ✗ System Tray não é suportado!");
+            System.err.println("[DesktopApp]   java.awt.headless = " + System.getProperty("java.awt.headless"));
+            System.err.println("[DesktopApp]   OS: " + System.getProperty("os.name"));
             return;
         }
 
-        SystemTray tray = SystemTray.getSystemTray();
-        java.awt.Image trayImage = loadTrayIcon();
-
-        // Menu popup do tray
-        PopupMenu popup = new PopupMenu();
-
-        MenuItem showItem = new MenuItem("Mostrar MyFinance");
-        showItem.addActionListener(e -> Platform.runLater(() -> {
-            stage.show();
-            stage.toFront();
-        }));
-
-        MenuItem exitItem = new MenuItem("Sair");
-        exitItem.addActionListener(e -> {
-            exitingApp = true;
-            Platform.runLater(() -> {
-                stage.close();
-                Platform.exit();
-            });
-        });
-
-        popup.add(showItem);
-        popup.addSeparator();
-        popup.add(exitItem);
-
-        trayIcon = new TrayIcon(trayImage, "MyFinance", popup);
-        trayIcon.setImageAutoSize(true);
-
-        // Duplo clique no ícone mostra a janela
-        trayIcon.addActionListener(e -> Platform.runLater(() -> {
-            stage.show();
-            stage.toFront();
-        }));
+        System.out.println("[DesktopApp] ✓ System Tray é suportado!");
 
         try {
+            java.awt.Image trayImage = loadTrayIcon();
+
+            if (trayImage == null) {
+                System.err.println("[DesktopApp] ✗ Falha ao carregar imagem do tray icon!");
+                return;
+            }
+
+            SystemTray tray = SystemTray.getSystemTray();
+
+            // Menu popup do tray
+            PopupMenu popup = new PopupMenu();
+
+            MenuItem showItem = new MenuItem("Mostrar MyFinance");
+            showItem.addActionListener(e -> Platform.runLater(() -> {
+                stage.show();
+                stage.toFront();
+                stage.requestFocus();
+            }));
+
+            MenuItem exitItem = new MenuItem("Sair");
+            exitItem.addActionListener(e -> {
+                exitingApp = true;
+                Platform.runLater(() -> {
+                    cleanup();
+                    Platform.exit();
+                });
+            });
+
+            popup.add(showItem);
+            popup.addSeparator();
+            popup.add(exitItem);
+
+            trayIcon = new TrayIcon(trayImage, "MyFinance", popup);
+            trayIcon.setImageAutoSize(true);
+            trayIcon.setToolTip("MyFinance - Clique para abrir");
+
+            // Duplo clique no ícone mostra a janela
+            trayIcon.addActionListener(e -> Platform.runLater(() -> {
+                stage.show();
+                stage.toFront();
+                stage.requestFocus();
+            }));
+
             tray.add(trayIcon);
-            System.out.println("[DesktopApp] Ícone adicionado à bandeja do sistema.");
+
+            // Aguarda um pouco para garantir que foi adicionado
+            Thread.sleep(100);
+
+            trayInitialized = true;
+            System.out.println("[DesktopApp] ✓ Ícone adicionado à bandeja do sistema com sucesso!");
+
         } catch (AWTException e) {
-            System.err.println("[DesktopApp] Falha ao adicionar ícone à bandeja: " + e.getMessage());
+            System.err.println("[DesktopApp] ✗ Falha AWTException ao adicionar ícone: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("[DesktopApp] ✗ Erro ao configurar system tray: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -302,7 +346,7 @@ public class DesktopApp extends Application {
                 if (is != null) {
                     BufferedImage img = ImageIO.read(is);
                     if (img != null) {
-                        System.out.println("[DesktopApp] Ícone do tray carregado: " + caminho);
+                        System.out.println("[DesktopApp] ✓ Ícone do tray carregado: " + caminho);
                         return img;
                     }
                 }
@@ -312,13 +356,32 @@ public class DesktopApp extends Application {
         }
 
         // Fallback: cria um ícone simples se não encontrar nenhum
-        System.out.println("[DesktopApp] Usando ícone padrão para o tray.");
-        BufferedImage fallback = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = fallback.createGraphics();
-        g2d.setColor(new Color(54, 115, 115)); // Cor tema da aplicação
-        g2d.fillOval(0, 0, 16, 16);
-        g2d.dispose();
-        return fallback;
+        System.out.println("[DesktopApp] ⚠ Usando ícone padrão (fallback)");
+        try {
+            BufferedImage fallback = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = fallback.createGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            // Fundo colorido
+            g2d.setColor(new Color(54, 115, 115));
+            g2d.fillOval(2, 2, 28, 28);
+            
+            // Borda
+            g2d.setColor(new Color(40, 90, 90));
+            g2d.setStroke(new BasicStroke(2));
+            g2d.drawOval(2, 2, 28, 28);
+            
+            // Letra M
+            g2d.setColor(Color.WHITE);
+            g2d.setFont(new Font("Arial", Font.BOLD, 20));
+            g2d.drawString("M", 9, 23);
+            
+            g2d.dispose();
+            return fallback;
+        } catch (Exception e) {
+            System.err.println("[DesktopApp] ✗ ERRO ao criar ícone fallback: " + e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -328,6 +391,66 @@ public class DesktopApp extends Application {
         if (trayIcon != null) {
             trayIcon.displayMessage(title, message, TrayIcon.MessageType.INFO);
         }
+    }
+
+    /**
+     * Mostra um diálogo perguntando ao usuário o que fazer ao fechar a janela.
+     */
+    private void showCloseDialog(Stage stage) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Fechar MyFinance");
+        alert.setHeaderText("O que você deseja fazer?");
+        alert.setContentText("Escolha uma opção:");
+
+        ButtonType minimizarButton = new ButtonType("Minimizar para Bandeja");
+        ButtonType fecharButton = new ButtonType("Fechar Aplicação");
+        ButtonType cancelarButton = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        alert.getButtonTypes().setAll(minimizarButton, fecharButton, cancelarButton);
+
+        alert.showAndWait().ifPresent(response -> {
+            if (response == minimizarButton) {
+                System.out.println("[DesktopApp] Minimizando para a bandeja...");
+                
+                // Verifica se o tray icon foi inicializado
+                if (!trayInitialized || trayIcon == null) {
+                    System.err.println("[DesktopApp] ✗ System Tray não inicializado!");
+                    System.err.println("[DesktopApp] Tentando reconfigurar...");
+                    
+                    // Tenta configurar novamente
+                    setupSystemTray(stage);
+                    
+                    // Verifica se funcionou
+                    if (!trayInitialized || trayIcon == null) {
+                        System.err.println("[DesktopApp] ✗ Falha ao reconfigurar system tray.");
+                        
+                        // Mostra alerta ao usuário
+                        Alert errorAlert = new Alert(Alert.AlertType.WARNING);
+                        errorAlert.setTitle("System Tray não disponível");
+                        errorAlert.setHeaderText("Não foi possível minimizar para a bandeja");
+                        errorAlert.setContentText("O ícone da bandeja do sistema não está disponível.\n\n" +
+                            "Possíveis causas:\n" +
+                            "• Sistema operacional não suporta bandeja do sistema\n" +
+                            "• Serviço de bandeja desabilitado no sistema\n" +
+                            "• Java em modo headless\n\n" +
+                            "A janela permanecerá visível.");
+                        errorAlert.showAndWait();
+                        return;
+                    }
+                    System.out.println("[DesktopApp] ✓ Reconfiguração bem-sucedida!");
+                }
+                
+                stage.hide();
+                showTrayNotification("MyFinance", "Aplicação minimizada para a bandeja do sistema");
+                System.out.println("[DesktopApp] ✓ Janela minimizada com sucesso!");
+                
+            } else if (response == fecharButton) {
+                System.out.println("[DesktopApp] Fechando aplicação...");
+                exitingApp = true;
+                cleanup();
+                Platform.exit();
+            }
+        });
     }
 
     /**
