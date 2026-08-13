@@ -7,4 +7,6 @@ public interface InstituicaoRepository extends JpaRepository <Instituicao, Integ
     void deleteInstituicaoById(Integer id);
 
     Instituicao findInstituicaoByNomeContainingIgnoreCase(String nome);
+
+    Instituicao findByNomeIgnoreCase(String nome);
 }

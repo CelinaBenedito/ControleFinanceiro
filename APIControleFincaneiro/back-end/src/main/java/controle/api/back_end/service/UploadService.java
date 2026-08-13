@@ -9,15 +9,23 @@ import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
 import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.dto.upload.ImportResultDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
+import controle.api.back_end.model.categoria.Categoria;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
 import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
+import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.Periodicidade;
+import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
+import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
+import controle.api.back_end.repository.categoria.CategoriaRepository;
 import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
+import controle.api.back_end.repository.eventoFinanceiro.RecorrenciaFinanceiraRepository;
+import controle.api.back_end.repository.instituicao.InstituicaoRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import controle.api.back_end.strategy.eventoFinanceiro.Registro;
@@ -32,7 +40,9 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,6 +58,10 @@ public class UploadService {
     private final UsuarioRepository usuarioRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final CategoriaUsuarioRepository categoriaUsuarioRepository;
+    private final InstituicaoRepository instituicaoRepository;
+    private final CategoriaRepository categoriaRepository;
+    private final RecorrenciaFinanceiraRepository recorrenciaFinanceiraRepository;
+    private final EventoInstituicaoRepository eventoInstituicaoRepository;
 
     // Portuguese month name → month number
     private static final Map<String, Integer> MESES_PT = new HashMap<>();
@@ -71,11 +85,107 @@ public class UploadService {
     public UploadService(RegistroService registroService,
                          UsuarioRepository usuarioRepository,
                          InstituicaoUsuarioRepository instituicaoUsuarioRepository,
-                         CategoriaUsuarioRepository categoriaUsuarioRepository) {
+                         CategoriaUsuarioRepository categoriaUsuarioRepository,
+                         InstituicaoRepository instituicaoRepository,
+                         CategoriaRepository categoriaRepository,
+                         RecorrenciaFinanceiraRepository recorrenciaFinanceiraRepository,
+                         EventoInstituicaoRepository eventoInstituicaoRepository) {
         this.registroService = registroService;
         this.usuarioRepository = usuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
         this.categoriaUsuarioRepository = categoriaUsuarioRepository;
+        this.instituicaoRepository = instituicaoRepository;
+        this.categoriaRepository = categoriaRepository;
+        this.recorrenciaFinanceiraRepository = recorrenciaFinanceiraRepository;
+        this.eventoInstituicaoRepository = eventoInstituicaoRepository;
+    }
+
+    // =====================================================================
+    // RESOLUÇÃO / CRIAÇÃO DE INSTITUIÇÕES, CATEGORIAS E RECORRÊNCIAS
+    // (usado na importação para vincular corretamente ao usuário que está
+    //  importando, mesmo que ele não possua ainda a instituição/categoria
+    //  referenciada no arquivo — ex.: arquivo tem "Inter" mas o usuário só
+    //  tem "Itaú" cadastrado: cria-se o vínculo automaticamente)
+    // =====================================================================
+
+    /** Resolve (ou cria) a InstituicaoUsuario do usuário importador pelo NOME da instituição. */
+    private InstituicaoUsuario resolveOuCriarInstituicaoUsuario(UUID userId, String nomeInstituicao) {
+        if (nomeInstituicao == null || nomeInstituicao.isBlank()) return null;
+        String nome = nomeInstituicao.trim();
+
+        return instituicaoUsuarioRepository.findByUsuario_IdAndInstituicao_Nome(userId, nome)
+                .orElseGet(() -> {
+                    Instituicao instituicao = instituicaoRepository.findByNomeIgnoreCase(nome);
+                    if (instituicao == null) {
+                        instituicao = instituicaoRepository.findInstituicaoByNomeContainingIgnoreCase(nome);
+                    }
+                    if (instituicao == null) {
+                        Instituicao nova = new Instituicao();
+                        nova.setNome(nome);
+                        instituicao = instituicaoRepository.save(nova);
+                    }
+                    InstituicaoUsuario iu = new InstituicaoUsuario();
+                    iu.setUsuario(getUsuario(userId));
+                    iu.setInstituicao(instituicao);
+                    iu.setIsAtivo(true);
+                    iu.setUltimaModificacao(LocalDateTime.now());
+                    return instituicaoUsuarioRepository.save(iu);
+                });
+    }
+
+    /** Resolve (ou cria) a CategoriaUsuario do usuário importador pelo TÍTULO da categoria. */
+    private CategoriaUsuario resolveOuCriarCategoriaUsuario(UUID userId, String titulo) {
+        if (titulo == null || titulo.isBlank()) return null;
+        String tit = titulo.trim();
+
+        return categoriaUsuarioRepository.findByUsuario_IdAndCategoria_Titulo(userId, tit)
+                .orElseGet(() -> {
+                    Categoria categoria = categoriaRepository.findByTituloIgnoreCase(tit)
+                            .orElseGet(() -> {
+                                Categoria nova = new Categoria();
+                                nova.setTitulo(tit);
+                                return categoriaRepository.save(nova);
+                            });
+                    CategoriaUsuario cu = new CategoriaUsuario();
+                    cu.setUsuario(getUsuario(userId));
+                    cu.setCategoria(categoria);
+                    cu.setAtivo(true);
+                    cu.setUltimaAtualizacao(LocalDateTime.now());
+                    return categoriaUsuarioRepository.save(cu);
+                });
+    }
+
+    /**
+     * Resolve (memorizando por chave original) ou cria uma nova RecorrenciaFinanceira
+     * para o usuário importador, a partir dos dados de recorrência do arquivo original.
+     */
+    private RecorrenciaFinanceira resolveOuCriarRecorrencia(UUID userId, String origKey,
+                                                             Map<String, RecorrenciaFinanceira> cache,
+                                                             Map<String, Map<String, Object>> recorrenciasOrig) {
+        if (origKey == null) return null;
+        return cache.computeIfAbsent(origKey, k -> {
+            Map<String, Object> dados = recorrenciasOrig.get(origKey);
+            RecorrenciaFinanceira nova = new RecorrenciaFinanceira();
+            nova.setUsuario(getUsuario(userId));
+            if (dados != null) {
+                if (dados.get("tipo") != null) nova.setTipo(Tipo.valueOf((String) dados.get("tipo")));
+                if (dados.get("valor") != null) nova.setValor(((Number) dados.get("valor")).doubleValue());
+                nova.setDescricao((String) dados.get("descricao"));
+                if (dados.get("periodicidade") != null) {
+                    nova.setPeriodicidade(Periodicidade.valueOf((String) dados.get("periodicidade")));
+                }
+                if (dados.get("data_inicio") != null) nova.setDataInicio(LocalDate.parse((String) dados.get("data_inicio")));
+                if (dados.get("data_fim") != null) nova.setDataFim(LocalDate.parse((String) dados.get("data_fim")));
+                if (dados.get("intervalo") != null) nova.setIntervalo(((Number) dados.get("intervalo")).intValue());
+                if (dados.get("dia") != null) nova.setDia(((Number) dados.get("dia")).intValue());
+                @SuppressWarnings("unchecked")
+                List<String> dias = (List<String>) dados.get("dias_da_semana");
+                if (dias != null && !dias.isEmpty()) {
+                    nova.setDiasDaSemana(dias.stream().map(java.time.DayOfWeek::valueOf).toList());
+                }
+            }
+            return recorrenciaFinanceiraRepository.save(nova);
+        });
     }
 
     // =====================================================================
@@ -99,6 +209,19 @@ public class UploadService {
                 return new ImportResultDto(0, importados, erros);
             }
 
+            // Recorrências declaradas no arquivo (id original → dados), para recriação sob demanda
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> recorrenciasJson =
+                    (List<Map<String, Object>>) json.get("recorrencias");
+            Map<String, Map<String, Object>> recorrenciasOrig = new HashMap<>();
+            if (recorrenciasJson != null) {
+                for (Map<String, Object> rec : recorrenciasJson) {
+                    Object id = rec.get("id");
+                    if (id != null) recorrenciasOrig.put(id.toString(), rec);
+                }
+            }
+            Map<String, RecorrenciaFinanceira> recorrenciaCache = new HashMap<>();
+
             for (Map<String, Object> evento : eventos) {
                 String eventoId = (String) evento.get("id");
                 try {
@@ -107,14 +230,38 @@ public class UploadService {
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> instList =
                             (List<Map<String, Object>>) evento.get("instituicoes");
-                    List<EventoInstituicao> instituicoes = buildInstituicoesFromIds(instList);
+                    List<EventoInstituicao> instituicoes = new ArrayList<>();
+                    List<RecorrenciaFinanceira> recorrenciasPorInst = new ArrayList<>();
+                    if (instList != null) {
+                        for (Map<String, Object> inst : instList) {
+                            String nomeInst = (String) inst.get("instituicao_nome");
+                            InstituicaoUsuario iu = resolveOuCriarInstituicaoUsuario(userId, nomeInst);
+                            if (iu == null) {
+                                // Compatibilidade com exportações antigas sem "instituicao_nome"
+                                iu = new InstituicaoUsuario();
+                                Object idAntigo = inst.get("instituicao_usuario_id");
+                                if (idAntigo != null) iu.setId(((Number) idAntigo).intValue());
+                            }
+                            EventoInstituicao ei = new EventoInstituicao();
+                            ei.setInstituicaoUsuario(iu);
+                            ei.setTipoMovimento(TipoMovimento.valueOf((String) inst.get("tipo_movimento")));
+                            ei.setValor(((Number) inst.get("valor")).doubleValue());
+                            ei.setParcelas(((Number) inst.get("parcelas")).intValue());
+                            instituicoes.add(ei);
+
+                            Object recId = inst.get("recorrencia_id");
+                            recorrenciasPorInst.add(recId != null
+                                    ? resolveOuCriarRecorrencia(userId, recId.toString(), recorrenciaCache, recorrenciasOrig)
+                                    : null);
+                        }
+                    }
 
                     @SuppressWarnings("unchecked")
                     Map<String, Object> gastoMap =
                             (Map<String, Object>) evento.get("gasto_detalhe");
-                    EventoDetalhe detalhe = buildDetalheFromJson(gastoMap);
+                    EventoDetalhe detalhe = buildDetalheFromJson(userId, gastoMap);
 
-                    RegistroResponseDto dto = persistirRegistro(financeiro, instituicoes, detalhe);
+                    RegistroResponseDto dto = persistirRegistro(financeiro, instituicoes, detalhe, recorrenciasPorInst);
                     if (dto != null) importados.add(dto);
 
                 } catch (Exception e) {
@@ -144,15 +291,21 @@ public class UploadService {
         Map<String, Map<String, Object>> eventos = new LinkedHashMap<>();
         Map<String, List<Map<String, Object>>> instituicoesMap = new HashMap<>();
         Map<String, Map<String, Object>> detalhesMap = new HashMap<>();   // eventoId → detalhe
-        Map<String, List<Integer>> categoriaDetalheMap = new HashMap<>();  // gastoId  → categoria ids
+        Map<String, List<String>> categoriaDetalheMap = new HashMap<>();  // gastoId  → categoria titulos
+        Map<String, Map<String, Object>> recorrenciasOrig = new HashMap<>(); // recorrenciaId original → dados
 
-        // Patterns based on the SQL generated by RegistroService.createSql()
+        // Patterns based on the SQL generated por RegistroExportacaoService.exportarSql()
         Pattern eventoPattern = Pattern.compile(
                 "INSERT INTO evento_financeiro \\([^)]+\\) VALUES \\('([0-9a-f\\-]+)',\\s*'[0-9a-f\\-]+',\\s*'([^']+)',\\s*([\\d.]+),\\s*'((?:[^']|'')*)',\\s*'(\\d{4}-\\d{2}-\\d{2})',",
                 Pattern.CASE_INSENSITIVE
         );
         Pattern instPattern = Pattern.compile(
-                "INSERT INTO evento_instituicao \\([^)]+\\) VALUES \\('[^']+',\\s*'([0-9a-f\\-]+)',\\s*(\\d+),\\s*'([^']+)',\\s*([\\d.]+),\\s*(\\d+)\\)",
+                "INSERT INTO evento_instituicao \\([^)]+\\) VALUES \\(\\d+,\\s*'([0-9a-f\\-]+)',\\s*\\d+,\\s*'([^']+)',\\s*([\\d.]+),\\s*(\\d+),\\s*'((?:[^']|'')*)',\\s*(?:'([0-9a-f\\-]+)'|null)\\)",
+                Pattern.CASE_INSENSITIVE
+        );
+        // Padrão legado (sem instituicao_nome/fk_recorrencia) — compatibilidade com exportações antigas
+        Pattern instPatternLegado = Pattern.compile(
+                "INSERT INTO evento_instituicao \\([^)]+\\) VALUES \\(\\d+,\\s*'([0-9a-f\\-]+)',\\s*(\\d+),\\s*'([^']+)',\\s*([\\d.]+),\\s*(\\d+)\\)",
                 Pattern.CASE_INSENSITIVE
         );
         Pattern gastoPattern = Pattern.compile(
@@ -160,7 +313,16 @@ public class UploadService {
                 Pattern.CASE_INSENSITIVE
         );
         Pattern catPattern = Pattern.compile(
-                "INSERT INTO gasto_detalhe_categoria \\([^)]+\\) VALUES \\('(\\d+)',\\s*'(\\d+)'\\)",
+                "INSERT INTO gasto_detalhe_categoria \\([^)]+\\) VALUES \\('(\\d+)',\\s*\\d+,\\s*'((?:[^']|'')*)'\\)",
+                Pattern.CASE_INSENSITIVE
+        );
+        // Padrão legado (sem categoria_titulo)
+        Pattern catPatternLegado = Pattern.compile(
+                "INSERT INTO gasto_detalhe_categoria \\([^)]+\\) VALUES \\('(\\d+)',\\s*(\\d+)\\)",
+                Pattern.CASE_INSENSITIVE
+        );
+        Pattern recPattern = Pattern.compile(
+                "INSERT INTO recorrencia_financeira \\([^)]+\\) VALUES \\('([0-9a-f\\-]+)',\\s*'[0-9a-f\\-]+',\\s*'([^']+)',\\s*([\\d.]+),\\s*(?:'((?:[^']|'')*)'|null),\\s*'([^']+)',\\s*(?:'(\\d{4}-\\d{2}-\\d{2})'|null),\\s*(?:'(\\d{4}-\\d{2}-\\d{2})'|null),\\s*(?:(\\d+)|null),\\s*(?:(\\d+)|null),\\s*'([^']*)'\\)",
                 Pattern.CASE_INSENSITIVE
         );
 
@@ -178,14 +340,46 @@ public class UploadService {
                 continue;
             }
 
+            Matcher mr = recPattern.matcher(line);
+            if (mr.find()) {
+                Map<String, Object> rec = new LinkedHashMap<>();
+                rec.put("tipo", mr.group(2));
+                rec.put("valor", Double.parseDouble(mr.group(3)));
+                rec.put("descricao", mr.group(4) != null ? mr.group(4).replace("''", "'") : null);
+                rec.put("periodicidade", mr.group(5));
+                rec.put("data_inicio", mr.group(6));
+                rec.put("data_fim", mr.group(7));
+                rec.put("intervalo", mr.group(8) != null ? Integer.parseInt(mr.group(8)) : null);
+                rec.put("dia", mr.group(9) != null ? Integer.parseInt(mr.group(9)) : null);
+                String diasStr = mr.group(10);
+                if (diasStr != null && !diasStr.isBlank()) {
+                    rec.put("dias_da_semana", Arrays.asList(diasStr.split(",")));
+                }
+                recorrenciasOrig.put(mr.group(1), rec);
+                continue;
+            }
+
             Matcher mi = instPattern.matcher(line);
             if (mi.find()) {
                 String eventoId = mi.group(1);
                 Map<String, Object> inst = new LinkedHashMap<>();
-                inst.put("instituicao_usuario_id", Integer.parseInt(mi.group(2)));
-                inst.put("tipo_movimento", mi.group(3));
-                inst.put("valor", Double.parseDouble(mi.group(4)));
-                inst.put("parcelas", Integer.parseInt(mi.group(5)));
+                inst.put("tipo_movimento", mi.group(2));
+                inst.put("valor", Double.parseDouble(mi.group(3)));
+                inst.put("parcelas", Integer.parseInt(mi.group(4)));
+                inst.put("instituicao_nome", mi.group(5).replace("''", "'"));
+                inst.put("recorrencia_id", mi.group(6));
+                instituicoesMap.computeIfAbsent(eventoId, k -> new ArrayList<>()).add(inst);
+                continue;
+            }
+
+            Matcher miLeg = instPatternLegado.matcher(line);
+            if (miLeg.find()) {
+                String eventoId = miLeg.group(1);
+                Map<String, Object> inst = new LinkedHashMap<>();
+                inst.put("instituicao_usuario_id_legado", Integer.parseInt(miLeg.group(2)));
+                inst.put("tipo_movimento", miLeg.group(3));
+                inst.put("valor", Double.parseDouble(miLeg.group(4)));
+                inst.put("parcelas", Integer.parseInt(miLeg.group(5)));
                 instituicoesMap.computeIfAbsent(eventoId, k -> new ArrayList<>()).add(inst);
                 continue;
             }
@@ -204,10 +398,19 @@ public class UploadService {
             Matcher mc = catPattern.matcher(line);
             if (mc.find()) {
                 String gastoId = mc.group(1);
-                int catId = Integer.parseInt(mc.group(2));
-                categoriaDetalheMap.computeIfAbsent(gastoId, k -> new ArrayList<>()).add(catId);
+                String catTitulo = mc.group(2).replace("''", "'");
+                categoriaDetalheMap.computeIfAbsent(gastoId, k -> new ArrayList<>()).add(catTitulo);
+                continue;
+            }
+
+            Matcher mcLeg = catPatternLegado.matcher(line);
+            if (mcLeg.find()) {
+                // Padrão legado: sem título de categoria disponível, ignora (não há como resolver por nome)
+                continue;
             }
         }
+
+        Map<String, RecorrenciaFinanceira> recorrenciaCache = new HashMap<>();
 
         for (Map.Entry<String, Map<String, Object>> entry : eventos.entrySet()) {
             String eventoId = entry.getKey();
@@ -217,15 +420,27 @@ public class UploadService {
                 EventoFinanceiro financeiro = buildEventoFinanceiro(userId, ev);
 
                 List<EventoInstituicao> instituicoes = new ArrayList<>();
+                List<RecorrenciaFinanceira> recorrenciasPorInst = new ArrayList<>();
                 for (Map<String, Object> inst : instituicoesMap.getOrDefault(eventoId, List.of())) {
                     EventoInstituicao ei = new EventoInstituicao();
-                    InstituicaoUsuario iu = new InstituicaoUsuario();
-                    iu.setId((Integer) inst.get("instituicao_usuario_id"));
+                    String nomeInst = (String) inst.get("instituicao_nome");
+                    InstituicaoUsuario iu = resolveOuCriarInstituicaoUsuario(userId, nomeInst);
+                    if (iu == null) {
+                        // Compatibilidade com exportações antigas (apenas ID, sem nome)
+                        iu = new InstituicaoUsuario();
+                        Object idLegado = inst.get("instituicao_usuario_id_legado");
+                        if (idLegado != null) iu.setId((Integer) idLegado);
+                    }
                     ei.setInstituicaoUsuario(iu);
                     ei.setTipoMovimento(TipoMovimento.valueOf((String) inst.get("tipo_movimento")));
                     ei.setValor((Double) inst.get("valor"));
                     ei.setParcelas((Integer) inst.get("parcelas"));
                     instituicoes.add(ei);
+
+                    String recId = (String) inst.get("recorrencia_id");
+                    recorrenciasPorInst.add(recId != null
+                            ? resolveOuCriarRecorrencia(userId, recId, recorrenciaCache, recorrenciasOrig)
+                            : null);
                 }
 
                 Map<String, Object> gastoMap = detalhesMap.get(eventoId);
@@ -234,10 +449,9 @@ public class UploadService {
                     String gastoId = (String) gastoMap.get("id");
                     detalhe.setTituloGasto((String) gastoMap.get("titulo_gasto"));
                     List<CategoriaUsuario> categorias = new ArrayList<>();
-                    for (Integer catId : categoriaDetalheMap.getOrDefault(gastoId, List.of())) {
-                        CategoriaUsuario cu = new CategoriaUsuario();
-                        cu.setId(catId);
-                        categorias.add(cu);
+                    for (String catTitulo : categoriaDetalheMap.getOrDefault(gastoId, List.of())) {
+                        CategoriaUsuario cu = resolveOuCriarCategoriaUsuario(userId, catTitulo);
+                        if (cu != null) categorias.add(cu);
                     }
                     detalhe.setCategoriaUsuario(categorias);
                 } else {
@@ -245,7 +459,7 @@ public class UploadService {
                     detalhe.setCategoriaUsuario(new ArrayList<>());
                 }
 
-                RegistroResponseDto dto = persistirRegistro(financeiro, instituicoes, detalhe);
+                RegistroResponseDto dto = persistirRegistro(financeiro, instituicoes, detalhe, recorrenciasPorInst);
                 if (dto != null) importados.add(dto);
 
             } catch (Exception e) {
@@ -1036,24 +1250,8 @@ public class UploadService {
         return financeiro;
     }
 
-    private List<EventoInstituicao> buildInstituicoesFromIds(List<Map<String, Object>> instList) {
-        List<EventoInstituicao> result = new ArrayList<>();
-        if (instList == null) return result;
-        for (Map<String, Object> inst : instList) {
-            EventoInstituicao ei = new EventoInstituicao();
-            InstituicaoUsuario iu = new InstituicaoUsuario();
-            iu.setId(((Number) inst.get("instituicao_usuario_id")).intValue());
-            ei.setInstituicaoUsuario(iu);
-            ei.setTipoMovimento(TipoMovimento.valueOf((String) inst.get("tipo_movimento")));
-            ei.setValor(((Number) inst.get("valor")).doubleValue());
-            ei.setParcelas(((Number) inst.get("parcelas")).intValue());
-            result.add(ei);
-        }
-        return result;
-    }
-
     @SuppressWarnings("unchecked")
-    private EventoDetalhe buildDetalheFromJson(Map<String, Object> gastoMap) {
+    private EventoDetalhe buildDetalheFromJson(UUID userId, Map<String, Object> gastoMap) {
         EventoDetalhe detalhe = new EventoDetalhe();
         if (gastoMap == null) {
             detalhe.setTituloGasto("Registro Importado");
@@ -1067,9 +1265,17 @@ public class UploadService {
         List<Map<String, Object>> catList = (List<Map<String, Object>>) gastoMap.get("categorias");
         if (catList != null) {
             for (Map<String, Object> cat : catList) {
-                CategoriaUsuario cu = new CategoriaUsuario();
-                cu.setId(((Number) cat.get("id")).intValue());
-                categorias.add(cu);
+                // Prioriza resolução/criação por título (compatível entre usuários diferentes);
+                // cai para o ID antigo apenas se o título não estiver presente (exportações antigas).
+                String catTitulo = (String) cat.get("titulo");
+                CategoriaUsuario cu = catTitulo != null
+                        ? resolveOuCriarCategoriaUsuario(userId, catTitulo)
+                        : null;
+                if (cu == null && cat.get("id") != null) {
+                    cu = new CategoriaUsuario();
+                    cu.setId(((Number) cat.get("id")).intValue());
+                }
+                if (cu != null) categorias.add(cu);
             }
         }
         detalhe.setCategoriaUsuario(categorias);
@@ -1079,11 +1285,34 @@ public class UploadService {
     private RegistroResponseDto persistirRegistro(EventoFinanceiro financeiro,
                                                    List<EventoInstituicao> instituicoes,
                                                    EventoDetalhe detalhe) {
+        return persistirRegistro(financeiro, instituicoes, detalhe, null);
+    }
+
+    /**
+     * Persiste o registro e, se fornecida, vincula cada EventoInstituicao recém-criada
+     * à sua respectiva RecorrenciaFinanceira (mesma ordem/índice da lista de instituições).
+     */
+    private RegistroResponseDto persistirRegistro(EventoFinanceiro financeiro,
+                                                   List<EventoInstituicao> instituicoes,
+                                                   EventoDetalhe detalhe,
+                                                   List<RecorrenciaFinanceira> recorrenciaPorInstituicao) {
         Registro registro = registroService.createEventoFinanceiro(financeiro, instituicoes, detalhe);
         EventoFinanceiro ef = registro.getEventosFinanceiros().getFirst();
         List<EventoInstituicao> eis = registro.getInstituicoesPorEvento().getOrDefault(ef, List.of());
         EventoDetalhe ed = registro.getDetalhePorEvento().get(ef);
         if (ed == null) return null;
+
+        if (recorrenciaPorInstituicao != null) {
+            for (int i = 0; i < eis.size() && i < recorrenciaPorInstituicao.size(); i++) {
+                RecorrenciaFinanceira rec = recorrenciaPorInstituicao.get(i);
+                if (rec != null) {
+                    EventoInstituicao ei = eis.get(i);
+                    ei.setRecorrenciaFinanceira(rec);
+                    eventoInstituicaoRepository.save(ei);
+                }
+            }
+        }
+
         return RegistrosMapper.toResponse(ef, eis, ed);
     }
 

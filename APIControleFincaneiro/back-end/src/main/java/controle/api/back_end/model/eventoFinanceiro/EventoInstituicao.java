@@ -91,4 +91,8 @@ public class EventoInstituicao {
     public void setRecorrenciaFinanceira(RecorrenciaFinanceira recorrenciaSalva) {
         this.recorrenciaFinanceira = recorrenciaSalva;
     }
+
+    public RecorrenciaFinanceira getRecorrenciaFinanceira() {
+        return recorrenciaFinanceira;
+    }
 }

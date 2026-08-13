@@ -24,12 +24,17 @@ import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
+import controle.api.back_end.model.emprestimo.Emprestimo;
 import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.eventoFinanceiro.Tipo;
+import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.model.poupanca.Caixinha;
+import controle.api.back_end.model.poupanca.CaixinhaInstituicao;
 import controle.api.back_end.model.usuario.Usuario;
+import controle.api.back_end.repository.EmprestimoRepository;
 import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
 import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
 import controle.api.back_end.repository.configuracoes.LimitePorCategoriaRepository;
@@ -37,7 +42,9 @@ import controle.api.back_end.repository.configuracoes.LimitePorInstituicaoReposi
 import controle.api.back_end.repository.eventoFinanceiro.EventoDetalheRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
+import controle.api.back_end.repository.eventoFinanceiro.RecorrenciaFinanceiraRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
+import controle.api.back_end.repository.poupanca.CaixinhaRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -71,6 +78,9 @@ public class RegistroExportacaoService {
     private final ConfiguracoesRepository configuracoesRepository;
     private final LimitePorInstituicaoRepository limitePorInstituicaoRepository;
     private final LimitePorCategoriaRepository limitePorCategoriaRepository;
+    private final EmprestimoRepository emprestimoRepository;
+    private final CaixinhaRepository caixinhaRepository;
+    private final RecorrenciaFinanceiraRepository recorrenciaFinanceiraRepository;
 
     public RegistroExportacaoService(UsuarioRepository usuarioRepository,
                                      EventoFinanceiroRepository eventoFinanceiroRepository,
@@ -80,7 +90,10 @@ public class RegistroExportacaoService {
                                      InstituicaoUsuarioRepository instituicaoUsuarioRepository,
                                      ConfiguracoesRepository configuracoesRepository,
                                      LimitePorInstituicaoRepository limitePorInstituicaoRepository,
-                                     LimitePorCategoriaRepository limitePorCategoriaRepository) {
+                                     LimitePorCategoriaRepository limitePorCategoriaRepository,
+                                     EmprestimoRepository emprestimoRepository,
+                                     CaixinhaRepository caixinhaRepository,
+                                     RecorrenciaFinanceiraRepository recorrenciaFinanceiraRepository) {
         this.usuarioRepository = usuarioRepository;
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
@@ -90,6 +103,9 @@ public class RegistroExportacaoService {
         this.configuracoesRepository = configuracoesRepository;
         this.limitePorInstituicaoRepository = limitePorInstituicaoRepository;
         this.limitePorCategoriaRepository = limitePorCategoriaRepository;
+        this.emprestimoRepository = emprestimoRepository;
+        this.caixinhaRepository = caixinhaRepository;
+        this.recorrenciaFinanceiraRepository = recorrenciaFinanceiraRepository;
     }
 
     // =========================================================================
@@ -131,6 +147,19 @@ public class RegistroExportacaoService {
         userInfo.put("email", usuario.getEmail());
         jsonMap.put("usuario", userInfo);
 
+        // ── Categorias do usuário (lista mestra) ────────────────────────────
+        List<CategoriaUsuario> catUsuariosJson = categoriaUsuarioRepository.findAllByUsuario_Id(usuario.getId());
+        List<Map<String, Object>> catUsuariosList = new ArrayList<>();
+        for (CategoriaUsuario cu : catUsuariosJson) {
+            Map<String, Object> cuMap = new LinkedHashMap<>();
+            cuMap.put("id", cu.getId());
+            cuMap.put("categoria_id", cu.getCategoria().getId());
+            cuMap.put("titulo", cu.getCategoria().getTitulo());
+            cuMap.put("ativo", cu.getAtivo());
+            catUsuariosList.add(cuMap);
+        }
+        jsonMap.put("categorias", catUsuariosList);
+
         List<EventoFinanceiro> eventos = eventoFinanceiroRepository.findAllByUsuario_Id(usuario.getId());
         List<Map<String, Object>> eventosList = new ArrayList<>();
 
@@ -150,9 +179,12 @@ public class RegistroExportacaoService {
                 Map<String, Object> instMap = new LinkedHashMap<>();
                 instMap.put("id", ei.getId().toString());
                 instMap.put("instituicao_usuario_id", ei.getInstituicaoUsuario().getId());
+                instMap.put("instituicao_nome", ei.getInstituicaoUsuario().getInstituicao().getNome());
                 instMap.put("tipo_movimento", ei.getTipoMovimento().toString());
                 instMap.put("valor", ei.getValor());
                 instMap.put("parcelas", ei.getParcelas());
+                instMap.put("recorrencia_id", ei.getRecorrenciaFinanceira() != null
+                        ? ei.getRecorrenciaFinanceira().getId().toString() : null);
                 instList.add(instMap);
             }
             eventoMap.put("instituicoes", instList);
@@ -166,15 +198,93 @@ public class RegistroExportacaoService {
                 for (CategoriaUsuario cat : detalhe.getCategoriaUsuario()) {
                     Map<String, Object> catMap = new LinkedHashMap<>();
                     catMap.put("id", cat.getId());
-                    catMap.put("categoria", cat.getCategoria().getTitulo());
+                    catMap.put("titulo", cat.getCategoria().getTitulo());
                     categoriasList.add(catMap);
                 }
                 detalheMap.put("categorias", categoriasList);
                 eventoMap.put("gasto_detalhe", detalheMap);
             }
+            if (evento.getCaixinha() != null) {
+                eventoMap.put("caixinha_id", evento.getCaixinha().getId().toString());
+            }
+
             eventosList.add(eventoMap);
         }
         jsonMap.put("eventos_financeiros", eventosList);
+
+        // ── Empréstimos ──────────────────────────────────────────────────────
+        List<Emprestimo> emprestimos = emprestimoRepository.findByUsuarioIdOrderByDataCriacaoDesc(usuario.getId());
+        List<Map<String, Object>> emprestimosList = new ArrayList<>();
+        for (Emprestimo emp : emprestimos) {
+            Map<String, Object> empMap = new LinkedHashMap<>();
+            empMap.put("id", emp.getId().toString());
+            empMap.put("tipo", emp.getTipo().toString());
+            empMap.put("status", emp.getStatus().toString());
+            empMap.put("pessoa_ou_grupo", emp.getPessoaOuGrupo());
+            empMap.put("valor_total", emp.getValorTotal());
+            empMap.put("valor_pago", emp.getValorPago());
+            empMap.put("data_emprestimo", emp.getDataEmprestimo() != null ? emp.getDataEmprestimo().toString() : null);
+            empMap.put("data_previsao", emp.getDataPrevisao() != null ? emp.getDataPrevisao().toString() : null);
+            empMap.put("data_criacao", emp.getDataCriacao() != null ? emp.getDataCriacao().toString() : null);
+            empMap.put("data_quitacao", emp.getDataQuitacao() != null ? emp.getDataQuitacao().toString() : null);
+            empMap.put("observacoes", emp.getObservacoes());
+            empMap.put("instituicao_usuario_id", emp.getInstituicaoUsuarioId());
+            emprestimosList.add(empMap);
+        }
+        jsonMap.put("emprestimos", emprestimosList);
+
+        // ── Caixinhas ────────────────────────────────────────────────────────
+        List<Caixinha> caixinhas = caixinhaRepository.findAllByUsuario_Id(usuario.getId());
+        List<Map<String, Object>> caixinhasList = new ArrayList<>();
+        for (Caixinha cx : caixinhas) {
+            Map<String, Object> cxMap = new LinkedHashMap<>();
+            cxMap.put("id", cx.getId().toString());
+            cxMap.put("nome", cx.getNome());
+            cxMap.put("descricao", cx.getDescricao());
+            cxMap.put("valor_meta", cx.getValorMeta());
+            cxMap.put("data_prazo", cx.getDataPrazo() != null ? cx.getDataPrazo().toString() : null);
+            cxMap.put("tipo_rendimento", cx.getTipoRendimento() != null ? cx.getTipoRendimento().toString() : null);
+            cxMap.put("percentual_rendimento", cx.getPercentualRendimento());
+            cxMap.put("taxa_anual_personalizada", cx.getTaxaAnualPersonalizada());
+            cxMap.put("taxa_referencia_atual", cx.getTaxaReferenciaAtual());
+            cxMap.put("is_compartilhada", cx.getIsCompartilhada());
+            cxMap.put("is_ativa", cx.getIsAtiva());
+            cxMap.put("data_criacao", cx.getDataCriacao() != null ? cx.getDataCriacao().toString() : null);
+            cxMap.put("data_encerramento", cx.getDataEncerramento() != null ? cx.getDataEncerramento().toString() : null);
+            List<Map<String, Object>> instList2 = new ArrayList<>();
+            if (cx.getCaixinhaInstituicoes() != null) {
+                for (CaixinhaInstituicao ci : cx.getCaixinhaInstituicoes()) {
+                    Map<String, Object> ciMap = new LinkedHashMap<>();
+                    ciMap.put("id", ci.getId());
+                    ciMap.put("instituicao_usuario_id", ci.getInstituicaoUsuario().getId());
+                    ciMap.put("instituicao_nome", ci.getInstituicaoUsuario().getInstituicao().getNome());
+                    instList2.add(ciMap);
+                }
+            }
+            cxMap.put("instituicoes", instList2);
+            caixinhasList.add(cxMap);
+        }
+        jsonMap.put("caixinhas", caixinhasList);
+
+        // ── Recorrências ─────────────────────────────────────────────────────
+        List<RecorrenciaFinanceira> recorrencias = recorrenciaFinanceiraRepository.findByUsuario_Id(usuario.getId());
+        List<Map<String, Object>> recorrenciasList = new ArrayList<>();
+        for (RecorrenciaFinanceira rec : recorrencias) {
+            Map<String, Object> recMap = new LinkedHashMap<>();
+            recMap.put("id", rec.getId().toString());
+            recMap.put("tipo", rec.getTipo() != null ? rec.getTipo().toString() : null);
+            recMap.put("valor", rec.getValor());
+            recMap.put("descricao", rec.getDescricao());
+            recMap.put("periodicidade", rec.getPeriodicidade() != null ? rec.getPeriodicidade().toString() : null);
+            recMap.put("data_inicio", rec.getDataInicio() != null ? rec.getDataInicio().toString() : null);
+            recMap.put("data_fim", rec.getDataFim() != null ? rec.getDataFim().toString() : null);
+            recMap.put("intervalo", rec.getIntervalo());
+            recMap.put("dia", rec.getDia());
+            recMap.put("dias_da_semana", rec.getDiasDaSemana() != null
+                    ? rec.getDiasDaSemana().stream().map(Enum::toString).toList() : List.of());
+            recorrenciasList.add(recMap);
+        }
+        jsonMap.put("recorrencias", recorrenciasList);
 
         try {
             String conteudo = new ObjectMapper()
@@ -266,11 +376,15 @@ public class RegistroExportacaoService {
 
             for (EventoInstituicao ei : eventoInstituicaoRepository
                     .findEventoInstituicaoByEventoFinanceiro_Id(ev.getId())) {
-                sql.append("INSERT INTO evento_instituicao (id, fk_evento, instituicao_usuario_id, tipo_movimento, valor, parcelas) VALUES (")
+                String instNome = ei.getInstituicaoUsuario().getInstituicao().getNome().replace("'", "''");
+                String fkRecorrencia = ei.getRecorrenciaFinanceira() != null
+                        ? "'" + ei.getRecorrenciaFinanceira().getId() + "'" : "null";
+                sql.append("INSERT INTO evento_instituicao (id, fk_evento, instituicao_usuario_id, tipo_movimento, valor, parcelas, instituicao_nome, fk_recorrencia) VALUES (")
                    .append(ei.getId()).append(", '").append(ev.getId()).append("', ")
                    .append(ei.getInstituicaoUsuario().getId()).append(", '")
                    .append(ei.getTipoMovimento()).append("', ")
-                   .append(ei.getValor()).append(", ").append(ei.getParcelas()).append(");\n");
+                   .append(ei.getValor()).append(", ").append(ei.getParcelas()).append(", '")
+                   .append(instNome).append("', ").append(fkRecorrencia).append(");\n");
             }
 
             EventoDetalhe detalhe = eventoDetalheRepository.findGastoDetalheByEventoFinanceiro(ev);
@@ -279,12 +393,80 @@ public class RegistroExportacaoService {
                    .append("'").append(detalhe.getId()).append("', '").append(ev.getId()).append("', '")
                    .append(detalhe.getTituloGasto().replace("'", "''")).append("');\n");
                 for (CategoriaUsuario cat : detalhe.getCategoriaUsuario()) {
-                    sql.append("INSERT INTO gasto_detalhe_categoria (gasto_detalhe_id, categoria_usuario_id) VALUES (")
-                       .append("'").append(detalhe.getId()).append("', ").append(cat.getId()).append(");\n");
+                    String catTitulo = cat.getCategoria().getTitulo().replace("'", "''");
+                    sql.append("INSERT INTO gasto_detalhe_categoria (gasto_detalhe_id, categoria_usuario_id, categoria_titulo) VALUES (")
+                       .append("'").append(detalhe.getId()).append("', ").append(cat.getId()).append(", '")
+                       .append(catTitulo).append("');\n");
                 }
             }
             sql.append("\n");
         }
+
+        // ── Empréstimos ──────────────────────────────────────────────────────
+        List<Emprestimo> emprestimos = emprestimoRepository.findByUsuarioIdOrderByDataCriacaoDesc(userId);
+        sql.append("-- Empréstimos\n");
+        for (Emprestimo emp : emprestimos) {
+            sql.append("INSERT INTO emprestimo (id, usuario_id, tipo, status, pessoa_ou_grupo, valor_total, valor_pago, data_emprestimo, data_previsao, data_criacao, data_quitacao, observacoes, instituicao_usuario_id) VALUES (")
+               .append("'").append(emp.getId()).append("', '").append(userId).append("', '")
+               .append(emp.getTipo()).append("', '").append(emp.getStatus()).append("', '")
+               .append(emp.getPessoaOuGrupo().replace("'", "''")).append("', ")
+               .append(emp.getValorTotal()).append(", ").append(emp.getValorPago()).append(", ")
+               .append(emp.getDataEmprestimo() == null ? "null" : "'" + emp.getDataEmprestimo() + "'").append(", ")
+               .append(emp.getDataPrevisao() == null ? "null" : "'" + emp.getDataPrevisao() + "'").append(", '")
+               .append(emp.getDataCriacao()).append("', ")
+               .append(emp.getDataQuitacao() == null ? "null" : "'" + emp.getDataQuitacao() + "'").append(", ")
+               .append(emp.getObservacoes() == null ? "null" : "'" + emp.getObservacoes().replace("'", "''") + "'").append(", ")
+               .append(emp.getInstituicaoUsuarioId() == null ? "null" : emp.getInstituicaoUsuarioId()).append(");\n");
+        }
+        sql.append("\n");
+
+        // ── Caixinhas ────────────────────────────────────────────────────────
+        List<Caixinha> caixinhas = caixinhaRepository.findAllByUsuario_Id(userId);
+        sql.append("-- Caixinhas\n");
+        for (Caixinha cx : caixinhas) {
+            sql.append("INSERT INTO caixinha (id, usuario_id, nome, descricao, valor_meta, data_prazo, tipo_rendimento, percentual_rendimento, taxa_anual_personalizada, taxa_referencia_atual, is_compartilhada, is_ativa, data_criacao, data_encerramento) VALUES (")
+               .append("'").append(cx.getId()).append("', '").append(userId).append("', '")
+               .append(cx.getNome().replace("'", "''")).append("', ")
+               .append(cx.getDescricao() == null ? "null" : "'" + cx.getDescricao().replace("'", "''") + "'").append(", ")
+               .append(cx.getValorMeta() == null ? "null" : cx.getValorMeta()).append(", ")
+               .append(cx.getDataPrazo() == null ? "null" : "'" + cx.getDataPrazo() + "'").append(", '")
+               .append(cx.getTipoRendimento()).append("', ")
+               .append(cx.getPercentualRendimento() == null ? "null" : cx.getPercentualRendimento()).append(", ")
+               .append(cx.getTaxaAnualPersonalizada() == null ? "null" : cx.getTaxaAnualPersonalizada()).append(", ")
+               .append(cx.getTaxaReferenciaAtual() == null ? "null" : cx.getTaxaReferenciaAtual()).append(", ")
+               .append(cx.getIsCompartilhada()).append(", ").append(cx.getIsAtiva()).append(", '")
+               .append(cx.getDataCriacao()).append("', ")
+               .append(cx.getDataEncerramento() == null ? "null" : "'" + cx.getDataEncerramento() + "'").append(");\n");
+
+            if (cx.getCaixinhaInstituicoes() != null) {
+                for (CaixinhaInstituicao ci : cx.getCaixinhaInstituicoes()) {
+                    sql.append("INSERT INTO caixinha_instituicao (id, caixinha_id, instituicao_usuario_id) VALUES (")
+                       .append(ci.getId()).append(", '").append(cx.getId()).append("', ")
+                       .append(ci.getInstituicaoUsuario().getId()).append(");\n");
+                }
+            }
+        }
+        sql.append("\n");
+
+        // ── Recorrências ─────────────────────────────────────────────────────
+        List<RecorrenciaFinanceira> recorrencias = recorrenciaFinanceiraRepository.findByUsuario_Id(userId);
+        sql.append("-- Recorrências\n");
+        for (RecorrenciaFinanceira rec : recorrencias) {
+            String diasSemana = (rec.getDiasDaSemana() != null && !rec.getDiasDaSemana().isEmpty())
+                    ? String.join(",", rec.getDiasDaSemana().stream().map(Enum::toString).toList())
+                    : "";
+            sql.append("INSERT INTO recorrencia_financeira (id, usuario_id, tipo, valor, descricao, periodicidade, data_inicio, data_fim, intervalo, dia, dias_da_semana) VALUES (")
+               .append("'").append(rec.getId()).append("', '").append(userId).append("', '")
+               .append(rec.getTipo()).append("', ").append(rec.getValor()).append(", ")
+               .append(rec.getDescricao() == null ? "null" : "'" + rec.getDescricao().replace("'", "''") + "'").append(", '")
+               .append(rec.getPeriodicidade()).append("', ")
+               .append(rec.getDataInicio() == null ? "null" : "'" + rec.getDataInicio() + "'").append(", ")
+               .append(rec.getDataFim() == null ? "null" : "'" + rec.getDataFim() + "'").append(", ")
+               .append(rec.getIntervalo() == null ? "null" : rec.getIntervalo()).append(", ")
+               .append(rec.getDia() == null ? "null" : rec.getDia()).append(", '")
+               .append(diasSemana).append("');\n");
+        }
+        sql.append("\n");
 
         return new ExportacaoResultado(sql.toString().getBytes(),
                 "registros_%s_%s.sql".formatted(usuario.getNome(), LocalDate.now()),
@@ -330,6 +512,27 @@ public class RegistroExportacaoService {
             // Aba de resumo geral (inserida depois, mas movida para o início)
             XSSFSheet sheetResumo = wb.createSheet("Resumo Geral");
             criarSheetResumoGeral(sheetResumo, est, usuario, eventos, totaisMensais);
+
+            // Abas adicionais: Categorias, Empréstimos, Caixinhas e Recorrências
+            List<CategoriaUsuario> categoriasExcel = categoriaUsuarioRepository.findAllByUsuario_Id(usuario.getId());
+            if (!categoriasExcel.isEmpty()) {
+                criarSheetCategorias(wb, est, categoriasExcel, eventos);
+            }
+
+            List<Emprestimo> emprestimos = emprestimoRepository.findByUsuarioIdOrderByDataCriacaoDesc(usuario.getId());
+            if (!emprestimos.isEmpty()) {
+                criarSheetEmprestimos(wb, est, emprestimos);
+            }
+
+            List<Caixinha> caixinhas = caixinhaRepository.findAllByUsuario_Id(usuario.getId());
+            if (!caixinhas.isEmpty()) {
+                criarSheetCaixinhas(wb, est, caixinhas);
+            }
+
+            List<RecorrenciaFinanceira> recorrencias = recorrenciaFinanceiraRepository.findByUsuario_Id(usuario.getId());
+            if (!recorrencias.isEmpty()) {
+                criarSheetRecorrencias(wb, est, recorrencias);
+            }
 
             // Reposiciona: Resumo Geral = 0, Análise Mensal = 1, meses = 2+
             wb.setSheetOrder("Resumo Geral",   0);
@@ -697,6 +900,193 @@ public class RegistroExportacaoService {
         cSaldo.setCellStyle(saldo >= 0 ? est.moedaReceita : est.moedaGasto);
 
         return new double[]{totalReceitas, totalGastos};
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Sheet — Categorias
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private void criarSheetCategorias(XSSFWorkbook wb, Estilos est,
+                                       List<CategoriaUsuario> categorias,
+                                       List<EventoFinanceiro> eventos) {
+        // Calcula total gasto e ocorrências por categoria (apenas eventos do tipo Gasto)
+        Map<Integer, double[]> totaisPorCategoriaUsuario = new LinkedHashMap<>(); // categoriaUsuarioId → {total, contagem}
+        for (EventoFinanceiro ev : eventos) {
+            if (ev.getTipo() != Tipo.Gasto) continue;
+            EventoDetalhe det = ev.getGastoDetalhe();
+            if (det == null || det.getCategoriaUsuario() == null) continue;
+            for (CategoriaUsuario cu : det.getCategoriaUsuario()) {
+                double[] acc = totaisPorCategoriaUsuario.computeIfAbsent(cu.getId(), k -> new double[]{0, 0});
+                acc[0] += ev.getValor();
+                acc[1]++;
+            }
+        }
+
+        XSSFSheet sheet = wb.createSheet("Categorias");
+        sheet.setColumnWidth(0, 30 * 256);
+        sheet.setColumnWidth(1, 12 * 256);
+        sheet.setColumnWidth(2, 18 * 256);
+        sheet.setColumnWidth(3, 16 * 256);
+
+        int r = 0;
+        r = tituloMerge(sheet, est, r, "Categorias", 0, 3, 26f);
+
+        Row cab = sheet.createRow(r++);
+        cab.setHeightInPoints(22);
+        String[] headers = {"Categoria", "Ativa", "Total Gasto (R$)", "Ocorrências"};
+        for (int i = 0; i < headers.length; i++) celula(cab, i, headers[i], est.cabecalho);
+
+        boolean alt = false;
+        for (CategoriaUsuario cu : categorias) {
+            double[] acc = totaisPorCategoriaUsuario.getOrDefault(cu.getId(), new double[]{0, 0});
+            Row row = sheet.createRow(r++);
+            row.setHeightInPoints(18);
+            celula(row, 0, cu.getCategoria().getTitulo(), alt ? est.dadosAlt : est.dados);
+            celula(row, 1, Boolean.TRUE.equals(cu.getAtivo()) ? "Sim" : "Não", alt ? est.dadosAlt : est.dados);
+            celulaNum(row, 2, acc[0], alt ? est.moedaAlt : est.moeda);
+            celula(row, 3, String.valueOf((int) acc[1]), alt ? est.dadosAlt : est.dados);
+            alt = !alt;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Sheet — Empréstimos
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private void criarSheetEmprestimos(XSSFWorkbook wb, Estilos est, List<Emprestimo> emprestimos) {
+        XSSFSheet sheet = wb.createSheet("Empréstimos");
+        sheet.setColumnWidth(0, 22 * 256);
+        sheet.setColumnWidth(1, 16 * 256);
+        sheet.setColumnWidth(2, 14 * 256);
+        sheet.setColumnWidth(3, 16 * 256);
+        sheet.setColumnWidth(4, 16 * 256);
+        sheet.setColumnWidth(5, 13 * 256);
+        sheet.setColumnWidth(6, 13 * 256);
+        sheet.setColumnWidth(7, 30 * 256);
+
+        DateTimeFormatter dtFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        int r = 0;
+        r = tituloMerge(sheet, est, r, "Empréstimos", 0, 7, 26f);
+
+        Row cab = sheet.createRow(r++);
+        cab.setHeightInPoints(22);
+        String[] headers = {"Pessoa/Grupo", "Tipo", "Status", "Valor Total (R$)", "Valor Pago (R$)",
+                "Data Empréstimo", "Data Previsão", "Observações"};
+        for (int i = 0; i < headers.length; i++) celula(cab, i, headers[i], est.cabecalho);
+
+        boolean alt = false;
+        for (Emprestimo emp : emprestimos) {
+            Row row = sheet.createRow(r++);
+            row.setHeightInPoints(18);
+            XSSFCellStyle estiloLinha = emp.getTipo().toString().equals("EMPRESTEI") ? est.linhaReceita : est.linhaGasto;
+            XSSFCellStyle estiloMoeda = emp.getTipo().toString().equals("EMPRESTEI") ? est.moedaReceita : est.moedaGasto;
+            celula(row, 0, emp.getPessoaOuGrupo(), alt ? est.dadosAlt : est.dados);
+            celula(row, 1, emp.getTipo().toString(), estiloLinha);
+            celula(row, 2, emp.getStatus().toString(), alt ? est.dadosAlt : est.dados);
+            celulaNum(row, 3, emp.getValorTotal().doubleValue(), estiloMoeda);
+            celulaNum(row, 4, emp.getValorPago().doubleValue(), alt ? est.moedaAlt : est.moeda);
+            celula(row, 5, emp.getDataEmprestimo() != null ? emp.getDataEmprestimo().format(dtFmt) : "-", alt ? est.dadosAlt : est.dados);
+            celula(row, 6, emp.getDataPrevisao() != null ? emp.getDataPrevisao().format(dtFmt) : "-", alt ? est.dadosAlt : est.dados);
+            celula(row, 7, emp.getObservacoes() != null ? emp.getObservacoes() : "-", alt ? est.dadosAlt : est.dados);
+            alt = !alt;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Sheet — Caixinhas
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private void criarSheetCaixinhas(XSSFWorkbook wb, Estilos est, List<Caixinha> caixinhas) {
+        XSSFSheet sheet = wb.createSheet("Caixinhas");
+        sheet.setColumnWidth(0, 24 * 256);
+        sheet.setColumnWidth(1, 32 * 256);
+        sheet.setColumnWidth(2, 16 * 256);
+        sheet.setColumnWidth(3, 13 * 256);
+        sheet.setColumnWidth(4, 16 * 256);
+        sheet.setColumnWidth(5, 16 * 256);
+        sheet.setColumnWidth(6, 10 * 256);
+        sheet.setColumnWidth(7, 28 * 256);
+
+        DateTimeFormatter dtFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        int r = 0;
+        r = tituloMerge(sheet, est, r, "Caixinhas", 0, 7, 26f);
+
+        Row cab = sheet.createRow(r++);
+        cab.setHeightInPoints(22);
+        String[] headers = {"Nome", "Descrição", "Meta (R$)", "Prazo", "Rendimento",
+                "Taxa/Percentual", "Ativa", "Instituições"};
+        for (int i = 0; i < headers.length; i++) celula(cab, i, headers[i], est.cabecalho);
+
+        boolean alt = false;
+        for (Caixinha cx : caixinhas) {
+            Row row = sheet.createRow(r++);
+            row.setHeightInPoints(18);
+            String taxa = cx.getPercentualRendimento() != null ? cx.getPercentualRendimento() + "%"
+                    : (cx.getTaxaAnualPersonalizada() != null ? cx.getTaxaAnualPersonalizada() + "% a.a." : "-");
+            String insts = cx.getCaixinhaInstituicoes() == null ? "-" : cx.getCaixinhaInstituicoes().stream()
+                    .map(ci -> ci.getInstituicaoUsuario().getInstituicao().getNome())
+                    .reduce((a, b) -> a + " / " + b).orElse("-");
+
+            celula(row, 0, cx.getNome(), alt ? est.dadosAlt : est.dados);
+            celula(row, 1, cx.getDescricao() != null ? cx.getDescricao() : "-", alt ? est.dadosAlt : est.dados);
+            celulaNum(row, 2, cx.getValorMeta() != null ? cx.getValorMeta().doubleValue() : 0, alt ? est.moedaAlt : est.moeda);
+            celula(row, 3, cx.getDataPrazo() != null ? cx.getDataPrazo().format(dtFmt) : "-", alt ? est.dadosAlt : est.dados);
+            celula(row, 4, cx.getTipoRendimento() != null ? cx.getTipoRendimento().toString() : "-", alt ? est.dadosAlt : est.dados);
+            celula(row, 5, taxa, alt ? est.dadosAlt : est.dados);
+            celula(row, 6, Boolean.TRUE.equals(cx.getIsAtiva()) ? "Sim" : "Não", alt ? est.dadosAlt : est.dados);
+            celula(row, 7, insts, alt ? est.dadosAlt : est.dados);
+            alt = !alt;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Sheet — Recorrências
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private void criarSheetRecorrencias(XSSFWorkbook wb, Estilos est, List<RecorrenciaFinanceira> recorrencias) {
+        XSSFSheet sheet = wb.createSheet("Recorrências");
+        sheet.setColumnWidth(0, 30 * 256);
+        sheet.setColumnWidth(1, 16 * 256);
+        sheet.setColumnWidth(2, 15 * 256);
+        sheet.setColumnWidth(3, 16 * 256);
+        sheet.setColumnWidth(4, 13 * 256);
+        sheet.setColumnWidth(5, 13 * 256);
+        sheet.setColumnWidth(6, 30 * 256);
+
+        DateTimeFormatter dtFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        int r = 0;
+        r = tituloMerge(sheet, est, r, "Recorrências", 0, 6, 26f);
+
+        Row cab = sheet.createRow(r++);
+        cab.setHeightInPoints(22);
+        String[] headers = {"Descrição", "Tipo", "Valor (R$)", "Periodicidade",
+                "Início", "Fim", "Detalhes"};
+        for (int i = 0; i < headers.length; i++) celula(cab, i, headers[i], est.cabecalho);
+
+        boolean alt = false;
+        for (RecorrenciaFinanceira rec : recorrencias) {
+            Row row = sheet.createRow(r++);
+            row.setHeightInPoints(18);
+            XSSFCellStyle estiloMoeda = switch (rec.getTipo()) {
+                case Recebimento, Emprestimo -> est.moedaReceita;
+                case Gasto -> est.moedaGasto;
+                case Transferencia -> est.moedaTransferencia;
+                case Poupanca -> est.moedaPoupanca;
+            };
+            String detalhes = rec.getDia() != null ? "Dia " + rec.getDia()
+                    : (rec.getDiasDaSemana() != null && !rec.getDiasDaSemana().isEmpty()
+                        ? rec.getDiasDaSemana().stream().map(Enum::toString).reduce((a, b) -> a + ", " + b).orElse("-")
+                        : "-");
+
+            celula(row, 0, rec.getDescricao() != null ? rec.getDescricao() : "-", alt ? est.dadosAlt : est.dados);
+            celula(row, 1, rec.getTipo() != null ? rec.getTipo().toString() : "-", alt ? est.dadosAlt : est.dados);
+            celulaNum(row, 2, rec.getValor() != null ? rec.getValor() : 0, estiloMoeda);
+            celula(row, 3, rec.getPeriodicidade() != null ? rec.getPeriodicidade().toString() : "-", alt ? est.dadosAlt : est.dados);
+            celula(row, 4, rec.getDataInicio() != null ? rec.getDataInicio().format(dtFmt) : "-", alt ? est.dadosAlt : est.dados);
+            celula(row, 5, rec.getDataFim() != null ? rec.getDataFim().format(dtFmt) : "-", alt ? est.dadosAlt : est.dados);
+            celula(row, 6, detalhes, alt ? est.dadosAlt : est.dados);
+            alt = !alt;
+        }
     }
 
     private int escreverResumoMes(XSSFSheet sheet, Estilos est, int r,
@@ -1177,6 +1567,18 @@ public class RegistroExportacaoService {
                 doc.add(new AreaBreak());
             }
 
+            // ── CATEGORIAS, EMPRÉSTIMOS, CAIXINHAS E RECORRÊNCIAS ─────────────
+            List<CategoriaUsuario> categoriasPdf = categoriaUsuarioRepository.findAllByUsuario_Id(usuario.getId());
+            List<Emprestimo> emprestimosPdf = emprestimoRepository.findByUsuarioIdOrderByDataCriacaoDesc(usuario.getId());
+            List<Caixinha> caixinhasPdf = caixinhaRepository.findAllByUsuario_Id(usuario.getId());
+            List<RecorrenciaFinanceira> recorrenciasPdf = recorrenciaFinanceiraRepository.findByUsuario_Id(usuario.getId());
+            if (!categoriasPdf.isEmpty() || !emprestimosPdf.isEmpty() || !caixinhasPdf.isEmpty() || !recorrenciasPdf.isEmpty()) {
+                PdfExplicitDestination destOutros = PdfExplicitDestination.createFit(pdf.getLastPage());
+                pdf.addNamedDestination("emprestimos_caixinhas_recorrencias", destOutros.getPdfObject());
+                pdfSecaoEmprestimosCaixinhasRecorrencias(doc, categoriasPdf, eventos, emprestimosPdf, caixinhasPdf, recorrenciasPdf, t, dtFmt);
+                doc.add(new AreaBreak());
+            }
+
             // ── ANÁLISE FINANCEIRA ────────────────────────────────────────────
             PdfExplicitDestination destAnalise = PdfExplicitDestination.createFit(pdf.getLastPage());
             pdf.addNamedDestination("analise_financeira", destAnalise.getPdfObject());
@@ -1262,6 +1664,12 @@ public class RegistroExportacaoService {
         }
 
         doc.add(new Paragraph(
+                new Link("► Categorias, Empréstimos, Caixinhas e Recorrências",
+                        PdfAction.createGoTo("emprestimos_caixinhas_recorrencias")))
+                .setFontSize(13).setBold().setFontColor(t.priMed())
+                .setMarginTop(14).setMarginLeft(12));
+
+        doc.add(new Paragraph(
                 new Link("► Análise Financeira e Saúde Financeira",
                         PdfAction.createGoTo("analise_financeira")))
                 .setFontSize(13).setBold().setFontColor(t.priMed())
@@ -1328,6 +1736,148 @@ public class RegistroExportacaoService {
         box.addCell(pdfBoxCell(formatarMoeda(saldo.doubleValue()), saldoBg, saldoFg));
 
         return box;
+    }
+
+    // ─── Categorias, Empréstimos, Caixinhas e Recorrências ───────────────────
+
+    private void pdfSecaoEmprestimosCaixinhasRecorrencias(Document doc,
+                                                            List<CategoriaUsuario> categorias,
+                                                            List<EventoFinanceiro> eventos,
+                                                            List<Emprestimo> emprestimos,
+                                                            List<Caixinha> caixinhas,
+                                                            List<RecorrenciaFinanceira> recorrencias,
+                                                            PdfTheme t, DateTimeFormatter dtFmt) {
+        doc.add(pdfTituloSecao("Categorias, Empréstimos, Caixinhas e Recorrências", t));
+
+        // ── Categorias ───────────────────────────────────────────────────────
+        doc.add(pdfSubtituloSecao("Categorias", t));
+        if (categorias.isEmpty()) {
+            doc.add(new Paragraph("Nenhuma categoria cadastrada.")
+                    .setFontSize(9f).setFontColor(t.texto()).setMarginTop(4));
+        } else {
+            Map<Integer, double[]> totaisPorCategoriaUsuario = new LinkedHashMap<>();
+            for (EventoFinanceiro ev : eventos) {
+                if (ev.getTipo() != Tipo.Gasto) continue;
+                EventoDetalhe det = ev.getGastoDetalhe();
+                if (det == null || det.getCategoriaUsuario() == null) continue;
+                for (CategoriaUsuario cu : det.getCategoriaUsuario()) {
+                    double[] acc = totaisPorCategoriaUsuario.computeIfAbsent(cu.getId(), k -> new double[]{0, 0});
+                    acc[0] += ev.getValor();
+                    acc[1]++;
+                }
+            }
+
+            Table tbl = new Table(UnitValue.createPercentArray(new float[]{40, 15, 25, 20}))
+                    .setWidth(UnitValue.createPercentValue(100)).setMarginTop(6);
+            for (String h : new String[]{"Categoria", "Ativa", "Total Gasto", "Ocorrências"}) {
+                tbl.addHeaderCell(new Cell()
+                        .add(new Paragraph(h).setFontSize(7.5f).setBold().setFontColor(t.branco()))
+                        .setBackgroundColor(t.primaria()).setPadding(5f).setBorder(Border.NO_BORDER));
+            }
+            boolean alt = false;
+            for (CategoriaUsuario cu : categorias) {
+                double[] acc = totaisPorCategoriaUsuario.getOrDefault(cu.getId(), new double[]{0, 0});
+                DeviceRgb bg = alt ? t.cinza() : t.branco();
+                tbl.addCell(pdfDataCell(cu.getCategoria().getTitulo(), bg, t.texto()));
+                tbl.addCell(pdfDataCell(Boolean.TRUE.equals(cu.getAtivo()) ? "Sim" : "Não", bg, t.texto()));
+                tbl.addCell(pdfDataCell(formatarMoeda(acc[0]), bg, t.texto()));
+                tbl.addCell(pdfDataCell(String.valueOf((int) acc[1]), bg, t.texto()));
+                alt = !alt;
+            }
+            doc.add(tbl);
+        }
+
+        // ── Empréstimos ─────────────────────────────────────────────────────
+        doc.add(pdfSubtituloSecao("Empréstimos", t));
+        if (emprestimos.isEmpty()) {
+            doc.add(new Paragraph("Nenhum empréstimo registrado.")
+                    .setFontSize(9f).setFontColor(t.texto()).setMarginTop(4));
+        } else {
+            Table tbl = new Table(UnitValue.createPercentArray(new float[]{22, 13, 13, 15, 15, 12, 10}))
+                    .setWidth(UnitValue.createPercentValue(100)).setMarginTop(6);
+            for (String h : new String[]{"Pessoa/Grupo", "Tipo", "Status", "Valor Total", "Valor Pago", "Previsão", "Restante"}) {
+                tbl.addHeaderCell(new Cell()
+                        .add(new Paragraph(h).setFontSize(7.5f).setBold().setFontColor(t.branco()))
+                        .setBackgroundColor(t.primaria()).setPadding(5f).setBorder(Border.NO_BORDER));
+            }
+            boolean alt = false;
+            for (Emprestimo emp : emprestimos) {
+                boolean emprestei = emp.getTipo().toString().equals("EMPRESTEI");
+                DeviceRgb bg = emprestei ? t.recBg() : t.gasBg();
+                DeviceRgb fg = emprestei ? t.recFg() : t.gasFg();
+                BigDecimal restante = emp.getValorTotal().subtract(emp.getValorPago());
+                tbl.addCell(pdfDataCell(emp.getPessoaOuGrupo(), alt ? t.cinza() : t.branco(), t.texto()));
+                tbl.addCell(pdfDataCell(emp.getTipo().toString(), bg, fg));
+                tbl.addCell(pdfDataCell(emp.getStatus().toString(), alt ? t.cinza() : t.branco(), t.texto()));
+                tbl.addCell(pdfDataCell(formatarMoeda(emp.getValorTotal().doubleValue()), alt ? t.cinza() : t.branco(), t.texto()));
+                tbl.addCell(pdfDataCell(formatarMoeda(emp.getValorPago().doubleValue()), alt ? t.cinza() : t.branco(), t.texto()));
+                tbl.addCell(pdfDataCell(emp.getDataPrevisao() != null ? emp.getDataPrevisao().format(dtFmt) : "-",
+                        alt ? t.cinza() : t.branco(), t.texto()));
+                tbl.addCell(pdfDataCell(formatarMoeda(restante.doubleValue()), bg, fg));
+                alt = !alt;
+            }
+            doc.add(tbl);
+        }
+
+        // ── Caixinhas ────────────────────────────────────────────────────────
+        doc.add(pdfSubtituloSecao("Caixinhas", t));
+        if (caixinhas.isEmpty()) {
+            doc.add(new Paragraph("Nenhuma caixinha registrada.")
+                    .setFontSize(9f).setFontColor(t.texto()).setMarginTop(4));
+        } else {
+            Table tbl = new Table(UnitValue.createPercentArray(new float[]{22, 15, 13, 15, 15, 10, 10}))
+                    .setWidth(UnitValue.createPercentValue(100)).setMarginTop(6);
+            for (String h : new String[]{"Nome", "Meta", "Prazo", "Rendimento", "Taxa/%", "Ativa", "Instituições"}) {
+                tbl.addHeaderCell(new Cell()
+                        .add(new Paragraph(h).setFontSize(7.5f).setBold().setFontColor(t.branco()))
+                        .setBackgroundColor(t.primaria()).setPadding(5f).setBorder(Border.NO_BORDER));
+            }
+            boolean alt = false;
+            for (Caixinha cx : caixinhas) {
+                DeviceRgb bg = alt ? t.cinza() : t.branco();
+                String taxa = cx.getPercentualRendimento() != null ? cx.getPercentualRendimento() + "%"
+                        : (cx.getTaxaAnualPersonalizada() != null ? cx.getTaxaAnualPersonalizada() + "% a.a." : "-");
+                String insts = cx.getCaixinhaInstituicoes() == null ? "-" : cx.getCaixinhaInstituicoes().stream()
+                        .map(ci -> ci.getInstituicaoUsuario().getInstituicao().getNome())
+                        .reduce((a, b) -> a + " / " + b).orElse("-");
+                tbl.addCell(pdfDataCell(cx.getNome(), bg, t.texto()));
+                tbl.addCell(pdfDataCell(cx.getValorMeta() != null ? formatarMoeda(cx.getValorMeta().doubleValue()) : "-", bg, t.texto()));
+                tbl.addCell(pdfDataCell(cx.getDataPrazo() != null ? cx.getDataPrazo().format(dtFmt) : "-", bg, t.texto()));
+                tbl.addCell(pdfDataCell(cx.getTipoRendimento() != null ? cx.getTipoRendimento().toString() : "-", bg, t.texto()));
+                tbl.addCell(pdfDataCell(taxa, bg, t.texto()));
+                tbl.addCell(pdfDataCell(Boolean.TRUE.equals(cx.getIsAtiva()) ? "Sim" : "Não", bg, t.texto()));
+                tbl.addCell(pdfDataCell(insts, bg, t.texto()));
+                alt = !alt;
+            }
+            doc.add(tbl);
+        }
+
+        // ── Recorrências ─────────────────────────────────────────────────────
+        doc.add(pdfSubtituloSecao("Recorrências", t));
+        if (recorrencias.isEmpty()) {
+            doc.add(new Paragraph("Nenhuma recorrência registrada.")
+                    .setFontSize(9f).setFontColor(t.texto()).setMarginTop(4));
+        } else {
+            Table tbl = new Table(UnitValue.createPercentArray(new float[]{25, 15, 15, 17, 14, 14}))
+                    .setWidth(UnitValue.createPercentValue(100)).setMarginTop(6);
+            for (String h : new String[]{"Descrição", "Tipo", "Valor", "Periodicidade", "Início", "Fim"}) {
+                tbl.addHeaderCell(new Cell()
+                        .add(new Paragraph(h).setFontSize(7.5f).setBold().setFontColor(t.branco()))
+                        .setBackgroundColor(t.primaria()).setPadding(5f).setBorder(Border.NO_BORDER));
+            }
+            boolean alt = false;
+            for (RecorrenciaFinanceira rec : recorrencias) {
+                DeviceRgb bg = alt ? t.cinza() : t.branco();
+                tbl.addCell(pdfDataCell(rec.getDescricao() != null ? rec.getDescricao() : "-", bg, t.texto()));
+                tbl.addCell(pdfDataCell(rec.getTipo() != null ? rec.getTipo().toString() : "-", bg, t.texto()));
+                tbl.addCell(pdfDataCell(rec.getValor() != null ? formatarMoeda(rec.getValor()) : "-", bg, t.texto()));
+                tbl.addCell(pdfDataCell(rec.getPeriodicidade() != null ? rec.getPeriodicidade().toString() : "-", bg, t.texto()));
+                tbl.addCell(pdfDataCell(rec.getDataInicio() != null ? rec.getDataInicio().format(dtFmt) : "-", bg, t.texto()));
+                tbl.addCell(pdfDataCell(rec.getDataFim() != null ? rec.getDataFim().format(dtFmt) : "-", bg, t.texto()));
+                alt = !alt;
+            }
+            doc.add(tbl);
+        }
     }
 
     // ─── Análise financeira completa ─────────────────────────────────────────
@@ -1781,5 +2331,3 @@ public class RegistroExportacaoService {
     /** Encapsula o resultado de uma exportação: bytes, nome do arquivo e content-type. */
     public record ExportacaoResultado(byte[] conteudo, String nomeArquivo, String contentType) {}
 }
-
-
