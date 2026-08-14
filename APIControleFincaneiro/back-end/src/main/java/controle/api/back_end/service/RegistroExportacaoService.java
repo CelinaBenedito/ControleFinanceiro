@@ -25,6 +25,7 @@ import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.configuracoes.LimitePorCategoria;
 import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.emprestimo.Emprestimo;
+import controle.api.back_end.model.emprestimo.EmprestimoBancario;
 import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
@@ -34,6 +35,7 @@ import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.poupanca.Caixinha;
 import controle.api.back_end.model.poupanca.CaixinhaInstituicao;
 import controle.api.back_end.model.usuario.Usuario;
+import controle.api.back_end.repository.EmprestimoBancarioRepository;
 import controle.api.back_end.repository.EmprestimoRepository;
 import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
 import controle.api.back_end.repository.configuracoes.ConfiguracoesRepository;
@@ -79,6 +81,7 @@ public class RegistroExportacaoService {
     private final LimitePorInstituicaoRepository limitePorInstituicaoRepository;
     private final LimitePorCategoriaRepository limitePorCategoriaRepository;
     private final EmprestimoRepository emprestimoRepository;
+    private final EmprestimoBancarioRepository emprestimoBancarioRepository;
     private final CaixinhaRepository caixinhaRepository;
     private final RecorrenciaFinanceiraRepository recorrenciaFinanceiraRepository;
 
@@ -92,6 +95,7 @@ public class RegistroExportacaoService {
                                      LimitePorInstituicaoRepository limitePorInstituicaoRepository,
                                      LimitePorCategoriaRepository limitePorCategoriaRepository,
                                      EmprestimoRepository emprestimoRepository,
+                                     EmprestimoBancarioRepository emprestimoBancarioRepository,
                                      CaixinhaRepository caixinhaRepository,
                                      RecorrenciaFinanceiraRepository recorrenciaFinanceiraRepository) {
         this.usuarioRepository = usuarioRepository;
@@ -104,6 +108,7 @@ public class RegistroExportacaoService {
         this.limitePorInstituicaoRepository = limitePorInstituicaoRepository;
         this.limitePorCategoriaRepository = limitePorCategoriaRepository;
         this.emprestimoRepository = emprestimoRepository;
+        this.emprestimoBancarioRepository = emprestimoBancarioRepository;
         this.caixinhaRepository = caixinhaRepository;
         this.recorrenciaFinanceiraRepository = recorrenciaFinanceiraRepository;
     }
@@ -129,6 +134,44 @@ public class RegistroExportacaoService {
             case "pdf"   -> exportarPdf(usuario);
             default -> throw new IllegalArgumentException("Formato não suportado: " + tipo);
         };
+    }
+
+    // =========================================================================
+    // ORDENAÇÃO PARA REIMPORTAÇÃO SEGURA
+    //
+    // Ao reimportar (JSON/SQL) os eventos são recriados na mesma ordem em que
+    // aparecem no arquivo, e cada operação de Gasto/Transferência/Poupança
+    // valida o saldo disponível na instituição no momento da recriação. Se um
+    // gasto aparecer antes do recebimento que o cobre, a reimportação falha
+    // com "Saldo insuficiente" mesmo que o saldo final seja positivo.
+    //
+    // Para evitar isso, exportamos os Recebimentos e Empréstimos (que somam
+    // saldo) antes dos demais tipos (Gasto, Transferência, Poupança, que
+    // debitam saldo), preservando a ordem cronológica dentro de cada grupo.
+    // =========================================================================
+
+    private void ordenarEventosParaReimportacao(List<EventoFinanceiro> eventos) {
+        eventos.sort(Comparator
+                .comparing((EventoFinanceiro ev) -> isEntradaDeSaldo(ev.getTipo()) ? 0 : 1)
+                .thenComparing(EventoFinanceiro::getDataEvento)
+                .thenComparing(EventoFinanceiro::getDataRegistro));
+    }
+
+    /** Retorna true para tipos que aumentam o saldo disponível na instituição (Recebimento/Empréstimo). */
+    private boolean isEntradaDeSaldo(Tipo tipo) {
+        return tipo == Tipo.Recebimento || tipo == Tipo.Emprestimo;
+    }
+
+    /**
+     * Resolve o nome da instituição a partir do ID de InstituicaoUsuario, para incluir
+     * no arquivo exportado. Isso permite reimportar Empréstimos/Empréstimos Bancários
+     * corretamente em outra conta, já que o ID numérico não é portável entre usuários.
+     */
+    private String resolverNomeInstituicao(Integer instituicaoUsuarioId) {
+        if (instituicaoUsuarioId == null) return null;
+        return instituicaoUsuarioRepository.findById(instituicaoUsuarioId)
+                .map(iu -> iu.getInstituicao().getNome())
+                .orElse(null);
     }
 
     // =========================================================================
@@ -161,6 +204,7 @@ public class RegistroExportacaoService {
         jsonMap.put("categorias", catUsuariosList);
 
         List<EventoFinanceiro> eventos = eventoFinanceiroRepository.findAllByUsuario_Id(usuario.getId());
+        ordenarEventosParaReimportacao(eventos);
         List<Map<String, Object>> eventosList = new ArrayList<>();
 
         for (EventoFinanceiro evento : eventos) {
@@ -229,9 +273,36 @@ public class RegistroExportacaoService {
             empMap.put("data_quitacao", emp.getDataQuitacao() != null ? emp.getDataQuitacao().toString() : null);
             empMap.put("observacoes", emp.getObservacoes());
             empMap.put("instituicao_usuario_id", emp.getInstituicaoUsuarioId());
+            empMap.put("instituicao_nome", resolverNomeInstituicao(emp.getInstituicaoUsuarioId()));
             emprestimosList.add(empMap);
         }
         jsonMap.put("emprestimos", emprestimosList);
+
+        // ── Empréstimos Bancários ────────────────────────────────────────────
+        List<EmprestimoBancario> emprestimosBancarios = emprestimoBancarioRepository
+                .findByUsuarioIdOrderByDataCriacaoDesc(usuario.getId());
+        List<Map<String, Object>> emprestimosBancariosList = new ArrayList<>();
+        for (EmprestimoBancario eb : emprestimosBancarios) {
+            Map<String, Object> ebMap = new LinkedHashMap<>();
+            ebMap.put("id", eb.getId().toString());
+            ebMap.put("banco_nome", eb.getBancoNome());
+            ebMap.put("modalidade", eb.getModalidade() != null ? eb.getModalidade().toString() : null);
+            ebMap.put("valor_principal", eb.getValorPrincipal());
+            ebMap.put("taxa_juros_mensal", eb.getTaxaJurosMensal());
+            ebMap.put("total_parcelas", eb.getTotalParcelas());
+            ebMap.put("parcelas_pagas", eb.getParcelasPagas());
+            ebMap.put("valor_parcela", eb.getValorParcela());
+            ebMap.put("data_contratacao", eb.getDataContratacao() != null ? eb.getDataContratacao().toString() : null);
+            ebMap.put("data_primeira_parcela", eb.getDataPrimeiraParcela() != null ? eb.getDataPrimeiraParcela().toString() : null);
+            ebMap.put("instituicao_usuario_id", eb.getInstituicaoUsuarioId());
+            ebMap.put("instituicao_nome", resolverNomeInstituicao(eb.getInstituicaoUsuarioId()));
+            ebMap.put("observacoes", eb.getObservacoes());
+            ebMap.put("status", eb.getStatus() != null ? eb.getStatus().toString() : null);
+            ebMap.put("data_criacao", eb.getDataCriacao() != null ? eb.getDataCriacao().toString() : null);
+            ebMap.put("data_quitacao", eb.getDataQuitacao() != null ? eb.getDataQuitacao().toString() : null);
+            emprestimosBancariosList.add(ebMap);
+        }
+        jsonMap.put("emprestimos_bancarios", emprestimosBancariosList);
 
         // ── Caixinhas ────────────────────────────────────────────────────────
         List<Caixinha> caixinhas = caixinhaRepository.findAllByUsuario_Id(usuario.getId());
@@ -366,6 +437,7 @@ public class RegistroExportacaoService {
         sql.append("\n");
 
         List<EventoFinanceiro> eventos = eventoFinanceiroRepository.findAllByUsuario_Id(userId);
+        ordenarEventosParaReimportacao(eventos);
         sql.append("-- Eventos financeiros\n");
         for (EventoFinanceiro ev : eventos) {
             sql.append("INSERT INTO evento_financeiro (id, usuario_id, tipo, valor, descricao, data_evento, data_registro) VALUES (")
@@ -406,7 +478,8 @@ public class RegistroExportacaoService {
         List<Emprestimo> emprestimos = emprestimoRepository.findByUsuarioIdOrderByDataCriacaoDesc(userId);
         sql.append("-- Empréstimos\n");
         for (Emprestimo emp : emprestimos) {
-            sql.append("INSERT INTO emprestimo (id, usuario_id, tipo, status, pessoa_ou_grupo, valor_total, valor_pago, data_emprestimo, data_previsao, data_criacao, data_quitacao, observacoes, instituicao_usuario_id) VALUES (")
+            String instNomeEmp = resolverNomeInstituicao(emp.getInstituicaoUsuarioId());
+            sql.append("INSERT INTO emprestimo (id, usuario_id, tipo, status, pessoa_ou_grupo, valor_total, valor_pago, data_emprestimo, data_previsao, data_criacao, data_quitacao, observacoes, instituicao_usuario_id, instituicao_nome) VALUES (")
                .append("'").append(emp.getId()).append("', '").append(userId).append("', '")
                .append(emp.getTipo()).append("', '").append(emp.getStatus()).append("', '")
                .append(emp.getPessoaOuGrupo().replace("'", "''")).append("', ")
@@ -416,7 +489,32 @@ public class RegistroExportacaoService {
                .append(emp.getDataCriacao()).append("', ")
                .append(emp.getDataQuitacao() == null ? "null" : "'" + emp.getDataQuitacao() + "'").append(", ")
                .append(emp.getObservacoes() == null ? "null" : "'" + emp.getObservacoes().replace("'", "''") + "'").append(", ")
-               .append(emp.getInstituicaoUsuarioId() == null ? "null" : emp.getInstituicaoUsuarioId()).append(");\n");
+               .append(emp.getInstituicaoUsuarioId() == null ? "null" : emp.getInstituicaoUsuarioId()).append(", ")
+               .append(instNomeEmp == null ? "null" : "'" + instNomeEmp.replace("'", "''") + "'").append(");\n");
+        }
+        sql.append("\n");
+
+        // ── Empréstimos Bancários ────────────────────────────────────────────
+        List<EmprestimoBancario> emprestimosBancarios = emprestimoBancarioRepository
+                .findByUsuarioIdOrderByDataCriacaoDesc(userId);
+        sql.append("-- Empréstimos Bancários\n");
+        for (EmprestimoBancario eb : emprestimosBancarios) {
+            String instNomeEb = resolverNomeInstituicao(eb.getInstituicaoUsuarioId());
+            sql.append("INSERT INTO emprestimo_bancario (id, usuario_id, banco_nome, modalidade, valor_principal, taxa_juros_mensal, total_parcelas, parcelas_pagas, valor_parcela, data_contratacao, data_primeira_parcela, instituicao_usuario_id, observacoes, status, data_criacao, data_quitacao, instituicao_nome) VALUES (")
+               .append("'").append(eb.getId()).append("', '").append(userId).append("', '")
+               .append(eb.getBancoNome().replace("'", "''")).append("', '")
+               .append(eb.getModalidade()).append("', ")
+               .append(eb.getValorPrincipal()).append(", ").append(eb.getTaxaJurosMensal()).append(", ")
+               .append(eb.getTotalParcelas()).append(", ").append(eb.getParcelasPagas()).append(", ")
+               .append(eb.getValorParcela()).append(", ")
+               .append(eb.getDataContratacao() == null ? "null" : "'" + eb.getDataContratacao() + "'").append(", ")
+               .append(eb.getDataPrimeiraParcela() == null ? "null" : "'" + eb.getDataPrimeiraParcela() + "'").append(", ")
+               .append(eb.getInstituicaoUsuarioId() == null ? "null" : eb.getInstituicaoUsuarioId()).append(", ")
+               .append(eb.getObservacoes() == null ? "null" : "'" + eb.getObservacoes().replace("'", "''") + "'").append(", '")
+               .append(eb.getStatus()).append("', '")
+               .append(eb.getDataCriacao()).append("', ")
+               .append(eb.getDataQuitacao() == null ? "null" : "'" + eb.getDataQuitacao() + "'").append(", ")
+               .append(instNomeEb == null ? "null" : "'" + instNomeEb.replace("'", "''") + "'").append(");\n");
         }
         sql.append("\n");
 
@@ -440,9 +538,11 @@ public class RegistroExportacaoService {
 
             if (cx.getCaixinhaInstituicoes() != null) {
                 for (CaixinhaInstituicao ci : cx.getCaixinhaInstituicoes()) {
-                    sql.append("INSERT INTO caixinha_instituicao (id, caixinha_id, instituicao_usuario_id) VALUES (")
+                    String instNomeCi = ci.getInstituicaoUsuario().getInstituicao().getNome();
+                    sql.append("INSERT INTO caixinha_instituicao (id, caixinha_id, instituicao_usuario_id, instituicao_nome) VALUES (")
                        .append(ci.getId()).append(", '").append(cx.getId()).append("', ")
-                       .append(ci.getInstituicaoUsuario().getId()).append(");\n");
+                       .append(ci.getInstituicaoUsuario().getId()).append(", '")
+                       .append(instNomeCi.replace("'", "''")).append("');\n");
                 }
             }
         }
@@ -522,6 +622,12 @@ public class RegistroExportacaoService {
             List<Emprestimo> emprestimos = emprestimoRepository.findByUsuarioIdOrderByDataCriacaoDesc(usuario.getId());
             if (!emprestimos.isEmpty()) {
                 criarSheetEmprestimos(wb, est, emprestimos);
+            }
+
+            List<EmprestimoBancario> emprestimosBancarios = emprestimoBancarioRepository
+                    .findByUsuarioIdOrderByDataCriacaoDesc(usuario.getId());
+            if (!emprestimosBancarios.isEmpty()) {
+                criarSheetEmprestimosBancarios(wb, est, emprestimosBancarios);
             }
 
             List<Caixinha> caixinhas = caixinhaRepository.findAllByUsuario_Id(usuario.getId());
@@ -988,6 +1094,58 @@ public class RegistroExportacaoService {
             celula(row, 5, emp.getDataEmprestimo() != null ? emp.getDataEmprestimo().format(dtFmt) : "-", alt ? est.dadosAlt : est.dados);
             celula(row, 6, emp.getDataPrevisao() != null ? emp.getDataPrevisao().format(dtFmt) : "-", alt ? est.dadosAlt : est.dados);
             celula(row, 7, emp.getObservacoes() != null ? emp.getObservacoes() : "-", alt ? est.dadosAlt : est.dados);
+            alt = !alt;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Sheet — Empréstimos Bancários
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private void criarSheetEmprestimosBancarios(XSSFWorkbook wb, Estilos est, List<EmprestimoBancario> emprestimos) {
+        XSSFSheet sheet = wb.createSheet("Empréstimos Bancários");
+        sheet.setColumnWidth(0, 20 * 256);
+        sheet.setColumnWidth(1, 16 * 256);
+        sheet.setColumnWidth(2, 16 * 256);
+        sheet.setColumnWidth(3, 14 * 256);
+        sheet.setColumnWidth(4, 12 * 256);
+        sheet.setColumnWidth(5, 12 * 256);
+        sheet.setColumnWidth(6, 16 * 256);
+        sheet.setColumnWidth(7, 14 * 256);
+        sheet.setColumnWidth(8, 14 * 256);
+        sheet.setColumnWidth(9, 13 * 256);
+        sheet.setColumnWidth(10, 30 * 256);
+
+        DateTimeFormatter dtFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        int r = 0;
+        r = tituloMerge(sheet, est, r, "Empréstimos Bancários", 0, 10, 26f);
+
+        Row cab = sheet.createRow(r++);
+        cab.setHeightInPoints(22);
+        String[] headers = {"Banco", "Modalidade", "Status", "Valor Principal (R$)", "Juros a.m.",
+                "Parcelas", "Valor Parcela (R$)", "Contratação", "1ª Parcela", "Restante (R$)", "Observações"};
+        for (int i = 0; i < headers.length; i++) celula(cab, i, headers[i], est.cabecalho);
+
+        boolean alt = false;
+        for (EmprestimoBancario eb : emprestimos) {
+            Row row = sheet.createRow(r++);
+            row.setHeightInPoints(18);
+            boolean ativo = eb.getStatus() != null && eb.getStatus().toString().equals("ATIVO");
+            XSSFCellStyle estiloMoeda = ativo ? est.moedaGasto : (alt ? est.moedaAlt : est.moeda);
+            int parcelasRestantes = eb.getTotalParcelas() - eb.getParcelasPagas();
+            double valorRestante = eb.getValorParcela().doubleValue() * parcelasRestantes;
+
+            celula(row, 0, eb.getBancoNome(), alt ? est.dadosAlt : est.dados);
+            celula(row, 1, eb.getModalidade() != null ? eb.getModalidade().toString() : "-", alt ? est.dadosAlt : est.dados);
+            celula(row, 2, eb.getStatus() != null ? eb.getStatus().toString() : "-", alt ? est.dadosAlt : est.dados);
+            celulaNum(row, 3, eb.getValorPrincipal().doubleValue(), alt ? est.moedaAlt : est.moeda);
+            celula(row, 4, eb.getTaxaJurosMensal() + "%", alt ? est.dadosAlt : est.dados);
+            celula(row, 5, eb.getParcelasPagas() + "/" + eb.getTotalParcelas(), alt ? est.dadosAlt : est.dados);
+            celulaNum(row, 6, eb.getValorParcela().doubleValue(), alt ? est.moedaAlt : est.moeda);
+            celula(row, 7, eb.getDataContratacao() != null ? eb.getDataContratacao().format(dtFmt) : "-", alt ? est.dadosAlt : est.dados);
+            celula(row, 8, eb.getDataPrimeiraParcela() != null ? eb.getDataPrimeiraParcela().format(dtFmt) : "-", alt ? est.dadosAlt : est.dados);
+            celulaNum(row, 9, valorRestante, estiloMoeda);
+            celula(row, 10, eb.getObservacoes() != null ? eb.getObservacoes() : "-", alt ? est.dadosAlt : est.dados);
             alt = !alt;
         }
     }
@@ -1570,12 +1728,16 @@ public class RegistroExportacaoService {
             // ── CATEGORIAS, EMPRÉSTIMOS, CAIXINHAS E RECORRÊNCIAS ─────────────
             List<CategoriaUsuario> categoriasPdf = categoriaUsuarioRepository.findAllByUsuario_Id(usuario.getId());
             List<Emprestimo> emprestimosPdf = emprestimoRepository.findByUsuarioIdOrderByDataCriacaoDesc(usuario.getId());
+            List<EmprestimoBancario> emprestimosBancariosPdf = emprestimoBancarioRepository
+                    .findByUsuarioIdOrderByDataCriacaoDesc(usuario.getId());
             List<Caixinha> caixinhasPdf = caixinhaRepository.findAllByUsuario_Id(usuario.getId());
             List<RecorrenciaFinanceira> recorrenciasPdf = recorrenciaFinanceiraRepository.findByUsuario_Id(usuario.getId());
-            if (!categoriasPdf.isEmpty() || !emprestimosPdf.isEmpty() || !caixinhasPdf.isEmpty() || !recorrenciasPdf.isEmpty()) {
+            if (!categoriasPdf.isEmpty() || !emprestimosPdf.isEmpty() || !emprestimosBancariosPdf.isEmpty()
+                    || !caixinhasPdf.isEmpty() || !recorrenciasPdf.isEmpty()) {
                 PdfExplicitDestination destOutros = PdfExplicitDestination.createFit(pdf.getLastPage());
                 pdf.addNamedDestination("emprestimos_caixinhas_recorrencias", destOutros.getPdfObject());
-                pdfSecaoEmprestimosCaixinhasRecorrencias(doc, categoriasPdf, eventos, emprestimosPdf, caixinhasPdf, recorrenciasPdf, t, dtFmt);
+                pdfSecaoEmprestimosCaixinhasRecorrencias(doc, categoriasPdf, eventos, emprestimosPdf,
+                        emprestimosBancariosPdf, caixinhasPdf, recorrenciasPdf, t, dtFmt);
                 doc.add(new AreaBreak());
             }
 
@@ -1744,6 +1906,7 @@ public class RegistroExportacaoService {
                                                             List<CategoriaUsuario> categorias,
                                                             List<EventoFinanceiro> eventos,
                                                             List<Emprestimo> emprestimos,
+                                                            List<EmprestimoBancario> emprestimosBancarios,
                                                             List<Caixinha> caixinhas,
                                                             List<RecorrenciaFinanceira> recorrencias,
                                                             PdfTheme t, DateTimeFormatter dtFmt) {
@@ -1813,6 +1976,41 @@ public class RegistroExportacaoService {
                 tbl.addCell(pdfDataCell(formatarMoeda(emp.getValorPago().doubleValue()), alt ? t.cinza() : t.branco(), t.texto()));
                 tbl.addCell(pdfDataCell(emp.getDataPrevisao() != null ? emp.getDataPrevisao().format(dtFmt) : "-",
                         alt ? t.cinza() : t.branco(), t.texto()));
+                tbl.addCell(pdfDataCell(formatarMoeda(restante.doubleValue()), bg, fg));
+                alt = !alt;
+            }
+            doc.add(tbl);
+        }
+
+        // ── Empréstimos Bancários ────────────────────────────────────────────
+        doc.add(pdfSubtituloSecao("Empréstimos Bancários", t));
+        if (emprestimosBancarios.isEmpty()) {
+            doc.add(new Paragraph("Nenhum empréstimo bancário registrado.")
+                    .setFontSize(9f).setFontColor(t.texto()).setMarginTop(4));
+        } else {
+            Table tbl = new Table(UnitValue.createPercentArray(new float[]{18, 14, 12, 15, 10, 10, 12, 9}))
+                    .setWidth(UnitValue.createPercentValue(100)).setMarginTop(6);
+            for (String h : new String[]{"Banco", "Modalidade", "Status", "Valor Principal",
+                    "Juros a.m.", "Parcelas", "Valor Parcela", "Restante"}) {
+                tbl.addHeaderCell(new Cell()
+                        .add(new Paragraph(h).setFontSize(7.5f).setBold().setFontColor(t.branco()))
+                        .setBackgroundColor(t.primaria()).setPadding(5f).setBorder(Border.NO_BORDER));
+            }
+            boolean alt = false;
+            for (EmprestimoBancario eb : emprestimosBancarios) {
+                boolean ativo = eb.getStatus() != null && eb.getStatus().toString().equals("ATIVO");
+                DeviceRgb bg = ativo ? t.gasBg() : t.recBg();
+                DeviceRgb fg = ativo ? t.gasFg() : t.recFg();
+                int parcelasRestantes = eb.getTotalParcelas() - eb.getParcelasPagas();
+                BigDecimal restante = eb.getValorParcela().multiply(BigDecimal.valueOf(parcelasRestantes));
+                tbl.addCell(pdfDataCell(eb.getBancoNome(), alt ? t.cinza() : t.branco(), t.texto()));
+                tbl.addCell(pdfDataCell(eb.getModalidade() != null ? eb.getModalidade().toString() : "-",
+                        alt ? t.cinza() : t.branco(), t.texto()));
+                tbl.addCell(pdfDataCell(eb.getStatus() != null ? eb.getStatus().toString() : "-", bg, fg));
+                tbl.addCell(pdfDataCell(formatarMoeda(eb.getValorPrincipal().doubleValue()), alt ? t.cinza() : t.branco(), t.texto()));
+                tbl.addCell(pdfDataCell(eb.getTaxaJurosMensal() + "%", alt ? t.cinza() : t.branco(), t.texto()));
+                tbl.addCell(pdfDataCell(eb.getParcelasPagas() + "/" + eb.getTotalParcelas(), alt ? t.cinza() : t.branco(), t.texto()));
+                tbl.addCell(pdfDataCell(formatarMoeda(eb.getValorParcela().doubleValue()), alt ? t.cinza() : t.branco(), t.texto()));
                 tbl.addCell(pdfDataCell(formatarMoeda(restante.doubleValue()), bg, fg));
                 alt = !alt;
             }

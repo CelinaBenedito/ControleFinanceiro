@@ -11,6 +11,12 @@ import controle.api.back_end.dto.upload.ImportResultDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.categoria.Categoria;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
+import controle.api.back_end.model.emprestimo.Emprestimo;
+import controle.api.back_end.model.emprestimo.EmprestimoBancario;
+import controle.api.back_end.model.emprestimo.ModalidadeEmprestimoBancario;
+import controle.api.back_end.model.emprestimo.StatusEmprestimo;
+import controle.api.back_end.model.emprestimo.StatusEmprestimoBancario;
+import controle.api.back_end.model.emprestimo.TipoEmprestimo;
 import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
@@ -20,13 +26,20 @@ import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.Period
 import controle.api.back_end.model.eventoFinanceiro.recorrenciaFinanceira.RecorrenciaFinanceira;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.model.poupanca.Caixinha;
+import controle.api.back_end.model.poupanca.CaixinhaInstituicao;
+import controle.api.back_end.model.poupanca.TipoRendimento;
 import controle.api.back_end.model.usuario.Usuario;
+import controle.api.back_end.repository.EmprestimoBancarioRepository;
+import controle.api.back_end.repository.EmprestimoRepository;
 import controle.api.back_end.repository.categoria.CategoriaRepository;
 import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
 import controle.api.back_end.repository.eventoFinanceiro.RecorrenciaFinanceiraRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
+import controle.api.back_end.repository.poupanca.CaixinhaInstituicaoRepository;
+import controle.api.back_end.repository.poupanca.CaixinhaRepository;
 import controle.api.back_end.repository.usuario.UsuarioRepository;
 import controle.api.back_end.strategy.eventoFinanceiro.Registro;
 import org.apache.poi.ss.usermodel.Cell;
@@ -38,6 +51,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -62,6 +76,10 @@ public class UploadService {
     private final CategoriaRepository categoriaRepository;
     private final RecorrenciaFinanceiraRepository recorrenciaFinanceiraRepository;
     private final EventoInstituicaoRepository eventoInstituicaoRepository;
+    private final EmprestimoRepository emprestimoRepository;
+    private final EmprestimoBancarioRepository emprestimoBancarioRepository;
+    private final CaixinhaRepository caixinhaRepository;
+    private final CaixinhaInstituicaoRepository caixinhaInstituicaoRepository;
 
     // Portuguese month name → month number
     private static final Map<String, Integer> MESES_PT = new HashMap<>();
@@ -89,7 +107,11 @@ public class UploadService {
                          InstituicaoRepository instituicaoRepository,
                          CategoriaRepository categoriaRepository,
                          RecorrenciaFinanceiraRepository recorrenciaFinanceiraRepository,
-                         EventoInstituicaoRepository eventoInstituicaoRepository) {
+                         EventoInstituicaoRepository eventoInstituicaoRepository,
+                         EmprestimoRepository emprestimoRepository,
+                         EmprestimoBancarioRepository emprestimoBancarioRepository,
+                         CaixinhaRepository caixinhaRepository,
+                         CaixinhaInstituicaoRepository caixinhaInstituicaoRepository) {
         this.registroService = registroService;
         this.usuarioRepository = usuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
@@ -98,6 +120,10 @@ public class UploadService {
         this.categoriaRepository = categoriaRepository;
         this.recorrenciaFinanceiraRepository = recorrenciaFinanceiraRepository;
         this.eventoInstituicaoRepository = eventoInstituicaoRepository;
+        this.emprestimoRepository = emprestimoRepository;
+        this.emprestimoBancarioRepository = emprestimoBancarioRepository;
+        this.caixinhaRepository = caixinhaRepository;
+        this.caixinhaInstituicaoRepository = caixinhaInstituicaoRepository;
     }
 
     // =====================================================================
@@ -189,12 +215,276 @@ public class UploadService {
     }
 
     // =====================================================================
+    // EMPRÉSTIMOS, EMPRÉSTIMOS BANCÁRIOS E CAIXINHAS — IMPORTAÇÃO
+    // (lógica compartilhada entre importFromJson e importFromSql)
+    // =====================================================================
+
+    /**
+     * Resolve a InstituicaoUsuario a vincular, priorizando o NOME (portátil entre
+     * contas/usuários diferentes) e caindo para o ID legado apenas quando o nome
+     * não estiver disponível (exportações antigas).
+     */
+    private InstituicaoUsuario resolverInstituicaoUsuario(UUID userId, String instituicaoNome, Integer idLegado) {
+        if (instituicaoNome != null && !instituicaoNome.isBlank()) {
+            InstituicaoUsuario iu = resolveOuCriarInstituicaoUsuario(userId, instituicaoNome);
+            if (iu != null) return iu;
+        }
+        if (idLegado != null) {
+            return instituicaoUsuarioRepository.findById(idLegado).orElseGet(() -> {
+                InstituicaoUsuario stub = new InstituicaoUsuario();
+                stub.setId(idLegado);
+                return stub;
+            });
+        }
+        return null;
+    }
+
+    private BigDecimal toBigDecimal(Object valor) {
+        if (valor == null) return null;
+        if (valor instanceof BigDecimal bd) return bd;
+        if (valor instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
+        return new BigDecimal(valor.toString());
+    }
+
+    private void importarEmprestimo(UUID userId, String tipoStr, String statusStr, String pessoa,
+                                     BigDecimal valorTotal, BigDecimal valorPago,
+                                     LocalDate dataEmprestimo, LocalDate dataPrevisao,
+                                     LocalDateTime dataCriacao, LocalDateTime dataQuitacao,
+                                     String observacoes, String instituicaoNome, Integer instituicaoIdLegado) {
+        Emprestimo emp = new Emprestimo();
+        emp.setUsuario(getUsuario(userId));
+        emp.setTipo(TipoEmprestimo.valueOf(tipoStr));
+        emp.setStatus(statusStr != null ? StatusEmprestimo.valueOf(statusStr) : StatusEmprestimo.PENDENTE);
+        emp.setPessoaOuGrupo(pessoa);
+        emp.setValorTotal(valorTotal);
+        emp.setValorPago(valorPago != null ? valorPago : BigDecimal.ZERO);
+        emp.setDataEmprestimo(dataEmprestimo);
+        emp.setDataPrevisao(dataPrevisao);
+        emp.setDataCriacao(dataCriacao != null ? dataCriacao : LocalDateTime.now());
+        emp.setDataQuitacao(dataQuitacao);
+        emp.setObservacoes(observacoes);
+        InstituicaoUsuario iu = resolverInstituicaoUsuario(userId, instituicaoNome, instituicaoIdLegado);
+        emp.setInstituicaoUsuarioId(iu != null ? iu.getId() : null);
+        emprestimoRepository.save(emp);
+    }
+
+    private void importarEmprestimoBancario(UUID userId, String bancoNome, String modalidadeStr,
+                                             BigDecimal valorPrincipal, BigDecimal taxaJurosMensal,
+                                             Integer totalParcelas, Integer parcelasPagas, BigDecimal valorParcela,
+                                             LocalDate dataContratacao, LocalDate dataPrimeiraParcela,
+                                             String observacoes, String statusStr,
+                                             LocalDateTime dataCriacao, LocalDateTime dataQuitacao,
+                                             String instituicaoNome, Integer instituicaoIdLegado) {
+        EmprestimoBancario eb = new EmprestimoBancario();
+        eb.setUsuario(getUsuario(userId));
+        eb.setBancoNome(bancoNome);
+        eb.setModalidade(modalidadeStr != null ? ModalidadeEmprestimoBancario.valueOf(modalidadeStr) : null);
+        eb.setValorPrincipal(valorPrincipal);
+        eb.setTaxaJurosMensal(taxaJurosMensal);
+        eb.setTotalParcelas(totalParcelas);
+        eb.setParcelasPagas(parcelasPagas != null ? parcelasPagas : 0);
+        eb.setValorParcela(valorParcela);
+        eb.setDataContratacao(dataContratacao);
+        eb.setDataPrimeiraParcela(dataPrimeiraParcela);
+        InstituicaoUsuario iu = resolverInstituicaoUsuario(userId, instituicaoNome, instituicaoIdLegado);
+        eb.setInstituicaoUsuarioId(iu != null ? iu.getId() : null);
+        eb.setObservacoes(observacoes);
+        eb.setStatus(statusStr != null ? StatusEmprestimoBancario.valueOf(statusStr) : StatusEmprestimoBancario.ATIVO);
+        eb.setDataCriacao(dataCriacao != null ? dataCriacao : LocalDateTime.now());
+        eb.setDataQuitacao(dataQuitacao);
+        emprestimoBancarioRepository.save(eb);
+    }
+
+    private Caixinha importarCaixinhaBase(UUID userId, String nome, String descricao, BigDecimal valorMeta,
+                                           LocalDate dataPrazo, String tipoRendimentoStr,
+                                           Double percentualRendimento, Double taxaAnualPersonalizada,
+                                           Double taxaReferenciaAtual, Boolean isCompartilhada, Boolean isAtiva,
+                                           LocalDate dataCriacao, LocalDate dataEncerramento) {
+        Caixinha cx = new Caixinha();
+        cx.setUsuario(getUsuario(userId));
+        cx.setNome(nome);
+        cx.setDescricao(descricao);
+        cx.setValorMeta(valorMeta);
+        cx.setDataPrazo(dataPrazo);
+        cx.setTipoRendimento(tipoRendimentoStr != null ? TipoRendimento.valueOf(tipoRendimentoStr) : TipoRendimento.POUPANCA);
+        cx.setPercentualRendimento(percentualRendimento);
+        cx.setTaxaAnualPersonalizada(taxaAnualPersonalizada);
+        cx.setTaxaReferenciaAtual(taxaReferenciaAtual);
+        cx.setIsCompartilhada(isCompartilhada != null ? isCompartilhada : false);
+        cx.setIsAtiva(isAtiva != null ? isAtiva : true);
+        cx.setDataCriacao(dataCriacao != null ? dataCriacao : LocalDate.now());
+        cx.setDataEncerramento(dataEncerramento);
+        return caixinhaRepository.save(cx);
+    }
+
+    private void importarCaixinhaInstituicao(UUID userId, Caixinha caixinha,
+                                              String instituicaoNome, Integer instituicaoIdLegado) {
+        InstituicaoUsuario iu = resolverInstituicaoUsuario(userId, instituicaoNome, instituicaoIdLegado);
+        if (iu == null) return;
+        CaixinhaInstituicao ci = new CaixinhaInstituicao();
+        ci.setCaixinha(caixinha);
+        ci.setInstituicaoUsuario(iu);
+        caixinhaInstituicaoRepository.save(ci);
+    }
+
+    /**
+     * Importa a lista de empréstimos (formato do campo "emprestimos" do JSON exportado).
+     * Retorna a quantidade importada com sucesso.
+     */
+    @SuppressWarnings("unchecked")
+    private int importarEmprestimosJson(UUID userId, List<Map<String, Object>> lista, List<String> erros) {
+        if (lista == null) return 0;
+        int count = 0;
+        for (Map<String, Object> m : lista) {
+            try {
+                importarEmprestimo(userId,
+                        (String) m.get("tipo"),
+                        (String) m.get("status"),
+                        (String) m.get("pessoa_ou_grupo"),
+                        toBigDecimal(m.get("valor_total")),
+                        toBigDecimal(m.get("valor_pago")),
+                        m.get("data_emprestimo") != null ? LocalDate.parse((String) m.get("data_emprestimo")) : null,
+                        m.get("data_previsao") != null ? LocalDate.parse((String) m.get("data_previsao")) : null,
+                        m.get("data_criacao") != null ? LocalDateTime.parse((String) m.get("data_criacao")) : null,
+                        m.get("data_quitacao") != null ? LocalDateTime.parse((String) m.get("data_quitacao")) : null,
+                        (String) m.get("observacoes"),
+                        (String) m.get("instituicao_nome"),
+                        m.get("instituicao_usuario_id") != null ? ((Number) m.get("instituicao_usuario_id")).intValue() : null);
+                count++;
+            } catch (Exception e) {
+                erros.add("Empréstimo '" + m.get("pessoa_ou_grupo") + "': " + e.getMessage());
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importarEmprestimosBancariosJson(UUID userId, List<Map<String, Object>> lista, List<String> erros) {
+        if (lista == null) return 0;
+        int count = 0;
+        for (Map<String, Object> m : lista) {
+            try {
+                importarEmprestimoBancario(userId,
+                        (String) m.get("banco_nome"),
+                        (String) m.get("modalidade"),
+                        toBigDecimal(m.get("valor_principal")),
+                        toBigDecimal(m.get("taxa_juros_mensal")),
+                        m.get("total_parcelas") != null ? ((Number) m.get("total_parcelas")).intValue() : null,
+                        m.get("parcelas_pagas") != null ? ((Number) m.get("parcelas_pagas")).intValue() : null,
+                        toBigDecimal(m.get("valor_parcela")),
+                        m.get("data_contratacao") != null ? LocalDate.parse((String) m.get("data_contratacao")) : null,
+                        m.get("data_primeira_parcela") != null ? LocalDate.parse((String) m.get("data_primeira_parcela")) : null,
+                        (String) m.get("observacoes"),
+                        (String) m.get("status"),
+                        m.get("data_criacao") != null ? LocalDateTime.parse((String) m.get("data_criacao")) : null,
+                        m.get("data_quitacao") != null ? LocalDateTime.parse((String) m.get("data_quitacao")) : null,
+                        (String) m.get("instituicao_nome"),
+                        m.get("instituicao_usuario_id") != null ? ((Number) m.get("instituicao_usuario_id")).intValue() : null);
+                count++;
+            } catch (Exception e) {
+                erros.add("Empréstimo bancário '" + m.get("banco_nome") + "': " + e.getMessage());
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private int importarCaixinhasJson(UUID userId, List<Map<String, Object>> lista, List<String> erros) {
+        if (lista == null) return 0;
+        int count = 0;
+        for (Map<String, Object> m : lista) {
+            try {
+                Caixinha cx = importarCaixinhaBase(userId,
+                        (String) m.get("nome"),
+                        (String) m.get("descricao"),
+                        toBigDecimal(m.get("valor_meta")),
+                        m.get("data_prazo") != null ? LocalDate.parse((String) m.get("data_prazo")) : null,
+                        (String) m.get("tipo_rendimento"),
+                        m.get("percentual_rendimento") != null ? ((Number) m.get("percentual_rendimento")).doubleValue() : null,
+                        m.get("taxa_anual_personalizada") != null ? ((Number) m.get("taxa_anual_personalizada")).doubleValue() : null,
+                        m.get("taxa_referencia_atual") != null ? ((Number) m.get("taxa_referencia_atual")).doubleValue() : null,
+                        (Boolean) m.get("is_compartilhada"),
+                        (Boolean) m.get("is_ativa"),
+                        m.get("data_criacao") != null ? LocalDate.parse((String) m.get("data_criacao")) : null,
+                        m.get("data_encerramento") != null ? LocalDate.parse((String) m.get("data_encerramento")) : null);
+
+                List<Map<String, Object>> instList = (List<Map<String, Object>>) m.get("instituicoes");
+                if (instList != null) {
+                    for (Map<String, Object> inst : instList) {
+                        importarCaixinhaInstituicao(userId, cx,
+                                (String) inst.get("instituicao_nome"),
+                                inst.get("instituicao_usuario_id") != null
+                                        ? ((Number) inst.get("instituicao_usuario_id")).intValue() : null);
+                    }
+                }
+                count++;
+            } catch (Exception e) {
+                erros.add("Caixinha '" + m.get("nome") + "': " + e.getMessage());
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Extrai os valores (na ordem, sem aspas) de uma linha "INSERT INTO tabela (...) VALUES (...);"
+     * gerada em uma única linha por {@code RegistroExportacaoService.exportarSql()}.
+     */
+    private List<String> extrairValoresInsertSql(String line, String tableName) {
+        String prefix = "INSERT INTO " + tableName + " (";
+        if (!line.regionMatches(true, 0, prefix, 0, Math.min(prefix.length(), line.length()))) return null;
+        int valuesStart = line.indexOf(") VALUES (");
+        if (valuesStart < 0) return null;
+        String valuesPart = line.substring(valuesStart + ") VALUES (".length()).trim();
+        if (valuesPart.endsWith(");")) valuesPart = valuesPart.substring(0, valuesPart.length() - 2);
+        else if (valuesPart.endsWith(")")) valuesPart = valuesPart.substring(0, valuesPart.length() - 1);
+        return splitTopLevelCsv(valuesPart);
+    }
+
+    /** Divide uma lista de valores separados por vírgula, respeitando aspas simples (e '' escapado). */
+    private List<String> splitTopLevelCsv(String s) {
+        List<String> parts = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '\'') {
+                if (inQuotes && i + 1 < s.length() && s.charAt(i + 1) == '\'') {
+                    cur.append("''");
+                    i++;
+                    continue;
+                }
+                inQuotes = !inQuotes;
+                cur.append(c);
+            } else if (c == ',' && !inQuotes) {
+                parts.add(cur.toString().trim());
+                cur.setLength(0);
+            } else {
+                cur.append(c);
+            }
+        }
+        parts.add(cur.toString().trim());
+        return parts;
+    }
+
+    /** Remove aspas simples de um valor SQL extraído e converte o literal null (sem aspas) em {@code null}. */
+    private String valorSql(List<String> valores, int idx) {
+        if (valores == null || idx >= valores.size()) return null;
+        String raw = valores.get(idx).trim();
+        if (raw.equalsIgnoreCase("null")) return null;
+        if (raw.length() >= 2 && raw.startsWith("'") && raw.endsWith("'")) {
+            return raw.substring(1, raw.length() - 1).replace("''", "'");
+        }
+        return raw;
+    }
+
+    // =====================================================================
     // JSON IMPORT
     // =====================================================================
 
     public ImportResultDto importFromJson(UUID userId, byte[] content) {
         List<RegistroResponseDto> importados = new ArrayList<>();
         List<String> erros = new ArrayList<>();
+        int extrasImportados = 0;
 
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -269,11 +559,25 @@ public class UploadService {
                 }
             }
 
+            // ── Empréstimos, Empréstimos Bancários e Caixinhas ────────────────
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> emprestimosJson = (List<Map<String, Object>>) json.get("emprestimos");
+            extrasImportados += importarEmprestimosJson(userId, emprestimosJson, erros);
+
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> emprestimosBancariosJson =
+                    (List<Map<String, Object>>) json.get("emprestimos_bancarios");
+            extrasImportados += importarEmprestimosBancariosJson(userId, emprestimosBancariosJson, erros);
+
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> caixinhasJson = (List<Map<String, Object>>) json.get("caixinhas");
+            extrasImportados += importarCaixinhasJson(userId, caixinhasJson, erros);
+
         } catch (Exception e) {
             erros.add("Erro ao processar arquivo JSON: " + e.getMessage());
         }
 
-        return new ImportResultDto(importados.size(), importados, erros);
+        return new ImportResultDto(importados.size() + extrasImportados, importados, erros);
     }
 
     // =====================================================================
@@ -283,6 +587,7 @@ public class UploadService {
     public ImportResultDto importFromSql(UUID userId, byte[] content) {
         List<RegistroResponseDto> importados = new ArrayList<>();
         List<String> erros = new ArrayList<>();
+        int extrasImportados = 0;
 
         String sqlContent = new String(content, StandardCharsets.UTF_8);
         String[] lines = sqlContent.split("\n");
@@ -293,6 +598,12 @@ public class UploadService {
         Map<String, Map<String, Object>> detalhesMap = new HashMap<>();   // eventoId → detalhe
         Map<String, List<String>> categoriaDetalheMap = new HashMap<>();  // gastoId  → categoria titulos
         Map<String, Map<String, Object>> recorrenciasOrig = new HashMap<>(); // recorrenciaId original → dados
+
+        // Empréstimos, Empréstimos Bancários e Caixinhas (linhas geradas em formato "posicional")
+        List<List<String>> emprestimosSql = new ArrayList<>();
+        List<List<String>> emprestimosBancariosSql = new ArrayList<>();
+        Map<String, List<String>> caixinhasSqlPorId = new LinkedHashMap<>();       // caixinhaId original → valores
+        Map<String, List<List<String>>> caixinhaInstSqlPorCaixinhaId = new HashMap<>();
 
         // Patterns based on the SQL generated por RegistroExportacaoService.exportarSql()
         Pattern eventoPattern = Pattern.compile(
@@ -408,6 +719,34 @@ public class UploadService {
                 // Padrão legado: sem título de categoria disponível, ignora (não há como resolver por nome)
                 continue;
             }
+
+            // ── Empréstimos, Empréstimos Bancários e Caixinhas ────────────────
+            List<String> valsEmp = extrairValoresInsertSql(line, "emprestimo");
+            if (valsEmp != null) {
+                emprestimosSql.add(valsEmp);
+                continue;
+            }
+
+            List<String> valsEb = extrairValoresInsertSql(line, "emprestimo_bancario");
+            if (valsEb != null) {
+                emprestimosBancariosSql.add(valsEb);
+                continue;
+            }
+
+            List<String> valsCx = extrairValoresInsertSql(line, "caixinha_instituicao");
+            if (valsCx != null) {
+                String caixinhaId = valorSql(valsCx, 1);
+                caixinhaInstSqlPorCaixinhaId.computeIfAbsent(caixinhaId, k -> new ArrayList<>()).add(valsCx);
+                continue;
+            }
+
+            // Precisa vir depois de "caixinha_instituicao" pois ambas começam com "INSERT INTO caixinha"
+            List<String> valsCaixinha = extrairValoresInsertSql(line, "caixinha");
+            if (valsCaixinha != null) {
+                String caixinhaId = valorSql(valsCaixinha, 0);
+                caixinhasSqlPorId.put(caixinhaId, valsCaixinha);
+                continue;
+            }
         }
 
         Map<String, RecorrenciaFinanceira> recorrenciaCache = new HashMap<>();
@@ -467,7 +806,87 @@ public class UploadService {
             }
         }
 
-        return new ImportResultDto(importados.size(), importados, erros);
+        // ── Empréstimos ────────────────────────────────────────────────────────
+        for (List<String> v : emprestimosSql) {
+            String pessoa = valorSql(v, 4);
+            try {
+                importarEmprestimo(userId,
+                        valorSql(v, 2),
+                        valorSql(v, 3),
+                        pessoa,
+                        toBigDecimal(valorSql(v, 5)),
+                        toBigDecimal(valorSql(v, 6)),
+                        valorSql(v, 7) != null ? LocalDate.parse(valorSql(v, 7)) : null,
+                        valorSql(v, 8) != null ? LocalDate.parse(valorSql(v, 8)) : null,
+                        valorSql(v, 9) != null ? LocalDateTime.parse(valorSql(v, 9)) : null,
+                        valorSql(v, 10) != null ? LocalDateTime.parse(valorSql(v, 10)) : null,
+                        valorSql(v, 11),
+                        valorSql(v, 13),
+                        valorSql(v, 12) != null ? Integer.parseInt(valorSql(v, 12)) : null);
+                extrasImportados++;
+            } catch (Exception e) {
+                erros.add("Empréstimo '" + pessoa + "': " + e.getMessage());
+            }
+        }
+
+        // ── Empréstimos Bancários ────────────────────────────────────────────────
+        for (List<String> v : emprestimosBancariosSql) {
+            String banco = valorSql(v, 2);
+            try {
+                importarEmprestimoBancario(userId,
+                        banco,
+                        valorSql(v, 3),
+                        toBigDecimal(valorSql(v, 4)),
+                        toBigDecimal(valorSql(v, 5)),
+                        valorSql(v, 6) != null ? Integer.parseInt(valorSql(v, 6)) : null,
+                        valorSql(v, 7) != null ? Integer.parseInt(valorSql(v, 7)) : null,
+                        toBigDecimal(valorSql(v, 8)),
+                        valorSql(v, 9) != null ? LocalDate.parse(valorSql(v, 9)) : null,
+                        valorSql(v, 10) != null ? LocalDate.parse(valorSql(v, 10)) : null,
+                        valorSql(v, 12),
+                        valorSql(v, 13),
+                        valorSql(v, 14) != null ? LocalDateTime.parse(valorSql(v, 14)) : null,
+                        valorSql(v, 15) != null ? LocalDateTime.parse(valorSql(v, 15)) : null,
+                        valorSql(v, 16),
+                        valorSql(v, 11) != null ? Integer.parseInt(valorSql(v, 11)) : null);
+                extrasImportados++;
+            } catch (Exception e) {
+                erros.add("Empréstimo bancário '" + banco + "': " + e.getMessage());
+            }
+        }
+
+        // ── Caixinhas + Instituições vinculadas ──────────────────────────────────
+        for (Map.Entry<String, List<String>> entry : caixinhasSqlPorId.entrySet()) {
+            String caixinhaIdOriginal = entry.getKey();
+            List<String> v = entry.getValue();
+            String nome = valorSql(v, 2);
+            try {
+                Caixinha cx = importarCaixinhaBase(userId,
+                        nome,
+                        valorSql(v, 3),
+                        toBigDecimal(valorSql(v, 4)),
+                        valorSql(v, 5) != null ? LocalDate.parse(valorSql(v, 5)) : null,
+                        valorSql(v, 6),
+                        valorSql(v, 7) != null ? Double.parseDouble(valorSql(v, 7)) : null,
+                        valorSql(v, 8) != null ? Double.parseDouble(valorSql(v, 8)) : null,
+                        valorSql(v, 9) != null ? Double.parseDouble(valorSql(v, 9)) : null,
+                        valorSql(v, 10) != null ? Boolean.parseBoolean(valorSql(v, 10)) : null,
+                        valorSql(v, 11) != null ? Boolean.parseBoolean(valorSql(v, 11)) : null,
+                        valorSql(v, 12) != null ? LocalDate.parse(valorSql(v, 12)) : null,
+                        valorSql(v, 13) != null ? LocalDate.parse(valorSql(v, 13)) : null);
+
+                for (List<String> ciVals : caixinhaInstSqlPorCaixinhaId.getOrDefault(caixinhaIdOriginal, List.of())) {
+                    importarCaixinhaInstituicao(userId, cx,
+                            valorSql(ciVals, 3),
+                            valorSql(ciVals, 2) != null ? Integer.parseInt(valorSql(ciVals, 2)) : null);
+                }
+                extrasImportados++;
+            } catch (Exception e) {
+                erros.add("Caixinha '" + nome + "': " + e.getMessage());
+            }
+        }
+
+        return new ImportResultDto(importados.size() + extrasImportados, importados, erros);
     }
 
     // =====================================================================
