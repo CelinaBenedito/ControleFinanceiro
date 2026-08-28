@@ -11,7 +11,7 @@ import controle.api.back_end.model.eventoFinanceiro.*;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.model.usuario.GeneroUsuario;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ class RegistrosMapperTest {
         usuario.setNome("Pedro");
         usuario.setSobrenome("Alves");
         usuario.setEmail("pedro@email.com");
-        usuario.setSexo(UsuarioSexo.Masculino);
+        usuario.setGenero(GeneroUsuario.HOMEM_CIS);
         usuario.setDataNascimento(LocalDate.of(1995, 6, 20));
 
         Instituicao instituicao = new Instituicao(1, "Nubank");

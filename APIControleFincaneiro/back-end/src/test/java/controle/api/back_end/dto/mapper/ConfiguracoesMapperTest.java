@@ -13,7 +13,7 @@ import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.model.usuario.GeneroUsuario;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ class ConfiguracoesMapperTest {
         usuario.setNome("Joana");
         usuario.setSobrenome("Silva");
         usuario.setEmail("joana@email.com");
-        usuario.setSexo(UsuarioSexo.Feminino);
+        usuario.setGenero(GeneroUsuario.MULHER_CIS);
         usuario.setDataNascimento(LocalDate.of(1998, 1, 15));
 
         configuracoes = new Configuracoes();

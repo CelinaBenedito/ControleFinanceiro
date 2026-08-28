@@ -5,7 +5,7 @@ import controle.api.back_end.exception.MenorDeIdadeException;
 import controle.api.back_end.exception.SenhasNaoCoincidemException;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.model.usuario.GeneroUsuario;
 import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
 import controle.api.back_end.repository.instituicao.InstituicaoUsuarioRepository;
@@ -50,7 +50,7 @@ class UsuarioServiceTest {
         usuarioBase.setSobrenome("Costa");
         usuarioBase.setEmail("ana@email.com");
         usuarioBase.setSenha("Senha@123");
-        usuarioBase.setSexo(UsuarioSexo.Feminino);
+        usuarioBase.setGenero(GeneroUsuario.MULHER_CIS);
         usuarioBase.setDataNascimento(LocalDate.of(2000, 5, 10));
     }
 

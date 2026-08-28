@@ -38,8 +38,19 @@ public class CaixinhaResponseDTO {
 
     // ── Calculados em tempo real ──────────────────────────────────────────────
     /** Soma de todos os aportes já realizados nesta caixinha. */
+    private BigDecimal totalAportado;
+    /** Soma de todos os resgates já realizados nesta caixinha. */
+    private BigDecimal totalResgatado;
+    /** Rendimento acumulado calculado automaticamente com base na taxa configurada e no tempo decorrido. */
+    private BigDecimal rendimentoAcumulado;
+    /**
+     * Saldo total disponível: totalAportado - totalResgatado + rendimentoAcumulado.
+     * Este é o valor real que o usuário tem na caixinha hoje.
+     */
+    private BigDecimal saldoTotal;
+    /** @deprecated Use {@link #saldoTotal}. Mantido por compatibilidade. */
     private BigDecimal valorAtual;
-    /** Quanto ainda falta para atingir a meta. max(0, meta - atual). */
+    /** Quanto ainda falta para atingir a meta. max(0, meta - saldoTotal). */
     private BigDecimal faltaParaMeta;
     /** Percentual da meta já atingido. (atual / meta) * 100. */
     private Double percentualAtingido;
@@ -112,6 +123,14 @@ public class CaixinhaResponseDTO {
     public void setTaxaReferenciaAtual(Double taxaReferenciaAtual) { this.taxaReferenciaAtual = taxaReferenciaAtual; }
     public BigDecimal getValorAtual() { return valorAtual; }
     public void setValorAtual(BigDecimal valorAtual) { this.valorAtual = valorAtual; }
+    public BigDecimal getTotalAportado() { return totalAportado; }
+    public void setTotalAportado(BigDecimal totalAportado) { this.totalAportado = totalAportado; }
+    public BigDecimal getTotalResgatado() { return totalResgatado; }
+    public void setTotalResgatado(BigDecimal totalResgatado) { this.totalResgatado = totalResgatado; }
+    public BigDecimal getRendimentoAcumulado() { return rendimentoAcumulado; }
+    public void setRendimentoAcumulado(BigDecimal rendimentoAcumulado) { this.rendimentoAcumulado = rendimentoAcumulado; }
+    public BigDecimal getSaldoTotal() { return saldoTotal; }
+    public void setSaldoTotal(BigDecimal saldoTotal) { this.saldoTotal = saldoTotal; }
     public BigDecimal getFaltaParaMeta() { return faltaParaMeta; }
     public void setFaltaParaMeta(BigDecimal faltaParaMeta) { this.faltaParaMeta = faltaParaMeta; }
     public Double getPercentualAtingido() { return percentualAtingido; }

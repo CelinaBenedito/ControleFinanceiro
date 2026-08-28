@@ -2,6 +2,8 @@ package controle.api.back_end.service;
 
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.exception.ContentTypeException;
+import controle.api.back_end.exception.DadosInvalidosException;
+import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.exception.MenorDeIdadeException;
 import controle.api.back_end.exception.SenhasNaoCoincidemException;
@@ -10,6 +12,7 @@ import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
+import controle.api.back_end.model.usuario.Pronome;
 import controle.api.back_end.model.usuario.Usuario;
 import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
@@ -63,8 +66,7 @@ public class UsuarioService {
     public Usuario getUsuarioById(UUID id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException(
-                                "Usuario de id: %s não encontrado".
-                                        formatted(id)
+                                "Usuario de id: %s não encontrado".formatted(id)
                         )
                 );
     }
@@ -100,25 +102,27 @@ public class UsuarioService {
         if (ageValidation(entity.getDataNascimento()) == false) {
             throw new MenorDeIdadeException("Usuario menor de idade");
         }
+        if (usuarioRepository.findByEmail(entity.getEmail()).isPresent()) {
+            throw new EntidadeJaExisteException(
+                    "Já existe um usuário cadastrado com o email: %s".formatted(entity.getEmail())
+            );
+        }
+        validatePronome(entity.getPronome(), entity.getPronomePersonalizado());
         return usuarioRepository.save(entity);
     }
 
     public Usuario LoginUsuario(Usuario login) {
-        List<Usuario> usuarioByEmailAndSenha = usuarioRepository.
-                findUsuarioByEmailAndSenha(
-                        login.getEmail(),
-                        login.getSenha()
-                );
-        if (usuarioByEmailAndSenha.isEmpty()) {
+        Usuario usuarioEncontrado = usuarioRepository.findByEmail(login.getEmail())
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Usuario de email: %s não encontrado".formatted(login.getEmail())
+                ));
+
+        if (!usuarioEncontrado.getSenha().equals(login.getSenha())) {
             throw new EntidadeNaoEncontradaException(
-                    "Usuario de email: %s e senha: %s não encontrado".
-                            formatted(
-                                    login.getEmail(),
-                                    login.getSenha()
-                            )
+                    "Usuario de email: %s e senha informada não encontrado".formatted(login.getEmail())
             );
         }
-        return usuarioByEmailAndSenha.getFirst();
+        return usuarioEncontrado;
     }
 
     public Usuario editUsuario(UUID id, Usuario entity) {
@@ -136,9 +140,30 @@ public class UsuarioService {
                         )
                 );
 
+        if (entity.getEmail() != null && !entity.getEmail().equalsIgnoreCase(userAtual.getEmail())) {
+            usuarioRepository.findByEmail(entity.getEmail()).ifPresent(outroUsuario -> {
+                if (!outroUsuario.getId().equals(id)) {
+                    throw new EntidadeJaExisteException(
+                            "Já existe um usuário cadastrado com o email: %s".formatted(entity.getEmail())
+                    );
+                }
+            });
+        }
+
         Usuario edit = UsuarioMappper.toEdit(entity, userAtual);
 
+        validatePronome(edit.getPronome(), edit.getPronomePersonalizado());
+
         return usuarioRepository.save(edit);
+    }
+
+    private void validatePronome(Pronome pronome, String pronomePersonalizado) {
+        if (pronome == Pronome.PERSONALIZADO
+                && (pronomePersonalizado == null || pronomePersonalizado.isBlank())) {
+            throw new DadosInvalidosException(
+                    "É necessário informar o texto do pronome personalizado quando a opção 'Personalizado' é escolhida"
+            );
+        }
     }
 
     public Boolean ageValidation(LocalDate dataNascimento) {

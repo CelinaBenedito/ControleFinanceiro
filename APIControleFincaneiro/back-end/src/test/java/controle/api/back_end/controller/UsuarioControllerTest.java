@@ -7,7 +7,7 @@ import controle.api.back_end.dto.usuario.in.UsuarioCreateDTO;
 import controle.api.back_end.dto.usuario.out.UsuarioResponseDTO;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.model.usuario.GeneroUsuario;
 import controle.api.back_end.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,7 +55,7 @@ class UsuarioControllerTest {
         usuario.setNome("Carlos");
         usuario.setSobrenome("Lima");
         usuario.setEmail("carlos@email.com");
-        usuario.setSexo(UsuarioSexo.Masculino);
+        usuario.setGenero(GeneroUsuario.HOMEM_CIS);
         usuario.setDataNascimento(LocalDate.of(1990, 4, 25));
         usuario.setSenha("Senha@123");
     }
@@ -123,7 +123,7 @@ class UsuarioControllerTest {
         dto.setNome("Carlos");
         dto.setSobrenome("Lima");
         dto.setEmail("carlos@email.com");
-        dto.setSexo(UsuarioSexo.Masculino);
+        dto.setGenero(GeneroUsuario.HOMEM_CIS);
         dto.setDataNascimento(LocalDate.of(1990, 4, 25));
         dto.setSenha("Senha@123");
 

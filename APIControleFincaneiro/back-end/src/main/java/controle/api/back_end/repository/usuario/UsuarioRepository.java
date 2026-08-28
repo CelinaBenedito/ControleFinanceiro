@@ -3,9 +3,9 @@ package controle.api.back_end.repository.usuario;
 import controle.api.back_end.model.usuario.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
-    List<Usuario> findUsuarioByEmailAndSenha(String email, String senha);
+    Optional<Usuario> findByEmail(String email);
 }

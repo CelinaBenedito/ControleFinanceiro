@@ -1,6 +1,7 @@
 package controle.api.back_end.service;
 
 import controle.api.back_end.dto.poupanca.in.CaixinhaCreateDTO;
+import controle.api.back_end.dto.poupanca.in.ResgateRequestDTO;
 import controle.api.back_end.dto.poupanca.out.CaixinhaResponseDTO;
 import controle.api.back_end.dto.poupanca.out.GraficoProgressoConsolidadoCaixinhaDto;
 import controle.api.back_end.dto.poupanca.out.KpiProgressoGeralCaixinhaDto;
@@ -8,7 +9,14 @@ import controle.api.back_end.dto.poupanca.out.KpiRendimentoEstimadoMesCaixinhaDt
 import controle.api.back_end.dto.poupanca.out.KpiStatusCaixinhasDto;
 import controle.api.back_end.dto.poupanca.out.KpiTotalAcumuladoCaixinhaDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
+import controle.api.back_end.exception.SaldoInsuficienteException;
+import controle.api.back_end.model.eventoFinanceiro.EventoDetalhe;
 import controle.api.back_end.model.eventoFinanceiro.EventoFinanceiro;
+import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
+import controle.api.back_end.model.eventoFinanceiro.Tipo;
+import controle.api.back_end.repository.eventoFinanceiro.EventoDetalheRepository;
+import controle.api.back_end.repository.eventoFinanceiro.EventoInstituicaoRepository;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.poupanca.Caixinha;
 import controle.api.back_end.model.poupanca.CaixinhaInstituicao;
@@ -60,6 +68,8 @@ public class CaixinhaService {
     private final UsuarioRepository usuarioRepository;
     private final InstituicaoUsuarioRepository instituicaoUsuarioRepository;
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
+    private final EventoDetalheRepository eventoDetalheRepository;
+    private final EventoInstituicaoRepository eventoInstituicaoRepository;
     private final ConfiguracoesRepository configuracoesRepository;
     private final EmailService emailService;
 
@@ -68,6 +78,8 @@ public class CaixinhaService {
                            UsuarioRepository usuarioRepository,
                            InstituicaoUsuarioRepository instituicaoUsuarioRepository,
                            EventoFinanceiroRepository eventoFinanceiroRepository,
+                           EventoDetalheRepository eventoDetalheRepository,
+                           EventoInstituicaoRepository eventoInstituicaoRepository,
                            ConfiguracoesRepository configuracoesRepository,
                            EmailService emailService) {
         this.caixinhaRepository              = caixinhaRepository;
@@ -75,6 +87,8 @@ public class CaixinhaService {
         this.usuarioRepository               = usuarioRepository;
         this.instituicaoUsuarioRepository    = instituicaoUsuarioRepository;
         this.eventoFinanceiroRepository      = eventoFinanceiroRepository;
+        this.eventoDetalheRepository         = eventoDetalheRepository;
+        this.eventoInstituicaoRepository     = eventoInstituicaoRepository;
         this.configuracoesRepository         = configuracoesRepository;
         this.emailService                    = emailService;
     }
@@ -152,12 +166,12 @@ public class CaixinhaService {
         return calcularEMontar(caixinha);
     }
 
-    /** Resumo total de poupança do usuário (soma de todas as caixinhas ativas). */
+    /** Resumo total de poupança do usuário (saldo total = aportes - resgates + rendimento acumulado). */
     @Transactional(readOnly = true)
     public BigDecimal resumoTotalPoupanca(UUID usuarioId) {
         validarUsuario(usuarioId);
         return caixinhaRepository.findAllByUsuario_IdAndIsAtivaTrue(usuarioId).stream()
-                .map(c -> eventoFinanceiroRepository.sumValorByCaixinha(c.getId()))
+                .map(c -> calcularSaldoTotal(c))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -193,9 +207,9 @@ public class CaixinhaService {
 
         BigDecimal rendimentoEstimadoMes = caixinhasAtivas.stream()
                 .map(caixinha -> {
-                    BigDecimal valorAtual = eventoFinanceiroRepository.sumValorByCaixinha(caixinha.getId());
+                    BigDecimal saldoTotal = calcularSaldoTotal(caixinha);
                     BigDecimal taxaMensalEfetiva = BigDecimal.valueOf(calcularTaxaMensal(caixinha));
-                    return valorAtual.multiply(taxaMensalEfetiva);
+                    return saldoTotal.multiply(taxaMensalEfetiva);
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
@@ -330,8 +344,96 @@ public class CaixinhaService {
     }
 
     // =========================================================================
+    // RESGATAR
+    // =========================================================================
+
+    /**
+     * Registra um resgate (retirada) de uma caixinha.
+     * O valor resgatado não pode superar o saldo total disponível (aportes - resgates + rendimento).
+     */
+    public CaixinhaResponseDTO resgatar(UUID caixinhaId, ResgateRequestDTO dto) {
+        Caixinha caixinha = caixinhaRepository.findById(caixinhaId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Caixinha de id: %s não encontrada.".formatted(caixinhaId)));
+
+        if (!Boolean.TRUE.equals(caixinha.getIsAtiva())) {
+            throw new IllegalStateException("Não é possível resgatar de uma caixinha encerrada.");
+        }
+
+        BigDecimal saldoDisponivel = calcularSaldoTotal(caixinha);
+        if (dto.getValor().compareTo(saldoDisponivel) > 0) {
+            throw new SaldoInsuficienteException(
+                    "Saldo insuficiente. Disponível: R$ %s, solicitado: R$ %s."
+                            .formatted(saldoDisponivel.setScale(2, RoundingMode.HALF_UP), dto.getValor()));
+        }
+
+        EventoFinanceiro resgate = new EventoFinanceiro();
+        resgate.setUsuario(caixinha.getUsuario());
+        resgate.setTipo(Tipo.Resgate);
+        resgate.setValor(dto.getValor().doubleValue());
+        resgate.setDescricao(dto.getDescricao() != null ? dto.getDescricao() : "Resgate da caixinha");
+        resgate.setDataEvento(dto.getDataResgate() != null ? dto.getDataResgate() : LocalDate.now());
+        resgate.setCaixinha(caixinha);
+        EventoFinanceiro resgatesSalvo = eventoFinanceiroRepository.save(resgate);
+
+        // Determina a instituição de destino:
+        // usa a informada no DTO ou, se não informada, a primeira vinculada à caixinha
+        InstituicaoUsuario instDestino;
+        if (dto.getInstituicaoUsuarioId() != null) {
+            instDestino = instituicaoUsuarioRepository.findById(dto.getInstituicaoUsuarioId())
+                    .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                            "InstituicaoUsuario de id: %d não encontrada.".formatted(dto.getInstituicaoUsuarioId())));
+        } else {
+            instDestino = caixinhaInstituicaoRepository.findAllByCaixinha_Id(caixinha.getId())
+                    .stream()
+                    .findFirst()
+                    .map(CaixinhaInstituicao::getInstituicaoUsuario)
+                    .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                            "Nenhuma instituição vinculada à caixinha. Informe instituicaoUsuarioId no corpo da requisição."));
+        }
+
+        // Registra o movimento na instituição (dinheiro voltando para a conta)
+        EventoInstituicao eventoInst = new EventoInstituicao();
+        eventoInst.setEventoFinanceiro(resgatesSalvo);
+        eventoInst.setInstituicaoUsuario(instDestino);
+        eventoInst.setValor(dto.getValor().doubleValue());
+        eventoInst.setParcelas(1);
+        eventoInst.setTipoMovimento(dto.getTipoMovimento() != null ? dto.getTipoMovimento() : TipoMovimento.Debito);
+        eventoInstituicaoRepository.save(eventoInst);
+
+        // Cria detalhe para o evento aparecer no histórico financeiro do usuário
+        EventoDetalhe detalhe = new EventoDetalhe();
+        detalhe.setEventoFinanceiro(resgatesSalvo);
+        detalhe.setTituloGasto("Resgate — " + caixinha.getNome());
+        detalhe.setCategoriaUsuario(java.util.List.of());
+        eventoDetalheRepository.save(detalhe);
+
+        return calcularEMontar(caixinha);
+    }
+
+    // =========================================================================
     // CÁLCULOS FINANCEIROS (acesso package para uso no EmailService)
     // =========================================================================
+
+    /**
+     * Calcula o saldo total real da caixinha: aportes - resgates + rendimento acumulado automático.
+     */
+    BigDecimal calcularSaldoTotal(Caixinha c) {
+        BigDecimal totalAportado  = eventoFinanceiroRepository.sumValorByCaixinha(c.getId());
+        BigDecimal totalResgatado = eventoFinanceiroRepository.sumResgatesByCaixinha(c.getId());
+        BigDecimal saldoBruto     = totalAportado.subtract(totalResgatado);
+
+        double taxaMensal = calcularTaxaMensal(c);
+        long mesesDecorridos = java.time.temporal.ChronoUnit.MONTHS.between(c.getDataCriacao(), LocalDate.now());
+
+        if (mesesDecorridos > 0 && taxaMensal > 0 && saldoBruto.compareTo(BigDecimal.ZERO) > 0) {
+            double fator = Math.pow(1 + taxaMensal, mesesDecorridos) - 1;
+            BigDecimal rendimento = saldoBruto.multiply(BigDecimal.valueOf(fator))
+                                              .setScale(2, RoundingMode.HALF_UP);
+            return saldoBruto.add(rendimento);
+        }
+        return saldoBruto;
+    }
 
     /**
      * Monta o DTO de resposta completo com todos os cálculos aplicados.
@@ -354,31 +456,49 @@ public class CaixinhaService {
         dto.setTaxaAnualPersonalizada(c.getTaxaAnualPersonalizada());
         dto.setTaxaReferenciaAtual(c.getTaxaReferenciaAtual());
 
-        // Valor atual = soma dos aportes registrados
-        BigDecimal valorAtual = eventoFinanceiroRepository.sumValorByCaixinha(c.getId());
-        dto.setValorAtual(valorAtual);
-
-        // Progresso em relação à meta
-        if (c.getValorMeta() != null && c.getValorMeta().compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal falta = c.getValorMeta().subtract(valorAtual).max(BigDecimal.ZERO);
-            dto.setFaltaParaMeta(falta);
-            double pct = valorAtual.divide(c.getValorMeta(), 6, RoundingMode.HALF_UP)
-                                   .multiply(BigDecimal.valueOf(100))
-                                   .doubleValue();
-            dto.setPercentualAtingido(Math.min(pct, 100.0));
-        }
+        // Aportes, resgates e saldo com rendimento automático
+        BigDecimal totalAportado  = eventoFinanceiroRepository.sumValorByCaixinha(c.getId());
+        BigDecimal totalResgatado = eventoFinanceiroRepository.sumResgatesByCaixinha(c.getId());
+        BigDecimal saldoBruto     = totalAportado.subtract(totalResgatado);
 
         // Taxa mensal efetiva
         double taxaMensal = calcularTaxaMensal(c);
         dto.setTaxaMensalEfetiva(taxaMensal);
 
-        // Projeções com prazo
+        // Rendimento acumulado automático: saldoBruto × ((1+r)^meses - 1)
+        long mesesDecorridos = java.time.temporal.ChronoUnit.MONTHS.between(c.getDataCriacao(), LocalDate.now());
+        BigDecimal rendimentoAcumulado = BigDecimal.ZERO;
+        if (mesesDecorridos > 0 && taxaMensal > 0 && saldoBruto.compareTo(BigDecimal.ZERO) > 0) {
+            double fator = Math.pow(1 + taxaMensal, mesesDecorridos) - 1;
+            rendimentoAcumulado = saldoBruto.multiply(BigDecimal.valueOf(fator))
+                                            .setScale(2, RoundingMode.HALF_UP);
+        }
+
+        BigDecimal saldoTotal = saldoBruto.add(rendimentoAcumulado);
+
+        dto.setTotalAportado(totalAportado);
+        dto.setTotalResgatado(totalResgatado);
+        dto.setRendimentoAcumulado(rendimentoAcumulado);
+        dto.setSaldoTotal(saldoTotal);
+        dto.setValorAtual(saldoTotal); // compatibilidade com campos antigos
+
+        // Progresso em relação à meta
+        if (c.getValorMeta() != null && c.getValorMeta().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal falta = c.getValorMeta().subtract(saldoTotal).max(BigDecimal.ZERO);
+            dto.setFaltaParaMeta(falta);
+            double pct = saldoTotal.divide(c.getValorMeta(), 6, RoundingMode.HALF_UP)
+                                   .multiply(BigDecimal.valueOf(100))
+                                   .doubleValue();
+            dto.setPercentualAtingido(Math.min(pct, 100.0));
+        }
+
+        // Projeções com prazo (usa saldoTotal como ponto de partida)
         if (c.getDataPrazo() != null && c.getDataPrazo().isAfter(LocalDate.now())) {
             int meses = (int) Period.between(LocalDate.now(), c.getDataPrazo()).toTotalMonths();
             dto.setMesesRestantes(meses);
 
             if (meses > 0) {
-                double vp = valorAtual.doubleValue();
+                double vp = saldoTotal.doubleValue();
                 double fatorN = Math.pow(1 + taxaMensal, meses);
 
                 // Montante sem novos aportes: VP × (1+r)^n
@@ -414,7 +534,7 @@ public class CaixinhaService {
             }
         }
 
-        // Instituições com valor aportado por cada uma
+        // Instituições com valor líquido por cada uma (aportes - resgates)
         List<CaixinhaResponseDTO.InstituicaoDTO> instDtos = new ArrayList<>();
         List<CaixinhaInstituicao> vinculos = caixinhaInstituicaoRepository.findAllByCaixinha_Id(c.getId());
         for (CaixinhaInstituicao vi : vinculos) {
@@ -426,13 +546,18 @@ public class CaixinhaService {
                                                      .equals(vi.getInstituicaoUsuario().getId())))
                     .toList();
             BigDecimal aportadoNaInst = eventosDaInst.stream()
+                    .filter(e -> e.getTipo() == Tipo.Poupanca)
+                    .map(e -> BigDecimal.valueOf(e.getValor()))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal resgatadonaInst = eventosDaInst.stream()
+                    .filter(e -> e.getTipo() == Tipo.Resgate)
                     .map(e -> BigDecimal.valueOf(e.getValor()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             CaixinhaResponseDTO.InstituicaoDTO iDto = new CaixinhaResponseDTO.InstituicaoDTO();
             iDto.setId(vi.getInstituicaoUsuario().getId());
             iDto.setNome(vi.getInstituicaoUsuario().getInstituicao().getNome());
-            iDto.setValorAportado(aportadoNaInst);
+            iDto.setValorAportado(aportadoNaInst.subtract(resgatadonaInst));
             instDtos.add(iDto);
         }
         dto.setInstituicoes(instDtos);

@@ -20,7 +20,9 @@ public class UsuarioMappper {
         dto.setId(usuario.getId());
         dto.setNome(usuario.getNome());
         dto.setSobrenome(usuario.getSobrenome());
-        dto.setSexo(usuario.getSexo());
+        dto.setGenero(usuario.getGenero());
+        dto.setPronome(usuario.getPronome());
+        dto.setPronomePersonalizado(usuario.getPronomePersonalizado());
         dto.setImagem(usuario.getImagem());
         dto.setEmail(usuario.getEmail());
         dto.setDataNascimento(usuario.getDataNascimento());
@@ -42,7 +44,9 @@ public class UsuarioMappper {
         Usuario entity = new Usuario();
         entity.setNome(dto.getNome());
         entity.setSobrenome(dto.getSobrenome());
-        entity.setSexo(dto.getSexo());
+        entity.setGenero(dto.getGenero());
+        entity.setPronome(dto.getPronome());
+        entity.setPronomePersonalizado(dto.getPronomePersonalizado());
         entity.setDataNascimento(dto.getDataNascimento());
         entity.setEmail(dto.getEmail());
         entity.setSenha(dto.getSenha());
@@ -71,7 +75,9 @@ public class UsuarioMappper {
         Usuario entity = new Usuario();
         entity.setNome(dto.getNome());
         entity.setSobrenome(dto.getSobrenome());
-        entity.setSexo(dto.getSexo());
+        entity.setGenero(dto.getGenero());
+        entity.setPronome(dto.getPronome());
+        entity.setPronomePersonalizado(dto.getPronomePersonalizado());
         entity.setDataNascimento(dto.getDataNascimento());
         entity.setImagem(dto.getImagem());
         entity.setEmail(dto.getEmail());
@@ -101,9 +107,17 @@ public class UsuarioMappper {
         if(editUser.getDataNascimento()== null){user.setDataNascimento(actualUser.getDataNascimento());}
         else{user.setDataNascimento(editUser.getDataNascimento());}
 
-        //SEXO
-        if(editUser.getSexo()== null){user.setSexo(actualUser.getSexo());}
-        else{user.setSexo(editUser.getSexo());}
+        //GENERO
+        if(editUser.getGenero()== null){user.setGenero(actualUser.getGenero());}
+        else{user.setGenero(editUser.getGenero());}
+
+        //PRONOME
+        if(editUser.getPronome()== null){user.setPronome(actualUser.getPronome());}
+        else{user.setPronome(editUser.getPronome());}
+
+        //PRONOME PERSONALIZADO
+        if(editUser.getPronomePersonalizado()== null){user.setPronomePersonalizado(actualUser.getPronomePersonalizado());}
+        else{user.setPronomePersonalizado(editUser.getPronomePersonalizado());}
 
         //IMAGEM
         if(editUser.getImagem()== null){user.setImagem(actualUser.getImagem());}

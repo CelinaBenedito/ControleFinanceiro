@@ -29,13 +29,20 @@ public class Usuario {
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UsuarioSexo sexo;
+    private GeneroUsuario genero;
+
+    @Enumerated(EnumType.STRING)
+    private Pronome pronome;
+
+    @Size(max = 50)
+    private String pronomePersonalizado;
 
     @Size(max=500)
     private String imagem;
 
     @NotBlank
     @Size(max = 150)
+    @Column(unique = true, nullable = false)
     private String email;
 
     @NotBlank
@@ -48,86 +55,47 @@ public class Usuario {
     public Usuario() {
     }
 
-    public Usuario(UUID id, String nome, String sobrenome, LocalDate dataNascimento, UsuarioSexo sexo, String imagem, String email, String senha) {
+    public Usuario(UUID id, String nome, String sobrenome, LocalDate dataNascimento, GeneroUsuario genero, String imagem, String email, String senha) {
         this.id = id;
         this.nome = nome;
         this.sobrenome = sobrenome;
         this.dataNascimento = dataNascimento;
-        this.sexo = sexo;
+        this.genero = genero;
         this.imagem = imagem;
         this.email = email;
         this.senha = senha;
     }
 
-    public UUID getId() {
-        return id;
-    }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
 
-    public String getNome() {
-        return nome;
-    }
+    public String getSobrenome() { return sobrenome; }
+    public void setSobrenome(String sobrenome) { this.sobrenome = sobrenome; }
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
+    public LocalDate getDataNascimento() { return dataNascimento; }
+    public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
 
-    public String getSobrenome() {
-        return sobrenome;
-    }
+    public GeneroUsuario getGenero() { return genero; }
+    public void setGenero(GeneroUsuario genero) { this.genero = genero; }
 
-    public void setSobrenome(String sobrenome) {
-        this.sobrenome = sobrenome;
-    }
+    public Pronome getPronome() { return pronome; }
+    public void setPronome(Pronome pronome) { this.pronome = pronome; }
 
-    public LocalDate getDataNascimento() {
-        return dataNascimento;
-    }
+    public String getPronomePersonalizado() { return pronomePersonalizado; }
+    public void setPronomePersonalizado(String pronomePersonalizado) { this.pronomePersonalizado = pronomePersonalizado; }
 
-    public void setDataNascimento(LocalDate dataNascimento) {
-        this.dataNascimento = dataNascimento;
-    }
+    public String getImagem() { return imagem; }
+    public void setImagem(String imagem) { this.imagem = imagem; }
 
-    public UsuarioSexo getSexo() {
-        return sexo;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public void setSexo(UsuarioSexo sexo) {
-        this.sexo = sexo;
-    }
+    public String getSenha() { return senha; }
+    public void setSenha(String senha) { this.senha = senha; }
 
-    public String getImagem() {
-        return imagem;
-    }
-
-    public void setImagem(String imagem) {
-        this.imagem = imagem;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getSenha() {
-        return senha;
-    }
-
-    public void setSenha(String senha) {
-        this.senha = senha;
-    }
-
-    public Boolean getIsAtivo() {
-        return isAtivo;
-    }
-
-    public void setIsAtivo(Boolean ativo) {
-        isAtivo = ativo;
-    }
+    public Boolean getIsAtivo() { return isAtivo; }
+    public void setIsAtivo(Boolean ativo) { isAtivo = ativo; }
 }

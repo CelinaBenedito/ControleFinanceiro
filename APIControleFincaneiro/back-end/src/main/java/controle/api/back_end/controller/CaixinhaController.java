@@ -1,6 +1,7 @@
 package controle.api.back_end.controller;
 
 import controle.api.back_end.dto.poupanca.in.CaixinhaCreateDTO;
+import controle.api.back_end.dto.poupanca.in.ResgateRequestDTO;
 import controle.api.back_end.dto.poupanca.out.CaixinhaResponseDTO;
 import controle.api.back_end.dto.poupanca.out.GraficoProgressoConsolidadoCaixinhaDto;
 import controle.api.back_end.dto.poupanca.out.KpiProgressoGeralCaixinhaDto;
@@ -237,6 +238,25 @@ public class CaixinhaController {
     })
     public ResponseEntity<CaixinhaResponseDTO> reabrir(@PathVariable UUID caixinha_id) {
         return ResponseEntity.ok(caixinhaService.reabrir(caixinha_id));
+    }
+
+    @PostMapping("/{caixinha_id}/resgatar")
+    @Operation(summary = "Resgatar valor de uma caixinha",
+               description = """
+                       Registra um resgate (retirada) de uma caixinha de poupança.
+                       O valor resgatado não pode superar o saldo total disponível (aportes - resgates + rendimento).
+                       O dinheiro é creditado na instituição informada ou, se não informada, na primeira vinculada à caixinha.
+                       """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Resgate realizado com sucesso.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CaixinhaResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Saldo insuficiente ou dados inválidos.", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Caixinha ou instituição não encontradas.", content = @Content)
+    })
+    public ResponseEntity<CaixinhaResponseDTO> resgatar(@PathVariable UUID caixinha_id,
+                                                         @Valid @RequestBody ResgateRequestDTO dto) {
+        return ResponseEntity.ok(caixinhaService.resgatar(caixinha_id, dto));
     }
 
     @PostMapping("/{caixinha_id}/instituicoes/{inst_id}")

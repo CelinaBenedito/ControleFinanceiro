@@ -7,7 +7,7 @@ import controle.api.back_end.model.eventoFinanceiro.*;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.model.usuario.GeneroUsuario;
 import controle.api.back_end.repository.categoria.CategoriaUsuarioRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoDetalheRepository;
 import controle.api.back_end.repository.eventoFinanceiro.EventoFinanceiroRepository;
@@ -67,7 +67,7 @@ class RegistroServiceTest {
         usuario.setNome("Maria");
         usuario.setSobrenome("Souza");
         usuario.setEmail("maria@email.com");
-        usuario.setSexo(UsuarioSexo.Feminino);
+        usuario.setGenero(GeneroUsuario.MULHER_CIS);
         usuario.setDataNascimento(LocalDate.of(1993, 3, 10));
 
         eventoFinanceiro = new EventoFinanceiro();

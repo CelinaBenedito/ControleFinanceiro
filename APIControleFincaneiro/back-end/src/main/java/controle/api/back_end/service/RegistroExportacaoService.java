@@ -143,7 +143,7 @@ public class RegistroExportacaoService {
         userInfo.put("nome", usuario.getNome());
         userInfo.put("sobrenome", usuario.getSobrenome());
         userInfo.put("data_nascimento", usuario.getDataNascimento().toString());
-        userInfo.put("sexo", usuario.getSexo().toString());
+        userInfo.put("sexo", usuario.getGenero() != null ? usuario.getGenero().getDescricao() : "");
         userInfo.put("email", usuario.getEmail());
         jsonMap.put("usuario", userInfo);
 
@@ -307,10 +307,10 @@ public class RegistroExportacaoService {
         StringBuilder sql = new StringBuilder();
 
         sql.append("-- Usuário\n")
-           .append("INSERT INTO usuario (id, nome, sobrenome, data_nascimento, sexo, imagem, email, senha) VALUES (")
+           .append("INSERT INTO usuario (id, nome, sobrenome, data_nascimento, genero, imagem, email, senha) VALUES (")
            .append("'").append(userId).append("', '").append(usuario.getNome()).append("', '")
            .append(usuario.getSobrenome()).append("', '").append(usuario.getDataNascimento()).append("', '")
-           .append(usuario.getSexo()).append("', ")
+           .append(usuario.getGenero() != null ? usuario.getGenero().name() : "").append("', ")
            .append(usuario.getImagem() == null ? "null" : "'" + usuario.getImagem() + "'").append(", '")
            .append(usuario.getEmail()).append("', '").append(usuario.getSenha()).append("');\n\n");
 
@@ -814,13 +814,13 @@ public class RegistroExportacaoService {
                 case Recebimento, Emprestimo -> est.linhaReceita;
                 case Gasto                   -> est.linhaGasto;
                 case Transferencia           -> est.linhaTransferencia;
-                case Poupanca                -> est.linhaPoupanca;
+                case Poupanca, Resgate       -> est.linhaPoupanca;
             };
             XSSFCellStyle estiloMoeda = switch (ev.getTipo()) {
                 case Recebimento, Emprestimo -> est.moedaReceita;
                 case Gasto                   -> est.moedaGasto;
                 case Transferencia           -> est.moedaTransferencia;
-                case Poupanca                -> est.moedaPoupanca;
+                case Poupanca, Resgate       -> est.moedaPoupanca;
             };
 
             EventoDetalhe det = ev.getGastoDetalhe();
@@ -1071,7 +1071,7 @@ public class RegistroExportacaoService {
                 case Recebimento, Emprestimo -> est.moedaReceita;
                 case Gasto -> est.moedaGasto;
                 case Transferencia -> est.moedaTransferencia;
-                case Poupanca -> est.moedaPoupanca;
+                case Poupanca, Resgate -> est.moedaPoupanca;
             };
             String detalhes = rec.getDia() != null ? "Dia " + rec.getDia()
                     : (rec.getDiasDaSemana() != null && !rec.getDiasDaSemana().isEmpty()

@@ -4,8 +4,8 @@ import controle.api.back_end.dto.usuario.in.UsuarioCreateDTO;
 import controle.api.back_end.dto.usuario.in.UsuarioEditDTO;
 import controle.api.back_end.dto.usuario.mapper.UsuarioMappper;
 import controle.api.back_end.dto.usuario.out.UsuarioResponseDTO;
+import controle.api.back_end.model.usuario.GeneroUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.model.usuario.UsuarioSexo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +25,7 @@ class UsuarioMappperTest {
         u.setNome("Ana");
         u.setSobrenome("Costa");
         u.setEmail("ana@email.com");
-        u.setSexo(UsuarioSexo.Feminino);
+        u.setGenero(GeneroUsuario.MULHER_CIS);
         u.setDataNascimento(LocalDate.of(2000, 5, 10));
         u.setSenha("Senha@123");
         u.setImagem("/img/foto.png");
@@ -44,7 +44,7 @@ class UsuarioMappperTest {
         assertEquals(u.getNome(), dto.getNome());
         assertEquals(u.getSobrenome(), dto.getSobrenome());
         assertEquals(u.getEmail(), dto.getEmail());
-        assertEquals(u.getSexo(), dto.getSexo());
+        assertEquals(u.getGenero(), dto.getGenero());
         assertEquals(u.getDataNascimento(), dto.getDataNascimento());
         assertEquals(u.getImagem(), dto.getImagem());
     }
@@ -71,7 +71,7 @@ class UsuarioMappperTest {
         dto.setNome("Carlos");
         dto.setSobrenome("Lima");
         dto.setEmail("carlos@email.com");
-        dto.setSexo(UsuarioSexo.Masculino);
+        dto.setGenero(GeneroUsuario.HOMEM_CIS);
         dto.setDataNascimento(LocalDate.of(1995, 3, 20));
         dto.setSenha("Pass@1234");
 
@@ -81,7 +81,7 @@ class UsuarioMappperTest {
         assertEquals("Carlos", entity.getNome());
         assertEquals("Lima", entity.getSobrenome());
         assertEquals("carlos@email.com", entity.getEmail());
-        assertEquals(UsuarioSexo.Masculino, entity.getSexo());
+        assertEquals(GeneroUsuario.HOMEM_CIS, entity.getGenero());
         assertEquals(LocalDate.of(1995, 3, 20), entity.getDataNascimento());
         assertEquals("Pass@1234", entity.getSenha());
     }
@@ -105,7 +105,7 @@ class UsuarioMappperTest {
         assertEquals(atual.getNome(), resultado.getNome());
         assertEquals(atual.getSobrenome(), resultado.getSobrenome());
         assertEquals(atual.getEmail(), resultado.getEmail());
-        assertEquals(atual.getSexo(), resultado.getSexo());
+        assertEquals(atual.getGenero(), resultado.getGenero());
         assertEquals(atual.getDataNascimento(), resultado.getDataNascimento());
         assertEquals(atual.getSenha(), resultado.getSenha());
     }
@@ -133,4 +133,3 @@ class UsuarioMappperTest {
         assertNull(UsuarioMappper.toEntity((UsuarioEditDTO) null));
     }
 }
-

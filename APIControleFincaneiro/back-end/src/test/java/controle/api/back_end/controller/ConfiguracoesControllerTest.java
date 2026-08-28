@@ -10,7 +10,7 @@ import controle.api.back_end.exception.EntidadeJaExisteException;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.configuracoes.Configuracoes;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.model.usuario.GeneroUsuario;
 import controle.api.back_end.service.ConfiguracoesService;
 import controle.api.back_end.service.UploadService;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,7 +63,7 @@ class ConfiguracoesControllerTest {
         usuario.setNome("Fernanda");
         usuario.setSobrenome("Ramos");
         usuario.setEmail("fernanda@email.com");
-        usuario.setSexo(UsuarioSexo.Feminino);
+        usuario.setGenero(GeneroUsuario.MULHER_CIS);
         usuario.setDataNascimento(LocalDate.of(1997, 7, 20));
 
         configuracoes = new Configuracoes();

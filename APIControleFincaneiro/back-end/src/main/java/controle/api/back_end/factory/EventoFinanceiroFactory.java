@@ -30,7 +30,7 @@ public class EventoFinanceiroFactory {
             case Gasto -> gastoEvento;
             case Recebimento -> recebimentoEvento;
             case Transferencia -> transferenciaEvento;
-            case Poupanca -> poupancaEvento;
+            case Poupanca, Resgate -> poupancaEvento;
             case Emprestimo -> emprestimoEvento;
         };
     }

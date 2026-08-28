@@ -46,7 +46,7 @@ public class CategoriaMapper {
         dtoUser.setNome(entity.getUsuario().getNome());
         dtoUser.setSobrenome(entity.getUsuario().getSobrenome());
         dtoUser.setDataNascimento(entity.getUsuario().getDataNascimento());
-        dtoUser.setSexo(entity.getUsuario().getSexo());
+        dtoUser.setGenero(entity.getUsuario().getGenero());
 
         //Preenchendo o DTO principal com os dados da entidade principal e do DTO parceiro.
         dto.setId(entity.getId());

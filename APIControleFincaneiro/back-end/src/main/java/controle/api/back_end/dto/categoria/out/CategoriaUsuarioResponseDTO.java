@@ -1,7 +1,7 @@
 package controle.api.back_end.dto.categoria.out;
 
 
-import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.model.usuario.GeneroUsuario;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,7 +19,7 @@ public class CategoriaUsuarioResponseDTO {
         private String nome;
         private String sobrenome;
         private LocalDate dataNascimento;
-        private UsuarioSexo sexo;
+        private GeneroUsuario genero;
 
         public UUID getId() {
             return id;
@@ -53,12 +53,12 @@ public class CategoriaUsuarioResponseDTO {
             this.dataNascimento = dataNascimento;
         }
 
-        public UsuarioSexo getSexo() {
-            return sexo;
+        public GeneroUsuario getGenero() {
+            return genero;
         }
 
-        public void setSexo(UsuarioSexo sexo) {
-            this.sexo = sexo;
+        public void setGenero(GeneroUsuario genero) {
+            this.genero = genero;
         }
     }
     public static class CategoriaDTO{

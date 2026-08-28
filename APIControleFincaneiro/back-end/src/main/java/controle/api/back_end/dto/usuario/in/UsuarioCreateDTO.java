@@ -1,6 +1,7 @@
 package controle.api.back_end.dto.usuario.in;
 
-import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.model.usuario.GeneroUsuario;
+import controle.api.back_end.model.usuario.Pronome;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -27,8 +28,16 @@ public class UsuarioCreateDTO {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Schema(example = "1", description = "Representa o sexo do usuario")
-    private UsuarioSexo sexo;
+    @Schema(example = "HOMEM_CIS", description = "Representa o gênero do usuário")
+    private GeneroUsuario genero;
+
+    @Enumerated(EnumType.STRING)
+    @Schema(description = "Pronome de tratamento preferido pelo usuário")
+    private Pronome pronome;
+
+    @Size(max = 50)
+    @Schema(description = "Texto livre do pronome quando 'Personalizado' for escolhido")
+    private String pronomePersonalizado;
 
     @Size(max = 150, min = 10)
     @NotBlank
@@ -44,51 +53,27 @@ public class UsuarioCreateDTO {
     public UsuarioCreateDTO() {
     }
 
-    public String getNome() {
-        return nome;
-    }
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
+    public String getSobrenome() { return sobrenome; }
+    public void setSobrenome(String sobrenome) { this.sobrenome = sobrenome; }
 
-    public String getSobrenome() {
-        return sobrenome;
-    }
+    public LocalDate getDataNascimento() { return dataNascimento; }
+    public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
 
-    public void setSobrenome(String sobrenome) {
-        this.sobrenome = sobrenome;
-    }
+    public GeneroUsuario getGenero() { return genero; }
+    public void setGenero(GeneroUsuario genero) { this.genero = genero; }
 
-    public LocalDate getDataNascimento() {
-        return dataNascimento;
-    }
+    public Pronome getPronome() { return pronome; }
+    public void setPronome(Pronome pronome) { this.pronome = pronome; }
 
-    public void setDataNascimento(LocalDate dataNascimento) {
-        this.dataNascimento = dataNascimento;
-    }
+    public String getPronomePersonalizado() { return pronomePersonalizado; }
+    public void setPronomePersonalizado(String pronomePersonalizado) { this.pronomePersonalizado = pronomePersonalizado; }
 
-    public UsuarioSexo getSexo() {
-        return sexo;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public void setSexo(UsuarioSexo sexo) {
-        this.sexo = sexo;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getSenha() {
-        return senha;
-    }
-
-    public void setSenha(String senha) {
-        this.senha = senha;
-    }
+    public String getSenha() { return senha; }
+    public void setSenha(String senha) { this.senha = senha; }
 }

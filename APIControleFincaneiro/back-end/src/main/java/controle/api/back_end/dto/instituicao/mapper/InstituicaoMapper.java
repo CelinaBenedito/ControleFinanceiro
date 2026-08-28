@@ -73,7 +73,7 @@ public class InstituicaoMapper {
         usuarioDto.setId(modelUsuario.getId());
         usuarioDto.setNome(modelUsuario.getNome());
         usuarioDto.setSobrenome(modelUsuario.getSobrenome());
-        usuarioDto.setSexo(modelUsuario.getSexo());
+        usuarioDto.setGenero(modelUsuario.getGenero());
         usuarioDto.setDataNascimento(modelUsuario.getDataNascimento());
         usuarioDto.setEmail(modelUsuario.getEmail());
 

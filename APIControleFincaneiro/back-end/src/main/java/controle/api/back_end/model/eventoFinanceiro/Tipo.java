@@ -5,5 +5,6 @@
         Recebimento,
         Transferencia,
         Poupanca,
+        Resgate,
         Emprestimo
     }

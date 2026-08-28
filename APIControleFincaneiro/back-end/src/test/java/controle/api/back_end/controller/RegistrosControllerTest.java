@@ -15,7 +15,7 @@ import controle.api.back_end.model.eventoFinanceiro.*;
 import controle.api.back_end.model.instituicao.Instituicao;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 import controle.api.back_end.model.usuario.Usuario;
-import controle.api.back_end.model.usuario.UsuarioSexo;
+import controle.api.back_end.model.usuario.GeneroUsuario;
 import controle.api.back_end.service.RegistroExportacaoService;
 import controle.api.back_end.service.RegistroService;
 import controle.api.back_end.strategy.eventoFinanceiro.Registro;
@@ -206,7 +206,7 @@ class RegistrosControllerTest {
         u.setNome("Teste");
         u.setSobrenome("User");
         u.setEmail("teste@email.com");
-        u.setSexo(UsuarioSexo.Feminino);
+            u.setGenero(GeneroUsuario.MULHER_CIS);
         u.setDataNascimento(LocalDate.of(1995, 1, 1));
         return u;
     }

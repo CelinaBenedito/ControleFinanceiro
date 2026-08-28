@@ -23,7 +23,7 @@ public class InstituicaoUsuarioMapper {
         entityUsuario.setNome(dtoUsuario.getNome());
         entityUsuario.setSobrenome(dtoUsuario.getSobrenome());
         entityUsuario.setEmail(dtoUsuario.getEmail());
-        entityUsuario.setSexo(dtoUsuario.getSexo());
+        entityUsuario.setGenero(dtoUsuario.getGenero());
         entityUsuario.setDataNascimento(dtoUsuario.getDataNascimento());
 
         entityInstituicao.setId(dtoInstituicao.getId());
