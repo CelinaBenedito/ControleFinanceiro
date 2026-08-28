@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
@@ -30,7 +31,21 @@ import java.util.Locale;
 
 public class DesktopApp extends Application {
 
-    private static final String APP_URL = "http://localhost:8080/index.html";
+    private static final String APP_URL = resolveAppUrl();
+
+    private static String resolveAppUrl() {
+        String fromProperty = System.getProperty("myfinance.appUrl");
+        if (fromProperty != null && !fromProperty.isBlank()) {
+            return fromProperty;
+        }
+
+        String fromEnv = System.getenv("MYFINANCE_APP_URL");
+        if (fromEnv != null && !fromEnv.isBlank()) {
+            return fromEnv;
+        }
+
+        return "http://localhost:8080/index.html";
+    }
 
     /** Referencia estatica ao Stage principal — usada pelo UpdateService para fechar a janela. */
     private static volatile Stage primaryStage;
@@ -39,6 +54,7 @@ public class DesktopApp extends Application {
     private TrayIcon trayIcon;
     private boolean exitingApp = false;
     private volatile boolean trayInitialized = false;
+
 
     /** Fecha a janela JavaFX de forma segura a partir de qualquer thread. */
     public static void exitApplication() {
@@ -141,6 +157,7 @@ public class DesktopApp extends Application {
      */
     private void iniciarPollerSpringBoot(WebEngine engine) {
         Thread poller = new Thread(() -> {
+            final boolean urlLocal = isLocalhostAppUrl(APP_URL);
             int tentativas = 0;
             int maxTentativas = 90; // aguarda ate 90s
 
@@ -148,12 +165,14 @@ public class DesktopApp extends Application {
                 try {
                     Thread.sleep(1000);
 
-                    // Tenta primeiro apenas conectar TCP (rapido) antes de fazer HTTP completo
-                    try (Socket s = new Socket()) {
-                        s.connect(new InetSocketAddress("127.0.0.1", 8080), 500);
+                    if (urlLocal) {
+                        // Quando o app usa backend local, confirma primeiro a porta 8080.
+                        try (Socket s = new Socket()) {
+                            s.connect(new InetSocketAddress("127.0.0.1", 8080), 500);
+                        }
                     }
 
-                    // Porta aberta — faz requisicao HTTP completa
+                    // Faz requisicao HTTP completa para a URL configurada (local ou Azure).
                     HttpURLConnection conn = (HttpURLConnection) new URL(APP_URL).openConnection();
                     conn.setConnectTimeout(2000);
                     conn.setReadTimeout(3000);
@@ -174,11 +193,16 @@ public class DesktopApp extends Application {
                 // Atualiza mensagem de progresso a cada 5s
                 if (tentativas % 5 == 0) {
                     final int seg = tentativas;
-                    // Detecta se o Spring Boot falhou (porta 8080 nunca abriu mas processo JVM ainda existe)
-                    boolean portaDB = isPortResponding8080();
-                    String msg = portaDB
-                        ? "Aguardando servidor... (" + seg + "s)"
-                        : "Inicializando banco de dados... (" + seg + "s)";
+                    String msg;
+                    if (urlLocal) {
+                        // Detecta se o Spring Boot local ainda nao abriu a porta 8080.
+                        boolean portaLocalAberta = isPortResponding8080();
+                        msg = portaLocalAberta
+                            ? "Aguardando servidor... (" + seg + "s)"
+                            : "Inicializando banco de dados... (" + seg + "s)";
+                    } else {
+                        msg = "Conectando ao servidor na nuvem... (" + seg + "s)";
+                    }
                     Platform.runLater(() ->
                         engine.executeScript(
                             "var el = document.getElementById('mf-status');" +
@@ -215,6 +239,19 @@ public class DesktopApp extends Application {
             return false;
         }
     }
+
+    private static boolean isLocalhostAppUrl(String appUrl) {
+        try {
+            URI uri = URI.create(appUrl);
+            String host = uri.getHost();
+            if (host == null) return false;
+            String hostNormalizado = host.toLowerCase(Locale.ROOT);
+            return "localhost".equals(hostNormalizado) || "127.0.0.1".equals(hostNormalizado);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 
     // -------------------------------------------------------------------------
     // Icone da janela (Stage)
@@ -361,21 +398,21 @@ public class DesktopApp extends Application {
             BufferedImage fallback = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g2d = fallback.createGraphics();
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            
+
             // Fundo colorido
             g2d.setColor(new Color(54, 115, 115));
             g2d.fillOval(2, 2, 28, 28);
-            
+
             // Borda
             g2d.setColor(new Color(40, 90, 90));
             g2d.setStroke(new BasicStroke(2));
             g2d.drawOval(2, 2, 28, 28);
-            
+
             // Letra M
             g2d.setColor(Color.WHITE);
             g2d.setFont(new Font("Arial", Font.BOLD, 20));
             g2d.drawString("M", 9, 23);
-            
+
             g2d.dispose();
             return fallback;
         } catch (Exception e) {
@@ -411,19 +448,19 @@ public class DesktopApp extends Application {
         alert.showAndWait().ifPresent(response -> {
             if (response == minimizarButton) {
                 System.out.println("[DesktopApp] Minimizando para a bandeja...");
-                
+
                 // Verifica se o tray icon foi inicializado
                 if (!trayInitialized || trayIcon == null) {
                     System.err.println("[DesktopApp] ✗ System Tray não inicializado!");
                     System.err.println("[DesktopApp] Tentando reconfigurar...");
-                    
+
                     // Tenta configurar novamente
                     setupSystemTray(stage);
-                    
+
                     // Verifica se funcionou
                     if (!trayInitialized || trayIcon == null) {
                         System.err.println("[DesktopApp] ✗ Falha ao reconfigurar system tray.");
-                        
+
                         // Mostra alerta ao usuário
                         Alert errorAlert = new Alert(Alert.AlertType.WARNING);
                         errorAlert.setTitle("System Tray não disponível");
@@ -439,11 +476,11 @@ public class DesktopApp extends Application {
                     }
                     System.out.println("[DesktopApp] ✓ Reconfiguração bem-sucedida!");
                 }
-                
+
                 stage.hide();
                 showTrayNotification("MyFinance", "Aplicação minimizada para a bandeja do sistema");
                 System.out.println("[DesktopApp] ✓ Janela minimizada com sucesso!");
-                
+
             } else if (response == fecharButton) {
                 System.out.println("[DesktopApp] Fechando aplicação...");
                 exitingApp = true;

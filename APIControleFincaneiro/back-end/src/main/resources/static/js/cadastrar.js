@@ -1,6 +1,24 @@
 
 
 div_alerta.style.display = 'none';
+let cadastroEmAndamento = false;
+
+function obterBotaoCadastro() {
+    return document.getElementById("btn_cadastro");
+}
+
+function definirEstadoCadastro(carregando) {
+    cadastroEmAndamento = carregando;
+    const botao = obterBotaoCadastro();
+    if (!botao) return;
+
+    if (!botao.dataset.textoOriginal) {
+        botao.dataset.textoOriginal = botao.textContent;
+    }
+
+    botao.disabled = carregando;
+    botao.textContent = carregando ? "Cadastrando..." : botao.dataset.textoOriginal;
+}
 
 // Aplica máscara no campo de data ao carregar
 (function () {
@@ -32,12 +50,92 @@ function alerta(texto) {
         `
 }
 
+async function extrairErroResposta(response) {
+    let body = null;
+
+    try {
+        body = await response.clone().json();
+    } catch (_) {
+        try {
+            body = await response.clone().text();
+        } catch (_) {
+            body = null;
+        }
+    }
+
+    const mensagem = typeof body === "string"
+        ? body
+        : (body && (body.message || body.error || body.detail || ""));
+
+    return {
+        status: response.status,
+        mensagem: String(mensagem || "").trim()
+    };
+}
+
+function mensagemCadastroSegura(erro) {
+    const status = Number(erro?.status || 0);
+    const mensagem = (erro?.mensagem || "").toLowerCase();
+
+    // Erros de servidor (5xx) geralmente são falhas internas (ex.: banco de dados)
+    // e não devem ser interpretados pelas palavras-chave de campos abaixo, pois a
+    // mensagem crua pode conter nomes de colunas (ex.: "data_nascimento") que não
+    // refletem um problema real com o dado informado pelo usuário.
+    if (status >= 500) {
+        return "Não foi possível concluir o cadastro agora. Tente novamente em instantes. <button onclick='div_alerta.style.display=\"none\"'>OK</button>";
+    }
+
+    if (
+        status === 409 ||
+        (
+            mensagem.includes("email") &&
+            (
+                mensagem.includes("já existe") ||
+                mensagem.includes("ja existe") ||
+                mensagem.includes("cadastrado") ||
+                mensagem.includes("duplicate") ||
+                mensagem.includes("duplic")
+            )
+        )
+    ) {
+        return "Email inválido <button onclick='div_alerta.style.display=\"none\"'>OK</button>";
+    }
+
+    if (mensagem.includes("nascimento")) {
+        return "Data de nascimento inválida <button onclick='div_alerta.style.display=\"none\"'>OK</button>";
+    }
+
+    if (mensagem.includes("gênero") || mensagem.includes("genero")) {
+        return "Gênero inválido <button onclick='div_alerta.style.display=\"none\"'>OK</button>";
+    }
+
+    if (mensagem.includes("pronome")) {
+        return "Pronome inválido <button onclick='div_alerta.style.display=\"none\"'>OK</button>";
+    }
+
+    if (mensagem.includes("senha")) {
+        return "Senha inválida <button onclick='div_alerta.style.display=\"none\"'>OK</button>";
+    }
+
+    if (mensagem.includes("email")) {
+        return "Email inválido <button onclick='div_alerta.style.display=\"none\"'>OK</button>";
+    }
+
+    return "Erro ao criar conta. Revise os dados informados e tente novamente. <button onclick='div_alerta.style.display=\"none\"'>OK</button>";
+}
+
+function obterGeneroCadastro() {
+    return document.getElementById("select_genero").value;
+}
+
 function checarDados() {
+    if (cadastroEmAndamento) return;
+
     const nome = document.getElementById("ipt_nome").value.trim();
     const sobrenome = document.getElementById("ipt_sobrenome").value.trim();
     const dataNascimentoBR = document.getElementById("ipt_dataNascimento").value.trim();
     const dataNascimento = window.MainAPI ? window.MainAPI.dataParaISO(dataNascimentoBR) : null;
-    let sexo = document.getElementById("select_sexo").value;
+    const genero = obterGeneroCadastro();
     const email = document.getElementById("ipt_email").value.trim();
     const senha = document.getElementById("ipt_senha").value;
     const confSenha = document.getElementById("ipt_ConfSenha").value;
@@ -65,53 +163,25 @@ function checarDados() {
     console.log("%cSobrenome OK", "color: green");
 
     /* =========================
-       DATA DE NASCIMENTO (>= 16 anos)
+       DATA DE NASCIMENTO
     ========================= */
     if (!dataNascimentoBR || dataNascimentoBR.length < 10 || !dataNascimento) {
         alerta(`Data de nascimento inválida (use dd/mm/aaaa) <button onclick='div_alerta.style.display="none"'>OK</button>`);
         console.error("Data de nascimento inválida");
         return;
     }
-
-    const hoje = new Date();
-    const nascimento = new Date(dataNascimento + "T00:00:00");
-    let idade = hoje.getFullYear() - nascimento.getFullYear();
-    const m = hoje.getMonth() - nascimento.getMonth();
-
-    if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) {
-        idade--;
-    }
-
-    if (idade < 16) {
-        alerta(`Você precisa ter pelo menos 16 anos <button onclick='div_alerta.style.display="none"'>OK</button>`);
-        console.error("Idade menor que 16");
-        return;
-    }
-    console.log(`%cIdade OK (${idade} anos)`, "color: green");
+    console.log("%cData de nascimento OK", "color: green");
 
     /* =========================
-       SEXO (tratamento de valores)
+       GÊNERO
     ========================= */
-    switch (sexo) {
-        case "Feminino":
-            sexo = 1;
-            break;
-
-        case "Masculino":
-            sexo = 2;
-            break;
-
-        case "Nao":
-            sexo = 3;
-            break;
-
-        default:
-            alerta(`Selecione uma opção válida <button onclick='div_alerta.style.display="none"'>OK</button>`);
-            console.error("Sexo não selecionado");
-            return;
+    if (!genero || genero === "#") {
+        alerta(`Selecione uma opção válida <button onclick='div_alerta.style.display="none"'>OK</button>`);
+        console.error("Gênero não selecionado");
+        return;
     }
 
-    console.log("%cSexo OK → " + sexo, "color: green");
+    console.log("%cGênero OK → " + genero, "color: green");
 
     /* =========================
        EMAIL
@@ -162,17 +232,20 @@ function checarDados() {
     );
     console.warn("Redirecionando para o cadastro!")
 
-    cadastrar(nome, sobrenome, dataNascimento, sexo, email, senha);
+    cadastrar(nome, sobrenome, dataNascimento, genero, email, senha);
 }
 
-function cadastrar(nome, sobrenome, dataNascimento, sexo, email, senha) {
+function cadastrar(nome, sobrenome, dataNascimento, genero, email, senha) {
+    if (cadastroEmAndamento) return;
+
     console.warn("Iniciando o cadastro!");
+    definirEstadoCadastro(true);
 
     MainAPI.cadastrarUsuario({
         nome: nome,
         sobrenome: sobrenome,
         dataNascimento: dataNascimento,
-        sexo: sexo,
+        genero: genero,
         email: email,
         senha: senha
 
@@ -184,9 +257,13 @@ function cadastrar(nome, sobrenome, dataNascimento, sexo, email, senha) {
                 window.location.href = "login.html";
             }, 1500);
         } else {
-            alerta(`Erro ao criar conta. Verifique os dados e tente novamente. <button onclick='div_alerta.style.display="none"'>OK</button>`);
+            definirEstadoCadastro(false);
+            extrairErroResposta(response).then((erro) => {
+                alerta(mensagemCadastroSegura(erro));
+            });
         }
     }).catch((error) => {
+        definirEstadoCadastro(false);
         console.error("Erro na chamada ao MainAPI:", error);
         alerta(`Erro ao conectar ao servidor. <button onclick='div_alerta.style.display="none"'>OK</button>`);
     });
