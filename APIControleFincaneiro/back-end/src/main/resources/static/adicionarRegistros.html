@@ -37,6 +37,7 @@
     <link rel="stylesheet" href="styles/Estilos.css">
     <link rel="stylesheet" href="styles/registro.css">
     <link rel="stylesheet" href="styles/root.css">
+    <link rel="stylesheet" href="styles/tutorial.css">
 </head>
 
 <body data-tema="padrao" data-mode="light" onload="gerarInformacoes()">
@@ -54,7 +55,7 @@
                     <a href="dashboard.html"><i class='bx bx-home'></i> <span id="home">Home</span></a>
                 </li>
                 <li>
-                    <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i> <span id="add">Adicionar
+                    <a href="adicionarRegistros.html" class="nav-ativo"><i class='bx bx-file-plus'></i> <span id="add">Adicionar
                             Registros</span></a>
                 </li>
                 <li>
@@ -82,10 +83,10 @@
                 <h1>Adicionar Registros</h1>
                 <div class="user-widget" id="userWidget">
                     <div class="uw-info">
-                        <span class="uw-nome" id="uw_nome">Usuário</span>
+                        <span class="uw-nome" id="uw_nome"></span>
                         <div class="uw-xp-track">
                             <div class="uw-xp-fill" id="uw_xp"></div>
-                            <span class="uw-lvl" id="uw_lvl">LVL 1</span>
+                            <span class="uw-lvl" id="uw_lvl">LVL 0</span>
                         </div>
                     </div>
                     <div class="uw-avatar">
@@ -120,7 +121,7 @@
 
                 <!-- Mascot -->
                 <div class="ar-mascot">
-                    <img class="ar-mascot-img" src="assets/gif/glaceon fofinha.gif" alt="Glaceon">
+                    <img class="ar-mascot-img" data-mascote-tipo="fofinha" src="assets/gif/Gifs da Glaceon/glaceon fofinha.gif" alt="Glaceon">
                 </div>
 
                 <!-- Form -->
@@ -279,7 +280,7 @@
                             </div>
                         </div>
                         <div class="ar-btns-row">
-                            <button class="ar-btn" onclick="registrar()">Registrar</button>
+                            <button class="ar-btn" id="btnRegistrar" onclick="registrar()">Registrar</button>
                         </div>
                     </div>
                 </div><!-- /ar-form-col -->
@@ -461,9 +462,13 @@
         </div>
     </div>
 
+    <script src="js/cache.js?v=1"></script>
     <script src="js/main.js?v=2"></script>
-    <script src="js/navbar.js?v=2"></script>
+    <script src="js/mascote.js?v=3"></script>
+    <script src="js/navbar.js?v=3"></script>
     <script src="js/adicionarRegistros.js?v=2"></script>
+    <script src="js/tutorial.js?v=1"></script>
+    <script src="js/tutorial-adicionarRegistros.js?v=1"></script>
 </body>
 
 </html>

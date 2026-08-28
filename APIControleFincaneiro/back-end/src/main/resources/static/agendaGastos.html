@@ -50,14 +50,13 @@
                     <a href="dashboard.html"><i class='bx bx-home'></i> <span id="home">Home</span></a>
                 </li>
                 <li>
+                    <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i> <span id="add">Adicionar Registros</span></a>
+                </li>
+                <li>
                     <a href="registros.html"><i class='bx bx-address-book'></i> <span id="reg">Registros</span></a>
                 </li>
                 <li>
-                    <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i> <span id="add">Adicionar
-                            Registros</span></a>
-                </li>
-                <li>
-                    <a href="agendaGastos.html"><i class='bx bx-calendar-event'></i> <span id="agenda">Agenda</span></a>
+                    <a href="agendaGastos.html" class="nav-ativo"><i class='bx bx-calendar-event'></i> <span id="agenda">Agenda</span></a>
                 </li>
                 <li>
                     <a href="caixinhas.html"><i class='bx bx-piggy-bank'></i><span id="caixinhas">Poupança</span></a>
@@ -78,10 +77,10 @@
                 <!-- User widget -->
                 <div class="user-widget" id="userWidget">
                     <div class="uw-info">
-                        <span class="uw-nome" id="uw_nome">Usuário</span>
+                        <span class="uw-nome" id="uw_nome"></span>
                         <div class="uw-xp-track">
                             <div class="uw-xp-fill" id="uw_xp"></div>
-                            <span class="uw-lvl" id="uw_lvl">LVL 1</span>
+                            <span class="uw-lvl" id="uw_lvl">LVL 0</span>
                         </div>
                     </div>
                     <div class="uw-avatar">
@@ -128,6 +127,10 @@
                     <div class="ag-resumo-titulo">Resumo:</div>
                     <p class="ag-resumo-empty" id="resumoEmpty">Selecione um dia para ver os eventos.</p>
                     <div id="resumoConteudo"></div>
+                    <!-- Mascote observando a agenda -->
+                    <div class="mascote-spot ag-mascote-resumo">
+                        <img data-mascote-tipo="balancante02" src="assets/gif/Gifs da Glaceon/glaceon de costas.gif" alt="Mascote">
+                    </div>
                 </div>
             </div>
 
@@ -180,6 +183,8 @@
 </body>
 
 </html>
-<script src="js/main.js?v=2"></script>
-<script src="js/navbar.js?v=2"></script>
+<script src="js/cache.js?v=1"></script>
+    <script src="js/main.js?v=2"></script>
+    <script src="js/mascote.js?v=3"></script>
+<script src="js/navbar.js?v=3"></script>
 <script src="js/agendaGastos.js?v=2"></script>

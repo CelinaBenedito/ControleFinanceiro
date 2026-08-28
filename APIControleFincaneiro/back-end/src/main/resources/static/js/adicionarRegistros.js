@@ -8,6 +8,132 @@ const userId = usuarioLogado ? usuarioLogado.id : null;
 let _alertaTimer = null;
 
 /* ══════════════════════════════════════════════════
+   Fila de envio em background (modo múltiplos registros)
+══════════════════════════════════════════════════ */
+const RegistroQueue = (function () {
+    const _q = [];
+    let _busy = false;
+
+    // Contadores do lote atual
+    let _total = 0;
+    let _done  = 0;
+    let _erros = 0;
+    let _autoCloseTimer = null;
+
+    const NOTIF_ID = 'sync-registros';
+
+    function _notificar() {
+        if (!window._addNotification) return;
+        const processados = _done + _erros;
+
+        if (processados === _total && _total > 0) {
+            // Lote concluído
+            if (_erros > 0) {
+                window._addNotification({
+                    id: NOTIF_ID,
+                    type: 'warning',
+                    title: 'Alguns registros falharam',
+                    subtitle: `${_done} salvo${_done !== 1 ? 's' : ''}, ${_erros} com erro`,
+                    read: false,
+                    detail: {
+                        description: `${_done} registro(s) foram salvos com sucesso, mas ${_erros} falhou(aram) ao enviar para a nuvem. Acesse a página de registros para reenviar os itens com erro.`
+                    }
+                });
+            } else {
+                window._addNotification({
+                    id: NOTIF_ID,
+                    type: 'success',
+                    title: 'Registros salvos!',
+                    subtitle: `${_done} registro${_done !== 1 ? 's' : ''} sincronizado${_done !== 1 ? 's' : ''} com sucesso`,
+                    read: false,
+                    detail: {
+                        description: `Todos os ${_done} registro(s) foram enviados e salvos na nuvem com sucesso.`
+                    }
+                });
+                // Remove notificação de sucesso automaticamente após 10s
+                if (_autoCloseTimer) clearTimeout(_autoCloseTimer);
+                _autoCloseTimer = setTimeout(function () {
+                    if (window._removeNotification) window._removeNotification(NOTIF_ID);
+                    _autoCloseTimer = null;
+                }, 10000);
+            }
+        } else if (_total > 0) {
+            // Em progresso
+            window._addNotification({
+                id: NOTIF_ID,
+                type: 'info',
+                title: 'Sincronizando registros...',
+                subtitle: `${processados} de ${_total} enviado${processados !== 1 ? 's' : ''}`,
+                read: false,
+                detail: {
+                    description: 'Seus registros estão sendo enviados para a nuvem em segundo plano. Você pode continuar cadastrando normalmente.'
+                }
+            });
+        }
+    }
+
+    async function _run() {
+        if (_busy || _q.length === 0) return;
+        _busy = true;
+        while (_q.length > 0) {
+            const job = _q[0];
+            if (job.cancelled) {
+                _q.shift();
+                _total = Math.max(0, _total - 1);
+                _notificar();
+                continue;
+            }
+            job.status = 'sending';
+            if (job.onStatus) job.onStatus('sending');
+            _notificar();
+            try {
+                const res = await MainAPI.registrarGasto(job.payload);
+                if (res.ok) {
+                    job.status = 'done';
+                    _done++;
+                    if (job.onStatus) job.onStatus('done');
+                    if (job.onSuccess) job.onSuccess(res);
+                } else {
+                    let msg = `HTTP ${res.status}`;
+                    try { const b = await res.json(); msg = b.message || b.error || msg; } catch (_) {}
+                    job.status = 'error';
+                    job.errorMsg = msg;
+                    _erros++;
+                    if (job.onStatus) job.onStatus('error', msg);
+                }
+            } catch (e) {
+                const msg = e.message || 'Erro de rede';
+                job.status = 'error';
+                job.errorMsg = msg;
+                _erros++;
+                if (job.onStatus) job.onStatus('error', msg);
+            }
+            _q.shift();
+            _notificar();
+        }
+        _busy = false;
+    }
+
+    function enqueue(payload, onStatus, onSuccess) {
+        // Novo lote: reseta contadores se a fila estava vazia e ociosa
+        if (_q.length === 0 && !_busy) {
+            _total = 0; _done = 0; _erros = 0;
+        }
+        // Cancela auto-close de sucesso se novos itens chegam
+        if (_autoCloseTimer) { clearTimeout(_autoCloseTimer); _autoCloseTimer = null; }
+
+        _total++;
+        const job = { payload, onStatus, onSuccess, status: 'pending', errorMsg: null, cancelled: false };
+        _q.push(job);
+        _notificar();
+        _run();
+        return job;
+    }
+
+    return { enqueue };
+})();
+
+/* ══════════════════════════════════════════════════
    Alertas
 ══════════════════════════════════════════════════ */
 function habilitarFecharAlertaAoClicarFora() {
@@ -681,90 +807,9 @@ function _initRecurringSubOptions() {
     }
 } // fim _initRecurringSubOptions
 
-/* ══════════════════════════════════════════════════
-   Painel de Poupança (Caixinha)
-══════════════════════════════════════════════════ */
-let _caixinhas = [];
-let _caixinhaSelecionadaId = null;
-
-async function _carregarCaixinhas() {
-    if (!userId) return;
-    try {
-        _caixinhas = await MainAPI.getCaixinhas(userId);
-    } catch (e) {
-        _caixinhas = [];
-    }
-}
-
-function _renderPainelPoupanca(show) {
-    let painel = document.getElementById('ar-poupanca-painel');
-    if (!show) {
-        if (painel) painel.style.display = 'none';
-        _caixinhaSelecionadaId = null;
-        return;
-    }
-    if (!painel) {
-        // Cria o painel dinamicamente na primeira vez
-        painel = document.createElement('div');
-        painel.id = 'ar-poupanca-painel';
-        painel.className = 'ar-recurring-wrap ar-span-3';
-        // Insere após o bloco de tipo de movimento
-        const movWrap = document.getElementById('select_movimento')?.closest('.ar-field-wrap');
-        if (movWrap && movWrap.parentNode) {
-            movWrap.parentNode.insertBefore(painel, movWrap.nextSibling);
-        }
-    }
-    painel.style.display = '';
-
-    if (_caixinhas.length === 0) {
-        painel.innerHTML = `
-            <div style="background:var(--cor-tinte-suave);border-radius:12px;padding:14px 16px;border:1px solid var(--cor-tinte-borda);">
-                <p style="margin:0;color:var(--cor-texto-secundario);font-size:0.92rem;">
-                    <i class='bx bx-info-circle' style="color:var(--cor-principal);"></i>
-                    Nenhuma caixinha ativa encontrada. 
-                    <strong>Registre o aporte mesmo assim</strong> — ele aparecerá como Poupança sem caixinha vinculada.
-                </p>
-            </div>`;
-        _caixinhaSelecionadaId = null;
-        return;
-    }
-
-    const opts = _caixinhas.map(c => {
-        const pct   = c.percentualAtingido != null ? `${c.percentualAtingido.toFixed(1)}%` : '—';
-        const prazo = c.dataPrazo ? ` · prazo ${c.dataPrazo}` : '';
-        return `<option value="${c.id}">${c.nome} (${pct} atingido${prazo})</option>`;
-    }).join('');
-
-    painel.innerHTML = `
-        <div style="background:var(--cor-tinte-suave);border-radius:12px;padding:14px 16px;border:1px solid var(--cor-tinte-borda);display:flex;flex-direction:column;gap:10px;">
-            <span style="font-size:0.82rem;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:0.5px;">Vincular a uma Caixinha</span>
-            <select id="ar-select-caixinha" style="background:var(--cor-fundo-card);border:1px solid var(--cor-tinte-borda);border-radius:8px;padding:8px 12px;color:var(--cor-texto-principal);font-size:0.95rem;">
-                <option value="">Sem caixinha (aporte avulso)</option>
-                ${opts}
-            </select>
-            <div id="ar-caixinha-info" style="display:none;font-size:0.87rem;color:var(--cor-texto-secundario);line-height:1.6;padding:8px 10px;background:var(--cor-fundo-campo);border-radius:8px;"></div>
-        </div>`;
-
-    document.getElementById('ar-select-caixinha').addEventListener('change', function () {
-        _caixinhaSelecionadaId = this.value || null;
-        const info = document.getElementById('ar-caixinha-info');
-        if (!_caixinhaSelecionadaId) { info.style.display = 'none'; return; }
-        const cx = _caixinhas.find(c => c.id === _caixinhaSelecionadaId);
-        if (!cx) { info.style.display = 'none'; return; }
-        const fmt = v => v != null ? `R$ ${Number(v).toFixed(2)}` : '—';
-        const pct = cx.percentualAtingido != null ? `${cx.percentualAtingido.toFixed(1)}%` : '—';
-        info.style.display = '';
-        info.innerHTML = `
-            <b>${cx.nome}</b><br>
-            Meta: <b>${fmt(cx.valorMeta)}</b> · Acumulado: <b>${fmt(cx.valorAtual)}</b> (${pct})<br>
-            ${cx.aporteMensalSugerido != null ? `Aporte mensal sugerido: <b style="color:var(--cor-principal)">${fmt(cx.aporteMensalSugerido)}</b>` : ''}
-            ${cx.mesesRestantes != null ? ` · ${cx.mesesRestantes} meses restantes` : ''}`;
-    });
-}
 
 function _onTipoChange() {
     const tipo = document.getElementById('select_tipo')?.value;
-    _renderPainelPoupanca(tipo === 'Poupanca');
     _renderPainelEmprestimo(tipo === 'Emprestimo');
     _renderPainelTransferencia(tipo === 'Transferencia');
 
@@ -797,13 +842,11 @@ function gerarInformacoes() {
     // Clear-on-focus for text fields
     setupClearOnFocus();
 
-    // Poupança: carrega caixinhas e escuta mudança de tipo
-    _carregarCaixinhas();
+    // Atualiza saldo display quando o tipo de movimento muda
+    // (crédito mostra limite disponível; débito mostra saldo de caixa)
     const selectTipo = document.getElementById('select_tipo');
     if (selectTipo) selectTipo.addEventListener('change', _onTipoChange);
 
-    // Atualiza saldo display quando o tipo de movimento muda
-    // (crédito mostra limite disponível; débito mostra saldo de caixa)
     const selectMov = document.getElementById('select_movimento');
     if (selectMov) selectMov.addEventListener('change', () => {
         const selectedInst = _tp['inst']?.selected || [];
@@ -820,7 +863,10 @@ async function atualizarSaldoDisplay(instituicaoUsuarioId) {
     if (!el) return;
     if (!instituicaoUsuarioId || instituicaoUsuarioId === '#') { el.style.display = 'none'; return; }
     try {
-        const res = await fetch(`http://localhost:8080/instituicoes/saldo/${Number(instituicaoUsuarioId)}`);
+        const path = `/instituicoes/saldo/${Number(instituicaoUsuarioId)}`;
+        const res = window.MainAPI?.request
+            ? await window.MainAPI.request(path, { method: 'GET' })
+            : await fetch(path);
         if (!res.ok) { el.style.display = 'none'; return; }
         const saldo = await res.json();
         const valor = Number(saldo);
@@ -916,19 +962,6 @@ async function registrar() {
         if (!algumValor) return alerta("Informe o valor para cada instituição");
     }
 
-     // Verificar saldo quando o tipo exige débito (exceto crédito, que não debita imediatamente)
-     // Usa saldo-debito para não considerar o limite de crédito em transações de débito
-     if ((tipo === 'Gasto' || tipo === 'Transferencia') && selectedInst.length === 1 && movimento !== 'Credito') {
-         try {
-             const resSaldo = await fetch(`http://localhost:8080/instituicoes/saldo-debito/${Number(selectedInst[0].id)}`);
-             if (resSaldo.ok) {
-                 const saldo = await resSaldo.json();
-                 if (Number(saldo) < valor)
-                     return alerta(`Saldo insuficiente. Disponível: R$ ${Number(saldo).toFixed(2)}`);
-             }
-         } catch (e) { console.warn("Não foi possível verificar saldo:", e); }
-     }
-
     // Montar lista de instituições (com valor individual quando múltiplas)
     const instituicaoList = selectedInst.map(s => {
         let instValor = valor;
@@ -979,10 +1012,11 @@ async function registrar() {
         // Dia do mês ou do ano
         const dia = _diaMes || _diaAnual || null;
 
+        const _btnReg = document.getElementById('btnRegistrar');
+        if (_btnReg) _btnReg.disabled = true;
+
         alerta(`Registrando recorrência...
-            <div class="glaceonCorrendoDiv">
-                <img class="glaceon correndo" src="/assets/gif/glaceon-correndo-unscreen.gif" alt="">
-            </div>`, 0);
+            ${ window.MascoteApp ? window.MascoteApp.getCorrendoHTML() : '<div class="glaceonCorrendoDiv"><img class="glaceon correndo" src="/assets/gif/Gifs da Glaceon/glaceon-correndo-unscreen.gif" alt=""></div>' }`, 0);
 
         MainAPI.registrarRecorrente({
             financeiro: {
@@ -1000,6 +1034,7 @@ async function registrar() {
             instituicao: instituicaoList,
             detalhe: { categoriaUsuario_id: selectedCat.map(s => Number(s.id)), tituloGasto: titulo }
         }).then(async (response) => {
+            if (_btnReg) _btnReg.disabled = false;
             if (response.ok) {
                 window.dispatchEvent(new Event('xp:refresh'));
                 markFieldsForClear(['ipt_nome', 'ipt_valor', 'ipt_desc']);
@@ -1011,46 +1046,48 @@ async function registrar() {
                 alerta(`Erro ao registrar recorrência (${response.status}): ${detalhe}`);
             }
         }).catch(err => {
+            if (_btnReg) _btnReg.disabled = false;
             console.error("Erro de rede:", err);
             alerta("Erro de conexão ao registrar recorrência.");
         });
         return; // não continua para o registro normal
     }
 
-    alerta(`Registrando...
-        <div class="glaceonCorrendoDiv">
-            <img class="glaceon correndo" src="/assets/gif/glaceon-correndo-unscreen.gif" alt="">
-        </div>`, 0);
+    const _btnReg2 = document.getElementById('btnRegistrar');
+    if (_btnReg2) _btnReg2.disabled = true;
 
-    MainAPI.registrarGasto({
+    const _payload = {
         financeiro: {
             usuario_id: userId,
             tipo,
             valor: valorTotal,
             descricao: Desc,
             dataEvento: data,
-            ...(tipo === 'Poupanca' && _caixinhaSelecionadaId ? { caixinha_id: _caixinhaSelecionadaId } : {}),
             ...(tipo === 'Emprestimo' && taxaEmprestimo != null ? { taxaRendimento: taxaEmprestimo } : {})
         },
         instituicao: instituicaoList,
         detalhe: { categoriaUsuario_id: selectedCat.map(s => Number(s.id)), tituloGasto: titulo }
-    }).then(async (response) => {
-        if (response.ok) {
+    };
+
+    // Feedback imediato — re-habilita o botão antes da resposta do servidor
+    markFieldsForClear(['ipt_nome', 'ipt_valor', 'ipt_desc']);
+    alerta('✔ Registro enviado!<br><small>Clique nos campos de texto para editá-los.</small>', 3000);
+    if (_btnReg2) _btnReg2.disabled = false;
+
+    // Submissão em background via fila (integra com painel de notificações)
+    const _instSingle = selectedInst.slice();
+    RegistroQueue.enqueue(
+        _payload,
+        function (status, msg) {
+            if (status === 'error') {
+                alerta(`⚠ Falha ao salvar: ${msg || 'Erro desconhecido'}`, 0);
+            }
+        },
+        function () {
             window.dispatchEvent(new Event('xp:refresh'));
-            if (selectedInst.length === 1) atualizarSaldoDisplay(selectedInst[0].id);
-            // Manter campos – marcar para limpar ao clicar
-            markFieldsForClear(['ipt_nome', 'ipt_valor', 'ipt_desc']);
-            alerta('✔ Registro realizado com sucesso!<br><small>Clique nos campos de texto para editá-los.</small>', 3000);
-        } else {
-            let detalhe = "";
-            try { const corpo = await response.json(); detalhe = corpo.message || corpo.error || JSON.stringify(corpo); }
-            catch (_) { detalhe = `HTTP ${response.status}`; }
-            alerta(`Erro ao registrar (${response.status}): ${detalhe}`);
+            if (_instSingle.length === 1) atualizarSaldoDisplay(_instSingle[0].id);
         }
-    }).catch(err => {
-        console.error("Erro de rede:", err);
-        alerta("Erro de conexão ao registrar.");
-    });
+    );
 }
 
 function atualizarSaldo(valor, instituicao) {
@@ -1234,7 +1271,7 @@ function adicionarAoLote() {
         ? instituicaoList.reduce((acc, i) => acc + i.valor, 0)
         : valor;
 
-    lote.push({
+    const novoItem = {
         financeiro: { usuario_id: userId, tipo, valor: valorTotal, descricao: desc, dataEvento: data },
         instituicao: instituicaoList,
         detalhe: { categoriaUsuario_id: selectedCat.map(s => Number(s.id)), tituloGasto: titulo },
@@ -1243,8 +1280,23 @@ function adicionarAoLote() {
             instNome: selectedInst.map(s => s.label).join(', '),
             categorias: selectedCat.map(s => s.label).join(', '),
             valor: valorTotal
-        }
-    });
+        },
+        _status: 'pending',
+        _errorMsg: null,
+        _job: null
+    };
+    lote.push(novoItem);
+
+    // Inicia envio em background imediatamente
+    novoItem._job = RegistroQueue.enqueue(
+        { financeiro: novoItem.financeiro, instituicao: novoItem.instituicao, detalhe: novoItem.detalhe },
+        function (status, msg) {
+            novoItem._status = status;
+            novoItem._errorMsg = msg || null;
+            renderizarLote();
+        },
+        function () { window.dispatchEvent(new Event('xp:refresh')); }
+    );
 
     renderizarLote();
 
@@ -1255,12 +1307,19 @@ function adicionarAoLote() {
 function renderizarLote() {
     const tbody = document.getElementById('corpoLote');
     if (lote.length === 0) {
-        tbody.innerHTML = `<tr id="loteVazio"><td colspan="6" class="ar-lote-vazio">Nenhum registro adicionado ainda.</td></tr>`;
+        tbody.innerHTML = `<tr id="loteVazio"><td colspan="7" class="ar-lote-vazio">Nenhum registro adicionado ainda.</td></tr>`;
         return;
     }
     tbody.innerHTML = '';
     lote.forEach((item, i) => {
         const d = item._display;
+        const status = item._status || 'pending';
+        const statusIcon = status === 'done'    ? '<span class="ar-lote-status ar-ls-done"  title="Salvo">✔</span>'
+                         : status === 'error'   ? `<span class="ar-lote-status ar-ls-error" title="${item._errorMsg || 'Erro'}">✗</span>`
+                         : status === 'sending' ? '<span class="ar-lote-status ar-ls-send"  title="Enviando...">⏳</span>'
+                         :                        '<span class="ar-lote-status ar-ls-pend"  title="Aguardando envio">⌛</span>';
+        const canEdit   = status === 'pending' || status === 'error';
+        const canRemove = status !== 'sending';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${d.titulo}</td>
@@ -1268,10 +1327,11 @@ function renderizarLote() {
             <td>${d.movimento}</td>
             <td>${d.instNome}</td>
             <td>R$ ${d.valor.toFixed(2)}</td>
+            <td style="text-align:center">${statusIcon}</td>
             <td>
                 <div class="ar-lote-actions">
-                    <button class="ar-lote-btn edit" onclick="editarDoLote(${i})" title="Editar">✏</button>
-                    <button class="ar-lote-btn delete" onclick="removerDoLote(${i})" title="Remover">✕</button>
+                    <button class="ar-lote-btn edit"   ${canEdit   ? '' : 'disabled'} onclick="editarDoLote(${i})"  title="Editar">✏</button>
+                    <button class="ar-lote-btn delete" ${canRemove ? '' : 'disabled'} onclick="removerDoLote(${i})" title="Remover">✕</button>
                 </div>
             </td>`;
         tbody.appendChild(tr);
@@ -1279,6 +1339,8 @@ function renderizarLote() {
 }
 
 function removerDoLote(i) {
+    const item = lote[i];
+    if (item && item._job && item._job.status === 'pending') item._job.cancelled = true;
     lote.splice(i, 1);
     renderizarLote();
 }
@@ -1286,6 +1348,9 @@ function removerDoLote(i) {
 function editarDoLote(i) {
     const item = lote[i];
     const d    = item._display;
+
+    // Cancela envio pendente se ainda não foi enviado
+    if (item._job && item._job.status === 'pending') item._job.cancelled = true;
 
     // Preencher campos do formulário
     document.getElementById('ipt_multi_nome').value = d.titulo;
@@ -1333,23 +1398,41 @@ function editarDoLote(i) {
 
 function salvarLote() {
     if (lote.length === 0) return alerta('Nenhum registro no lote');
-    alerta(`Salvando ${lote.length} registro(s)...`, 0);
-    const promessas = lote.map(item => MainAPI.registrarGasto({
-        financeiro: item.financeiro,
-        instituicao: item.instituicao,
-        detalhe: item.detalhe
-    }));
-    Promise.all(promessas).then(respostas => {
-        const erros = respostas.filter(r => !r.ok).length;
-        if (erros === 0) {
-            window.dispatchEvent(new Event('xp:refresh'));
-            lote = [];
-            renderizarLote();
-            alerta(`${respostas.length} registro(s) salvos com sucesso!<br><button onclick="document.getElementById('div_alerta').style.display='none'">OK</button>`, 0);
-        } else {
-            alerta(`${erros} erro(s) ao salvar. Verifique e tente novamente.`);
-        }
-    }).catch(() => alerta('Erro ao conectar ao servidor'));
+
+    const done    = lote.filter(i => i._status === 'done').length;
+    const sending = lote.filter(i => i._status === 'sending').length;
+    const pending = lote.filter(i => i._status === 'pending').length;
+    const errors  = lote.filter(i => i._status === 'error');
+
+    if (sending + pending > 0) {
+        alerta(`⏳ ${sending + pending} registro(s) ainda sendo enviados... ${done} já salvos.`, 3000);
+        return;
+    }
+
+    if (errors.length > 0) {
+        // Reenvia os itens com erro
+        errors.forEach(item => {
+            item._status = 'pending';
+            item._errorMsg = null;
+            item._job = RegistroQueue.enqueue(
+                { financeiro: item.financeiro, instituicao: item.instituicao, detalhe: item.detalhe },
+                function (status, msg) {
+                    item._status = status;
+                    item._errorMsg = msg || null;
+                    renderizarLote();
+                },
+                function () { window.dispatchEvent(new Event('xp:refresh')); }
+            );
+        });
+        renderizarLote();
+        alerta(`↻ Reenviando ${errors.length} registro(s) com erro...`, 3000);
+        return;
+    }
+
+    // Todos enviados com sucesso
+    lote = [];
+    renderizarLote();
+    alerta(`✔ ${done} registro(s) salvos com sucesso!`, 3000);
 }
 
 /* ══════════════════════════════════════════════════

@@ -164,6 +164,18 @@
     padding-bottom: 10px;
 }
 
+.ag-mascote-resumo {
+    display: flex;
+    justify-content: center;
+    margin-top: auto;
+    padding-top: 16px;
+}
+
+.ag-mascote-resumo img {
+    height: 90px;
+    width: auto;
+}
+
 .ag-resumo-empty {
     color: var(--cor-texto-secundario);
     font-size: 1rem;
@@ -357,4 +369,66 @@
 .ag-saldo-positivo  { color: #15803d; }
 .ag-saldo-negativo  { color: #dc2626; }
 
+/* ─────────────────────────────────────────────────────────────
+   RESPONSIVO — Agenda
+───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .ag-layout {
+        flex-direction: column;
+    }
 
+    .ag-resumo {
+        width: 100%;
+        max-height: none;
+        position: static;
+    }
+
+    .ag-month-name {
+        font-size: 1.6rem;
+        min-width: 140px;
+    }
+
+    .ag-day {
+        min-height: 52px;
+        padding: 6px 4px;
+    }
+
+    .ag-day-num {
+        font-size: 1rem;
+    }
+
+    .ag-dot {
+        width: 7px;
+        height: 7px;
+    }
+
+    .ag-weekday {
+        font-size: 0.78rem;
+        padding: 2px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .ag-month-name {
+        font-size: 1.25rem;
+        min-width: 110px;
+    }
+
+    .ag-day {
+        min-height: 40px;
+        padding: 4px 2px;
+    }
+
+    .ag-day-num {
+        font-size: 0.85rem;
+    }
+
+    .ag-dots {
+        gap: 2px;
+    }
+
+    .ag-dot {
+        width: 6px;
+        height: 6px;
+    }
+}

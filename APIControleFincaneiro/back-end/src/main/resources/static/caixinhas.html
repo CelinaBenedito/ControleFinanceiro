@@ -51,16 +51,16 @@
                     <a href="dashboard.html"><i class='bx bx-home'></i><span id="home">Home</span></a>
                 </li>
                 <li>
-                    <a href="registros.html"><i class='bx bx-address-book'></i><span id="reg"> Registros </span></a>
+                    <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i><span id="add">Adicionar Registros</span></a>
                 </li>
                 <li>
-                    <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i><span id="add">Adicionar Registros</span></a>
+                    <a href="registros.html"><i class='bx bx-address-book'></i><span id="reg">Registros</span></a>
                 </li>
                 <li>
                     <a href="agendaGastos.html"><i class='bx bx-calendar-event'></i><span id="agenda">Agenda</span></a>
                 </li>
                 <li>
-                    <a href="caixinhas.html"><i class='bx bx-piggy-bank'></i><span id="caixinhas">Poupança</span></a>
+                    <a href="caixinhas.html" class="nav-ativo"><i class='bx bx-piggy-bank'></i><span id="caixinhas">Poupança</span></a>
                 </li>
                 <li>
                     <a href="emprestimos.html"><i class='bx bx-handshake'></i><span id="emprestimos">Empréstimos</span></a>
@@ -81,6 +81,9 @@
                         <h1>Caixinhas</h1>
                         <span class="cxh-header-subtitle">Suas metas de poupança com rendimento automático</span>
                     </div>
+                    <div class="divimgGlaceonCostas">
+                        <img class="imgGlaceonCostas" data-mascote-tipo="poder" src="assets/gif/Gifs da Glaceon/glaceon poder.gif" alt="Mascote">
+                    </div>
                     <button class="btn-nova-caixinha" onclick="abrirModalCriar()">
                         <i class='bx bx-plus'></i> Nova Caixinha
                     </button>
@@ -88,10 +91,10 @@
                 <div class="top-actions">
                     <div class="user-widget" id="userWidget">
                         <div class="uw-info">
-                            <span class="uw-nome" id="uw_nome">Usuário</span>
+                            <span class="uw-nome" id="uw_nome"></span>
                             <div class="uw-xp-track">
                                 <div class="uw-xp-fill" id="uw_xp"></div>
-                                <span class="uw-lvl" id="uw_lvl">LVL 1</span>
+                                <span class="uw-lvl" id="uw_lvl">LVL 0</span>
                             </div>
                         </div>
                         <div class="uw-avatar">
@@ -193,7 +196,10 @@
 
             <!-- Estado vazio -->
             <div class="cxh-vazio" id="cxhVazio" style="display:none;">
-                <i class='bx bx-piggy-bank'></i>
+                <div class="mascote-spot cxh-mascote-vazio">
+                    <img data-mascote-tipo="poder" src="assets/gif/Gifs da Glaceon/glaceon fofinha.gif" alt="Mascote">
+                </div>
+                <i class='bx bx-piggy-bank mascote-vazio-fallback'></i>
                 <h3>Nenhuma caixinha encontrada</h3>
                 <p>Crie sua primeira caixinha de poupança e comece a realizar seus objetivos!</p>
                 <button class="btn-nova-caixinha" onclick="abrirModalCriar()">
@@ -422,6 +428,12 @@
                 <button class="btn-cxh-reabrir"   id="btnDetReabrir"   onclick="pedirConfirmacaoReabrir()" style="display:none;">
                     <i class='bx bx-lock-open'></i> Reabrir
                 </button>
+                <button class="btn-cxh-aportar"   id="btnDetAportar"   onclick="abrirModalAporteDaAtual(event)">
+                    <i class='bx bx-plus-circle'></i> Adicionar saldo
+                </button>
+                <button class="btn-cxh-resgatar"  id="btnDetResgatar"  onclick="abrirModalResgateDaAtual(event)">
+                    <i class='bx bx-minus-circle'></i> Resgatar
+                </button>
                 <button class="btn-cxh-editar"    id="btnDetEditar"    onclick="editarCaixinhaAtual()">
                     <i class='bx bx-edit'></i> Editar
                 </button>
@@ -440,10 +452,134 @@
         </div><!-- /modal -->
     </div>
 
-    <script src="js/main.js?v=2"></script>
-    <script src="js/caixinhas.js?v=2"></script>
-    <script src="js/navbar.js?v=2"></script>
+    <!-- ════════════════════════════════════════════════════════
+         MODAL: APORTE NA CAIXINHA
+    ════════════════════════════════════════════════════════ -->
+    <div class="cxh-modal-overlay" id="modalAporteOverlay" onclick="fecharModalAporteOutside(event)">
+        <div class="cxh-modal" id="modalAporte">
+            <div class="cxh-modal-header">
+                <h2 id="modalAporteTitulo"><i class='bx bx-plus-circle'></i> Adicionar saldo</h2>
+                <button class="cxh-modal-close" onclick="fecharModalAporte()"><i class='bx bx-x'></i></button>
+            </div>
+
+            <div class="cxh-modal-body">
+                <div class="cxh-aporte-resumo" id="aporteResumoCaixinha">Caixinha: –</div>
+
+                <div class="cxh-campo-wrap">
+                    <label class="cxh-campo-label">Valor do aporte *</label>
+                    <input type="text" id="inputAporteValor" class="cxh-campo-input" placeholder="R$ 0,00" />
+                </div>
+
+                <div class="cxh-campo-row">
+                    <div class="cxh-campo-wrap">
+                        <label class="cxh-campo-label">Instituição *</label>
+                        <select id="selectAporteInstituicao" class="cxh-campo-input"></select>
+                    </div>
+                    <div class="cxh-campo-wrap">
+                        <label class="cxh-campo-label">Movimento *</label>
+                        <select id="selectAporteMovimento" class="cxh-campo-input">
+                            <option value="Debito">Débito</option>
+                            <option value="Credito">Crédito</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Pix">Pix</option>
+                            <option value="Boleto">Boleto</option>
+                            <option value="Voucher">Voucher</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="cxh-campo-row">
+                    <div class="cxh-campo-wrap">
+                        <label class="cxh-campo-label">Categoria *</label>
+                        <select id="selectAporteCategoria" class="cxh-campo-input"></select>
+                    </div>
+                    <div class="cxh-campo-wrap">
+                        <label class="cxh-campo-label">Data *</label>
+                        <input type="date" id="inputAporteData" class="cxh-campo-input" />
+                    </div>
+                </div>
+
+                <div class="cxh-campo-wrap">
+                    <label class="cxh-campo-label">Título *</label>
+                    <input type="text" id="inputAporteTitulo" class="cxh-campo-input" maxlength="120" placeholder="Ex: Aporte mensal" />
+                </div>
+
+                <div class="cxh-campo-wrap">
+                    <label class="cxh-campo-label">Descrição (opcional)</label>
+                    <input type="text" id="inputAporteDescricao" class="cxh-campo-input" maxlength="220" placeholder="Observações do aporte" />
+                </div>
+            </div>
+
+            <div class="cxh-modal-footer">
+                <button class="btn-cxh-cancelar" onclick="fecharModalAporte()">
+                    <i class='bx bx-x'></i> Cancelar
+                </button>
+                <button class="btn-cxh-aportar-primario" id="btnSalvarAporte" onclick="salvarAporteCaixinha()">
+                    <i class='bx bx-save'></i> Salvar aporte
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════
+         MODAL: RESGATE NA CAIXINHA
+    ════════════════════════════════════════════════════════ -->
+    <div class="cxh-modal-overlay" id="modalResgateOverlay" onclick="fecharModalResgateOutside(event)">
+        <div class="cxh-modal" id="modalResgate">
+            <div class="cxh-modal-header">
+                <h2 id="modalResgateTitulo"><i class='bx bx-minus-circle'></i> Resgatar saldo</h2>
+                <button class="cxh-modal-close" onclick="fecharModalResgate()"><i class='bx bx-x'></i></button>
+            </div>
+
+            <div class="cxh-modal-body">
+                <div class="cxh-aporte-resumo" id="resgateResumoCaixinha">Caixinha: –</div>
+
+                <div class="cxh-campo-wrap">
+                    <label class="cxh-campo-label">Valor do resgate *</label>
+                    <input type="text" id="inputResgateValor" class="cxh-campo-input" placeholder="R$ 0,00" />
+                </div>
+
+                <div class="cxh-campo-row">
+                    <div class="cxh-campo-wrap">
+                        <label class="cxh-campo-label">Instituição (opcional)</label>
+                        <select id="selectResgateInstituicao" class="cxh-campo-input"></select>
+                    </div>
+                    <div class="cxh-campo-wrap">
+                        <label class="cxh-campo-label">Tipo de movimento</label>
+                        <select id="selectResgateMovimento" class="cxh-campo-input">
+                            <option value="Debito">Débito</option>
+                            <option value="Credito">Crédito</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="cxh-campo-wrap">
+                    <label class="cxh-campo-label">Data do resgate *</label>
+                    <input type="date" id="inputResgateData" class="cxh-campo-input" />
+                </div>
+
+                <div class="cxh-campo-wrap">
+                    <label class="cxh-campo-label">Descrição *</label>
+                    <input type="text" id="inputResgateDescricao" class="cxh-campo-input" maxlength="220" placeholder="Ex: Compra do notebook" />
+                </div>
+            </div>
+
+            <div class="cxh-modal-footer">
+                <button class="btn-cxh-cancelar" onclick="fecharModalResgate()">
+                    <i class='bx bx-x'></i> Cancelar
+                </button>
+                <button class="btn-cxh-resgatar-primario" id="btnSalvarResgate" onclick="salvarResgateCaixinha()">
+                    <i class='bx bx-save'></i> Salvar resgate
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/cache.js?v=1"></script>
+    <script src="js/main.js?v=3"></script>
+    <script src="js/mascote.js?v=3"></script>
+    <script src="js/caixinhas.js?v=4"></script>
+    <script src="js/navbar.js?v=3"></script>
 </body>
 
 </html>
-

@@ -8,26 +8,107 @@ const config = document.getElementById("config");
 const tema = document.getElementById("tema");
 const caixinhaN = document.getElementById("caixinhas"); // pode ser null em páginas sem o item
 
+// Retorna a chave de tema com prefixo do usuário logado
+function _themeKey(key) {
+    var u = JSON.parse(localStorage.getItem('usuarioLogado') || 'null');
+    var id = (u && u.id) ? u.id : 'guest';
+    return key + '_' + id;
+}
+
+// Aplica modo vidro imediatamente para evitar flash
+(function () {
+    var v = localStorage.getItem(_themeKey("vidro"));
+    if (v) document.body.setAttribute("data-vidro", v);
+})();
+
 let ativo = false;
 
-navbar.style.width = "70px";
-main.style.marginLeft = "70px";
+const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
 
+function _applyInitialState() {
+    if (isMobile()) {
+        navbar.style.width = "0";
+        navbar.style.overflow = "hidden";
+        navbar.style.padding = "0";
+        main.style.marginLeft = "0";
+        main.style.paddingTop = "68px";
+    } else {
+        navbar.style.width = "70px";
+        navbar.style.overflow = "";
+        navbar.style.padding = "20px";
+        main.style.marginLeft = "70px";
+        main.style.paddingTop = "";
+    }
+}
+
+_applyInitialState();
+
+function _closeSidebarMobile() {
+    ativo = false;
+    navbar.classList.remove('sidebar--aberta');
+    navbar.style.width = "0";
+    navbar.style.overflow = "hidden";
+    navbar.style.padding = "0";
+    var bd = document.getElementById('sidebar-backdrop');
+    if (bd) bd.style.display = 'none';
+}
 
 function sidebarFunction() {
-    if (!ativo) {
-        ativo = true;
-        navbar.classList.add('sidebar--aberta');
-        navbar.style.width = "300px";
-        main.style.marginLeft = "300px";
+    if (isMobile()) {
+        if (!ativo) {
+            ativo = true;
+            navbar.classList.add('sidebar--aberta');
+            navbar.style.width = "270px";
+            navbar.style.overflow = "";
+            navbar.style.padding = "20px";
+            var bd = document.getElementById('sidebar-backdrop');
+            if (bd) bd.style.display = 'block';
+        } else {
+            _closeSidebarMobile();
+        }
     } else {
-        ativo = false;
-        navbar.classList.remove('sidebar--aberta');
-        navbar.style.width = "70px";
-        main.style.marginLeft = "70px";
+        if (!ativo) {
+            ativo = true;
+            navbar.classList.add('sidebar--aberta');
+            navbar.style.width = "300px";
+            main.style.marginLeft = "300px";
+        } else {
+            ativo = false;
+            navbar.classList.remove('sidebar--aberta');
+            navbar.style.width = "70px";
+            main.style.marginLeft = "70px";
+        }
     }
-
 }
+
+// Inject mobile hamburger button and backdrop
+(function () {
+    var hamBtn = document.createElement('button');
+    hamBtn.id = 'mobile-ham-btn';
+    hamBtn.setAttribute('aria-label', 'Menu');
+    hamBtn.innerHTML = "<i class='bx bx-menu'></i>";
+    hamBtn.addEventListener('click', sidebarFunction);
+    document.body.appendChild(hamBtn);
+
+    var backdrop = document.createElement('div');
+    backdrop.id = 'sidebar-backdrop';
+    backdrop.addEventListener('click', function () { if (ativo) sidebarFunction(); });
+    document.body.appendChild(backdrop);
+})();
+
+// Handle window resize (e.g. phone rotation)
+var _lastMobile = isMobile();
+window.addEventListener('resize', function () {
+    var nowMobile = isMobile();
+    if (nowMobile === _lastMobile) return;
+    _lastMobile = nowMobile;
+    ativo = false;
+    navbar.classList.remove('sidebar--aberta');
+    var bd = document.getElementById('sidebar-backdrop');
+    if (bd) bd.style.display = 'none';
+    main.style.paddingTop = "";
+    _applyInitialState();
+});
 
 /*---------------- Modal de confirmação de Logout ----------------*/
 (function () {
@@ -198,6 +279,28 @@ function sidebarFunction() {
         } else {
             uwAvatar.innerHTML = "<i class='bx bx-user' style='font-size:1.6rem; color:var(--cor-principal);'></i>";
         }
+
+        _injetarMascoteWidget();
+    }
+
+    function _injetarMascoteWidget() {
+        if (!uwAvatar || !window.MascoteApp) return;
+        const key = window.MascoteApp.getSalvo();
+        const m = window.MascoteApp.MASCOTES[key];
+        if (!m || !m.imagens || key === 'nenhum') return;
+
+        const chain = ['fofinha02', 'fofinha', 'poder', 'balancante02', 'balancante'];
+        let src = null;
+        for (let i = 0; i < chain.length; i++) {
+            if (m.imagens[chain[i]]) { src = m.imagens[chain[i]]; break; }
+        }
+        if (!src) return;
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = m.nome;
+        img.className = 'uw-mascote';
+        uwAvatar.appendChild(img);
     }
 
     renderizarAvatarWidget(user);
@@ -239,7 +342,8 @@ function sidebarFunction() {
             if (cached !== null && (Date.now() - ts) < AGE_MS) {
                 xp = Number(cached);
             } else {
-                const res = await fetch(`http://localhost:8080/usuarios/calculo-xp/${user.id}`);
+                const apiBase = window.MainAPI?.LOCAL_API || window.location.origin;
+                const res = await fetch(`${apiBase}/usuarios/calculo-xp/${user.id}`);
                 if (!res.ok) {
                     uwXp.style.width = "0%";
                     uwLvl.textContent = "LVL 1";
@@ -280,7 +384,7 @@ function sidebarFunction() {
 /*---------------- Tema dark — FAB flutuante ----------------*/
 
 // Aplica modo salvo antes do render para evitar flash
-var _modoSalvo = localStorage.getItem("modo");
+var _modoSalvo = localStorage.getItem(_themeKey("modo"));
 if (_modoSalvo === "dark") {
     document.body.setAttribute("data-mode", "dark");
 }
@@ -298,16 +402,26 @@ _temas.forEach(function (tema) {
     });
 });
 
+function aplicarModoVidro(ativo) {
+    document.body.setAttribute("data-vidro", ativo ? "on" : "off");
+}
+
 if (_btnEscolherTema) {
     _btnEscolherTema.addEventListener("click", function () {
         document.body.setAttribute("data-tema", _temaSelecionado);
-        localStorage.setItem("tema", _temaSelecionado);
+        localStorage.setItem(_themeKey("tema"), _temaSelecionado);
+
+        var toggleVidro = document.getElementById("toggleVidro");
+        var vidroAtivo = toggleVidro ? toggleVidro.checked : localStorage.getItem(_themeKey("vidro")) === "on";
+        aplicarModoVidro(vidroAtivo);
+        localStorage.setItem(_themeKey("vidro"), vidroAtivo ? "on" : "off");
     });
 }
 
 window.addEventListener("DOMContentLoaded", function () {
-    var temaSalvo = localStorage.getItem("tema");
-    var modoSalvo = localStorage.getItem("modo");
+    var temaSalvo = localStorage.getItem(_themeKey("tema"));
+    var modoSalvo = localStorage.getItem(_themeKey("modo"));
+    var vidroSalvo = localStorage.getItem(_themeKey("vidro"));
 
     if (temaSalvo) {
         document.body.setAttribute("data-tema", temaSalvo);
@@ -319,6 +433,17 @@ window.addEventListener("DOMContentLoaded", function () {
     }
     if (modoSalvo) {
         document.body.setAttribute("data-mode", modoSalvo);
+    }
+    if (vidroSalvo) {
+        aplicarModoVidro(vidroSalvo === "on");
+    }
+
+    // Sincroniza o toggle na página de perfil com o estado salvo
+    var toggleVidro = document.getElementById("toggleVidro");
+    var estadoVidro = document.getElementById("estadoVidro");
+    if (toggleVidro) {
+        toggleVidro.checked = vidroSalvo === "on";
+        if (estadoVidro) estadoVidro.textContent = vidroSalvo === "on" ? "ON" : "OFF";
     }
 });
 
@@ -441,8 +566,18 @@ window.addEventListener("DOMContentLoaded", function () {
 
         var userWidget = document.getElementById("userWidget");
         if (userWidget) {
-            // Injeta inline antes do user widget
-            userWidget.insertAdjacentHTML("beforebegin", fabHtml);
+            var parentEl = userWidget.parentElement;
+            if (parentEl && parentEl.classList.contains('top-actions')) {
+                // Estrutura correta: injeta antes do user-widget dentro de top-actions
+                userWidget.insertAdjacentHTML("beforebegin", fabHtml);
+            } else {
+                // Estrutura sem wrapper: cria top-actions agrupando fab + user-widget
+                var wrapper = document.createElement('div');
+                wrapper.className = 'top-actions';
+                parentEl.insertBefore(wrapper, userWidget);
+                wrapper.insertAdjacentHTML("afterbegin", fabHtml);
+                wrapper.appendChild(userWidget);
+            }
         } else {
             // Fallback fixo para páginas sem user widget
             document.body.insertAdjacentHTML("beforeend", fabHtml);
@@ -455,7 +590,7 @@ window.addEventListener("DOMContentLoaded", function () {
             var atual = document.body.getAttribute("data-mode");
             var novo  = atual === "dark" ? "light" : "dark";
             document.body.setAttribute("data-mode", novo);
-            localStorage.setItem("modo", novo);
+            localStorage.setItem(_themeKey("modo"), novo);
             atualizarTooltip();
         });
     }
@@ -575,12 +710,13 @@ window.addEventListener("DOMContentLoaded", function () {
             const status = JSON.parse(updateStatus);
 
             // Verifica se a versão armazenada mudou (indica que a atualização foi concluída)
-             try {
-                 const res = await fetch('http://localhost:8080/api/update/check');
-                 if (res.ok) {
-                     const info = await res.json();
-                     const currentVersion = info.currentVersion;
-                     const storedVersion = localStorage.getItem('mf-app-version');
+            try {
+                const apiBase = window.MainAPI?.LOCAL_API || window.location.origin;
+                const res = await fetch(`${apiBase}/api/update/check`);
+                if (res.ok) {
+                    const info = await res.json();
+                    const currentVersion = info.currentVersion;
+                    const storedVersion = localStorage.getItem('mf-app-version');
 
                     if (currentVersion && storedVersion && currentVersion !== storedVersion) {
                         // Versão mudou! A atualização foi bem-sucedida
@@ -739,7 +875,7 @@ window.addEventListener("DOMContentLoaded", function () {
 (function () {
     const CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutos
     const SNOOZE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 horas
-    const API_BASE = 'http://localhost:8080';
+    const API_BASE = window.MainAPI?.LOCAL_API || window.location.origin;
 
     let _updateInfo = null;
     let _isDismissed = false;
@@ -883,14 +1019,34 @@ window.addEventListener("DOMContentLoaded", function () {
         banner.style.display = 'none';
     }
 
+    function _buildUpdateNotif(info) {
+        return {
+            id: 'update-available',
+            type: 'update',
+            title: 'Nova versão disponível!',
+            subtitle: 'Atual: v' + info.currentVersion + '  →  Nova: v' + info.latestVersion,
+            date: Date.now(),
+            read: false,
+            detail: {
+                description: 'Uma nova versão do MyFinance está disponível para instalação. Clique em <strong>Atualizar agora</strong> para baixar e instalar automaticamente.',
+                releaseNotes: (info.releaseNotes || '').trim() || null,
+                actionLabel: 'Atualizar agora',
+                onAction: function () { mostrarBanner(info); }
+            }
+        };
+    }
+
     function dismissarAtualizacao() {
         _isDismissed = true;
         localStorage.setItem('mf-update-dismissed', 'true');
         ocultarBanner();
 
-        // Adiciona ao contador de notificações
         if (_updateInfo) {
-            window._updateNotificationBadge(1);
+            if (window._addNotification) {
+                window._addNotification(_buildUpdateNotif(_updateInfo));
+            } else {
+                window._updateNotificationBadge(1);
+            }
         }
     }
 
@@ -987,7 +1143,11 @@ window.addEventListener("DOMContentLoaded", function () {
                 const dismissed = localStorage.getItem('mf-update-dismissed');
                 if (dismissed === 'true') {
                     _isDismissed = true;
-                    window._updateNotificationBadge(1);
+                    if (window._addNotification) {
+                        window._addNotification(_buildUpdateNotif(info));
+                    } else {
+                        window._updateNotificationBadge(1);
+                    }
                     return; // Não mostra o banner automaticamente
                 }
 
@@ -1005,11 +1165,12 @@ window.addEventListener("DOMContentLoaded", function () {
                 // Mostra o banner se não foi dismissed nem snoozed
                 mostrarBanner(info);
             } else {
-                // Se não há atualização, limpa o dismissed e badge
+                // Se não há atualização, limpa o dismissed, badge e notificação
                 _isDismissed = false;
                 _updateInfo = null;
                 localStorage.removeItem('mf-update-dismissed');
                 window._updateNotificationBadge(0);
+                if (window._removeNotification) window._removeNotification('update-available');
             }
         } catch (e) {
             // Silencioso: sem internet ou backend ainda não inicializado
@@ -1018,7 +1179,9 @@ window.addEventListener("DOMContentLoaded", function () {
 
     // ── Função para mostrar notificações quando clicar no sino ──
     window._showUpdateNotifications = function() {
-        if (_updateInfo && _isDismissed) {
+        if (window._showNotificationPanel) {
+            window._showNotificationPanel();
+        } else if (_updateInfo && _isDismissed) {
             mostrarBanner(_updateInfo);
         }
     };
@@ -1028,3 +1191,333 @@ window.addEventListener("DOMContentLoaded", function () {
     // Verificações subsequentes a cada 30 minutos
     setInterval(verificarAtualizacao, CHECK_INTERVAL_MS);
 })();
+
+/*---------------- Painel de Notificações ----------------*/
+(function () {
+    let _panelOpen = false;
+    window._mfNotifications = window._mfNotifications || [];
+
+    const html = `
+    <div id="mf-notif-backdrop" style="
+        display:none;position:fixed;inset:0;z-index:1998;
+        background:rgba(0,0,0,0.35);"></div>
+
+    <div id="mf-notif-panel" style="
+        position:fixed;top:0;right:0;height:100vh;z-index:1999;
+        width:360px;max-width:100vw;
+        background:var(--cor-fundo-pagina,#f8fafc);
+        border-left:1.5px solid var(--cor-tinte-borda,#e2e8f0);
+        box-shadow:-8px 0 32px rgba(0,0,0,0.14);
+        display:flex;flex-direction:column;
+        transform:translateX(100%);
+        transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);">
+
+        <div style="
+            padding:20px 20px 16px;
+            border-bottom:1.5px solid var(--cor-tinte-borda,#e2e8f0);
+            display:flex;align-items:center;justify-content:space-between;
+            background:var(--cor-fundo-card,#fff);">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <i class='bx bx-bell' style="font-size:1.4rem;color:var(--cor-principal,#6366f1);"></i>
+                <h2 style="margin:0;font-size:1.15rem;font-weight:700;color:var(--cor-titulo);">Notificações</h2>
+            </div>
+            <button id="mf-notif-close" aria-label="Fechar painel" style="
+                background:none;border:none;cursor:pointer;padding:6px;
+                border-radius:8px;color:var(--cor-texto-secundario);
+                font-size:1.3rem;line-height:1;transition:background 0.15s;">
+                <i class='bx bx-x'></i>
+            </button>
+        </div>
+
+        <div id="mf-notif-list" style="flex:1;overflow-y:auto;padding:14px;"></div>
+    </div>
+
+    <div id="mf-notif-modal-overlay" style="
+        display:none;position:fixed;inset:0;z-index:2100;
+        background:rgba(0,0,0,0.5);
+        align-items:center;justify-content:center;">
+        <div id="mf-notif-modal" style="
+            background:var(--cor-fundo-card,#fff);
+            border-radius:16px;padding:28px;
+            width:min(480px,90vw);max-height:82vh;overflow-y:auto;
+            box-shadow:0 20px 60px rgba(0,0,0,0.22);
+            animation:mfNotifModalIn 0.22s ease;">
+            <div id="mf-notif-modal-body"></div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes mfNotifModalIn {
+            from { opacity:0; transform:scale(0.95) translateY(10px); }
+            to   { opacity:1; transform:scale(1)    translateY(0);    }
+        }
+        #mf-notif-close:hover { background:var(--cor-hover,#f1f5f9); }
+        .mf-notif-item {
+            display:flex;align-items:flex-start;gap:12px;
+            padding:14px;border-radius:12px;cursor:pointer;
+            background:var(--cor-fundo-card,#fff);
+            border:1.5px solid var(--cor-tinte-borda,#e2e8f0);
+            margin-bottom:10px;
+            transition:border-color 0.15s,box-shadow 0.15s;
+        }
+        .mf-notif-item:hover {
+            border-color:var(--cor-principal,#6366f1);
+            box-shadow:0 4px 14px rgba(99,102,241,0.12);
+        }
+        .mf-notif-item.mf-unread {
+            border-color:var(--cor-principal,#6366f1);
+        }
+        .mf-notif-icon {
+            width:38px;height:38px;border-radius:50%;flex-shrink:0;
+            display:flex;align-items:center;justify-content:center;
+            font-size:1.15rem;color:#fff;
+        }
+        .mf-notif-icon.update  { background:var(--cor-principal,#6366f1); }
+        .mf-notif-icon.info    { background:#0ea5e9; }
+        .mf-notif-icon.warning { background:#f59e0b; }
+        .mf-notif-icon.success { background:#10b981; }
+        .mf-notif-empty {
+            text-align:center;padding:52px 20px;
+            color:var(--cor-texto-secundario);
+        }
+        .mf-notif-empty i { font-size:2.6rem;display:block;margin-bottom:12px;opacity:0.35; }
+        #mf-notif-modal-action:hover  { opacity:0.85; }
+        #mf-notif-modal-dismiss:hover { background:var(--cor-hover,#e2e8f0) !important; }
+        @media (max-width: 480px) {
+            #mf-notif-panel { width:100vw; }
+        }
+    </style>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const panel         = document.getElementById('mf-notif-panel');
+    const backdrop      = document.getElementById('mf-notif-backdrop');
+    const closeBtn      = document.getElementById('mf-notif-close');
+    const listEl        = document.getElementById('mf-notif-list');
+    const modalOverlay  = document.getElementById('mf-notif-modal-overlay');
+    const modalBody     = document.getElementById('mf-notif-modal-body');
+
+    const ICONS = {
+        update:  'bx-cloud-download',
+        info:    'bx-info-circle',
+        warning: 'bx-error',
+        success: 'bx-check-circle'
+    };
+
+    function openPanel() {
+        _panelOpen = true;
+        panel.style.transform = 'translateX(0)';
+        backdrop.style.display = 'block';
+        renderList();
+    }
+
+    function closePanel() {
+        _panelOpen = false;
+        panel.style.transform = 'translateX(100%)';
+        backdrop.style.display = 'none';
+    }
+
+    function closeModal() {
+        modalOverlay.style.display = 'none';
+    }
+
+    function openModal(notif) {
+        notif.read = true;
+        updateBadge();
+        if (_panelOpen) renderList();
+
+        const iconName = ICONS[notif.type] || 'bx-bell';
+        const d = notif.detail || {};
+
+        modalBody.innerHTML = `
+            <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;">
+                <span class="mf-notif-icon ${notif.type || 'info'}" style="width:46px;height:46px;font-size:1.4rem;flex-shrink:0;">
+                    <i class='bx ${iconName}'></i>
+                </span>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:1.05rem;color:var(--cor-titulo);margin-bottom:4px;">${notif.title}</div>
+                    ${notif.subtitle ? `<div style="font-size:0.8rem;color:var(--cor-texto-secundario);">${notif.subtitle}</div>` : ''}
+                </div>
+                <button id="mf-notif-modal-xclose" aria-label="Fechar" style="
+                    background:none;border:none;cursor:pointer;
+                    color:var(--cor-texto-secundario);font-size:1.3rem;
+                    padding:4px;flex-shrink:0;"><i class='bx bx-x'></i>
+                </button>
+            </div>
+            ${d.description ? `<p style="font-size:0.9rem;color:var(--cor-texto-secundario);line-height:1.65;margin-bottom:16px;">${d.description}</p>` : ''}
+            ${d.releaseNotes ? `
+            <div style="
+                border:1px solid var(--cor-tinte-borda,#e2e8f0);border-radius:8px;
+                padding:12px 14px;background:var(--cor-fundo-pagina,#f8fafc);
+                font-size:0.82rem;color:var(--cor-texto-secundario);
+                line-height:1.5;white-space:pre-line;max-height:200px;overflow-y:auto;
+                margin-bottom:16px;">${d.releaseNotes}</div>` : ''}
+            <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+                ${d.actionLabel ? `<button id="mf-notif-modal-action" style="
+                    padding:10px 20px;border-radius:9px;border:none;cursor:pointer;
+                    background:var(--cor-principal,#6366f1);color:#fff;
+                    font-size:0.9rem;font-weight:600;transition:opacity 0.18s;">
+                    ${d.actionLabel}
+                </button>` : ''}
+                <button id="mf-notif-modal-dismiss" style="
+                    padding:10px 18px;border-radius:9px;cursor:pointer;
+                    background:var(--cor-fundo-pagina,#f1f5f9);color:var(--cor-texto-principal);
+                    font-size:0.9rem;font-weight:600;
+                    border:1px solid var(--cor-tinte-borda,#ccc);transition:background 0.18s;">
+                    Fechar
+                </button>
+            </div>`;
+
+        modalOverlay.style.display = 'flex';
+
+        document.getElementById('mf-notif-modal-xclose').onclick = closeModal;
+        document.getElementById('mf-notif-modal-dismiss').onclick = closeModal;
+
+        var actionBtn = document.getElementById('mf-notif-modal-action');
+        if (actionBtn && d.onAction) {
+            actionBtn.addEventListener('click', function () {
+                closeModal();
+                closePanel();
+                d.onAction();
+            });
+        }
+    }
+
+    function renderList() {
+        var notifs = window._mfNotifications;
+        if (!notifs || notifs.length === 0) {
+            listEl.innerHTML = `
+                <div class="mf-notif-empty">
+                    <i class='bx bx-bell-off'></i>
+                    <div style="font-size:0.95rem;font-weight:600;color:var(--cor-titulo);margin-bottom:6px;">Tudo tranquilo por aqui!</div>
+                    <div style="font-size:0.83rem;">Você não tem notificações no momento.</div>
+                </div>`;
+            return;
+        }
+
+        listEl.innerHTML = notifs.map(function (notif, i) {
+            var iconName = ICONS[notif.type] || 'bx-bell';
+            var date = notif.date
+                ? new Date(notif.date).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
+                : '';
+            return `
+            <div class="mf-notif-item${notif.read ? '' : ' mf-unread'}" data-idx="${i}">
+                <span class="mf-notif-icon ${notif.type || 'info'}">
+                    <i class='bx ${iconName}'></i>
+                </span>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:${notif.read ? '500' : '700'};font-size:0.92rem;color:var(--cor-titulo);margin-bottom:3px;">${notif.title}</div>
+                    ${notif.subtitle ? `<div style="font-size:0.78rem;color:var(--cor-texto-secundario);margin-bottom:4px;">${notif.subtitle}</div>` : ''}
+                    ${date ? `<div style="font-size:0.72rem;color:var(--cor-texto-secundario);opacity:0.7;">${date}</div>` : ''}
+                </div>
+                ${!notif.read ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--cor-principal,#6366f1);flex-shrink:0;margin-top:4px;"></span>' : ''}
+            </div>`;
+        }).join('');
+
+        listEl.querySelectorAll('.mf-notif-item').forEach(function (el) {
+            el.addEventListener('click', function () {
+                openModal(window._mfNotifications[parseInt(el.getAttribute('data-idx'), 10)]);
+            });
+        });
+    }
+
+    function updateBadge() {
+        var unread = (window._mfNotifications || []).filter(function (n) { return !n.read; }).length;
+        window._updateNotificationBadge(unread);
+    }
+
+    // ── API pública ──
+    window._addNotification = function (notif) {
+        window._mfNotifications = window._mfNotifications || [];
+        notif.id   = notif.id   || ('notif-' + Date.now());
+        notif.date = notif.date || Date.now();
+        if (notif.read === undefined) notif.read = false;
+        var idx = window._mfNotifications.findIndex(function (n) { return n.id === notif.id; });
+        if (idx >= 0) {
+            window._mfNotifications[idx] = notif;
+        } else {
+            window._mfNotifications.unshift(notif);
+        }
+        updateBadge();
+        if (_panelOpen) renderList();
+    };
+
+    window._removeNotification = function (id) {
+        window._mfNotifications = (window._mfNotifications || []).filter(function (n) { return n.id !== id; });
+        updateBadge();
+        if (_panelOpen) renderList();
+    };
+
+    window._showNotificationPanel = function () { openPanel(); };
+    window._showUpdateNotifications = function () { openPanel(); };
+
+    closeBtn.addEventListener('click', closePanel);
+    backdrop.addEventListener('click', closePanel);
+    modalOverlay.addEventListener('click', function (e) {
+        if (e.target === modalOverlay) closeModal();
+    });
+})();
+
+/*---------------- Skeleton Shimmer — carregamento estilo Instagram ----------------*/
+(function () {
+    var SK_SEL = [
+        '.KPI',
+        '.campo-grafico',
+        '.kpi-saude-card',
+        '.historia-financeira-card',
+        '.pf-card'
+    ].join(',');
+
+    var _pending     = 0;
+    var _removeTimer = null;
+    var _safetyTimer = null;
+
+    function _apply() {
+        var els = document.querySelectorAll(SK_SEL);
+        for (var i = 0; i < els.length; i++) {
+            els[i].classList.add('mf-sk');
+        }
+        // Segurança: remove skeleton após 5s no máximo, independente dos fetches
+        clearTimeout(_safetyTimer);
+        _safetyTimer = setTimeout(_remove, 5000);
+    }
+
+    function _remove() {
+        clearTimeout(_removeTimer);
+        clearTimeout(_safetyTimer);
+        var els = document.querySelectorAll('.mf-sk');
+        for (var i = 0; i < els.length; i++) {
+            els[i].classList.remove('mf-sk');
+        }
+    }
+
+    function _scheduleRemove() {
+        if (_pending > 0) return;
+        clearTimeout(_removeTimer);
+        // pequeno delay para o JS da página processar a resposta e renderizar o DOM
+        _removeTimer = setTimeout(_remove, 450);
+    }
+
+    // Intercepta window.fetch para rastrear requisições pendentes
+    var _origFetch = window.fetch;
+    window.fetch = function () {
+        _pending++;
+        clearTimeout(_removeTimer);
+        var p = _origFetch.apply(this, arguments);
+        p.then(
+            function (r) { _pending--; _scheduleRemove(); return r; },
+            function (e) { _pending--; _scheduleRemove(); throw e; }
+        );
+        return p;
+    };
+
+    // Aplica skeleton assim que o DOM estiver pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _apply);
+    } else {
+        _apply();
+    }
+})();
+
+
+

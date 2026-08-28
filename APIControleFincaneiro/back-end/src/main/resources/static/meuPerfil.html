@@ -95,7 +95,7 @@
 
                     <!-- Name + edit -->
                     <div class="pf-nome-row">
-                        <div class="pf-nome" id="pfNome">Usuário<br>da Silva Santos</div>
+                        <div class="pf-nome" id="pfNome"></div>
                         <button class="pf-edit-btn" title="Editar nome" onclick="abrirEdicaoPerfil()"><i
                                 class='bx bx-edit'></i></button>
                     </div>
@@ -104,7 +104,7 @@
                     <div class="pf-info-row">
                         <div class="pf-info-item">
                             <strong>Gênero:</strong>
-                            <span id="pfGenero">Masculino</span>
+                            <span id="pfGenero"></span>
                         </div>
                         <div class="pf-info-item">
                             <strong>Pronomes:</strong>
@@ -112,13 +112,13 @@
                         </div>
                         <div class="pf-info-item">
                             <strong>Data de Nascimento:</strong>
-                            <span id="pfNascimento">01/01/2000</span>
+                            <span id="pfNascimento"></span>
                         </div>
                     </div>
                     <div class="pf-info-row">
                         <div class="pf-info-item">
                             <strong>Email:</strong>
-                            <span id="pfEmail">usuariodasilva@email.com</span>
+                            <span id="pfEmail"></span>
                         </div>
                     </div>
                 </div>
@@ -137,11 +137,6 @@
                             style="background: linear-gradient(180deg, #E2F4FF 0%, #004C58 100%);"></div>
                         <span class="pf-tema-label">Padrão</span>
                     </div>
-                    <div class="pf-tema-item" data-tema="ceu-azul">
-                        <div class="pf-tema-swatch"
-                            style="background: linear-gradient(180deg, #E2F4FF 0%, #00AEFF 100%);"></div>
-                        <span class="pf-tema-label">Céu-Azul</span>
-                    </div>
                     <div class="pf-tema-item" data-tema="purpura" id="purpura-mode">
                         <div class="pf-tema-swatch"
                             style="background: linear-gradient(180deg, #F5CBFF 0%, #680082 100%);"></div>
@@ -157,18 +152,55 @@
                             style="background: linear-gradient(180deg, #ffffff 0%, #595959 100%);"></div>
                         <span class="pf-tema-label">Branco</span>
                     </div>
+                    <div class="pf-tema-item" data-tema="fogo">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #FFF0E8 0%, #CC3700 100%);"></div>
+                        <span class="pf-tema-label">Fogo</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="agua">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #E8F2FF 0%, #2266CC 100%);"></div>
+                        <span class="pf-tema-label">Água</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="planta">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #F0EDD8 0%, #5A8820 100%);"></div>
+                        <span class="pf-tema-label">Planta</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="eletrico">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #FFFBDB 0%, #B08000 100%);"></div>
+                        <span class="pf-tema-label">Elétrico</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="psiquico">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #F0EDF8 0%, #6A50A0 100%);"></div>
+                        <span class="pf-tema-label">Psíquico</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="dragao">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #EDEAFF 0%, #4820B8 100%);"></div>
+                        <span class="pf-tema-label">Dragão</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="fada">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #FFF0F7 0%, #C93377 100%);"></div>
+                        <span class="pf-tema-label">Fada</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="sombrio">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #1A1A40 0%, #E8B800 100%);"></div>
+                        <span class="pf-tema-label">Sombrio</span>
+                    </div>
+                    <div class="pf-tema-item" data-tema="gelo">
+                        <div class="pf-tema-swatch"
+                            style="background: linear-gradient(180deg, #EAF6FF 0%, #1A7ACC 100%);"></div>
+                        <span class="pf-tema-label">Gelo</span>
+                    </div>
                 </div>
 
                 <!-- Toggles -->
                 <div class="pf-toggles">
-                    <div class="pf-toggle-row">
-                        <label class="pf-toggle">
-                            <input type="checkbox" id="toggleGlaceon" checked>
-                            <span class="pf-toggle-slider"></span>
-                        </label>
-                        <span class="pf-toggle-state" id="estadoGlaceon">ON</span>
-                        <span>Glaceon</span>
-                    </div>
                     <div class="pf-toggle-row">
                         <label class="pf-toggle">
                             <input type="checkbox" id="toggleVidro">
@@ -180,6 +212,14 @@
                 </div>
 
                 <button class="pf-btn" id="btnEscolherTema">Escolher</button>
+            </div>
+
+            <!-- ── MASCOTE ── -->
+            <div class="pf-card">
+                <h2>Mascote</h2>
+                <p class="pf-mascote-desc">Escolha seu companheiro de finanças — ele vai aparecer pelo site todo!</p>
+                <div id="pfMascoteGrid" class="pf-mascote-categorias"></div>
+                <button class="pf-btn" id="btnEscolherMascote">Escolher Mascote</button>
             </div>
 
             <!-- ── RESUMO DAS CONFIGURAÇÕES ── -->
@@ -300,6 +340,45 @@
                 </div>
 
                 <button id="btnEditarSenha" onclick="editarSenhaUsuario()" class="pf-btn">Alterar Senha</button>
+
+                <hr style="border:none;border-top:1px solid var(--cor-principal);opacity:0.25;margin:4px 0;">
+                <h3 style="color:var(--cor-titulo);font-size:1.2rem;font-weight:700;margin:0;">Bloqueio do Perfil</h3>
+                <p style="color:var(--cor-texto-secundario);font-size:0.9rem;margin:0;">
+                    Defina uma senha local para proteger o acesso ao seu perfil na tela de seleção de contas.
+                </p>
+
+                <div class="pf-toggles">
+                    <div class="pf-toggle-row">
+                        <label class="pf-toggle">
+                            <input type="checkbox" id="toggleBloqueoPerfil" onchange="onToggleBloqueoPerfil(this.checked)">
+                            <span class="pf-toggle-slider"></span>
+                        </label>
+                        <span class="pf-toggle-state" id="estadoBloqueoPerfil">OFF</span>
+                        <span>Ativar bloqueio do perfil</span>
+                    </div>
+                </div>
+
+                <div id="secaoBloqueoPerfil" style="display:none;flex-direction:column;gap:16px;">
+                    <div class="pf-campo" id="campoBloqueoAtual" style="display:none;">
+                        <label>Senha Atual do Perfil:</label>
+                        <input type="password" id="edBloqueoAtual" placeholder="Senha atual do perfil...">
+                    </div>
+                    <div class="pf-campo">
+                        <label>Nova Senha do Perfil:</label>
+                        <input type="password" id="edBloqueoNova" placeholder="Nova senha do perfil...">
+                    </div>
+                    <div class="pf-campo">
+                        <label>Confirmar Senha do Perfil:</label>
+                        <input type="password" id="edBloqueoConf" placeholder="Confirmar senha...">
+                    </div>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                        <button onclick="salvarBloqueoPerfil()" class="pf-btn">Salvar</button>
+                        <button id="btnRemoverBloqueio" onclick="removerBloqueoPerfil()" class="pf-btn"
+                            style="background:transparent;color:var(--cor-principal);border:2px solid var(--cor-principal);display:none;">
+                            Remover Bloqueio
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- AÇÕES CRÍTICAS -->
@@ -343,27 +422,16 @@
             </div>
         </footer> -->
     </div>
+    <script src="js/cache.js?v=1"></script>
     <script src="js/main.js?v=2"></script>
+    <script src="js/mascote.js?v=3"></script>
     <script src="js/meuPerfil.js?v=2"></script>
-    <script src="js/navbar.js?v=2"></script>
+    <script src="js/navbar.js?v=3"></script>
     <script>
-        // ── Toggle labels ──
-        document.getElementById("toggleGlaceon").addEventListener("change", function () {
-            document.getElementById("estadoGlaceon").textContent = this.checked ? "ON" : "OFF";
-        });
+        // ── Modo Vidro toggle label ──
         document.getElementById("toggleVidro").addEventListener("change", function () {
             document.getElementById("estadoVidro").textContent = this.checked ? "ON" : "OFF";
         });
-
-        btnEscolher.addEventListener("click", () => {
-
-            document.body.setAttribute("data-tema", temaSelecionado);
-
-            localStorage.setItem("tema", temaSelecionado);
-            console.log("mudei 3")
-
-        });
-
 
         // ── Theme swatch selection ──
         document.querySelectorAll(".pf-tema-item").forEach(item => {
@@ -372,6 +440,103 @@
                 item.classList.add("ativo");
             });
         });
+
+        // ── Mascote Picker ──
+        (function () {
+            var grid = document.getElementById("pfMascoteGrid");
+            var btn  = document.getElementById("btnEscolherMascote");
+            if (!grid || !window.MascoteApp) return;
+
+            var M        = window.MascoteApp.MASCOTES;
+            var CATS     = window.MascoteApp.CATEGORIAS;
+            var ORDER    = window.MascoteApp.ORDEM_CATEGORIAS;
+            var selected = window.MascoteApp.getSalvo();
+
+            // Agrupa por categoria
+            var grupos = {};
+            Object.keys(M).forEach(function (key) {
+                var cat = M[key].categoria;
+                if (!grupos[cat]) grupos[cat] = [];
+                grupos[cat].push(key);
+            });
+
+            ORDER.forEach(function (cat) {
+                if (!grupos[cat]) return;
+
+                var titulo = document.createElement("div");
+                titulo.className = "pf-mascote-categoria-titulo";
+                titulo.textContent = CATS[cat] || cat;
+                grid.appendChild(titulo);
+
+                var row = document.createElement("div");
+                row.className = "pf-mascote-grid";
+
+                grupos[cat].forEach(function (key) {
+                    var m = M[key];
+
+                    var item = document.createElement("div");
+                    item.className = "pf-mascote-item"
+                        + (key === selected ? " ativo" : "")
+                        + (cat === "especial" ? " especial" : "");
+                    item.dataset.key = key;
+
+                    // Preview
+                    var preview = document.createElement("div");
+                    preview.className = "pf-mascote-preview";
+
+                    if (m.preview) {
+                        var img = document.createElement("img");
+                        img.src = m.preview;
+                        img.alt = m.nome;
+                        img.className = "pf-mascote-preview-img";
+                        img.onerror = function () {
+                            this.style.display = "none";
+                            var sp = document.createElement("span");
+                            sp.className = "pf-mascote-preview-icone";
+                            sp.textContent = m.icone;
+                            preview.appendChild(sp);
+                        };
+                        preview.appendChild(img);
+                    } else {
+                        var sp = document.createElement("span");
+                        sp.className = "pf-mascote-preview-icone";
+                        sp.textContent = m.icone;
+                        preview.appendChild(sp);
+                    }
+
+                    var label = document.createElement("span");
+                    label.className = "pf-mascote-label";
+                    label.textContent = m.nome;
+
+                    item.appendChild(preview);
+                    item.appendChild(label);
+
+                    item.addEventListener("click", function () {
+                        document.querySelectorAll(".pf-mascote-item").forEach(function (i) {
+                            i.classList.remove("ativo");
+                        });
+                        item.classList.add("ativo");
+                        grid.dataset.selecionado = key;
+                    });
+
+                    row.appendChild(item);
+                });
+
+                grid.appendChild(row);
+            });
+
+            // Botão confirmar
+            if (btn) {
+                btn.addEventListener("click", function () {
+                    var sel = grid.dataset.selecionado || window.MascoteApp.getSalvo();
+                    window.MascoteApp.aplicar(sel);
+                    window.MascoteApp.salvar(sel);
+                    var orig = btn.textContent;
+                    btn.textContent = "✔ Mascote salvo!";
+                    setTimeout(function () { btn.textContent = orig; }, 2000);
+                });
+            }
+        })();
     </script>
 </body>
 

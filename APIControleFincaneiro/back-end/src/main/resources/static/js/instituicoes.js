@@ -706,6 +706,10 @@
         try {
             const res = await MainAPI.request(`/registros/${eventoId}`, { method: "DELETE" });
             if (res.ok || res.status === 204) {
+                if (window.AppCache && _userId) {
+                    window.AppCache.invalidarRegistros(_userId);
+                    window.AppCache.invalidarDashboard(_userId);
+                }
                 if (itemEl) {
                     itemEl.style.animation = "inst-parc-fade-out 0.3s forwards";
                     setTimeout(() => {
@@ -837,6 +841,10 @@
                 { method: "DELETE" }
             );
             if (res.ok || res.status === 204) {
+                if (window.AppCache && _userId) {
+                    window.AppCache.invalidarRegistros(_userId);
+                    window.AppCache.invalidarDashboard(_userId);
+                }
                 if (itemEl) itemEl.remove();
                 _recorrentesCarregados = false;
                 carregarRecorrentes(instUsuarioId);
@@ -1197,6 +1205,10 @@
             );
 
             if (res.ok) {
+                if (window.AppCache && _userId) {
+                    window.AppCache.invalidarRegistros(_userId);
+                    window.AppCache.invalidarDashboard(_userId);
+                }
                 if (feedback) { feedback.textContent = "✔ Pagamento registrado com sucesso!"; feedback.className = "inst-feedback sucesso"; feedback.style.display = "block"; }
                 // Recarrega dados
                 await carregarInstituicoes();
@@ -1259,6 +1271,10 @@
             );
 
             if (res.ok) {
+                if (window.AppCache && _userId) {
+                    window.AppCache.del(window.AppCache.keyInstituicoesUser(_userId));
+                    window.AppCache.invalidarDashboard(_userId);
+                }
                 exibirFeedback(feedback, "✔ Configurações salvas com sucesso!", "sucesso");
                 await carregarInstituicoes();
                 const novo = _resumoList.find(r => r.instUsuarioId === _instAtual.instUsuarioId);
@@ -1335,12 +1351,6 @@
             return;
         }
         _userId = usuario.id;
-
-        // Aplica tema salvo
-        const temaSalvo = localStorage.getItem("tema");
-        const modoSalvo = localStorage.getItem("modo");
-        if (temaSalvo) document.body.setAttribute("data-tema", temaSalvo);
-        if (modoSalvo === "dark") document.body.setAttribute("data-mode", "dark");
 
         inicializarPeriodo();
 

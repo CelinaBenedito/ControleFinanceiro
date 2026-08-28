@@ -723,10 +723,8 @@
         modal.querySelector("#cfgImportConfirmar").onclick = async () => {
             const selBanco = modal.querySelector("#cfgImportBanco");
             const msg = modal.querySelector("#cfgImportMsg");
-            const btn = modal.querySelector("#cfgImportConfirmar");
 
             const bancoId = selBanco ? selBanco.value : "";
-            // O backend espera o NOME da instituição, não o ID
             const bancoNome = selBanco && selBanco.selectedIndex >= 0
                 ? selBanco.options[selBanco.selectedIndex].textContent.trim()
                 : "";
@@ -743,15 +741,27 @@
                 return;
             }
 
-            msg.style.display = "none";
-            btn.disabled = true;
-            btn.textContent = "Importando...";
-            btn.style.opacity = "0.7";
+            // Fecha o modal imediatamente e processa em background
+            fechar();
+
+            const nomeArquivo = arquivo.name;
+            const NOTIF_ID = 'import-arquivo';
+
+            if (window._addNotification) {
+                window._addNotification({
+                    id: NOTIF_ID,
+                    type: 'info',
+                    title: 'Importando arquivo...',
+                    subtitle: nomeArquivo,
+                    read: false,
+                    detail: {
+                        description: `O arquivo <strong>${nomeArquivo}</strong> está sendo processado em segundo plano. Você será avisado quando a importação for concluída.`
+                    }
+                });
+            }
 
             try {
                 const formData = new FormData();
-                // O backend espera: @RequestParam MultipartFile arquivo
-                //                   @RequestParam(required = false) String bancoNome
                 formData.append("arquivo", arquivo);
                 if (bancoNome) formData.append("bancoNome", bancoNome);
 
@@ -761,22 +771,54 @@
                 });
 
                 if (res.ok || res.status === 204) {
-                    fechar();
-                    mostrarAlerta("Dados importados com sucesso!");
+                    if (window._addNotification) {
+                        window._addNotification({
+                            id: NOTIF_ID,
+                            type: 'success',
+                            title: 'Importação concluída!',
+                            subtitle: nomeArquivo,
+                            read: false,
+                            detail: {
+                                description: `O arquivo <strong>${nomeArquivo}</strong> foi importado com sucesso. Os dados já estão disponíveis no sistema.`
+                            }
+                        });
+                    } else {
+                        mostrarAlerta("Dados importados com sucesso!");
+                    }
                 } else {
                     let detalhe = `HTTP ${res.status}`;
                     try { const corpo = await res.json(); detalhe = corpo.message || detalhe; } catch (_) {}
-                    msg.textContent = `Erro ao importar: ${detalhe}`;
-                    msg.style.display = "";
+                    if (window._addNotification) {
+                        window._addNotification({
+                            id: NOTIF_ID,
+                            type: 'warning',
+                            title: 'Falha na importação',
+                            subtitle: nomeArquivo,
+                            read: false,
+                            detail: {
+                                description: `Não foi possível importar o arquivo <strong>${nomeArquivo}</strong>.<br><br><strong>Detalhe:</strong> ${detalhe}`
+                            }
+                        });
+                    } else {
+                        mostrarAlerta(`Erro ao importar: ${detalhe}`);
+                    }
                 }
             } catch (e) {
                 console.error("Erro ao importar dados:", e);
-                msg.textContent = "Erro de conexão ao importar. Verifique se o servidor está ativo.";
-                msg.style.display = "";
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "Importar";
-                btn.style.opacity = "1";
+                if (window._addNotification) {
+                    window._addNotification({
+                        id: NOTIF_ID,
+                        type: 'warning',
+                        title: 'Erro de conexão na importação',
+                        subtitle: nomeArquivo,
+                        read: false,
+                        detail: {
+                            description: `Não foi possível conectar ao servidor para importar o arquivo <strong>${nomeArquivo}</strong>. Verifique sua conexão e tente novamente.`
+                        }
+                    });
+                } else {
+                    mostrarAlerta("Erro de conexão ao importar. Verifique se o servidor está ativo.");
+                }
             }
         };
 
@@ -1232,7 +1274,6 @@
         };
     });
 
-    // ── APAGAR REGISTROS ─────────────────────────────────────────
     window.apagarRegistrosPeriodo = function () {
         if (!cfgDeleteInicio || !cfgDeleteFim) {
             mostrarAlerta("Escolha a data inicial e a data final do período.");
@@ -1250,6 +1291,18 @@
         mostrarConfirmacao(
             `Apagar todos os registros de ${cfgCalFormatar(cfgDeleteInicio)} até ${cfgCalFormatar(cfgDeleteFim)}? Esta ação é irreversível.`,
             async () => {
+                const NOTIF_ID = 'apagar-periodo';
+                const periodoLabel = `${cfgCalFormatar(cfgDeleteInicio)} → ${cfgCalFormatar(cfgDeleteFim)}`;
+                if (window._addNotification) {
+                    window._addNotification({
+                        id: NOTIF_ID,
+                        type: 'info',
+                        title: 'Apagando registros do período...',
+                        subtitle: periodoLabel,
+                        read: false,
+                        detail: { description: `Os registros do período <strong>${periodoLabel}</strong> estão sendo removidos da nuvem.` }
+                    });
+                }
                 try {
                     const res = await fetch(`${API}/configuracoes/${cfgId}/dados/periodo-tempo`, {
                         method: "DELETE",
@@ -1257,19 +1310,52 @@
                         body: JSON.stringify({ dataInical: cfgDeleteInicio, dataFinal: cfgDeleteFim })
                     });
                     if (res.status === 204) {
-                        mostrarAlerta("Registros do período apagados com sucesso!");
                         cfgDeleteInicio = cfgDeleteFim = null;
                         const lI = document.getElementById("cfgDeleteInicioLabel");
                         const lF = document.getElementById("cfgDeleteFimLabel");
                         if (lI) lI.textContent = "";
                         if (lF) lF.textContent = "";
+                        if (window._addNotification) {
+                            window._addNotification({
+                                id: NOTIF_ID,
+                                type: 'success',
+                                title: 'Registros apagados com sucesso!',
+                                subtitle: periodoLabel,
+                                read: false,
+                                detail: { description: `Todos os registros do período <strong>${periodoLabel}</strong> foram removidos com sucesso.` }
+                            });
+                        } else {
+                            mostrarAlerta("Registros do período apagados com sucesso!");
+                        }
                     } else {
                         const txt = await res.text();
-                        mostrarAlerta(`Erro ao apagar registros (HTTP ${res.status}): ${txt}`);
+                        if (window._addNotification) {
+                            window._addNotification({
+                                id: NOTIF_ID,
+                                type: 'warning',
+                                title: 'Falha ao apagar registros',
+                                subtitle: periodoLabel,
+                                read: false,
+                                detail: { description: `Não foi possível apagar os registros do período <strong>${periodoLabel}</strong>.<br><br><strong>Detalhe:</strong> HTTP ${res.status} — ${txt}` }
+                            });
+                        } else {
+                            mostrarAlerta(`Erro ao apagar registros (HTTP ${res.status}): ${txt}`);
+                        }
                     }
                 } catch (e) {
                     console.error("Erro ao apagar registros por período:", e);
-                    mostrarAlerta("Erro ao apagar registros do período.");
+                    if (window._addNotification) {
+                        window._addNotification({
+                            id: NOTIF_ID,
+                            type: 'warning',
+                            title: 'Erro de conexão ao apagar',
+                            subtitle: periodoLabel,
+                            read: false,
+                            detail: { description: `Erro de conexão ao tentar apagar os registros do período <strong>${periodoLabel}</strong>. Verifique sua internet e tente novamente.` }
+                        });
+                    } else {
+                        mostrarAlerta("Erro ao apagar registros do período.");
+                    }
                 }
             }
         );
@@ -1284,19 +1370,66 @@
         mostrarConfirmacao(
             "Apagar TODOS os registros do usuário? Esta ação é irreversível.",
             async () => {
+                const NOTIF_ID = 'apagar-todos';
+                if (window._addNotification) {
+                    window._addNotification({
+                        id: NOTIF_ID,
+                        type: 'info',
+                        title: 'Apagando todos os registros...',
+                        subtitle: 'Aguardando confirmação do servidor',
+                        read: false,
+                        detail: { description: 'Todos os seus registros financeiros estão sendo removidos permanentemente da nuvem.' }
+                    });
+                }
                 try {
                     const res = await fetch(`${API}/configuracoes/usuarios/${userId}/dados/deletar-tudo`, {
                         method: "DELETE"
                     });
                     if (res.status === 204) {
-                        mostrarAlerta("Todos os registros foram apagados com sucesso!");
+                        if (window._addNotification) {
+                            window._addNotification({
+                                id: NOTIF_ID,
+                                type: 'success',
+                                title: 'Todos os registros apagados!',
+                                subtitle: 'Operação concluída com sucesso',
+                                read: false,
+                                detail: { description: 'Todos os seus registros financeiros foram removidos permanentemente da nuvem.' }
+                            });
+                        } else {
+                            mostrarAlerta("Todos os registros foram apagados com sucesso!");
+                        }
+                    } else if (res.status === 404) {
+                        if (window._removeNotification) window._removeNotification(NOTIF_ID);
+                        mostrarAlerta("Não há registros para apagar.");
                     } else {
                         const txt = await res.text();
-                        mostrarAlerta(`Erro ao apagar registros (HTTP ${res.status}): ${txt}`);
+                        if (window._addNotification) {
+                            window._addNotification({
+                                id: NOTIF_ID,
+                                type: 'warning',
+                                title: 'Falha ao apagar registros',
+                                subtitle: `HTTP ${res.status}`,
+                                read: false,
+                                detail: { description: `Não foi possível apagar todos os registros.<br><br><strong>Detalhe:</strong> HTTP ${res.status} — ${txt}` }
+                            });
+                        } else {
+                            mostrarAlerta(`Erro ao apagar registros (HTTP ${res.status}): ${txt}`);
+                        }
                     }
                 } catch (e) {
                     console.error("Erro ao apagar todos os registros:", e);
-                    mostrarAlerta("Erro ao apagar todos os registros.");
+                    if (window._addNotification) {
+                        window._addNotification({
+                            id: NOTIF_ID,
+                            type: 'warning',
+                            title: 'Erro de conexão ao apagar',
+                            subtitle: 'Operação não concluída',
+                            read: false,
+                            detail: { description: 'Erro de conexão ao tentar apagar todos os registros. Verifique sua internet e tente novamente.' }
+                        });
+                    } else {
+                        mostrarAlerta("Erro ao apagar todos os registros.");
+                    }
                 }
             }
         );

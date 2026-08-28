@@ -35,6 +35,7 @@
     </script>
     <link rel="stylesheet" href="styles/Estilos.css">
     <link rel="stylesheet" href="styles/root.css">
+    <link rel="stylesheet" href="styles/tutorial.css">
     <!-- ApexCharts: local first, CDN fallback -->
     <script src="assets/apexcharts/apexcharts.min.js" id="apex-local"></script>
     <script>
@@ -66,7 +67,7 @@
                     <i class='bx bx-menu-closer'></i>
                 </li>
                 <li>
-                    <a href="dashboard.html"><i class='bx bx-home'></i><span id="home">Home</span></a>
+                    <a href="dashboard.html" class="nav-ativo"><i class='bx bx-home'></i><span id="home">Home</span></a>
                 </li>
                 <li>
                     <a href="adicionarRegistros.html"><i class='bx bx-file-plus'></i><span id="add">Adicionar Registros</span></a>
@@ -102,10 +103,10 @@
                 <div class="top-actions">
                     <div class="user-widget" id="userWidget">
                         <div class="uw-info">
-                            <span class="uw-nome" id="uw_nome">Usuário</span>
+                            <span class="uw-nome" id="uw_nome"></span>
                             <div class="uw-xp-track">
                                 <div class="uw-xp-fill" id="uw_xp"></div>
-                                <span class="uw-lvl" id="uw_lvl">LVL 1</span>
+                                <span class="uw-lvl" id="uw_lvl">LVL 0</span>
                             </div>
                         </div>
                         <div class="uw-avatar">
@@ -201,6 +202,9 @@
             </section>
 
             <section class="historia-financeira-card" id="historiaFinanceiraCard">
+                <div class="mascote-spot historia-mascote-wrap">
+                    <img data-mascote-tipo="balancante" src="assets/gif/Gifs da Glaceon/glaceon balancante.gif" alt="Mascote" class="historia-mascote-img">
+                </div>
                 <p class="kpi-label">História financeira do período</p>
                 <h3 id="historiaTitulo">História financeira do período</h3>
                 <p id="historiaResumo">Sem dados no período.</p>
@@ -340,9 +344,13 @@
             </div>
         </div>
     </div>
+    <script src="js/cache.js?v=1"></script>
     <script src="js/main.js?v=2"></script>
+    <script src="js/mascote.js?v=3"></script>
     <script src="js/index.js?v=2"></script>
-    <script src="js/navbar.js?v=2"></script>
+    <script src="js/navbar.js?v=3"></script>
+    <script src="js/tutorial.js?v=1"></script>
+    <script src="js/tutorial-dashboard.js?v=1"></script>
 </body>
 
 </html>

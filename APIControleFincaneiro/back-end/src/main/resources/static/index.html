@@ -65,6 +65,27 @@
             return _API + (perfil.imagem.startsWith("/") ? perfil.imagem : "/" + perfil.imagem);
         }
 
+        async function _hashSenhaPerfil(senha) {
+            if (!window.crypto || !window.crypto.subtle) return null;
+            var encoder = new TextEncoder();
+            var data = encoder.encode(senha || "");
+            var hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
+            var hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+        }
+
+        async function _validarBloqueioPerfil(perfil) {
+            if (!perfil || !perfil.senhaPerfil) return true;
+            var senha = window.prompt("Este perfil está bloqueado. Digite a senha do perfil:");
+            if (senha === null) return false;
+            var hash = await _hashSenhaPerfil(senha.trim());
+            if (!hash || hash !== perfil.senhaPerfil) {
+                window.alert("Senha do perfil inválida.");
+                return false;
+            }
+            return true;
+        }
+
         function _renderPerfis(perfis) {
             if (!Array.isArray(perfis) || perfis.length === 0) return false;
             _lista.querySelectorAll("p, .usuario-card").forEach(function (el) { el.remove(); });
@@ -78,14 +99,16 @@
                     : '<i class="bx bx-user"></i>';
                 card.innerHTML = '<div class="usuario">' + avatarHtml + '</div><span>' + (perfil.nome || "") + '</span>';
                 card.style.cursor = "pointer";
-                card.addEventListener("click", function () {
+                card.addEventListener("click", async function () {
+                    var bloqueioOk = await _validarBloqueioPerfil(perfil);
+                    if (!bloqueioOk) return;
+
                     if (window.MainAPI && window.MainAPI.salvarSessao) {
                         window.MainAPI.salvarSessao(perfil);
                     } else {
                         localStorage.setItem("usuarioLogado", JSON.stringify(perfil));
                     }
-                    // Perfil salvo na tela de seleção não tem sessão ativa — vai para login
-                    window.location.href = "login.html";
+                    window.location.href = "dashboard.html";
                 });
                 // insertBefore precisa de filho DIRETO como refer�ncia
                 _lista.insertBefore(card, _btnAdd);
