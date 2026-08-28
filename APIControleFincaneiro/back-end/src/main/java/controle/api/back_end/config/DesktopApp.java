@@ -34,16 +34,7 @@ public class DesktopApp extends Application {
     private static final String APP_URL = resolveAppUrl();
 
     private static String resolveAppUrl() {
-        String fromProperty = System.getProperty("myfinance.appUrl");
-        if (fromProperty != null && !fromProperty.isBlank()) {
-            return fromProperty;
-        }
-
-        String fromEnv = System.getenv("MYFINANCE_APP_URL");
-        if (fromEnv != null && !fromEnv.isBlank()) {
-            return fromEnv;
-        }
-
+        // Sempre usa localhost - nenhuma chamada remota permitida
         return "http://localhost:8080/index.html";
     }
 
@@ -157,7 +148,6 @@ public class DesktopApp extends Application {
      */
     private void iniciarPollerSpringBoot(WebEngine engine) {
         Thread poller = new Thread(() -> {
-            final boolean urlLocal = isLocalhostAppUrl(APP_URL);
             int tentativas = 0;
             int maxTentativas = 90; // aguarda ate 90s
 
@@ -165,14 +155,12 @@ public class DesktopApp extends Application {
                 try {
                     Thread.sleep(1000);
 
-                    if (urlLocal) {
-                        // Quando o app usa backend local, confirma primeiro a porta 8080.
-                        try (Socket s = new Socket()) {
-                            s.connect(new InetSocketAddress("127.0.0.1", 8080), 500);
-                        }
+                    // Confirma que a porta 8080 local esta respondendo
+                    try (Socket s = new Socket()) {
+                        s.connect(new InetSocketAddress("127.0.0.1", 8080), 500);
                     }
 
-                    // Faz requisicao HTTP completa para a URL configurada (local ou Azure).
+                    // Faz requisicao HTTP completa para a URL local.
                     HttpURLConnection conn = (HttpURLConnection) new URL(APP_URL).openConnection();
                     conn.setConnectTimeout(2000);
                     conn.setReadTimeout(3000);
@@ -193,16 +181,11 @@ public class DesktopApp extends Application {
                 // Atualiza mensagem de progresso a cada 5s
                 if (tentativas % 5 == 0) {
                     final int seg = tentativas;
-                    String msg;
-                    if (urlLocal) {
-                        // Detecta se o Spring Boot local ainda nao abriu a porta 8080.
-                        boolean portaLocalAberta = isPortResponding8080();
-                        msg = portaLocalAberta
-                            ? "Aguardando servidor... (" + seg + "s)"
-                            : "Inicializando banco de dados... (" + seg + "s)";
-                    } else {
-                        msg = "Conectando ao servidor na nuvem... (" + seg + "s)";
-                    }
+                    // Detecta se o Spring Boot local ainda nao abriu a porta 8080.
+                    boolean portaLocalAberta = isPortResponding8080();
+                    String msg = portaLocalAberta
+                        ? "Aguardando servidor... (" + seg + "s)"
+                        : "Inicializando banco de dados... (" + seg + "s)";
                     Platform.runLater(() ->
                         engine.executeScript(
                             "var el = document.getElementById('mf-status');" +
@@ -235,18 +218,6 @@ public class DesktopApp extends Application {
         try (Socket s = new Socket()) {
             s.connect(new InetSocketAddress("127.0.0.1", 8080), 300);
             return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private static boolean isLocalhostAppUrl(String appUrl) {
-        try {
-            URI uri = URI.create(appUrl);
-            String host = uri.getHost();
-            if (host == null) return false;
-            String hostNormalizado = host.toLowerCase(Locale.ROOT);
-            return "localhost".equals(hostNormalizado) || "127.0.0.1".equals(hostNormalizado);
         } catch (Exception e) {
             return false;
         }

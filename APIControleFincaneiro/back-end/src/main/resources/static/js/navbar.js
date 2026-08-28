@@ -133,7 +133,6 @@ function sidebarFunction() {
             window.MainAPI.limparSessao();
         } else {
             localStorage.removeItem('usuarioLogado');
-            localStorage.removeItem('authToken');
         }
         setTimeout(function () {
             window.location.href = 'index.html';
@@ -240,7 +239,7 @@ function sidebarFunction() {
             if (cached !== null && (Date.now() - ts) < AGE_MS) {
                 xp = Number(cached);
             } else {
-                const res = await fetch(`https://my-finance-api-eqdubfc7bvg6brdw.brazilsouth-01.azurewebsites.net/usuarios/calculo-xp/${user.id}`);
+                const res = await fetch(`http://localhost:8080/usuarios/calculo-xp/${user.id}`);
                 if (!res.ok) {
                     uwXp.style.width = "0%";
                     uwLvl.textContent = "LVL 1";
@@ -576,12 +575,12 @@ window.addEventListener("DOMContentLoaded", function () {
             const status = JSON.parse(updateStatus);
 
             // Verifica se a versão armazenada mudou (indica que a atualização foi concluída)
-            try {
-                const res = await fetch('https://my-finance-api-eqdubfc7bvg6brdw.brazilsouth-01.azurewebsites.net/api/update/check');
-                if (res.ok) {
-                    const info = await res.json();
-                    const currentVersion = info.currentVersion;
-                    const storedVersion = localStorage.getItem('mf-app-version');
+             try {
+                 const res = await fetch('http://localhost:8080/api/update/check');
+                 if (res.ok) {
+                     const info = await res.json();
+                     const currentVersion = info.currentVersion;
+                     const storedVersion = localStorage.getItem('mf-app-version');
 
                     if (currentVersion && storedVersion && currentVersion !== storedVersion) {
                         // Versão mudou! A atualização foi bem-sucedida
@@ -740,7 +739,7 @@ window.addEventListener("DOMContentLoaded", function () {
 (function () {
     const CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutos
     const SNOOZE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 horas
-    const API_BASE = 'https://my-finance-api-eqdubfc7bvg6brdw.brazilsouth-01.azurewebsites.net';
+    const API_BASE = 'http://localhost:8080';
 
     let _updateInfo = null;
     let _isDismissed = false;

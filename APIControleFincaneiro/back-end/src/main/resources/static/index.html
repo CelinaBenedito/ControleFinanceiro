@@ -53,11 +53,11 @@
 <script>
     (function () {
         var _lista = document.getElementById("listaUsuarios");
-        // Refer�ncia CORRETA: o <a href="cadastrar.html"> � filho DIRETO de _lista.
-        // Usar .addUsuario causava NotFoundError silencioso porque ele � neto (est� dentro do <a>).
-        var _btnAdd = _lista.querySelector("a[href='cadastrar.html']") || _lista.lastElementChild;
-        var _API = "https://my-finance-api-eqdubfc7bvg6brdw.brazilsouth-01.azurewebsites.net";
-        var _jaRenderizou = false;
+         // Referência CORRETA: o <a href="cadastrar.html"> é filho DIRETO de _lista.
+         // Usar .addUsuario causava NotFoundError silencioso porque ele é neto (está dentro do <a>).
+         var _btnAdd = _lista.querySelector("a[href='cadastrar.html']") || _lista.lastElementChild;
+         var _API = "http://localhost:8080";
+         var _jaRenderizou = false;
 
         function _resolverImg(perfil) {
             if (!perfil.imagem) return null;
@@ -80,16 +80,12 @@
                 card.style.cursor = "pointer";
                 card.addEventListener("click", function () {
                     if (window.MainAPI && window.MainAPI.salvarSessao) {
-                        window.MainAPI.salvarSessao(perfil, perfil.token || null);
+                        window.MainAPI.salvarSessao(perfil);
                     } else {
                         localStorage.setItem("usuarioLogado", JSON.stringify(perfil));
-                        if (perfil.token) {
-                            localStorage.setItem("authToken", perfil.token);
-                        } else {
-                            localStorage.removeItem("authToken");
-                        }
                     }
-                    window.location.href = perfil.token ? "dashboard.html" : "login.html";
+                    // Perfil salvo na tela de seleção não tem sessão ativa — vai para login
+                    window.location.href = "login.html";
                 });
                 // insertBefore precisa de filho DIRETO como refer�ncia
                 _lista.insertBefore(card, _btnAdd);

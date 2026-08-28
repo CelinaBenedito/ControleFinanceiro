@@ -1,6 +1,8 @@
 (function () {
-    const LOCAL_API = "https://my-finance-api-eqdubfc7bvg6brdw.brazilsouth-01.azurewebsites.net";
-    const AUTH_TOKEN_KEY = "authToken";
+    const LOCAL_API = "http://localhost:8080";
+
+    // Remove chaves legadas de JWT que possam ter ficado de versões anteriores
+    localStorage.removeItem("authToken");
 
     function obterUsuarioLogado() {
         try {
@@ -10,32 +12,16 @@
         }
     }
 
-    function obterTokenAutenticacao() {
-        const usuario = obterUsuarioLogado();
-        return localStorage.getItem(AUTH_TOKEN_KEY) || usuario?.token || null;
-    }
-
-    function salvarSessao(usuario, token) {
+    function salvarSessao(usuario) {
         if (!usuario || !usuario.id) return null;
-
-        const sessao = token
-            ? Object.assign({}, usuario, { token })
-            : Object.assign({}, usuario);
-
+        const sessao = Object.assign({}, usuario);
+        delete sessao.token; // garante que nenhum token seja salvo
         localStorage.setItem("usuarioLogado", JSON.stringify(sessao));
-
-        if (sessao.token) {
-            localStorage.setItem(AUTH_TOKEN_KEY, sessao.token);
-        } else {
-            localStorage.removeItem(AUTH_TOKEN_KEY);
-        }
-
         return sessao;
     }
 
     function limparSessao() {
         localStorage.removeItem("usuarioLogado");
-        localStorage.removeItem(AUTH_TOKEN_KEY);
     }
 
     function paginaPublica() {
@@ -48,8 +34,7 @@
         if (paginaPublica()) return;
 
         const usuario = obterUsuarioLogado();
-        const token = obterTokenAutenticacao();
-        if (usuario?.id && token) return;
+        if (usuario?.id) return;
 
         limparSessao();
         window.location.href = "login.html";
@@ -74,17 +59,6 @@
         }
     }
 
-    function criarHeadersComAuth(headersOriginais) {
-        const headers = new Headers(headersOriginais || {});
-        const token = obterTokenAutenticacao();
-
-        if (token && !headers.has("Authorization")) {
-            headers.set("Authorization", "Bearer " + token);
-        }
-
-        return headers;
-    }
-
     const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
     if (nativeFetch) {
         window.fetch = function (input, init) {
@@ -97,12 +71,10 @@
             }
 
             if (typeof Request !== "undefined" && input instanceof Request) {
-                const headers = criarHeadersComAuth(init && init.headers ? init.headers : input.headers);
-                return nativeFetch(new Request(input, Object.assign({}, init || {}, { headers })));
+                return nativeFetch(new Request(input, init || {}));
             }
 
             const options = Object.assign({}, init || {});
-            options.headers = criarHeadersComAuth(options.headers);
             return nativeFetch(buildUrl(url), options);
         };
     }
@@ -334,7 +306,6 @@
         get,
         LOCAL_API,
         obterUsuarioLogado,
-        obterTokenAutenticacao,
         salvarSessao,
         limparSessao,
         formatarLocalDateTime,

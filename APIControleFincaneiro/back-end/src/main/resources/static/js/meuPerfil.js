@@ -1,5 +1,5 @@
 (function () {
-    const API = "https://my-finance-api-eqdubfc7bvg6brdw.brazilsouth-01.azurewebsites.net";
+    const API = "http://localhost:8080";
     const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado") || "null");
     const userId = usuarioLogado?.id;
     const GENEROS_USUARIO = [
@@ -802,7 +802,6 @@
                     window.MainAPI.limparSessao();
                 } else {
                     localStorage.removeItem("usuarioLogado");
-                    localStorage.removeItem("authToken");
                 }
                 setTimeout(() => {
                     window.location.href = "index.html";

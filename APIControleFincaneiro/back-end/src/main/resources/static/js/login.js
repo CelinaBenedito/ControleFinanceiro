@@ -108,23 +108,22 @@ function login(email, senha){
         if (response.ok) {
             response.json().then(async payload => {
                 const usuario = payload?.usuario || payload;
-                const token = payload?.token || null;
                 if (!usuario || !usuario.id) {
                     alerta(`Erro ao processar resposta do servidor. <button onclick='div_alerta.style.display="none"'>OK</button>`);
                     return;
                 }
 
-                const usuarioAutenticado = window.MainAPI?.salvarSessao
-                    ? window.MainAPI.salvarSessao(usuario, token)
-                    : Object.assign({}, usuario, token ? { token: token } : {});
+                const usuarioSalvo = window.MainAPI?.salvarSessao
+                    ? window.MainAPI.salvarSessao(usuario)
+                    : (localStorage.setItem("usuarioLogado", JSON.stringify(usuario)), usuario);
+
                 const perfis = JSON.parse(localStorage.getItem("perfis") || "[]");
-                const idx = perfis.findIndex(p => p.id === usuarioAutenticado.id);
+                const idx = perfis.findIndex(p => p.id === usuarioSalvo.id);
                 const perfilAtualizado = {
-                    id: usuarioAutenticado.id,
-                    nome: usuarioAutenticado.nome,
-                    sobrenome: usuarioAutenticado.sobrenome,
-                    imagem: usuarioAutenticado.imagem || null,
-                    token: usuarioAutenticado.token || null
+                    id: usuarioSalvo.id,
+                    nome: usuarioSalvo.nome,
+                    sobrenome: usuarioSalvo.sobrenome,
+                    imagem: usuarioSalvo.imagem || null
                 };
                 if (idx === -1) {
                     perfis.push(perfilAtualizado);
@@ -135,22 +134,14 @@ function login(email, senha){
                 localStorage.setItem("perfis", perfisJson);
 
                 // Persiste em disco via desktopBridge (Java lê/escreve o arquivo diretamente)
-                // — mais confiável que localStorage em callbacks async do JavaFX WebView
                 if (window.desktopBridge) {
                     try { window.desktopBridge.savePerfis(perfisJson); } catch (_) {}
                 }
 
-                // Também persiste via HTTP (backup)
-                fetch("https://my-finance-api-eqdubfc7bvg6brdw.brazilsouth-01.azurewebsites.net/perfis", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ perfis: perfisJson })
-                }).catch(() => {});
-
-                alerta(`Logado com sucesso!`);
+                definirEstadoLogin(false);
                 setTimeout(() => {
                     window.location.href = "dashboard.html";
-                }, 1500);
+                }, 300);
             }).catch(() => {
                 definirEstadoLogin(false);
                 alerta(`Erro ao processar resposta do servidor. <button onclick='div_alerta.style.display="none"'>OK</button>`);
