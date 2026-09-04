@@ -5,6 +5,8 @@ import controle.api.back_end.model.poupanca.Caixinha;
 import controle.api.back_end.model.usuario.Usuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,7 +23,14 @@ public class EventoFinanceiro {
     @NotNull
     private Usuario usuario;
 
+    /**
+     * Mapeado explicitamente como VARCHAR (e não como ENUM nativo do banco) para que
+     * novos valores adicionados ao enum {@link Tipo} (ex.: Resgate) não exijam uma
+     * migração manual do tipo de coluna no MariaDB/MySQL.
+     */
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(length = 30)
     @NotNull
     private Tipo tipo;
 
@@ -64,6 +73,16 @@ public class EventoFinanceiro {
      */
     @ManyToOne
     private Caixinha caixinha;
+
+    /**
+     * Vincula o par saída/recebimento de uma Transferência interna.
+     * Preenchido apenas para eventos gerados pela TransferenciaEvento entre
+     * instituições do mesmo usuário. Nulo para os demais tipos, para transferências
+     * externas ou para transferências criadas antes desta funcionalidade existir.
+     */
+    @ManyToOne
+    @JoinColumn(name = "transferencia_vinculada_id")
+    private EventoFinanceiro transferenciaVinculada;
 
     public Usuario getUsuario() {
         return usuario;
@@ -166,4 +185,7 @@ public class EventoFinanceiro {
 
     public Caixinha getCaixinha() { return caixinha; }
     public void setCaixinha(Caixinha caixinha) { this.caixinha = caixinha; }
+
+    public EventoFinanceiro getTransferenciaVinculada() { return transferenciaVinculada; }
+    public void setTransferenciaVinculada(EventoFinanceiro transferenciaVinculada) { this.transferenciaVinculada = transferenciaVinculada; }
 }

@@ -1,6 +1,7 @@
 package controle.api.back_end.controller;
 
 import controle.api.back_end.dto.registros.in.BulkEditPatchDto;
+import controle.api.back_end.dto.registros.in.EventoInstituicaoCreateDto;
 import controle.api.back_end.dto.registros.in.RegistroCompletoCreateDto;
 import controle.api.back_end.dto.registros.in.RegistroCompletoEditDto;
 import controle.api.back_end.dto.registros.mapper.RegistrosMapper;
@@ -171,6 +172,8 @@ public class RegistrosController {
     public ResponseEntity<List<RegistroResponseDto>> buscarComFiltro(
             @PathVariable UUID user_id,
             @RequestParam(required = false) Double valor,
+            @RequestParam(required = false) Double valorMin,
+            @RequestParam(required = false) Double valorMax,
             @RequestParam(required = false) List<TipoMovimento> tipoMovimento,
             @RequestParam(required = false) List<Tipo> tipo,
             @RequestParam(required = false) LocalDate dataEvento,
@@ -180,7 +183,7 @@ public class RegistrosController {
             @RequestParam(required = false) String titulo) {
 
         List<RegistroResponseDto> resposta = registroService.getByFilter(
-                user_id, valor, tipoMovimento, tipo, dataEvento,
+                user_id, valor, valorMin, valorMax, tipoMovimento, tipo, dataEvento,
                 instituicaoUsuario, categoriaUsuario, descricao, titulo);
 
         return resposta.isEmpty()
@@ -327,6 +330,21 @@ public class RegistrosController {
 
         EventoDetalhe detalheEditado = registroService.editGastoDetalhe(
                 evento_id, RegistrosMapper.toEntityGasto(dto.getDetalhe()));
+
+        // Se o registro é uma Transferência e o frontend informou uma nova instituição de destino,
+        // sincroniza o lado "recebimento" vinculado (quando existir par rastreado). O tipoMovimento do
+        // lado destino é preservado como está (não é alterado por aqui — apenas instituição/valor/data).
+        if (dto.getInstituicao() != null && !dto.getInstituicao().isEmpty()) {
+            EventoInstituicaoCreateDto primeiraInst = dto.getInstituicao().get(0);
+            if (primeiraInst.getDestinoInstituicaoUsuario_id() != null) {
+                registroService.editDestinoTransferencia(
+                        evento_id,
+                        primeiraInst.getDestinoInstituicaoUsuario_id(),
+                        null,
+                        financeiroEditado.getValor(),
+                        financeiroEditado.getDataEvento());
+            }
+        }
 
         RegistroUsuarioResponseDto resposta = RegistrosMapper.toResponseUser(
                 financeiroEditado, instituicoesEditadas, detalheEditado);

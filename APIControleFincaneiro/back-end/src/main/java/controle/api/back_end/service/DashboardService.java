@@ -514,6 +514,13 @@ public class DashboardService {
                     flowMap.computeIfAbsent(instId, k -> new LinkedHashMap<>())
                            .merge("saida_poupanca", valor, BigDecimal::add);
                 }
+                case Resgate -> {
+                    // Resgate: dinheiro volta da poupança para a instituição (fluxo invertido).
+                    instEntrada.merge(instId, valor, BigDecimal::add);
+                    saidaSpecial.merge("saida_poupanca", valor.negate(), BigDecimal::add);
+                    flowMap.computeIfAbsent("saida_poupanca", k -> new LinkedHashMap<>())
+                           .merge(instId, valor, BigDecimal::add);
+                }
                 default -> { /* Emprestimo já tratado acima */ }
             }
         }
@@ -550,7 +557,7 @@ public class DashboardService {
         }
         if (saidaSpecial.containsKey("saida_poupanca")) {
             nos.add(new FluxoFinanceiroDto.No("saida_poupanca", "Poupança", "SAIDA",
-                    BigDecimal.ZERO, saidaSpecial.get("saida_poupanca")));
+                    BigDecimal.ZERO, saidaSpecial.get("saida_poupanca").max(BigDecimal.ZERO)));
         }
 
         // --- montar lista de links ---
@@ -826,9 +833,11 @@ public class DashboardService {
         BigDecimal valorMeta = BigDecimal.ZERO;
         for (Caixinha c : caixinhas) {
             BigDecimal aportado = eventoFinanceiroRepository.sumValorByCaixinha(c.getId());
-            valorGuardado = valorGuardado.add(aportado);
+            BigDecimal resgatado = eventoFinanceiroRepository.sumResgatesByCaixinha(c.getId());
+            valorGuardado = valorGuardado.add(aportado).subtract(resgatado);
             if (c.getValorMeta() != null) valorMeta = valorMeta.add(c.getValorMeta());
         }
+        valorGuardado = valorGuardado.max(BigDecimal.ZERO);
         int pct = valorMeta.compareTo(BigDecimal.ZERO) > 0
                 ? valorGuardado.divide(valorMeta, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).intValue()
                 : 0;
@@ -925,7 +934,12 @@ public class DashboardService {
         List<Caixinha> caixinhas = caixinhaRepository.findAllByUsuario_IdAndIsAtivaTrue(userId);
         if (!caixinhas.isEmpty()) {
             BigDecimal totalPoupado = BigDecimal.ZERO;
-            for (Caixinha c : caixinhas) totalPoupado = totalPoupado.add(eventoFinanceiroRepository.sumValorByCaixinha(c.getId()));
+            for (Caixinha c : caixinhas) {
+                BigDecimal aportado  = eventoFinanceiroRepository.sumValorByCaixinha(c.getId());
+                BigDecimal resgatado = eventoFinanceiroRepository.sumResgatesByCaixinha(c.getId());
+                totalPoupado = totalPoupado.add(aportado).subtract(resgatado);
+            }
+            totalPoupado = totalPoupado.max(BigDecimal.ZERO);
             if (receita.compareTo(BigDecimal.ZERO) > 0) {
                 double taxaPoupanca = totalPoupado.divide(receita, 4, RoundingMode.HALF_UP).doubleValue();
                 if (taxaPoupanca >= 0.2) pontos += 30;

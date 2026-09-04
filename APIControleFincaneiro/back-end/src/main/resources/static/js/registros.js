@@ -23,6 +23,17 @@ const _regEstado = {
 
 const TAMANHOS_PAGINA = [5, 10, 15, 20, 30, 50];
 
+// Preenche um input com máscara monetária (MainAPI.aplicarMascaraMoeda) com um valor inicial
+// (a máscara sempre nasce zerada, então é preciso setar o "dataset.centavos" manualmente).
+function setValorMoedaComoInicial(input, valor) {
+    const centavos = Math.max(0, Math.round((valor || 0) * 100));
+    input.dataset.centavos = String(centavos);
+    const reais = Math.floor(centavos / 100);
+    const centsStr = String(centavos % 100).padStart(2, "0");
+    const reaisStr = String(reais).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    input.value = "R$ " + reaisStr + "," + centsStr;
+}
+
 // ── Ponto de entrada ────────────────────────────────────────────────────────
 function carregarRegistros() {
     const userId = getUsuarioLogadoId();
@@ -586,7 +597,7 @@ async function abrirModalFiltroRegistros() {
     modal.id = "modalFiltroRegistros";
     modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;";
 
-    const opcoesTipo = ["Gasto", "Recebimento", "Transferencia"];
+    const opcoesTipo = ["Gasto", "Recebimento", "Transferencia", "Poupanca", "Resgate", "Emprestimo"];
     const opcoesMovimento = ["Debito", "Credito", "Dinheiro", "Pix", "Boleto", "Voucher"];
 
     modal.innerHTML = `
@@ -631,13 +642,34 @@ async function abrirModalFiltroRegistros() {
                 </div>
             </div>
 
+            <div>
+                <h4 class="fr-secao-titulo">Valor (mínimo / máximo)</h4>
+                <div class="fr-valor-row">
+                    <div class="campo fr-valor-campo">
+                        <input id="frValorMin" type="text" placeholder=" ">
+                        <label for="frValorMin">De</label>
+                    </div>
+                    <div class="fr-range-slider" id="frRangeSlider">
+                        <div class="fr-range-track" id="frRangeTrack"></div>
+                        <input type="range" id="frRangeMin" class="fr-range fr-range-min" min="0" max="20000" step="50" value="0">
+                        <input type="range" id="frRangeMax" class="fr-range fr-range-max" min="0" max="20000" step="50" value="20000">
+                    </div>
+                    <div class="campo fr-valor-campo">
+                        <input id="frValorMax" type="text" placeholder=" ">
+                        <label for="frValorMax">Até</label>
+                    </div>
+                </div>
+            </div>
+
             <div class="fr-grid-2">
                 <div>
                     <h4 class="fr-secao-titulo">Instituição</h4>
+                    <input id="frBuscaInst" type="text" class="fr-busca-lista" placeholder="Pesquisar instituição...">
                     <div id="frInstituicoes" class="fr-box fr-lista"></div>
                 </div>
                 <div>
                     <h4 class="fr-secao-titulo">Categorias</h4>
+                    <input id="frBuscaCat" type="text" class="fr-busca-lista" placeholder="Pesquisar categoria...">
                     <div id="frCategorias" class="fr-box fr-lista"></div>
                 </div>
             </div>
@@ -659,7 +691,10 @@ async function abrirModalFiltroRegistros() {
     tiposWrap.innerHTML = opcoesTipo.map(item => `
         <label class="fr-check">
             <input type="checkbox" class="fr-tipo" value="${item}">
-            ${item === "Transferencia" ? "Transferência" : item}
+            ${item === "Transferencia" ? "Transferência"
+                : item === "Poupanca" ? "Poupança"
+                : item === "Emprestimo" ? "Empréstimo"
+                : item}
         </label>
     `).join("");
 
@@ -672,7 +707,7 @@ async function abrirModalFiltroRegistros() {
 
     instWrap.innerHTML = instituicoes.length
         ? instituicoes.map(inst => `
-            <label class="fr-check">
+            <label class="fr-check" data-nome="${(inst.intituicao ? inst.intituicao.nome : "Instituição").toLowerCase()}">
                 <input type="checkbox" class="fr-inst" value="${inst.id}">
                 ${inst.intituicao ? inst.intituicao.nome : "Instituição"}
             </label>
@@ -681,12 +716,91 @@ async function abrirModalFiltroRegistros() {
 
     catWrap.innerHTML = categorias.length
         ? categorias.map(cat => `
-            <label class="fr-check">
+            <label class="fr-check" data-nome="${(cat.categoria ? cat.categoria.titulo : "Categoria").toLowerCase()}">
                 <input type="checkbox" class="fr-cat" value="${cat.id}">
                 ${cat.categoria ? cat.categoria.titulo : "Categoria"}
             </label>
         `).join("")
         : "<small>Nenhuma categoria vinculada.</small>";
+
+    // Campo de pesquisa dentro das listas de instituição/categoria
+    const buscaInst = modal.querySelector("#frBuscaInst");
+    if (buscaInst) {
+        buscaInst.addEventListener("input", () => {
+            const termo = buscaInst.value.trim().toLowerCase();
+            instWrap.querySelectorAll("label.fr-check").forEach(l => {
+                l.style.display = !termo || (l.dataset.nome || "").includes(termo) ? "" : "none";
+            });
+        });
+    }
+    const buscaCat = modal.querySelector("#frBuscaCat");
+    if (buscaCat) {
+        buscaCat.addEventListener("input", () => {
+            const termo = buscaCat.value.trim().toLowerCase();
+            catWrap.querySelectorAll("label.fr-check").forEach(l => {
+                l.style.display = !termo || (l.dataset.nome || "").includes(termo) ? "" : "none";
+            });
+        });
+    }
+
+    // ── Faixa de valor (mínimo/máximo): dois inputs com máscara + slider duplo ──
+    const SLIDER_VALOR_MAX = 10000;
+    const inputValorMin = modal.querySelector("#frValorMin");
+    const inputValorMax = modal.querySelector("#frValorMax");
+    const rangeMin = modal.querySelector("#frRangeMin");
+    const rangeMax = modal.querySelector("#frRangeMax");
+    const rangeTrack = modal.querySelector("#frRangeTrack");
+    let valorMinAlterado = false;
+    let valorMaxAlterado = false;
+
+    // A barra vai só até 10.000 (independente do valor digitado nos inputs).
+    rangeMin.max = String(SLIDER_VALOR_MAX);
+    rangeMax.max = String(SLIDER_VALOR_MAX);
+    rangeMin.value = "0";
+    rangeMax.value = String(SLIDER_VALOR_MAX);
+
+    if (window.MainAPI && window.MainAPI.aplicarMascaraMoeda) {
+        window.MainAPI.aplicarMascaraMoeda(inputValorMin);
+        window.MainAPI.aplicarMascaraMoeda(inputValorMax);
+        setValorMoedaComoInicial(inputValorMax, SLIDER_VALOR_MAX);
+    }
+
+    function atualizarTrilhaSlider() {
+        const pctMin = (Number(rangeMin.value) / SLIDER_VALOR_MAX) * 100;
+        const pctMax = (Number(rangeMax.value) / SLIDER_VALOR_MAX) * 100;
+        rangeTrack.style.background =
+            `linear-gradient(to right, var(--cor-tinte-borda) ${pctMin}%, var(--cor-principal) ${pctMin}%, var(--cor-principal) ${pctMax}%, var(--cor-tinte-borda) ${pctMax}%)`;
+    }
+
+    rangeMin.addEventListener("input", () => {
+        valorMinAlterado = true;
+        if (Number(rangeMin.value) > Number(rangeMax.value)) rangeMin.value = rangeMax.value;
+        setValorMoedaComoInicial(inputValorMin, Number(rangeMin.value));
+        atualizarTrilhaSlider();
+    });
+    rangeMax.addEventListener("input", () => {
+        valorMaxAlterado = true;
+        if (Number(rangeMax.value) < Number(rangeMin.value)) rangeMax.value = rangeMin.value;
+        setValorMoedaComoInicial(inputValorMax, Number(rangeMax.value));
+        atualizarTrilhaSlider();
+    });
+    inputValorMin.addEventListener("input", () => {
+        valorMinAlterado = true;
+        let v = window.MainAPI.obterValorMoeda(inputValorMin);
+        v = Math.max(0, v);
+        const vBarra = Math.min(SLIDER_VALOR_MAX, v);
+        rangeMin.value = Math.min(vBarra, Number(rangeMax.value));
+        atualizarTrilhaSlider();
+    });
+    inputValorMax.addEventListener("input", () => {
+        valorMaxAlterado = true;
+        let v = window.MainAPI.obterValorMoeda(inputValorMax);
+        v = Math.max(0, v);
+        const vBarra = Math.min(SLIDER_VALOR_MAX, v);
+        rangeMax.value = Math.max(vBarra, Number(rangeMin.value));
+        atualizarTrilhaSlider();
+    });
+    atualizarTrilhaSlider();
 
     modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
     modal.querySelector("#frFechar").addEventListener("click", () => modal.remove());
@@ -717,7 +831,17 @@ async function abrirModalFiltroRegistros() {
         modal.querySelector("#frTextoBusca").value = "";
         modal.querySelector("#frDataEvento").value = "";
         modal.querySelector("#frDataDisplay").textContent = "Nenhuma data selecionada";
+        modal.querySelector("#frBuscaInst").value = "";
+        modal.querySelector("#frBuscaCat").value = "";
+        modal.querySelectorAll("label.fr-check").forEach(l => { l.style.display = ""; });
         modal.querySelectorAll("input[type='checkbox']").forEach(c => { c.checked = false; });
+        valorMinAlterado = false;
+        valorMaxAlterado = false;
+        rangeMin.value = 0;
+        rangeMax.value = SLIDER_VALOR_MAX;
+        setValorMoedaComoInicial(inputValorMin, 0);
+        setValorMoedaComoInicial(inputValorMax, SLIDER_VALOR_MAX);
+        atualizarTrilhaSlider();
     });
 
     modal.querySelector("#frAplicar").addEventListener("click", async () => {
@@ -731,6 +855,13 @@ async function abrirModalFiltroRegistros() {
         const instituicaoUsuario = Array.from(modal.querySelectorAll(".fr-inst:checked")).map(i => i.value);
         const categoriaUsuario = Array.from(modal.querySelectorAll(".fr-cat:checked")).map(i => i.value);
 
+        // Só restringe por valor quando o usuário efetivamente moveu o slider/digitou algo,
+        // já que o padrão (0 a SLIDER_VALOR_MAX) representa "sem restrição".
+        const valorMinNum = Math.max(0, window.MainAPI.obterValorMoeda(inputValorMin));
+        const valorMaxNum = Math.max(0, window.MainAPI.obterValorMoeda(inputValorMax));
+        const valorMin = valorMinAlterado ? valorMinNum : null;
+        const valorMax = valorMaxAlterado ? valorMaxNum : null;
+
         const filtroTexto = {
             titulo: campoTexto === "titulo" ? textoBusca : "",
             descricao: campoTexto === "descricao" ? textoBusca : ""
@@ -742,7 +873,9 @@ async function abrirModalFiltroRegistros() {
             tipo,
             tipoMovimento,
             instituicaoUsuario,
-            categoriaUsuario
+            categoriaUsuario,
+            valorMin,
+            valorMax
         };
 
         try {
@@ -766,11 +899,12 @@ async function abrirEdicaoRegistro(registro) {
     const gd = registro.gastoDetalhe || {};
 
     // Usa MainAPI para buscar todas as páginas corretamente
-    let instList = [], catList = [];
+    let instList = [], catList = [], caixinhaList = [];
     try {
-        [instList, catList] = await Promise.all([
+        [instList, catList, caixinhaList] = await Promise.all([
             MainAPI.getInstituicoes(userId),
-            MainAPI.getTipos(userId)
+            MainAPI.getTipos(userId),
+            MainAPI.getCaixinhas(userId).catch(() => [])
         ]);
     } catch (e) {
         console.error('Erro ao carregar dados para edição:', e);
@@ -791,9 +925,9 @@ async function abrirEdicaoRegistro(registro) {
         .filter(i => i && i.intituicao)
         .map(i => {
             const checked = instAtualInstIds.includes(i.intituicao.id) ? 'checked' : '';
-            return `<label style="display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;color:var(--cor-texto-principal);transition:background .15s;" onmouseover="this.style.background='var(--cor-hover)'" onmouseout="this.style.background=''">`
-                + `<input type="checkbox" class="er-inst-check" value="${i.id}" ${checked} style="accent-color:var(--cor-principal);width:16px;height:16px;">`
-                + `${i.intituicao.nome}</label>`;
+            return `<label class="er-check" data-nome="${i.intituicao.nome.toLowerCase()}">`
+                + `<input type="checkbox" class="er-inst-check" value="${i.id}" ${checked}>`
+                + `<span>${i.intituicao.nome}</span></label>`;
         }).join('') || '<small style="color:var(--cor-texto-secundario)">Nenhuma instituição vinculada.</small>';
 
     // Gera HTML dos checkboxes de categorias
@@ -801,12 +935,28 @@ async function abrirEdicaoRegistro(registro) {
         .filter(c => c && c.categoria)
         .map(c => {
             const checked = catAtualIds.includes(c.categoria.id) ? 'checked' : '';
-            return `<label style="display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;color:var(--cor-texto-principal);transition:background .15s;" onmouseover="this.style.background='var(--cor-hover)'" onmouseout="this.style.background=''">`
-                + `<input type="checkbox" class="er-cat-check" value="${c.id}" ${checked} style="accent-color:var(--cor-principal);width:16px;height:16px;">`
-                + `${c.categoria.titulo}</label>`;
+            return `<label class="er-check" data-nome="${c.categoria.titulo.toLowerCase()}">`
+                + `<input type="checkbox" class="er-cat-check" value="${c.id}" ${checked}>`
+                + `<span>${c.categoria.titulo}</span></label>`;
         }).join('') || '<small style="color:var(--cor-texto-secundario)">Nenhuma categoria vinculada.</small>';
 
+    // Opções de caixinha (apenas relevante para eventos do tipo Poupança)
+    const caixinhaOptionsHtml = `<option value="">Nenhuma caixinha vinculada</option>` +
+        (caixinhaList || []).map(c => `<option value="${c.id}"${ef.caixinhaId === c.id ? ' selected' : ''}>${c.nome}</option>`).join('');
+
+    // Opções de instituição de destino (apenas relevante para eventos do tipo Transferência)
+    const destinoAtualInstUsuarioId = (registro.destinoInstituicao && registro.destinoInstituicao[0])
+        ? registro.destinoInstituicao[0].instUsuarioId
+        : null;
+    const destinoOptionsHtml = `<option value="">Selecione a instituição de destino</option>` +
+        instList.filter(i => i && i.intituicao).map(i =>
+            `<option value="${i.id}"${destinoAtualInstUsuarioId === i.id ? ' selected' : ''}>${i.intituicao.nome}</option>`
+        ).join('');
+    const temParVinculado = !!registro.transferenciaVinculadaId;
+
     const mostrarParcelas = ei.tipoMovimento === 'Credito' || ei.tipoMovimento === 'Boleto';
+    const mostrarCaixinha = ef.tipo === 'Poupanca';
+    const mostrarDestino = ef.tipo === 'Transferencia';
 
     // Remove modal anterior se existir
     const anterior = document.getElementById('modalEdicaoRegistro');
@@ -845,8 +995,26 @@ async function abrirEdicaoRegistro(registro) {
             </div>
 
             <div class="er-field-wrap">
-                <input id="erValor" type="number" min="0.01" step="0.01" placeholder=" " value="${ef.valor || ''}">
-                <label for="erValor">Valor (ex: 150.50)</label>
+                <input id="erValor" type="text" placeholder=" ">
+                <label for="erValor">Valor</label>
+            </div>
+
+            <div id="erWrapCaixinha" class="er-field-wrap" style="position:relative;${mostrarCaixinha ? '' : 'display:none;'}">
+                <select id="erCaixinha">${caixinhaOptionsHtml}</select>
+                <label for="erCaixinha">Caixinha de poupança</label>
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--cor-principal);pointer-events:none;">▾</span>
+            </div>
+
+            <div id="erWrapDestino" style="${mostrarDestino ? '' : 'display:none;'}">
+                <div class="er-field-wrap" style="position:relative;">
+                    <select id="erDestinoInstituicao" ${temParVinculado ? '' : 'disabled'}>${destinoOptionsHtml}</select>
+                    <label for="erDestinoInstituicao">Instituição de destino</label>
+                    <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--cor-principal);pointer-events:none;">▾</span>
+                </div>
+                ${temParVinculado ? '' : `<p style="font-size:0.8rem;color:var(--cor-texto-secundario);margin:4px 0 0;">
+                    <i class='bx bx-info-circle'></i> Este registro não possui um par de transferência rastreado
+                    (criado antes desta funcionalidade, ou transferência externa), então a instituição de destino não pode ser editada por aqui.
+                </p>`}
             </div>
 
             <div class="er-field-wrap" style="position:relative;">
@@ -872,8 +1040,8 @@ async function abrirEdicaoRegistro(registro) {
                 <span style="font-size:0.82rem;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:0.5px;">
                     Instituições <span style="font-weight:400;text-transform:none;">(selecione uma ou mais)</span>
                 </span>
-                <div style="border:1px solid var(--cor-tinte-borda);border-radius:10px;padding:8px 10px;max-height:130px;overflow-y:auto;
-                            background:var(--cor-fundo-campo,var(--cor-fundo-card));display:flex;flex-direction:column;gap:2px;">
+                <input id="erBuscaInst" type="text" class="er-busca-lista" placeholder="Pesquisar instituição...">
+                <div class="er-check-grid">
                     ${instChecksHtml}
                 </div>
             </div>
@@ -883,14 +1051,14 @@ async function abrirEdicaoRegistro(registro) {
                 <span style="font-size:0.82rem;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:0.5px;">
                     Categorias <span style="font-weight:400;text-transform:none;">(selecione uma ou mais)</span>
                 </span>
-                <div style="border:1px solid var(--cor-tinte-borda);border-radius:10px;padding:8px 10px;max-height:130px;overflow-y:auto;
-                            background:var(--cor-fundo-campo,var(--cor-fundo-card));display:flex;flex-direction:column;gap:2px;">
+                <input id="erBuscaCat" type="text" class="er-busca-lista" placeholder="Pesquisar categoria...">
+                <div class="er-check-grid">
                     ${catChecksHtml}
                 </div>
             </div>
 
             <div class="er-field-wrap">
-                <input id="erData" type="date" placeholder=" " value="${ef.dataEvento || ''}">
+                <input id="erData" type="text" placeholder=" ">
                 <label for="erData">Data</label>
             </div>
 
@@ -914,15 +1082,57 @@ async function abrirEdicaoRegistro(registro) {
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
     modal.querySelector('#erBtnCancelar').addEventListener('click', () => modal.remove());
 
+    // Máscara monetária (mesma da tela de adicionar registros), pré-preenchida com o valor atual
+    const erValorEl = modal.querySelector('#erValor');
+    if (window.MainAPI && window.MainAPI.aplicarMascaraMoeda) {
+        window.MainAPI.aplicarMascaraMoeda(erValorEl);
+        setValorMoedaComoInicial(erValorEl, ef.valor || 0);
+    }
+
+    // Máscara de data (dd/mm/aaaa), pré-preenchida a partir da data ISO do evento
+    const erDataEl = modal.querySelector('#erData');
+    if (window.MainAPI && window.MainAPI.aplicarMascaraData) {
+        window.MainAPI.aplicarMascaraData(erDataEl);
+        erDataEl.value = window.MainAPI.dataDeISO ? (window.MainAPI.dataDeISO(ef.dataEvento) || '') : (ef.dataEvento || '');
+    }
+
+    // Mostra/oculta seções de caixinha (Poupança) e instituição de destino (Transferência) dinamicamente
+    modal.querySelector('#erTipo').addEventListener('change', e => {
+        modal.querySelector('#erWrapCaixinha').style.display = e.target.value === 'Poupanca' ? '' : 'none';
+        modal.querySelector('#erWrapDestino').style.display = e.target.value === 'Transferencia' ? '' : 'none';
+    });
+
+    // Pesquisa dentro das listas de instituição/categoria
+    const erBuscaInst = modal.querySelector('#erBuscaInst');
+    const erBuscaCat = modal.querySelector('#erBuscaCat');
+    if (erBuscaInst) {
+        erBuscaInst.addEventListener('input', () => {
+            const termo = erBuscaInst.value.trim().toLowerCase();
+            modal.querySelectorAll('.er-inst-check').forEach(chk => {
+                const label = chk.closest('label');
+                if (label) label.style.display = !termo || (label.dataset.nome || '').includes(termo) ? '' : 'none';
+            });
+        });
+    }
+    if (erBuscaCat) {
+        erBuscaCat.addEventListener('input', () => {
+            const termo = erBuscaCat.value.trim().toLowerCase();
+            modal.querySelectorAll('.er-cat-check').forEach(chk => {
+                const label = chk.closest('label');
+                if (label) label.style.display = !termo || (label.dataset.nome || '').includes(termo) ? '' : 'none';
+            });
+        });
+    }
+
     modal.querySelector('#erBtnSalvar').addEventListener('click', async () => {
         const titulo    = modal.querySelector('#erTitulo').value.trim();
         const descricao = modal.querySelector('#erDescricao').value.trim() || 'Nenhuma descrição fornecida';
         const tipo      = modal.querySelector('#erTipo').value;
-        const erValorEl = modal.querySelector('#erValor');
-        const valor     = parseFloat(erValorEl.value.replace(',', '.'));
+        const valor     = window.MainAPI ? window.MainAPI.obterValorMoeda(erValorEl) : parseFloat(erValorEl.value.replace(',', '.'));
         const movimento = modal.querySelector('#erMovimento').value;
         const parcelas  = Number(modal.querySelector('#erParcelas').value) || 1;
-        const data      = modal.querySelector('#erData').value;
+        const dataBR    = erDataEl.value;
+        const data      = window.MainAPI ? window.MainAPI.dataParaISO(dataBR) : dataBR;
         const msgErro   = modal.querySelector('#erMsgErro');
         const btn       = modal.querySelector('#erBtnSalvar');
 
@@ -930,9 +1140,19 @@ async function abrirEdicaoRegistro(registro) {
         const instIds = Array.from(modal.querySelectorAll('.er-inst-check:checked')).map(i => Number(i.value));
         const catIds  = Array.from(modal.querySelectorAll('.er-cat-check:checked')).map(i => Number(i.value));
 
+        // Caixinha (apenas se tipo === Poupanca)
+        const caixinhaSelect = modal.querySelector('#erCaixinha');
+        const caixinhaId = tipo === 'Poupanca' && caixinhaSelect && caixinhaSelect.value ? caixinhaSelect.value : null;
+
+        // Instituição de destino (apenas se tipo === Transferencia e há par vinculado)
+        const destinoSelect = modal.querySelector('#erDestinoInstituicao');
+        const destinoInstituicaoUsuarioId = (tipo === 'Transferencia' && temParVinculado && destinoSelect && destinoSelect.value)
+            ? Number(destinoSelect.value)
+            : null;
+
         if (!titulo)                    { msgErro.textContent = 'Título obrigatório.';   msgErro.style.display = ''; return; }
         if (valor <= 0 || isNaN(valor)) { msgErro.textContent = 'Valor inválido.';        msgErro.style.display = ''; return; }
-        if (!data)                      { msgErro.textContent = 'Data obrigatória.';      msgErro.style.display = ''; return; }
+        if (!data)                      { msgErro.textContent = 'Data inválida ou obrigatória.'; msgErro.style.display = ''; return; }
         if (instIds.length === 0)       { msgErro.textContent = 'Selecione ao menos uma instituição.'; msgErro.style.display = ''; return; }
         msgErro.style.display = 'none';
 
@@ -940,8 +1160,14 @@ async function abrirEdicaoRegistro(registro) {
         btn.textContent = 'Salvando...';
 
         const payload = {
-            financeiro:  { usuario_id: userId, tipo, valor, descricao, dataEvento: data },
-            instituicao: instIds.map(id => ({ instituicaoUsuario_id: id, tipoMovimento: movimento, valor, parcelas })),
+            financeiro:  { usuario_id: userId, tipo, valor, descricao, dataEvento: data, caixinha_id: caixinhaId },
+            instituicao: instIds.map((id, idx) => ({
+                instituicaoUsuario_id: id,
+                tipoMovimento: movimento,
+                valor,
+                parcelas,
+                destinoInstituicaoUsuario_id: idx === 0 ? destinoInstituicaoUsuarioId : null
+            })),
             detalhe:     { categoriaUsuario_id: catIds, tituloGasto: titulo }
         };
 

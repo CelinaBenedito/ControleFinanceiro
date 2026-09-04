@@ -771,6 +771,12 @@
                 });
 
                 if (res.ok || res.status === 204) {
+                    // Invalida os caches de registros/dashboard para que os novos dados
+                    // importados apareçam imediatamente, sem esperar o TTL expirar.
+                    if (window.AppCache) {
+                        window.AppCache.invalidarRegistros(userId);
+                        window.AppCache.invalidarDashboard(userId);
+                    }
                     if (window._addNotification) {
                         window._addNotification({
                             id: NOTIF_ID,

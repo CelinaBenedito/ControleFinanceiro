@@ -24,7 +24,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -224,36 +223,19 @@ public class InstituicaoController {
             @RequestParam(required = false) Integer trimestre,
             @RequestParam(required = false) Integer semestre) {
 
-        LocalDate dataInicio = null;
-        LocalDate dataFim = null;
-
-        if (periodo != null && ano != null) {
-            switch (periodo) {
-                case "MENSAL" -> {
-                    int m = mes != null ? mes : 1;
-                    dataInicio = LocalDate.of(ano, m, 1);
-                    dataFim = dataInicio.withDayOfMonth(dataInicio.lengthOfMonth());
-                }
-                case "TRIMESTRAL" -> {
-                    int t = trimestre != null ? trimestre : 1;
-                    int mesInicio = (t - 1) * 3 + 1;
-                    dataInicio = LocalDate.of(ano, mesInicio, 1);
-                    dataFim = dataInicio.plusMonths(3).minusDays(1);
-                }
-                case "SEMESTRAL" -> {
-                    int s = semestre != null ? semestre : 1;
-                    int mesInicio = (s - 1) * 6 + 1;
-                    dataInicio = LocalDate.of(ano, mesInicio, 1);
-                    dataFim = dataInicio.plusMonths(6).minusDays(1);
-                }
-                case "ANUAL" -> {
-                    dataInicio = LocalDate.of(ano, 1, 1);
-                    dataFim = LocalDate.of(ano, 12, 31);
-                }
+        // Usa o mesmo cálculo de período do dashboard (PeriodoTemporalUtils + dia fiscal
+        // do usuário), evitando divergência entre a KPI "Saldo Total" e o saldo por instituição.
+        controle.api.back_end.model.dashboard.TipoPeriodo tipoPeriodo = null;
+        if (periodo != null) {
+            try {
+                tipoPeriodo = controle.api.back_end.model.dashboard.TipoPeriodo.valueOf(periodo);
+            } catch (IllegalArgumentException ignored) {
+                // periodo inválido/desconhecido: cai no comportamento "sem filtro" (all-time)
             }
         }
 
-        List<ResumoInstituicaoDto> resultado = instituicaoService.getResumoInstituicoes(user_id, dataInicio, dataFim);
+        List<ResumoInstituicaoDto> resultado = instituicaoService
+                .getResumoInstituicoes(user_id, tipoPeriodo, ano, mes, trimestre, semestre);
         return resultado.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(resultado);
     }
 
@@ -273,36 +255,19 @@ public class InstituicaoController {
             @RequestParam(required = false) Integer trimestre,
             @RequestParam(required = false) Integer semestre) {
 
-        LocalDate dataInicio = null;
-        LocalDate dataFim = null;
-
-        if (periodo != null && ano != null) {
-            switch (periodo) {
-                case "MENSAL" -> {
-                    int m = mes != null ? mes : 1;
-                    dataInicio = LocalDate.of(ano, m, 1);
-                    dataFim = dataInicio.withDayOfMonth(dataInicio.lengthOfMonth());
-                }
-                case "TRIMESTRAL" -> {
-                    int t = trimestre != null ? trimestre : 1;
-                    int mesInicio = (t - 1) * 3 + 1;
-                    dataInicio = LocalDate.of(ano, mesInicio, 1);
-                    dataFim = dataInicio.plusMonths(3).minusDays(1);
-                }
-                case "SEMESTRAL" -> {
-                    int s = semestre != null ? semestre : 1;
-                    int mesInicio = (s - 1) * 6 + 1;
-                    dataInicio = LocalDate.of(ano, mesInicio, 1);
-                    dataFim = dataInicio.plusMonths(6).minusDays(1);
-                }
-                case "ANUAL" -> {
-                    dataInicio = LocalDate.of(ano, 1, 1);
-                    dataFim = LocalDate.of(ano, 12, 31);
-                }
+        // Usa o mesmo cálculo de período do dashboard (PeriodoTemporalUtils + dia fiscal
+        // do usuário), evitando divergência entre a KPI "Saldo Total" e o detalhe da instituição.
+        controle.api.back_end.model.dashboard.TipoPeriodo tipoPeriodo = null;
+        if (periodo != null) {
+            try {
+                tipoPeriodo = controle.api.back_end.model.dashboard.TipoPeriodo.valueOf(periodo);
+            } catch (IllegalArgumentException ignored) {
+                // periodo inválido/desconhecido: cai no comportamento "sem filtro" (all-time)
             }
         }
 
-        return ResponseEntity.ok(instituicaoService.getDetalheInstituicao(instUsuario_id, dataInicio, dataFim));
+        return ResponseEntity.ok(instituicaoService
+                .getDetalheInstituicao(instUsuario_id, tipoPeriodo, ano, mes, trimestre, semestre));
     }
 
     @PatchMapping("/{instUsuario_id}/configurar")

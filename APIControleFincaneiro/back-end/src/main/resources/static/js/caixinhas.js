@@ -17,6 +17,17 @@ let _categoriasUsuario = [];       // categorias disponíveis para registrar apo
 let _caixinhaAporteAtual = null;   // caixinha selecionada no modal de aporte
 let _caixinhaResgateAtual = null;  // caixinha selecionada no modal de resgate
 
+// Invalida o cache do dashboard (localStorage) para que KPIs/gráficos
+// reflitam imediatamente qualquer aporte, resgate, criação ou exclusão
+// de caixinha feita nesta tela, sem esperar o TTL de 10 minutos.
+function invalidarCacheDashboard() {
+    try {
+        if (window.AppCache && _usuario && _usuario.id) {
+            window.AppCache.invalidarDashboard(_usuario.id);
+        }
+    } catch (_) {}
+}
+
 // ── Defaults de taxa por tipo ──────────────────────────────────
 const TAXA_DEFAULTS = {
     CDI:          10.40,
@@ -395,6 +406,7 @@ async function reabrirCaixinha(id) {
         const res = await MainAPI.request(`/caixinhas/${id}/reabrir`, { method: 'PATCH' });
         if (res.ok) {
             mostrarToast('Caixinha reaberta com sucesso!', 'sucesso');
+            invalidarCacheDashboard();
             await Promise.all([carregarKPIs(), carregarCaixinhas(_filtroAtivo)]);
         } else {
             mostrarToast(`Erro ao reabrir: ${res.status}`, 'erro');
@@ -591,6 +603,7 @@ async function salvarAporteCaixinha() {
         if (res.ok) {
             fecharModalAporte();
             mostrarToast('Saldo adicionado na caixinha com sucesso!', 'sucesso');
+            invalidarCacheDashboard();
             await Promise.all([carregarKPIs(), carregarCaixinhas(_filtroAtivo)]);
         } else {
             const err = await res.text().catch(() => '');
@@ -685,11 +698,9 @@ async function salvarResgateCaixinha() {
 
     if (valor <= 0) { mostrarToast('Informe um valor válido para o resgate.', 'erro'); return; }
     if (!dataResgate) { mostrarToast('Informe a data do resgate.', 'erro'); return; }
-    if (!descricao) { mostrarToast('Informe a descrição do resgate.', 'erro'); return; }
-
     const payload = {
         valor,
-        descricao,
+        descricao: descricao || null,
         dataResgate,
         tipoMovimento,
         ...(Number.isFinite(instituicaoUsuarioId) && instituicaoUsuarioId > 0 ? { instituicaoUsuarioId } : {})
@@ -704,10 +715,12 @@ async function salvarResgateCaixinha() {
         if (res.ok) {
             fecharModalResgate();
             mostrarToast('Resgate realizado com sucesso!', 'sucesso');
+            invalidarCacheDashboard();
             await Promise.all([carregarKPIs(), carregarCaixinhas(_filtroAtivo)]);
         } else {
             const err = await res.text().catch(() => '');
-            mostrarToast(`Erro ao salvar resgate: ${res.status}. ${err}`, 'erro');
+            const mensagem = err && err.includes('Data truncated for column') ? 'Erro interno ao salvar o resgate.' : err;
+            mostrarToast(`Erro ao salvar resgate: ${res.status}. ${mensagem}`, 'erro');
         }
     } catch (e) {
         mostrarToast('Erro de conexão ao salvar resgate.', 'erro');
@@ -1015,6 +1028,7 @@ async function salvarCaixinha() {
         if (res.ok || res.status === 201) {
             fecharModalCriar();
             mostrarToast(_editandoId ? 'Caixinha atualizada com sucesso!' : 'Caixinha criada com sucesso!', 'sucesso');
+            invalidarCacheDashboard();
             await Promise.all([carregarKPIs(), carregarCaixinhas(_filtroAtivo)]);
         } else {
             const err = await res.text().catch(() => '');
@@ -1038,6 +1052,7 @@ async function encerrarCaixinha(id) {
         const res = await MainAPI.request(`/caixinhas/${id}/encerrar`, { method: 'PATCH' });
         if (res.ok) {
             mostrarToast('Caixinha encerrada.', 'sucesso');
+            invalidarCacheDashboard();
             await Promise.all([carregarKPIs(), carregarCaixinhas(_filtroAtivo)]);
         } else {
             mostrarToast(`Erro ao encerrar: ${res.status}`, 'erro');
@@ -1052,6 +1067,7 @@ async function deletarCaixinha(id) {
         const res = await MainAPI.request(`/caixinhas/${id}`, { method: 'DELETE' });
         if (res.ok || res.status === 204) {
             mostrarToast('Caixinha deletada.', 'sucesso');
+            invalidarCacheDashboard();
             await Promise.all([carregarKPIs(), carregarCaixinhas(_filtroAtivo)]);
         } else {
             mostrarToast(`Erro ao deletar: ${res.status}`, 'erro');

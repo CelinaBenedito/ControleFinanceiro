@@ -157,9 +157,9 @@ public class RegistroExportacaoService {
                 .thenComparing(EventoFinanceiro::getDataRegistro));
     }
 
-    /** Retorna true para tipos que aumentam o saldo disponível na instituição (Recebimento/Empréstimo). */
+    /** Retorna true para tipos que aumentam o saldo disponível na instituição (Recebimento/Empréstimo/Resgate). */
     private boolean isEntradaDeSaldo(Tipo tipo) {
-        return tipo == Tipo.Recebimento || tipo == Tipo.Emprestimo;
+        return tipo == Tipo.Recebimento || tipo == Tipo.Emprestimo || tipo == Tipo.Resgate;
     }
 
     /**
@@ -691,6 +691,7 @@ public class RegistroExportacaoService {
                 case Gasto                   -> totGastos         += ev.getValor();
                 case Transferencia           -> totTransferencias += ev.getValor();
                 case Poupanca                -> totPoupanca       += ev.getValor();
+                case Resgate                  -> totPoupanca       -= ev.getValor();
             }
         }
         double saldoAtual = totReceitas - totGastos - totTransferencias - totPoupanca;
@@ -965,6 +966,7 @@ public class RegistroExportacaoService {
                 case Gasto                   -> totalGastos         += ev.getValor();
                 case Transferencia           -> totalTransferencias += ev.getValor();
                 case Poupanca                -> totalPoupanca       += ev.getValor();
+                case Resgate                  -> totalPoupanca       -= ev.getValor();
             }
         }
         int dataFim = r - 1;
@@ -1655,7 +1657,7 @@ public class RegistroExportacaoService {
                             case Recebimento, Emprestimo -> { bg = t.recBg(); fg = t.recFg(); }
                             case Gasto                   -> { bg = t.gasBg(); fg = t.gasFg(); }
                             case Transferencia           -> { bg = t.traBg(); fg = t.traFg(); }
-                            case Poupanca                -> { bg = t.pouBg(); fg = t.pouFg(); }
+                            case Poupanca, Resgate       -> { bg = t.pouBg(); fg = t.pouFg(); }
                             default                      -> { bg = t.cinza(); fg = t.texto(); }
                         }
 
@@ -1699,6 +1701,7 @@ public class RegistroExportacaoService {
                             case Gasto                   -> gasM = gasM.add(BigDecimal.valueOf(ev.getValor()));
                             case Transferencia           -> traM = traM.add(BigDecimal.valueOf(ev.getValor()));
                             case Poupanca                -> pouM = pouM.add(BigDecimal.valueOf(ev.getValor()));
+                            case Resgate                  -> pouM = pouM.subtract(BigDecimal.valueOf(ev.getValor()));
                         }
                     }
 

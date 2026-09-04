@@ -239,7 +239,8 @@ public class RegistroService {
 
         // Mapeia apenas os itens da página atual — instituicoes são lazy mas a sessão está aberta
         List<RegistroResponseDto> dtos = ordenados.subList(start, end).stream()
-                .map(ev -> RegistrosMapper.toResponse(ev, ev.getEventoInstituicoes(), ev.getGastoDetalhe()))
+                .map(ev -> RegistrosMapper.toResponse(ev, ev.getEventoInstituicoes(), ev.getGastoDetalhe(),
+                        resolveDestinoInstituicao(ev)))
                 .filter(Objects::nonNull)
                 .toList();
 
@@ -252,6 +253,8 @@ public class RegistroService {
     @Transactional(readOnly = true)
     public List<RegistroResponseDto> getByFilter(UUID userId,
                                                   Double valor,
+                                                  Double valorMin,
+                                                  Double valorMax,
                                                   List<TipoMovimento> tiposMovimento,
                                                   List<Tipo> tipos,
                                                   LocalDate dataEvento,
@@ -265,11 +268,25 @@ public class RegistroService {
                 (root, query, cb) -> cb.equal(root.get("usuario"), usuario);
 
         Specification<EventoFinanceiro> filtros = EventoFinanceiroSpecifications.porFiltros(
-                valor, tipos, dataEvento, descricao, tiposMovimento, instituicoes, categorias, titulo);
+                valor, valorMin, valorMax, tipos, dataEvento, descricao, tiposMovimento, instituicoes, categorias, titulo);
 
         return eventoFinanceiroRepository.findAll(filtroUsuario.and(filtros)).stream()
-                .map(ev -> RegistrosMapper.toResponse(ev, ev.getEventoInstituicoes(), ev.getGastoDetalhe()))
+                .map(ev -> RegistrosMapper.toResponse(ev, ev.getEventoInstituicoes(), ev.getGastoDetalhe(),
+                        resolveDestinoInstituicao(ev)))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Para um evento do tipo Transferência com par vinculado rastreado, retorna o(s)
+     * meio(s) de pagamento do evento de Recebimento correspondente (instituição de destino).
+     * Retorna lista vazia para os demais casos (outro tipo, sem par vinculado, etc.).
+     */
+    private List<EventoInstituicao> resolveDestinoInstituicao(EventoFinanceiro ev) {
+        if (ev.getTipo() != Tipo.Transferencia || ev.getTransferenciaVinculada() == null) {
+            return List.of();
+        }
+        return eventoInstituicaoRepository
+                .findEventoInstituicaoByEventoFinanceiro_Id(ev.getTransferenciaVinculada().getId());
     }
 
     // =========================================================================
@@ -632,6 +649,16 @@ public class RegistroService {
         if (novosDados.getValor() != null && !novosDados.getValor().equals(existente.getValor())) {
             existente.setValor(novosDados.getValor());
         }
+        // Caixinha de poupança: só é alterada quando o evento (antes ou depois da edição) é Poupança,
+        // para não zerar acidentalmente o vínculo em edições de outros tipos de evento.
+        if (existente.getTipo() == Tipo.Poupanca || novosDados.getTipo() == Tipo.Poupanca) {
+            if (novosDados.getCaixinha() != null && novosDados.getCaixinha().getId() != null) {
+                caixinhaRepository.findById(novosDados.getCaixinha().getId())
+                        .ifPresentOrElse(existente::setCaixinha, () -> existente.setCaixinha(null));
+            } else {
+                existente.setCaixinha(null);
+            }
+        }
         return eventoFinanceiroRepository.save(existente);
     }
 
@@ -671,6 +698,50 @@ public class RegistroService {
             alvo.setEventoFinanceiro(evento);
             return eventoInstituicaoRepository.save(alvo);
         }).toList();
+    }
+
+    /**
+     * Sincroniza a instituição de destino do evento de Recebimento vinculado a uma Transferência.
+     *
+     * <p>Só tem efeito quando o evento de origem informado é uma Transferência com par vinculado
+     * rastreado (ver {@link EventoFinanceiro#getTransferenciaVinculada()}). Transferências criadas
+     * antes desta funcionalidade existir, ou transferências externas (destino de outro usuário),
+     * não possuem par rastreado e esta chamada não faz nada nesses casos.
+     *
+     * @param eventoOrigemId          id do evento de Transferência (lado saída) sendo editado.
+     * @param destinoInstituicaoUsuarioId id da nova instituição de destino (pode ser {@code null} para não alterar).
+     * @param tipoMovimento           tipo de movimento a aplicar no lado destino (pode ser {@code null} para manter o atual).
+     * @param valor                   novo valor da transferência (espelhado nos dois lados).
+     * @param dataEvento              nova data do evento (espelhado nos dois lados).
+     */
+    public void editDestinoTransferencia(UUID eventoOrigemId, Integer destinoInstituicaoUsuarioId,
+                                          TipoMovimento tipoMovimento, Double valor, LocalDate dataEvento) {
+        EventoFinanceiro origem = buscarEventoOuErro(eventoOrigemId);
+        EventoFinanceiro destinoEvento = origem.getTransferenciaVinculada();
+        if (destinoEvento == null) {
+            return; // Sem par vinculado rastreado — nada a sincronizar.
+        }
+
+        if (valor != null) destinoEvento.setValor(valor);
+        if (dataEvento != null) destinoEvento.setDataEvento(dataEvento);
+        eventoFinanceiroRepository.save(destinoEvento);
+
+        if (destinoInstituicaoUsuarioId != null) {
+            InstituicaoUsuario instUsuario = buscarInstituicaoAtivaOuErro(destinoInstituicaoUsuarioId);
+            List<EventoInstituicao> existentes = eventoInstituicaoRepository
+                    .findEventoInstituicaoByEventoFinanceiro_Id(destinoEvento.getId());
+
+            EventoInstituicao alvo = existentes.isEmpty() ? new EventoInstituicao() : existentes.get(0);
+            alvo.setEventoFinanceiro(destinoEvento);
+            alvo.setInstituicaoUsuario(instUsuario);
+            alvo.setValor(valor != null ? valor : alvo.getValor());
+            alvo.setParcelas(1);
+            alvo.setTipoMovimento(tipoMovimento != null ? tipoMovimento : alvo.getTipoMovimento());
+            eventoInstituicaoRepository.save(alvo);
+
+            // Por segurança: o lado destino deve ter no máximo 1 meio de pagamento.
+            existentes.stream().skip(1).forEach(eventoInstituicaoRepository::delete);
+        }
     }
 
     /**
@@ -746,6 +817,20 @@ public class RegistroService {
             if (det != null) {
                 detalheMap.put(evSalvo, createGastoDetalhe(det, evSalvo));
             }
+        }
+
+        // Vincula o par saída/recebimento de uma Transferência interna (mesmo usuário),
+        // para permitir editar a instituição de destino depois. Apenas TransferenciaEvento
+        // gera essa combinação exata de tipos, então este é um sinal seguro e específico.
+        if (eventosSalvos.size() == 2
+                && eventosSalvos.get(0).getTipo() == Tipo.Transferencia
+                && eventosSalvos.get(1).getTipo() == Tipo.Recebimento) {
+            EventoFinanceiro saida = eventosSalvos.get(0);
+            EventoFinanceiro recebida = eventosSalvos.get(1);
+            saida.setTransferenciaVinculada(recebida);
+            recebida.setTransferenciaVinculada(saida);
+            eventoFinanceiroRepository.save(saida);
+            eventoFinanceiroRepository.save(recebida);
         }
 
         Registro resultado = new Registro(eventosSalvos, instituicoesMap, detalheMap);

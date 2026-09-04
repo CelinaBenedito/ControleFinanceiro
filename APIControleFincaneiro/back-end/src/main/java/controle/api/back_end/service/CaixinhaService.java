@@ -371,7 +371,7 @@ public class CaixinhaService {
         resgate.setUsuario(caixinha.getUsuario());
         resgate.setTipo(Tipo.Resgate);
         resgate.setValor(dto.getValor().doubleValue());
-        resgate.setDescricao(dto.getDescricao() != null ? dto.getDescricao() : "Resgate da caixinha");
+        resgate.setDescricao(dto.getDescricao() != null && !dto.getDescricao().isBlank() ? dto.getDescricao().trim() : "Resgate da caixinha");
         resgate.setDataEvento(dto.getDataResgate() != null ? dto.getDataResgate() : LocalDate.now());
         resgate.setCaixinha(caixinha);
         EventoFinanceiro resgatesSalvo = eventoFinanceiroRepository.save(resgate);
@@ -679,9 +679,6 @@ public class CaixinhaService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }
-
-
-
 
 
 

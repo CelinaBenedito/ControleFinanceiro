@@ -38,11 +38,12 @@ public class InstituicaoService {
     private final EventoFinanceiroRepository eventoFinanceiroRepository;
     private final EventoDetalheRepository eventoDetalheRepository;
     private final UsuarioService usuarioService;
+    private final ConfiguracoesService configuracoesService;
 
 
     public InstituicaoService(InstituicaoRepository instituicaoRepository,
                               UsuarioRepository usuarioRepository,
-                              InstituicaoUsuarioRepository instituicaoUsuarioRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoFinanceiroRepository eventoFinanceiroRepository, EventoDetalheRepository eventoDetalheRepository, UsuarioService usuarioService) {
+                              InstituicaoUsuarioRepository instituicaoUsuarioRepository, EventoInstituicaoRepository eventoInstituicaoRepository, EventoFinanceiroRepository eventoFinanceiroRepository, EventoDetalheRepository eventoDetalheRepository, UsuarioService usuarioService, ConfiguracoesService configuracoesService) {
         this.instituicaoRepository = instituicaoRepository;
         this.usuarioRepository = usuarioRepository;
         this.instituicaoUsuarioRepository = instituicaoUsuarioRepository;
@@ -50,6 +51,17 @@ public class InstituicaoService {
         this.eventoFinanceiroRepository = eventoFinanceiroRepository;
         this.eventoDetalheRepository = eventoDetalheRepository;
         this.usuarioService = usuarioService;
+        this.configuracoesService = configuracoesService;
+    }
+
+    /** Dia de início do mês fiscal configurado pelo usuário (padrão 1 se não configurado). */
+    private int getDiaFiscal(UUID userId) {
+        try {
+            var c = configuracoesService.getConfiguracaoByUserId(userId);
+            return c.getInicioMesFiscal() != null ? c.getInicioMesFiscal() : 1;
+        } catch (Exception e) {
+            return 1;
+        }
     }
 
     public Page<Instituicao> getInstituicoes(Pageable pageable) {
@@ -199,7 +211,7 @@ public class InstituicaoService {
 
         if (eventoFinanceiro.getTipo() == Tipo.Gasto || eventoFinanceiro.getTipo() == Tipo.Transferencia || eventoFinanceiro.getTipo() == Tipo.Poupanca) {
             saldo = saldo.subtract(valor);
-        } else if (eventoFinanceiro.getTipo() == Tipo.Recebimento || eventoFinanceiro.getTipo() == Tipo.Emprestimo) {
+        } else if (eventoFinanceiro.getTipo() == Tipo.Recebimento || eventoFinanceiro.getTipo() == Tipo.Emprestimo || eventoFinanceiro.getTipo() == Tipo.Resgate) {
             saldo = saldo.add(valor);
         }
         return saldo;
@@ -228,7 +240,7 @@ public class InstituicaoService {
         if (eventoFinanceiro.getTipo() == Tipo.Gasto || eventoFinanceiro.getTipo() == Tipo.Transferencia || eventoFinanceiro.getTipo() == Tipo.Poupanca) {
             return saldo.subtract(valor);
         }
-        if (eventoFinanceiro.getTipo() == Tipo.Recebimento || eventoFinanceiro.getTipo() == Tipo.Emprestimo) {
+        if (eventoFinanceiro.getTipo() == Tipo.Recebimento || eventoFinanceiro.getTipo() == Tipo.Emprestimo || eventoFinanceiro.getTipo() == Tipo.Resgate) {
             return saldo.add(valor);
         }
         return saldo;
@@ -250,6 +262,24 @@ public class InstituicaoService {
     // =========================================================================
     public List<ResumoInstituicaoDto> getResumoInstituicoes(UUID userId) {
         return getResumoInstituicoes(userId, null, null);
+    }
+
+    /**
+     * Calcula o resumo das instituições para um período, respeitando o dia de início do
+     * mês fiscal configurado pelo usuário — usa o mesmo {@link controle.api.back_end.utils.PeriodoTemporalUtils}
+     * empregado pelo dashboard (KPI Saldo Total), garantindo que ambos retornem o mesmo saldo
+     * para o mesmo período selecionado.
+     */
+    public List<ResumoInstituicaoDto> getResumoInstituicoes(UUID userId,
+                                                             controle.api.back_end.model.dashboard.TipoPeriodo tipo,
+                                                             Integer ano, Integer mes, Integer trimestre, Integer semestre) {
+        if (tipo == null || ano == null) {
+            return getResumoInstituicoes(userId, null, null);
+        }
+        controle.api.back_end.utils.PeriodoTemporalUtils.validar(tipo, ano, mes, trimestre, semestre);
+        var periodo = controle.api.back_end.utils.PeriodoTemporalUtils.calcular(
+                tipo, ano, mes, trimestre, semestre, getDiaFiscal(userId));
+        return getResumoInstituicoes(userId, periodo.inicio(), periodo.fim());
     }
 
     public List<ResumoInstituicaoDto> getResumoInstituicoes(UUID userId, LocalDate dataInicio, LocalDate dataFim) {
@@ -382,6 +412,27 @@ public class InstituicaoService {
     // =========================================================================
     public DetalheInstituicaoDto getDetalheInstituicao(Integer instUsuarioId) {
         return getDetalheInstituicao(instUsuarioId, null, null);
+    }
+
+    /**
+     * Calcula o detalhe para um período, respeitando o dia de início do mês fiscal do usuário
+     * dono da instituição — mantém consistência com o Saldo Total do dashboard e o resumo de
+     * instituições para o mesmo período selecionado.
+     */
+    public DetalheInstituicaoDto getDetalheInstituicao(Integer instUsuarioId,
+                                                        controle.api.back_end.model.dashboard.TipoPeriodo tipo,
+                                                        Integer ano, Integer mes, Integer trimestre, Integer semestre) {
+        if (tipo == null || ano == null) {
+            return getDetalheInstituicao(instUsuarioId, null, null);
+        }
+        InstituicaoUsuario iu = instituicaoUsuarioRepository.findById(instUsuarioId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("InstituicaoUsuario de id: %d não encontrada.".formatted(instUsuarioId)));
+        controle.api.back_end.utils.PeriodoTemporalUtils.validar(tipo, ano, mes, trimestre, semestre);
+        UUID userId = iu.getUsuario() != null ? iu.getUsuario().getId() : null;
+        int diaFiscal = userId != null ? getDiaFiscal(userId) : 1;
+        var periodo = controle.api.back_end.utils.PeriodoTemporalUtils.calcular(
+                tipo, ano, mes, trimestre, semestre, diaFiscal);
+        return getDetalheInstituicao(instUsuarioId, periodo.inicio(), periodo.fim());
     }
 
     public DetalheInstituicaoDto getDetalheInstituicao(Integer instUsuarioId, LocalDate dataInicio, LocalDate dataFim) {

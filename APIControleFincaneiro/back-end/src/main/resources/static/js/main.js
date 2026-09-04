@@ -451,6 +451,8 @@
             const params = new URLSearchParams();
 
             if (filtros.valor) params.append("valor", filtros.valor);
+            if (filtros.valorMin != null && filtros.valorMin !== "") params.append("valorMin", filtros.valorMin);
+            if (filtros.valorMax != null && filtros.valorMax !== "") params.append("valorMax", filtros.valorMax);
             if (filtros.dataEvento) params.append("dataEvento", filtros.dataEvento);
             if (filtros.descricao) params.append("descricao", filtros.descricao);
             if (filtros.titulo) params.append("titulo", filtros.titulo);

@@ -13,6 +13,8 @@ public class RegistroResponseDto {
     private EventoFinanceiroDto eventoFinanceiro;
     private List<EventoInstituicaoDto> eventoInstituicao;
     private LocalDateTime dataRegistro;
+    private UUID transferenciaVinculadaId;
+    private List<EventoInstituicaoDto> destinoInstituicao;
 
     public static class EventoFinanceiroDto{
         private UUID id;
@@ -20,6 +22,7 @@ public class RegistroResponseDto {
         private Double valor;
         private String descricao;
         private LocalDate dataEvento;
+        private UUID caixinhaId;
 
         public UUID getId() {
             return id;
@@ -59,6 +62,14 @@ public class RegistroResponseDto {
 
         public void setDataEvento(LocalDate dataEvento) {
             this.dataEvento = dataEvento;
+        }
+
+        public UUID getCaixinhaId() {
+            return caixinhaId;
+        }
+
+        public void setCaixinhaId(UUID caixinhaId) {
+            this.caixinhaId = caixinhaId;
         }
     }
     public static class EventoInstituicaoDto{
@@ -214,5 +225,21 @@ public class RegistroResponseDto {
 
     public void setDataRegistro(LocalDateTime dataRegistro) {
         this.dataRegistro = dataRegistro;
+    }
+
+    public UUID getTransferenciaVinculadaId() {
+        return transferenciaVinculadaId;
+    }
+
+    public void setTransferenciaVinculadaId(UUID transferenciaVinculadaId) {
+        this.transferenciaVinculadaId = transferenciaVinculadaId;
+    }
+
+    public List<EventoInstituicaoDto> getDestinoInstituicao() {
+        return destinoInstituicao;
+    }
+
+    public void setDestinoInstituicao(List<EventoInstituicaoDto> destinoInstituicao) {
+        this.destinoInstituicao = destinoInstituicao;
     }
 }
