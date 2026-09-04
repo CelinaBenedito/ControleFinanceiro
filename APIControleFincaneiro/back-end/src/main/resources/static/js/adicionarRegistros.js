@@ -858,19 +858,27 @@ function gerarInformacoes() {
     gerarInstituicao();
 }
 
+function _movimentoUsaSaldoCredito(movimento) {
+    return movimento === 'Credito';
+}
+
 async function atualizarSaldoDisplay(instituicaoUsuarioId) {
     const el = document.getElementById('saldo_display');
     if (!el) return;
     if (!instituicaoUsuarioId || instituicaoUsuarioId === '#') { el.style.display = 'none'; return; }
     try {
-        const path = `/instituicoes/saldo/${Number(instituicaoUsuarioId)}`;
+        const movimento = document.getElementById('select_movimento')?.value;
+        const usaCredito = _movimentoUsaSaldoCredito(movimento);
+        const path = usaCredito
+            ? `/instituicoes/saldo/${Number(instituicaoUsuarioId)}`
+            : `/instituicoes/saldo-debito/${Number(instituicaoUsuarioId)}`;
         const res = window.MainAPI?.request
             ? await window.MainAPI.request(path, { method: 'GET' })
             : await fetch(path);
         if (!res.ok) { el.style.display = 'none'; return; }
         const saldo = await res.json();
         const valor = Number(saldo);
-        el.textContent = `Saldo disponível: R$ ${valor.toFixed(2)}`;
+        el.textContent = `${usaCredito ? 'Crédito disponível' : 'Saldo disponível'}: R$ ${valor.toFixed(2)}`;
         // Usa variáveis CSS para cores de saldo
         el.style.color = valor <= 0 ? 'var(--red-700)' : 'var(--cor-principal)';
         el.style.display = '';
@@ -1080,7 +1088,7 @@ async function registrar() {
         _payload,
         function (status, msg) {
             if (status === 'error') {
-                alerta(`⚠ Falha ao salvar: ${msg || 'Erro desconhecido'}`, 0);
+                alerta(`Falha ao salvar: ${msg || 'Erro desconhecido'}`, 0);
             }
         },
         function () {
@@ -1464,4 +1472,3 @@ titulos.forEach(item => {
         item.classList.add("ativo");
     });
 });
-

@@ -909,11 +909,12 @@ public class RegistroService {
         movimentoStrategy.validar(instUsuario);
         MovimentoResultado resultado = movimentoStrategy.processar(pagamento);
 
-        // Gastos e transferências requerem saldo suficiente — exceto para recorrentes (validarSaldo=false)
-        // e exceto para compras no crédito (que não debitam na hora, só no pagamento da fatura)
+        // Gastos futuros não bloqueiam o cadastro; a validação de saldo fica para movimentos que já
+        // impactam o caixa no presente/passado. Compras no crédito seguem sem débito imediato.
         if (validarSaldo && tipoRequerValidacaoSaldo(evento.getTipo())
+                && !isEventoFuturo(evento)
                 && pagamento.getTipoMovimento() != TipoMovimento.Credito) {
-            BigDecimal saldoDisponivel = instituicaoService.getSaldoByInstituicao(instUsuario.getId());
+            BigDecimal saldoDisponivel = instituicaoService.getSaldoDebitoByInstituicao(instUsuario.getId());
             if (BigDecimal.valueOf(resultado.getValorParcela()).compareTo(saldoDisponivel) > 0) {
                 throw new SaldoInsuficienteException(
                         "Saldo insuficiente na instituição %s para realizar a operação."
@@ -1014,6 +1015,10 @@ public class RegistroService {
                     return eventoInstituicaoRepository.save(parcela);
                 })
                 .toList();
+    }
+
+    private boolean isEventoFuturo(EventoFinanceiro evento) {
+        return evento.getDataEvento() != null && evento.getDataEvento().isAfter(LocalDate.now());
     }
 
     // =========================================================================

@@ -17,6 +17,7 @@ import controle.api.back_end.repository.usuario.UsuarioRepository;
 import controle.api.back_end.factory.EventoFinanceiroFactory;
 import controle.api.back_end.factory.MovimentoFactory;
 import controle.api.back_end.factory.RecorrenciaFactory;
+import controle.api.back_end.exception.SaldoInsuficienteException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -49,6 +51,10 @@ class RegistroServiceTest {
     @Mock EventoFinanceiroFactory eventoFinanceiroFactory;
     @Mock RecorrenciaFactory recorrenciaFactory;
     @Mock InstituicaoService instituicaoService;
+    @Mock controle.api.back_end.repository.configuracoes.ConfiguracoesRepository configuracoesRepository;
+    @Mock EmailService emailService;
+    @Mock controle.api.back_end.repository.poupanca.CaixinhaRepository caixinhaRepository;
+    @Mock controle.api.back_end.repository.eventoFinanceiro.RecorrenciaFinanceiraRepository recorrenciaFinanceiraRepository;
 
     @InjectMocks RegistroService registroService;
 
@@ -242,7 +248,84 @@ class RegistroServiceTest {
         assertEquals(TipoMovimento.Credito, resultados.get(0).getTipoMovimento());
 
         // Verifica que NÃO consultou saldo (porque crédito não precisa validar)
-        verify(instituicaoService, never()).getSaldoByInstituicao(anyInt());
+        verify(instituicaoService, never()).getSaldoDebitoByInstituicao(anyInt());
+    }
+
+    @Test
+    @DisplayName("createEventoInstituicao: bloqueia gasto de hoje sem saldo")
+    void createEventoInstituicao_bloqueiaGastoAtualSemSaldo() {
+        eventoFinanceiro.setDataEvento(LocalDate.now());
+
+        Instituicao inst = new Instituicao();
+        inst.setId(1);
+        inst.setNome("Banco XYZ");
+
+        InstituicaoUsuario instUsuario = new InstituicaoUsuario();
+        instUsuario.setId(1);
+        instUsuario.setInstituicao(inst);
+        instUsuario.setUsuario(usuario);
+        instUsuario.setIsAtivo(true);
+
+        EventoInstituicao pagamento = new EventoInstituicao();
+        pagamento.setInstituicaoUsuario(instUsuario);
+        pagamento.setTipoMovimento(TipoMovimento.Debito);
+        pagamento.setValor(300.0);
+        pagamento.setParcelas(1);
+
+        controle.api.back_end.strategy.movimento.MovimentoStrategy strategy =
+                mock(controle.api.back_end.strategy.movimento.MovimentoStrategy.class);
+        controle.api.back_end.strategy.movimento.MovimentoResultado resultado =
+                new controle.api.back_end.strategy.movimento.MovimentoResultado(pagamento, 1, 300.0);
+
+        when(instituicaoUsuarioRepository.findById(1)).thenReturn(Optional.of(instUsuario));
+        when(movimentoFactory.getStrategy(eq(TipoMovimento.Debito), any())).thenReturn(strategy);
+        when(strategy.processar(pagamento)).thenReturn(resultado);
+        when(eventoFinanceiroRepository.existsById(eventoId)).thenReturn(true);
+        when(instituicaoService.getSaldoDebitoByInstituicao(1)).thenReturn(BigDecimal.ZERO);
+
+        assertThrows(SaldoInsuficienteException.class,
+                () -> registroService.createEventoInstituicao(List.of(pagamento), eventoFinanceiro, true));
+
+        verify(eventoInstituicaoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("createEventoInstituicao: permite gasto futuro sem saldo")
+    void createEventoInstituicao_permiteGastoFuturoSemSaldo() {
+        eventoFinanceiro.setDataEvento(LocalDate.now().plusDays(1));
+
+        Instituicao inst = new Instituicao();
+        inst.setId(1);
+        inst.setNome("Banco XYZ");
+
+        InstituicaoUsuario instUsuario = new InstituicaoUsuario();
+        instUsuario.setId(1);
+        instUsuario.setInstituicao(inst);
+        instUsuario.setUsuario(usuario);
+        instUsuario.setIsAtivo(true);
+
+        EventoInstituicao pagamento = new EventoInstituicao();
+        pagamento.setInstituicaoUsuario(instUsuario);
+        pagamento.setTipoMovimento(TipoMovimento.Debito);
+        pagamento.setValor(300.0);
+        pagamento.setParcelas(1);
+
+        controle.api.back_end.strategy.movimento.MovimentoStrategy strategy =
+                mock(controle.api.back_end.strategy.movimento.MovimentoStrategy.class);
+        controle.api.back_end.strategy.movimento.MovimentoResultado resultado =
+                new controle.api.back_end.strategy.movimento.MovimentoResultado(pagamento, 1, 300.0);
+
+        when(instituicaoUsuarioRepository.findById(1)).thenReturn(Optional.of(instUsuario));
+        when(movimentoFactory.getStrategy(eq(TipoMovimento.Debito), any())).thenReturn(strategy);
+        when(strategy.processar(pagamento)).thenReturn(resultado);
+        when(eventoFinanceiroRepository.existsById(eventoId)).thenReturn(true);
+        when(eventoInstituicaoRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        List<EventoInstituicao> resultados = registroService.createEventoInstituicao(
+                List.of(pagamento), eventoFinanceiro, true);
+
+        assertNotNull(resultados);
+        assertEquals(1, resultados.size());
+        verify(instituicaoService, never()).getSaldoDebitoByInstituicao(anyInt());
     }
 }
-
