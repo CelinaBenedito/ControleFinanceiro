@@ -1127,11 +1127,14 @@ const btnAbrir    = document.getElementById("calendario");
 const modal       = document.getElementById("modal");
 const fechar      = document.getElementById("fechar");
 const dias        = document.getElementById("dias");
-const mesAno      = document.getElementById("mesAno");
+const mesLabel    = document.getElementById("mesLabel");
+const anoInput    = document.getElementById("anoInput");
+const mesPicker   = document.getElementById("mesPicker");
 const gastosDoDia = document.getElementById("gastosDoDia");
 const confirmar   = document.getElementById("confirmar");
 const btnAnterior = document.getElementById("btnAnterior");
 const btnProximo  = document.getElementById("btnProximo");
+const btnHoje     = document.getElementById("btnHoje");
 
 let dataSelecionada = null;
 let hoje     = new Date();
@@ -1152,21 +1155,87 @@ btnProximo.onclick = () => {
     mesAtual++; if (mesAtual > 11) { mesAtual = 0; anoAtual++; } gerarCalendario();
 };
 
+// ── Seleção rápida de mês (grade de 12 meses, clique único) ──
+const NOMES_MESES = Array.from({ length: 12 }, (_, m) => new Date(2000, m, 1).toLocaleString("pt-BR", { month: "long" }));
+
+function montarMesPicker() {
+    mesPicker.innerHTML = "";
+    NOMES_MESES.forEach((nome, m) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = nome;
+        if (m === mesAtual) btn.classList.add("mesAtivo");
+        btn.onclick = () => {
+            mesAtual = m;
+            mesPicker.style.display = "none";
+            gerarCalendario();
+        };
+        mesPicker.appendChild(btn);
+    });
+}
+
+if (mesLabel) {
+    mesLabel.onclick = () => {
+        const abrindo = mesPicker.style.display === "none";
+        if (abrindo) montarMesPicker();
+        mesPicker.style.display = abrindo ? "grid" : "none";
+    };
+}
+
+// ── Seleção rápida de ano (campo numérico editável, sem limite) ──
+if (anoInput) {
+    anoInput.addEventListener("change", () => {
+        const valor = parseInt(anoInput.value, 10);
+        if (!isNaN(valor) && valor > 0) {
+            anoAtual = valor;
+            gerarCalendario();
+        } else {
+            anoInput.value = anoAtual;
+        }
+    });
+    anoInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") anoInput.blur();
+    });
+}
+
+// ── Atalho "Selecionar o dia de hoje" ────────────────────────
+if (btnHoje) {
+    btnHoje.onclick = () => {
+        const agora = new Date();
+        mesAtual = agora.getMonth();
+        anoAtual = agora.getFullYear();
+        mesPicker.style.display = "none";
+        gerarCalendario();
+        const dataHojeFormatada = `${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+        const spanHoje = Array.from(dias.querySelectorAll("span")).find(s => s.innerText === String(agora.getDate()));
+        if (spanHoje) selecionarDia(dataHojeFormatada, spanHoje);
+    };
+}
+
+// Fecha a grade de meses ao clicar fora dela
+document.addEventListener("click", (e) => {
+    if (mesPicker.style.display === "none") return;
+    if (e.target === mesLabel || mesPicker.contains(e.target)) return;
+    mesPicker.style.display = "none";
+});
+
 async function buscarGastosDia(dataSelecionada) {
     const json = await MainAPI.buscarRegistrosPorData(userId, dataSelecionada);
-    let listaGastos = [];
-    for (let c = 0; c < json.length; c++) {
-        const data = new Date(json[c].dataGasto);
-        if (data.toISOString().split("T")[0] === dataSelecionada) listaGastos.push(json[c]);
-    }
-    return listaGastos;
+    if (!Array.isArray(json)) return [];
+    // A API já filtra por eventoFinanceiro.dataEvento; reforça o filtro com
+    // fallback para dataGasto sem quebrar em caso de datas ausentes/ inválidas.
+    return json.filter(r => {
+        const dataEvento = r.eventoFinanceiro?.dataEvento ?? r.dataGasto;
+        return dataEvento === dataSelecionada;
+    });
 }
 
 function gerarCalendario() {
     dias.innerHTML = "";
     let primeiroDia = new Date(anoAtual, mesAtual, 1).getDay();
     let totalDias   = new Date(anoAtual, mesAtual + 1, 0).getDate();
-    mesAno.innerText = new Date(anoAtual, mesAtual).toLocaleString("pt-BR", { month: "long", year: "numeric" });
+    mesLabel.textContent = NOMES_MESES[mesAtual];
+    if (document.activeElement !== anoInput) anoInput.value = anoAtual;
     for (let i = 0; i < primeiroDia; i++) dias.innerHTML += `<span></span>`;
     for (let dia = 1; dia <= totalDias; dia++) {
         let dataFormatada = `${anoAtual}-${String(mesAtual + 1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
@@ -1186,10 +1255,10 @@ async function selecionarDia(data, elemento) {
         const listaGastos = await buscarGastosDia(data);
         const gastosDia = document.getElementById('gastosDia');
         if (listaGastos.length > 0) {
-            const dataRegistro = listaGastos[0].eventoFinanceiro?.dataEvento ?? listaGastos[0].dataGasto;
-            const novaData     = new Date(dataRegistro);
-            const dataFmt = isNaN(novaData.getTime()) ? formatarDataBR(data) : novaData.toLocaleDateString("pt-BR");
-            gastosDia.innerHTML = `<b>Gastos de ${dataFmt}:</b><br>`;
+            // Usa a data selecionada diretamente (evita bug de fuso horário ao
+            // reconstituir a data via `new Date()` a partir de string "aaaa-mm-dd").
+            const dataFmt = formatarDataBR(data);
+            gastosDia.innerHTML = `<b>Eventos de ${dataFmt}:</b><br>`;
             listaGastos.forEach(g => {
                 const titulo = g.gastoDetalhe?.tituloGasto ?? g.tituloGasto;
                 const valor  = g.eventoFinanceiro?.valor ?? g.valor;

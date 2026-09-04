@@ -418,9 +418,15 @@
                     <span class="fechar" id="fechar">&times;</span>
                     <div class="topo-calendario">
                         <button id="btnAnterior">◀</button>
-                        <h2 id="mesAno"></h2>
+                        <h2 class="mesAnoTitulo">
+                            <span id="mesLabel" class="mesAnoClicavel" title="Clique para escolher o mês"></span>
+                            <span id="anoWrapper" class="anoWrapper" title="Clique ou role para escolher o ano">
+                                <input type="number" id="anoInput" class="anoInput" step="1" inputmode="numeric" />
+                            </span>
+                        </h2>
                         <button id="btnProximo">▶</button>
                     </div>
+                    <div class="mesPicker" id="mesPicker" style="display:none;"></div>
                     <div class="calendario">
                         <div class="diasSemana">
                             <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span>
@@ -429,7 +435,10 @@
                         <div class="dias" id="dias"></div>
                     </div>
                     <div class="gastos" id="gastosDia"></div>
-                    <button id="confirmar" disabled>Confirmar dia</button>
+                    <div class="rodape-calendario">
+                        <button id="confirmar" disabled>Confirmar dia</button>
+                        <a href="javascript:void(0)" id="btnHoje" class="link-hoje">Selecionar o dia de hoje</a>
+                    </div>
                 </div>
             </div>
 
