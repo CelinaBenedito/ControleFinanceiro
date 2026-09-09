@@ -211,6 +211,16 @@
 
             </div>
 
+            <!-- ── Limite de gastos por instituição ── -->
+            <section class="campo-grafico limite-instituicoes-card" id="limiteInstituicoesCard" style="background:var(--cor-fundo-card);border-radius:16px;box-shadow:0 4px 16px var(--sombra-card);">
+                <div class="titulo-grafico">
+                    <span>Limite de gastos por instituição</span>
+                    <i class='bx bx-info-circle tooltip-icon'></i>
+                    <div class="tooltip">Compara o gasto do período com o limite mensal configurado para cada instituição (ajustado à duração do período selecionado).</div>
+                </div>
+                <div id="listaLimitesInstituicao" class="limite-inst-lista"></div>
+            </section>
+
             <!-- ── Cards de instituições ── -->
             <div id="loadingInstituicoes" class="inst-loading">
                 <i class='bx bx-loader-alt bx-spin'></i> Carregando instituições...

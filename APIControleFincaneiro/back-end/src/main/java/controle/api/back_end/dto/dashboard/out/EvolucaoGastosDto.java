@@ -10,7 +10,9 @@ public record EvolucaoGastosDto(
         String granularidade,
         List<Ponto> dados,
         /** Série de recebimentos (Recebimento + Empréstimo) — mesmos labels que dados */
-        List<Ponto> dadosRecebimentos
+        List<Ponto> dadosRecebimentos,
+        /** Limite mensal total configurado, ajustado para a duração do período selecionado. Null se não configurado. */
+        BigDecimal limitePeriodo
 ) {
     public record Ponto(String label, BigDecimal valor) {}
 }

@@ -2,6 +2,7 @@ package controle.api.back_end.strategy.movimento;
 
 import controle.api.back_end.exception.InstituicaoInativaException;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 
 public class DinheiroMovimento implements MovimentoStrategy {
@@ -15,6 +16,12 @@ public class DinheiroMovimento implements MovimentoStrategy {
                                             .getInstituicao()
                                             .getNome()
                             )
+            );
+        }
+        if (instituicao.getTiposAceitos() == null || !instituicao.getTiposAceitos().contains(TipoMovimento.Dinheiro)) {
+            throw new IllegalArgumentException(
+                    "Instituição %s não aceita movimentação em Dinheiro."
+                            .formatted(instituicao.getInstituicao().getNome())
             );
         }
     }

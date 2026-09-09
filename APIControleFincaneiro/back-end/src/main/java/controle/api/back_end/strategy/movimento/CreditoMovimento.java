@@ -2,6 +2,7 @@ package controle.api.back_end.strategy.movimento;
 
 import controle.api.back_end.exception.InstituicaoInativaException;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 
     public class CreditoMovimento implements MovimentoStrategy {
@@ -22,6 +23,12 @@ import controle.api.back_end.model.instituicao.InstituicaoUsuario;
                                                 .getInstituicao()
                                                 .getNome()
                                 )
+                );
+            }
+            if (instituicao.getTiposAceitos() == null || !instituicao.getTiposAceitos().contains(TipoMovimento.Credito)) {
+                throw new IllegalArgumentException(
+                        "Instituição %s não aceita movimentação em Crédito."
+                                .formatted(instituicao.getInstituicao().getNome())
                 );
             }
         }

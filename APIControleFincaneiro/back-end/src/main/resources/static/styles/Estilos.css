@@ -182,8 +182,7 @@ body[data-mascote="nenhum"] .mascote-vazio-fallback { display: block !important;
     height: 100vh;
     position: fixed;
     overflow-x: hidden;
-    transition: width 0.2s ease;
-    will-change: width;
+    transition: width 0.16s ease;
     z-index: 1;
     color: var(--cor-texto-claro);
 }
@@ -194,7 +193,7 @@ body[data-mascote="nenhum"] .mascote-vazio-fallback { display: block !important;
 }
 
 #main {
-    transition: margin-left 0.2s ease;
+    transition: margin-left 0.16s ease;
     padding: 20px;
     flex-grow: 1;
     width: auto;
@@ -222,7 +221,7 @@ body[data-mascote="nenhum"] .mascote-vazio-fallback { display: block !important;
 .side-bar a {
     display: flex;
     text-decoration: none;
-    transition: 0.3s;
+    transition: color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
     color: var(--cor-texto-claro);
 }
 
@@ -232,7 +231,7 @@ body[data-mascote="nenhum"] .mascote-vazio-fallback { display: block !important;
     opacity: 0;
     max-width: 0;
     overflow: hidden;
-    transition: opacity 0.15s ease, max-width 0.15s ease;
+    transition: opacity 0.12s ease, max-width 0.12s ease;
     white-space: nowrap;
 }
 
@@ -267,7 +266,7 @@ body[data-mascote="nenhum"] .mascote-vazio-fallback { display: block !important;
     flex-direction: column;
     gap: 10px;
     background-color: var(--cor-fundo-card);
-    box-shadow: 0 4px 16px var(--sombra-card);
+    box-shadow: 0 2px 8px var(--sombra-card);
     min-width: 0;
     overflow: visible;
 }
@@ -331,7 +330,7 @@ body[data-mascote="nenhum"] .mascote-vazio-fallback { display: block !important;
     font-size: 0.875rem;
     font-weight: 700;
     display: inline-block;
-    box-shadow: 0 2px 4px var(--sombra-card);
+    box-shadow: 0 1px 3px var(--sombra-card);
 }
 
 .valorKPItipo {
@@ -349,6 +348,27 @@ body[data-mascote="nenhum"] .mascote-vazio-fallback { display: block !important;
     justify-content: center;
     align-items: start;
     overflow-x: hidden;
+    content-visibility: auto;
+    contain-intrinsic-size: 1200px;
+}
+
+body.tema-trocando *,
+body.tema-trocando *::before,
+body.tema-trocando *::after {
+    animation: none !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+}
+
+body.tema-trocando .theme-fab-icon,
+body.tema-trocando .theme-fab-tooltip,
+body.tema-trocando .uw-dropdown,
+body.tema-trocando .side-bar,
+body.tema-trocando #main,
+body.tema-trocando .KPI,
+body.tema-trocando .card,
+body.tema-trocando .campo-grafico {
+    transition: none !important;
 }
 
 #graficoDonut {
@@ -2114,6 +2134,85 @@ body[data-mascote="nenhum"] .uw-mascote { display: none; }
     font-size: 0.8rem;
     font-weight: 700;
     color: var(--cor-texto-secundario);
+}
+
+/* ── Limite de gastos por instituição ── */
+.limite-instituicoes-card {
+    margin-bottom: 16px;
+}
+
+.limite-inst-lista {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+}
+
+.limite-inst-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--cor-tinte-suave);
+    border: 1px solid var(--cor-tinte-borda);
+}
+
+.limite-inst-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.limite-inst-nome {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cor-texto-principal);
+}
+
+.limite-inst-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.limite-inst-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--cor-texto-secundario);
+}
+
+.limite-inst-pct {
+    font-weight: 700;
+}
+
+/* Estados: NORMAL (verde), ATENCAO (âmbar), EXCEDIDO (vermelho), SEM_LIMITE (neutro) */
+.limite-inst-normal .limite-inst-status { color: var(--green-700); }
+.limite-inst-normal .limite-inst-fill   { background: var(--green-700); }
+
+.limite-inst-atencao .limite-inst-status { color: #B45309; }
+.limite-inst-atencao .limite-inst-fill   { background: #F59E0B; }
+
+.limite-inst-excedido { border-color: var(--red-700); }
+.limite-inst-excedido .limite-inst-status { color: var(--red-700); }
+.limite-inst-excedido .limite-inst-fill   { background: var(--red-700); }
+.limite-inst-excedido .limite-inst-pct    { color: var(--red-700); }
+
+.limite-inst-sem-limite .limite-inst-status { color: var(--cor-texto-secundario); }
+.limite-inst-sem-limite .limite-inst-fill   { background: var(--cor-texto-secundario); }
+
+/* Achata o marcador quadrado do ApexCharts (annotations.points) em uma linha
+   horizontal, usado para indicar o limite de gasto de cada categoria no
+   gráfico "Gastos por Categoria". */
+.marcador-limite-categoria {
+    transform: scaleX(5.5) scaleY(0.28);
+    transform-box: fill-box;
+    transform-origin: center;
 }
 
 /* ── Heat map — gastos por dia da semana ── */

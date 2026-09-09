@@ -275,6 +275,27 @@ public class DashboardController {
                 dashboardService.getFluxoFinanceiro(periodo, ano, mes, trimestre, semestre, user_id));
     }
 
+    @GetMapping("/limites/instituicoes/usuarios/{user_id}")
+    @Operation(summary = "Painel — Limite de gastos por instituição",
+            description = "Para cada instituição ativa do usuário: gasto no período, limite mensal configurado " +
+                    "(ajustado à duração do período) e status (SEM_LIMITE, NORMAL, ATENCAO, EXCEDIDO).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = LimitesInstituicaoDto.class))),
+            @ApiResponse(responseCode = "400", content = @Content),
+            @ApiResponse(responseCode = "404", content = @Content)
+    })
+    public ResponseEntity<LimitesInstituicaoDto> getLimitesInstituicao(
+            @PathVariable UUID user_id,
+            @RequestParam TipoPeriodo periodo,
+            @RequestParam Integer ano,
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) Integer trimestre,
+            @RequestParam(required = false) Integer semestre) {
+        return ResponseEntity.ok(
+                dashboardService.getLimitesInstituicao(periodo, ano, mes, trimestre, semestre, user_id));
+    }
+
     @GetMapping("/anos/usuarios/{user_id}")
     @Operation(summary = "Anos disponíveis",
             description = "Retorna os anos distintos em que o usuário possui registros, mais recente primeiro. O ano corrente é sempre incluído.")

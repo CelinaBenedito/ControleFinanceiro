@@ -1300,6 +1300,75 @@
     }
 
     /* ══════════════════════════════════════════════════════════
+       LIMITE DE GASTOS POR INSTITUIÇÃO
+    ══════════════════════════════════════════════════════════ */
+    function clampPercentInst(v) {
+        const n = Number(v ?? 0);
+        if (!Number.isFinite(n)) return 0;
+        return Math.max(0, Math.min(100, Math.round(n)));
+    }
+
+    async function carregarLimitesInstituicao(p) {
+        const el = document.getElementById("listaLimitesInstituicao");
+        if (!el || !_userId) return;
+        el.innerHTML = `<p style="text-align:center;padding:16px;color:var(--cor-texto-secundario);">
+            <i class='bx bx-loader-alt bx-spin'></i></p>`;
+
+        const STATUS_INFO = {
+            SEM_LIMITE: { texto: "Sem limite configurado", classe: "sem-limite", icone: "bx-minus-circle" },
+            NORMAL:     { texto: "Dentro do limite",       classe: "normal",     icone: "bx-check-circle" },
+            ATENCAO:    { texto: "Próximo do limite",      classe: "atencao",    icone: "bx-error" },
+            EXCEDIDO:   { texto: "Limite excedido",        classe: "excedido",   icone: "bx-error-circle" }
+        };
+
+        try {
+            const url = `/dashboard/limites/instituicoes/usuarios/${_userId}?${buildPeriodoParams(p)}`;
+            const res = await MainAPI.request(url, { method: "GET" });
+
+            if (res.status === 204 || !res.ok) {
+                el.innerHTML = `<div class="inst-vazio"><i class='bx bx-search-alt'></i>
+                    <h3>Sem dados</h3><p>Selecione outro período para visualizar.</p></div>`;
+                return;
+            }
+
+            const json = await res.json();
+            const lista = json?.instituicoes || [];
+            if (!lista.length) {
+                el.innerHTML = `<div class="inst-vazio"><i class='bx bx-search-alt'></i>
+                    <h3>Sem dados</h3><p>Selecione outro período para visualizar.</p></div>`;
+                return;
+            }
+
+            el.innerHTML = lista.map(inst => {
+                const info = STATUS_INFO[inst.status] || STATUS_INFO.SEM_LIMITE;
+                const gasto = fmtBRL(inst.gastoAtual ?? 0);
+                const temLimite = inst.limite != null;
+                const limiteTxt = temLimite ? fmtBRL(inst.limite) : "–";
+                const pct = temLimite ? clampPercentInst(inst.percentualConsumido ?? 0) : 0;
+
+                return `
+                    <div class="limite-inst-item limite-inst-${info.classe}">
+                        <div class="limite-inst-topo">
+                            <span class="limite-inst-nome">${inst.nome}</span>
+                            <span class="limite-inst-status"><i class='bx ${info.icone}'></i> ${info.texto}</span>
+                        </div>
+                        <div class="kpi-progress-track">
+                            <div class="kpi-progress-fill limite-inst-fill" style="width:${temLimite ? pct : 0}%;"></div>
+                        </div>
+                        <div class="limite-inst-rodape">
+                            <span>${gasto}${temLimite ? ` de ${limiteTxt}` : " gastos no período"}</span>
+                            ${temLimite ? `<span class="limite-inst-pct">${inst.percentualConsumido}%</span>` : ""}
+                        </div>
+                    </div>`;
+            }).join("");
+        } catch (e) {
+            console.error("Erro ao carregar limites por instituição:", e);
+            el.innerHTML = `<div class="inst-vazio"><i class='bx bx-error'></i>
+                <h3>Erro</h3><p>Não foi possível carregar os limites por instituição.</p></div>`;
+        }
+    }
+
+    /* ══════════════════════════════════════════════════════════
        CARREGAMENTO PRINCIPAL
     ══════════════════════════════════════════════════════════ */
     window.carregarInstituicoes = async function () {
@@ -1312,8 +1381,9 @@
         if (loading) loading.style.display = "flex";
         if (grid) grid.innerHTML = "";
 
+        const p = periodoAtual();
+
         try {
-            const p   = periodoAtual();
             const url = `/instituicoes/resumo/usuarios/${_userId}?${buildPeriodoParams(p)}`;
             const res = await MainAPI.request(url, { method: "GET" });
 
@@ -1329,7 +1399,10 @@
             console.error("Erro ao carregar instituições:", e);
             if (loading) loading.style.display = "none";
         }
+
+        carregarLimitesInstituicao(p);
     };
+
 
     async function carregarCaixinhas() {
         if (!_userId) return;

@@ -10,6 +10,9 @@ public class InstituicaoCreateDTO {
     @NotBlank
     private String nome;
 
+    @Schema(example = "false", description = "Indica se a instituição é um voucher/benefício (ex: Alelo, Pluxee, Ticket, VR, VA)")
+    private Boolean isVoucher = Boolean.FALSE;
+
     public InstituicaoCreateDTO(String nome) {
         this.nome = nome;
     }
@@ -23,5 +26,13 @@ public class InstituicaoCreateDTO {
 
     public void setNome(String nome) {
         this.nome = nome;
+    }
+
+    public Boolean getIsVoucher() {
+        return isVoucher;
+    }
+
+    public void setIsVoucher(Boolean isVoucher) {
+        this.isVoucher = isVoucher;
     }
 }

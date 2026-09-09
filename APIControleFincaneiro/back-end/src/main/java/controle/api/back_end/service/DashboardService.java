@@ -6,6 +6,8 @@ import controle.api.back_end.dto.registros.out.RegistroResponseDto;
 import controle.api.back_end.exception.EntidadeNaoEncontradaException;
 import controle.api.back_end.model.categoria.CategoriaUsuario;
 import controle.api.back_end.model.configuracoes.Configuracoes;
+import controle.api.back_end.model.configuracoes.LimitePorCategoria;
+import controle.api.back_end.model.configuracoes.LimitePorInstituicao;
 import controle.api.back_end.model.dashboard.NivelSaudeFinanceira;
 import controle.api.back_end.model.dashboard.TipoPeriodo;
 import controle.api.back_end.model.emprestimo.EmprestimoBancario;
@@ -280,7 +282,9 @@ public class DashboardService {
             }
         }
 
-        return new EvolucaoGastosDto(periodo.label(), granularidade, dados, dadosRec);
+        BigDecimal limitePeriodo = calcularLimiteMensalPeriodo(userId, tipo);
+
+        return new EvolucaoGastosDto(periodo.label(), granularidade, dados, dadosRec, limitePeriodo);
     }
 
     // =========================================================================
@@ -315,6 +319,7 @@ public class DashboardService {
         }
 
         final BigDecimal tf = totalGeral;
+        Map<String, BigDecimal> limitesPorCategoria = calcularLimitesPorCategoriaPeriodo(userId, tipo);
         List<CategoriasGraficoDto.CategoriaData> lista = totais.entrySet().stream()
                 .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
                 .map(entry -> {
@@ -324,7 +329,8 @@ public class DashboardService {
                             : 0;
                     return new CategoriasGraficoDto.CategoriaData(
                             entry.getKey(), entry.getValue(), pct,
-                            ocorrencias.getOrDefault(entry.getKey(), 0));
+                            ocorrencias.getOrDefault(entry.getKey(), 0),
+                            limitesPorCategoria.get(entry.getKey()));
                 })
                 .toList();
 
@@ -570,6 +576,67 @@ public class DashboardService {
     }
 
     // =========================================================================
+    //  PAINEL — LIMITE DE GASTOS POR INSTITUIÇÃO
+    // =========================================================================
+
+    public LimitesInstituicaoDto getLimitesInstituicao(TipoPeriodo tipo, int ano, Integer mes,
+                                                        Integer trimestre, Integer semestre, UUID userId) {
+        validarUsuario(userId);
+        PeriodoTemporalUtils.validar(tipo, ano, mes, trimestre, semestre);
+
+        Periodo periodo = resolverPeriodo(userId, tipo, ano, mes, trimestre, semestre);
+        int meses = mesesNoPeriodo(tipo);
+
+        Map<Integer, BigDecimal> limitesPorInstituicao = new HashMap<>();
+        Configuracoes config = getConfiguracaoOuNull(userId);
+        if (config != null && config.getLimitePorInstituicao() != null) {
+            for (LimitePorInstituicao l : config.getLimitePorInstituicao()) {
+                if (l.getLimiteDesejado() == null || l.getInstituicaoUsuario() == null) continue;
+                limitesPorInstituicao.put(l.getInstituicaoUsuario().getId(),
+                        BigDecimal.valueOf(l.getLimiteDesejado()).multiply(BigDecimal.valueOf(meses)));
+            }
+        }
+
+        List<InstituicaoUsuario> instList = instituicaoUsuarioRepository
+                .findInstituicaoUsuarioByUsuario_IdAndIsAtivoIsTrue(userId);
+
+        List<LimitesInstituicaoDto.InstituicaoLimiteData> lista = new ArrayList<>();
+        for (InstituicaoUsuario iu : instList) {
+            List<EventoInstituicao> eis = eventoInstituicaoRepository.findByInstituicaoUsuario_Id(iu.getId());
+            BigDecimal gastoAtual = BigDecimal.ZERO;
+
+            for (EventoInstituicao ei : eis) {
+                EventoFinanceiro ef = ei.getEventoFinanceiro();
+                if (ef == null || ef.getTipo() != Tipo.Gasto || !emPeriodo(ef, periodo)) continue;
+
+                boolean isPagamentoFatura = ef.getDescricao() != null
+                        && ef.getDescricao().contains("Pagamento da fatura");
+                if (ei.getTipoMovimento() == TipoMovimento.Credito && !isPagamentoFatura) continue;
+
+                gastoAtual = gastoAtual.add(BigDecimal.valueOf(ei.getValor()));
+            }
+
+            BigDecimal limite = limitesPorInstituicao.get(iu.getId());
+            Integer percentual = null;
+            String status;
+            if (limite == null || limite.compareTo(BigDecimal.ZERO) <= 0) {
+                status = "SEM_LIMITE";
+            } else {
+                percentual = gastoAtual.divide(limite, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100)).intValue();
+                status = percentual >= 100 ? "EXCEDIDO" : percentual >= 80 ? "ATENCAO" : "NORMAL";
+            }
+
+            lista.add(new LimitesInstituicaoDto.InstituicaoLimiteData(
+                    iu.getId(), iu.getInstituicao().getNome(), gastoAtual, limite, percentual, status));
+        }
+
+        lista.sort((a, b) -> b.gastoAtual().compareTo(a.gastoAtual()));
+
+        return new LimitesInstituicaoDto(periodo.label(), lista);
+    }
+
+    // =========================================================================
     //  REGISTROS DO PERÍODO (lista completa — mantido)
     // =========================================================================
 
@@ -617,6 +684,50 @@ public class DashboardService {
             // Usuário sem configuração → usa o dia 1 como padrão
             return 1;
         }
+    }
+
+    /** Quantidade de meses de calendário abrangidos por cada tipo de período. */
+    private int mesesNoPeriodo(TipoPeriodo tipo) {
+        return switch (tipo) {
+            case MENSAL -> 1;
+            case TRIMESTRAL -> 3;
+            case SEMESTRAL -> 6;
+            case ANUAL -> 12;
+        };
+    }
+
+    /** Retorna as configurações do usuário, ou {@code null} caso ele ainda não as tenha cadastrado. */
+    private Configuracoes getConfiguracaoOuNull(UUID userId) {
+        try {
+            return configuracoesService.getConfiguracaoByUserId(userId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Limite mensal total configurado, ajustado à duração do período (ou {@code null} se não configurado). */
+    private BigDecimal calcularLimiteMensalPeriodo(UUID userId, TipoPeriodo tipo) {
+        Configuracoes config = getConfiguracaoOuNull(userId);
+        if (config == null || config.getLimiteDesejadoMensal() == null) return null;
+        return BigDecimal.valueOf(config.getLimiteDesejadoMensal())
+                .multiply(BigDecimal.valueOf(mesesNoPeriodo(tipo)));
+    }
+
+    /** Limites por categoria (nome → valor), ajustados à duração do período. */
+    private Map<String, BigDecimal> calcularLimitesPorCategoriaPeriodo(UUID userId, TipoPeriodo tipo) {
+        Map<String, BigDecimal> limites = new HashMap<>();
+        Configuracoes config = getConfiguracaoOuNull(userId);
+        if (config == null || config.getLimitePorCategoria() == null) return limites;
+
+        int meses = mesesNoPeriodo(tipo);
+        for (LimitePorCategoria l : config.getLimitePorCategoria()) {
+            if (l.getLimiteDesejado() == null || l.getCategoriaUsuario() == null
+                    || l.getCategoriaUsuario().getCategoria() == null) continue;
+            String nome = l.getCategoriaUsuario().getCategoria().getTitulo();
+            BigDecimal valor = BigDecimal.valueOf(l.getLimiteDesejado()).multiply(BigDecimal.valueOf(meses));
+            limites.merge(nome, valor, BigDecimal::add);
+        }
+        return limites;
     }
 
     private void validarUsuario(UUID userId) {

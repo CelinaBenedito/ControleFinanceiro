@@ -2,6 +2,7 @@ package controle.api.back_end.strategy.movimento;
 
 import controle.api.back_end.exception.InstituicaoInativaException;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 
 
@@ -17,6 +18,12 @@ public class BoletoMovimento implements MovimentoStrategy{
         if (Boolean.FALSE.equals(instituicao.getIsAtivo())) {
             throw new InstituicaoInativaException(
                     "Instituição %s inativa, não é possível utilizá-la."
+                            .formatted(instituicao.getInstituicao().getNome())
+            );
+        }
+        if (instituicao.getTiposAceitos() == null || !instituicao.getTiposAceitos().contains(TipoMovimento.Boleto)) {
+            throw new IllegalArgumentException(
+                    "Instituição %s não aceita movimentação em Boleto."
                             .formatted(instituicao.getInstituicao().getNome())
             );
         }

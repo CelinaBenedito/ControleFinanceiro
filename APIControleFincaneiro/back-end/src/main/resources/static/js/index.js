@@ -30,6 +30,9 @@ const graficos = {};
 
 // Período selecionado
 let periodoCfg = null;
+let _dashboardCarregado = false;
+let _dashboardKpisPendentes = false;
+let _dashboardGraficosPendentes = false;
 
 // ── Google Charts — controle de carregamento ──────────────────────────────────
 let _gcReady = false;
@@ -352,6 +355,20 @@ function carregarDashboard() {
     _dashDebounce = setTimeout(_executarCarregarDashboard, 120);
 }
 
+function _agendarGraficos() {
+    if (_dashboardGraficosPendentes) return;
+    _dashboardGraficosPendentes = true;
+    var executar = function () {
+        _dashboardGraficosPendentes = false;
+        gerarGraficos();
+    };
+    if (window.requestIdleCallback) {
+        window.requestIdleCallback(executar, { timeout: 800 });
+    } else {
+        setTimeout(executar, 0);
+    }
+}
+
 function _executarCarregarDashboard() {
     const tipo = document.getElementById('select_tempo')?.value;
     const ano  = Number(document.getElementById('select_ano')?.value);
@@ -376,8 +393,15 @@ function _executarCarregarDashboard() {
     const labelEl = document.getElementById('labelPeriodoAtual');
     if (labelEl) labelEl.textContent = labelPeriodoCfg(cfg);
 
+    if (!_dashboardCarregado) {
+        _dashboardCarregado = true;
+        gerarKPIS();
+        _agendarGraficos();
+        return;
+    }
+
     gerarKPIS();
-    gerarGraficos();
+    _agendarGraficos();
 }
 
 // ── KPIs ──────────────────────────────────────────────────────────────────────
@@ -385,6 +409,8 @@ function _executarCarregarDashboard() {
 async function gerarKPIS() {
     const userId = obterUsuarioIdDashboard();
     if (!userId || !periodoCfg) return;
+    if (_dashboardKpisPendentes) return;
+    _dashboardKpisPendentes = true;
     const params = buildParams();
     await Promise.all([
         carregarHistoriaFinanceira(userId, params),
@@ -396,6 +422,7 @@ async function gerarKPIS() {
         carregarKpiPoupanca(userId),
         carregarKpiEmprestimo(userId)
     ]);
+    _dashboardKpisPendentes = false;
 }
 
 async function carregarHistoriaFinanceira(userId, params) {
@@ -691,6 +718,20 @@ async function carregarGraficoEvolucao(userId, params) {
         colors.push(corRec);
     }
 
+    const limitePeriodo = json.limitePeriodo != null ? Number(json.limitePeriodo) : null;
+    const annotations = limitePeriodo != null ? {
+        yaxis: [{
+            y: limitePeriodo,
+            borderColor: cssVar('--red-700') || '#b91c1c',
+            strokeDashArray: 6,
+            label: {
+                borderColor: cssVar('--red-700') || '#b91c1c',
+                style: { color: '#fff', background: cssVar('--red-700') || '#b91c1c' },
+                text: `Limite mensal: ${CURRENCY.format(limitePeriodo)}`
+            }
+        }]
+    } : {};
+
     try {
         graficos['graficoTemporal'] = new ApexCharts(el, {
             chart: { type: 'area', height: 320, toolbar: { show: false }, zoom: { enabled: false } },
@@ -698,6 +739,7 @@ async function carregarGraficoEvolucao(userId, params) {
             xaxis: { categories: json.dados.map(d => d.label), labels: { rotate: -35 } },
             yaxis: { labels: { formatter: v => `R$ ${Number(v).toFixed(0)}` } },
             colors,
+            annotations,
             fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.04 } },
             stroke: { curve: 'smooth', width: 3 },
             dataLabels: { enabled: false },
@@ -760,18 +802,50 @@ async function carregarGraficoCategorias(userId, params) {
     const valores   = cats.map(c => Number(c.valorTotal));
     const pcts      = cats.map(c => Number(c.percentualDoTotal));
     const ocorrs    = cats.map(c => Number(c.ocorrencias));
+    const temLimite = cats.some(c => c.limite != null);
+    const limites   = cats.map(c => c.limite != null ? Number(c.limite) : null);
+    const corLimite = cssVar('--red-700') || '#b91c1c';
 
     destroyGrafico('graficoTipo');
     el.innerHTML = '';
 
+    const series = [
+        { name: 'Valor (R$)',   type: 'bar',  data: valores, yAxisIndex: 0 },
+        { name: '% do Total',  type: 'bar',  data: pcts,    yAxisIndex: 1 },
+        { name: 'Ocorrências', type: 'bar',  data: ocorrs,  yAxisIndex: 1 }
+    ];
+    const colors = getChartPalette3();
+    if (temLimite) {
+        // Série "fantasma" apenas para exibir o item na legenda/tooltip — o traço
+        // visual de fato é desenhado via annotations.points (linha achatada abaixo).
+        series.push({ name: 'Limite (R$)', type: 'line', data: limites, yAxisIndex: 0 });
+        colors.push(corLimite);
+    }
+
+    // Desenha, para cada categoria com limite configurado, uma marca horizontal
+    // (linha achatada) na altura do limite — um "teto" visual sobre a barra.
+    // O valor do limite já aparece na legenda/tooltip via a série fantasma acima,
+    // então aqui evitamos rótulo fixo para não sobrepor os dataLabels das barras.
+    const pontosLimite = temLimite ? cats
+        .filter(c => c.limite != null)
+        .map(c => ({
+            x: c.nome,
+            y: Number(c.limite),
+            yAxisIndex: 0,
+            marker: {
+                size: 8,
+                fillColor: corLimite,
+                strokeColor: corLimite,
+                strokeWidth: 0,
+                shape: 'square',
+                cssClass: 'marcador-limite-categoria'
+            }
+        })) : [];
+
     try {
         graficos['graficoTipo'] = new ApexCharts(el, {
             chart: { type: 'bar', height: 350, toolbar: { show: false } },
-            series: [
-                { name: 'Valor (R$)',   data: valores, yAxisIndex: 0 },
-                { name: '% do Total',  data: pcts,    yAxisIndex: 1 },
-                { name: 'Ocorrências', data: ocorrs,  yAxisIndex: 1 }
-            ],
+            series,
             xaxis: { categories: nomes },
             yaxis: [
                 {
@@ -792,15 +866,22 @@ async function carregarGraficoCategorias(userId, params) {
                     show: false
                 }
             ],
-            colors: getChartPalette3(),
+            colors,
             plotOptions: { bar: { horizontal: false, borderRadius: 4, dataLabels: { position: 'center' } } },
+            stroke: { width: series.map(s => s.type === 'line' ? 0 : 0), curve: 'straight' },
+            markers: {
+                size: series.map(() => 0)
+            },
+            annotations: { points: pontosLimite },
             dataLabels: {
                 enabled: true,
                 formatter: function(val, opts) {
                     const idx = opts.seriesIndex;
+                    if (val == null) return '';
                     if (idx === 0) return `R$ ${Number(val).toFixed(0)}`;
                     if (idx === 1) return `${Number(val).toFixed(0)}%`;
-                    return `${Number(val).toFixed(0)}x`;
+                    if (idx === 2) return `${Number(val).toFixed(0)}x`;
+                    return '';
                 },
                 style: { fontSize: '10px', colors: [cssVar('--cor-texto-claro') || '#fff'] }
             },
@@ -812,9 +893,11 @@ async function carregarGraficoCategorias(userId, params) {
                 intersect: false,
                 y: {
                     formatter: function(val, { seriesIndex }) {
+                        if (val == null) return '–';
                         if (seriesIndex === 0) return CURRENCY.format(val);
                         if (seriesIndex === 1) return `${val}%`;
-                        return `${val} vez(es)`;
+                        if (seriesIndex === 2) return `${val} vez(es)`;
+                        return CURRENCY.format(val);
                     }
                 }
             }
@@ -825,6 +908,7 @@ async function carregarGraficoCategorias(userId, params) {
         el.innerHTML = semDados;
     }
 }
+
 
 // ── Gráfico 4: Dia da semana (heat map) ou Mês (ANUAL — bar chart) ────────────
 async function carregarGraficoDiaSemana(userId, params) {

@@ -26,6 +26,10 @@ public class Instituicao {
     @Column(nullable = false, columnDefinition = "boolean default true")
     private Boolean isInstituicaoFinanceira = Boolean.TRUE;
 
+    /** Indica se a instituição é um voucher/benefício (ex: Alelo, Pluxee, Ticket, VR, VA). Default false. */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean isVoucher = Boolean.FALSE;
+
     public Instituicao() {
     }
 
@@ -45,4 +49,7 @@ public class Instituicao {
 
     public Boolean getIsInstituicaoFinanceira() { return isInstituicaoFinanceira; }
     public void setIsInstituicaoFinanceira(Boolean isInstituicaoFinanceira) { this.isInstituicaoFinanceira = isInstituicaoFinanceira; }
+
+    public Boolean getIsVoucher() { return isVoucher; }
+    public void setIsVoucher(Boolean isVoucher) { this.isVoucher = isVoucher; }
 }

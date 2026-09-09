@@ -4,21 +4,25 @@
 -- =============================================================
 
 -- Instituicoes financeiras
-INSERT IGNORE INTO instituicao (nome) VALUES
-    ('Itau'),
-    ('Nubank'),
-    ('Santander'),
-    ('Bradesco'),
-    ('Banco do Brasil'),
-    ('Inter'),
-    ('Safra'),
-    ('Alelo Alimentacao'),
-    ('Alelo Refeicao'),
-    ('Alelo Multibeneficios'),
-    ('Pluxee'),
-    ('Ticket'),
-    ('Vale Refeicao'),
-    ('Vale Alimentacao');
+INSERT IGNORE INTO instituicao (nome, is_voucher) VALUES
+    ('Itau', false),
+    ('Nubank', false),
+    ('Santander', false),
+    ('Bradesco', false),
+    ('Banco do Brasil', false),
+    ('Inter', false),
+    ('Safra', false),
+    ('Alelo Alimentacao', true),
+    ('Alelo Refeicao', true),
+    ('Alelo Multibeneficios', true),
+    ('Pluxee', true),
+    ('Ticket', true),
+    ('Vale Refeicao', true),
+    ('Vale Alimentacao', true);
+
+-- Garante que instituicoes ja existentes (de execucoes anteriores) sejam marcadas como voucher
+UPDATE instituicao SET is_voucher = true
+WHERE nome IN ('Alelo Alimentacao', 'Alelo Refeicao', 'Alelo Multibeneficios', 'Pluxee', 'Ticket', 'Vale Refeicao', 'Vale Alimentacao');
 
 -- Categorias de gastos
 INSERT IGNORE INTO categoria (titulo) VALUES

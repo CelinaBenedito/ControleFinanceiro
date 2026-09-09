@@ -2,6 +2,7 @@ package controle.api.back_end.strategy.movimento;
 
 import controle.api.back_end.exception.InstituicaoInativaException;
 import controle.api.back_end.model.eventoFinanceiro.EventoInstituicao;
+import controle.api.back_end.model.eventoFinanceiro.TipoMovimento;
 import controle.api.back_end.model.instituicao.InstituicaoUsuario;
 
 public class PixMovimento implements MovimentoStrategy {
@@ -17,7 +18,12 @@ public class PixMovimento implements MovimentoStrategy {
                             )
             );
         }
-        // TODO: validar se instituição suporta Pix
+        if (instituicao.getTiposAceitos() == null || !instituicao.getTiposAceitos().contains(TipoMovimento.Pix)) {
+            throw new IllegalArgumentException(
+                    "Instituição %s não aceita movimentação em Pix."
+                            .formatted(instituicao.getInstituicao().getNome())
+            );
+        }
     }
 
     @Override

@@ -324,6 +324,14 @@ function refrescarAtual() {
     }
 }
 
+function invalidarCachesPosDelete() {
+    if (!window.AppCache) return;
+    const uid = _regEstado.userId || getUsuarioLogadoId();
+    if (!uid) return;
+    window.AppCache.invalidarRegistros(uid);
+    window.AppCache.invalidarDashboard(uid);
+}
+
 // ── Formata moeda ─────────────────────────────────────────────────────────────
 const _fmtMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -1254,6 +1262,7 @@ function confirmarRemocaoRegistro(registro) {
         try {
             const res = await MainAPI.deletarRegistro(popup.dataset.registroId);
             if (res.ok) {
+                invalidarCachesPosDelete();
                 btn.disabled = false;
                 btn.textContent = 'Remover';
                 popup.style.display = 'none';
@@ -1263,6 +1272,12 @@ function confirmarRemocaoRegistro(registro) {
                     irParaPagina(_regEstado.paginaAtual - 1);
                 } else {
                     refrescarAtual();
+                }
+                if (_regEstado.modo === 'navegacao' && _regEstado.anoSelecionado) {
+                    carregarMeses(_regEstado.anoSelecionado);
+                }
+                if (window.atualizarDashboard) {
+                    try { window.atualizarDashboard(); } catch (_) {}
                 }
             } else {
                 btn.disabled = false;

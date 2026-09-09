@@ -95,6 +95,11 @@ public class InstituicaoService {
     }
 
     public InstituicaoUsuario createInstituicaoForUsuario(Integer instituicao_id, UUID user_id) {
+        return createInstituicaoForUsuario(instituicao_id, user_id, null);
+    }
+
+    public InstituicaoUsuario createInstituicaoForUsuario(Integer instituicao_id, UUID user_id,
+                                                           controle.api.back_end.dto.instituicao.in.VincularInstituicaoDto configuracaoInicial) {
         if (!usuarioRepository.existsById(user_id)) {
             throw new EntidadeNaoEncontradaException("Usuario de id: %s não encontrado"
                     .formatted(user_id));
@@ -114,6 +119,18 @@ public class InstituicaoService {
         instituicaoUsuario.setUsuario(user.get());
         instituicaoUsuario.setUltimaModificacao(LocalDateTime.now());
         instituicaoUsuario.setIsAtivo(true);
+
+        if (configuracaoInicial != null && configuracaoInicial.getTiposAceitos() != null && !configuracaoInicial.getTiposAceitos().isEmpty()) {
+            instituicaoUsuario.setTiposAceitos(new HashSet<>(configuracaoInicial.getTiposAceitos()));
+        } else {
+            instituicaoUsuario.setTiposAceitos(controle.api.back_end.utils.TiposAceitosPadraoUtil.calcular(instituicao.get()));
+        }
+        if (configuracaoInicial != null) {
+            if (configuracaoInicial.getLimiteCredito() != null) instituicaoUsuario.setLimiteCredito(configuracaoInicial.getLimiteCredito());
+            if (configuracaoInicial.getTaxaJuros() != null) instituicaoUsuario.setTaxaJuros(configuracaoInicial.getTaxaJuros());
+            if (configuracaoInicial.getDiaVencimentoFatura() != null) instituicaoUsuario.setDiaVencimentoFatura(configuracaoInicial.getDiaVencimentoFatura());
+        }
+
         return instituicaoUsuarioRepository.save(instituicaoUsuario);
     }
 
@@ -373,7 +390,9 @@ public class InstituicaoService {
             // O limite de crédito é mostrado separadamente na UI
             BigDecimal saldoDisponivel = saldo;
 
-            boolean temCredito = calcularTemCredito(iu.getInstituicao().getNome());
+            boolean temCredito = iu.getTiposAceitos() != null && !iu.getTiposAceitos().isEmpty()
+                    ? iu.getTiposAceitos().contains(TipoMovimento.Credito)
+                    : !Boolean.TRUE.equals(iu.getInstituicao().getIsVoucher());
 
             resultado.add(new ResumoInstituicaoDto(
                     iu.getId(),
@@ -390,21 +409,6 @@ public class InstituicaoService {
             ));
         }
         return resultado;
-    }
-
-    /** Retorna false para instituições de benefício/alimentação que não possuem limite de crédito rotativo. */
-    private boolean calcularTemCredito(String nomeInstituicao) {
-        if (nomeInstituicao == null) return true;
-        String nome = nomeInstituicao.toLowerCase()
-                .replace("ã", "a").replace("á", "a").replace("â", "a")
-                .replace("é", "e").replace("ê", "e").replace("í", "i")
-                .replace("ó", "o").replace("ô", "o").replace("ú", "u")
-                .replace("ç", "c");
-        return !(nome.contains("alelo") || nome.contains("aelo") ||
-                nome.contains("vale") || nome.contains("ticket") ||
-                nome.contains("pluxee") || nome.contains("sodexo") ||
-                nome.contains("multibene") || nome.contains("beneficio") ||
-                nome.contains("beneficios"));
     }
 
     // =========================================================================
@@ -499,6 +503,8 @@ public class InstituicaoService {
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("InstituicaoUsuario de id: %d não encontrada.".formatted(instUsuarioId)));
         if (dto.getLimiteCredito() != null) iu.setLimiteCredito(dto.getLimiteCredito());
         if (dto.getTaxaJuros() != null) iu.setTaxaJuros(dto.getTaxaJuros());
+        if (dto.getTiposAceitos() != null) iu.setTiposAceitos(new java.util.HashSet<>(dto.getTiposAceitos()));
+        if (dto.getDiaVencimentoFatura() != null) iu.setDiaVencimentoFatura(dto.getDiaVencimentoFatura());
         iu.setUltimaModificacao(LocalDateTime.now());
         return instituicaoUsuarioRepository.save(iu);
     }

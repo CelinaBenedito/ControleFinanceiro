@@ -14,7 +14,9 @@ public record CategoriasGraficoDto(
             /** % que esta categoria representa sobre o total de gastos do período */
             int percentualDoTotal,
             /** Quantas vezes a categoria apareceu em eventos no período */
-            int ocorrencias
+            int ocorrencias,
+            /** Limite configurado para a categoria, ajustado para a duração do período. Null se não configurado. */
+            BigDecimal limite
     ) {}
 }
 

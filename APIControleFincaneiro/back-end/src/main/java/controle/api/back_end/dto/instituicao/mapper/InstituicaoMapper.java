@@ -21,6 +21,7 @@ public class InstituicaoMapper {
 
         dto.setId(entity.getId());
         dto.setNome(entity.getNome());
+        dto.setIsVoucher(entity.getIsVoucher());
 
         return dto;
     }
@@ -35,6 +36,7 @@ public class InstituicaoMapper {
         Instituicao entity = new Instituicao();
 
         entity.setNome(dto.getNome());
+        entity.setIsVoucher(dto.getIsVoucher() != null ? dto.getIsVoucher() : Boolean.FALSE);
         return entity;
     }
 
@@ -81,6 +83,11 @@ public class InstituicaoMapper {
 
         instituicaoDto.setId(modelInstituicao.getId());
         instituicaoDto.setNome(modelInstituicao.getNome());
+        instituicaoDto.setIsVoucher(modelInstituicao.getIsVoucher());
+        instituicaoDto.setLimiteCredito(model.getLimiteCredito());
+        instituicaoDto.setTaxaJuros(model.getTaxaJuros());
+        instituicaoDto.setTiposAceitos(model.getTiposAceitos());
+        instituicaoDto.setDiaVencimentoFatura(model.getDiaVencimentoFatura());
 
         response.setId(model.getId());
         response.setUltimaAtualizacao(model.getUltimaModificacao());

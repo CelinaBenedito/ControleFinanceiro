@@ -75,6 +75,11 @@ public class InstituicaoUsuarioResponseDTO {
     public static class InstituicaoUsuarioDTO{
         private Integer id;
         private String nome;
+        private Boolean isVoucher;
+        private java.math.BigDecimal limiteCredito;
+        private Double taxaJuros;
+        private java.util.Set<controle.api.back_end.model.eventoFinanceiro.TipoMovimento> tiposAceitos;
+        private Integer diaVencimentoFatura;
 
         public Integer getId() {
             return id;
@@ -90,6 +95,46 @@ public class InstituicaoUsuarioResponseDTO {
 
         public void setNome(String nome) {
             this.nome = nome;
+        }
+
+        public Boolean getIsVoucher() {
+            return isVoucher;
+        }
+
+        public void setIsVoucher(Boolean isVoucher) {
+            this.isVoucher = isVoucher;
+        }
+
+        public java.math.BigDecimal getLimiteCredito() {
+            return limiteCredito;
+        }
+
+        public void setLimiteCredito(java.math.BigDecimal limiteCredito) {
+            this.limiteCredito = limiteCredito;
+        }
+
+        public Double getTaxaJuros() {
+            return taxaJuros;
+        }
+
+        public void setTaxaJuros(Double taxaJuros) {
+            this.taxaJuros = taxaJuros;
+        }
+
+        public java.util.Set<controle.api.back_end.model.eventoFinanceiro.TipoMovimento> getTiposAceitos() {
+            return tiposAceitos;
+        }
+
+        public void setTiposAceitos(java.util.Set<controle.api.back_end.model.eventoFinanceiro.TipoMovimento> tiposAceitos) {
+            this.tiposAceitos = tiposAceitos;
+        }
+
+        public Integer getDiaVencimentoFatura() {
+            return diaVencimentoFatura;
+        }
+
+        public void setDiaVencimentoFatura(Integer diaVencimentoFatura) {
+            this.diaVencimentoFatura = diaVencimentoFatura;
         }
     }
 

@@ -384,6 +384,13 @@
             tr.appendChild(tdMod);
 
             const tdAcoes = document.createElement("td");
+            const btnEditar = document.createElement("button");
+            btnEditar.className = "cfg-btn";
+            btnEditar.style.cssText = "background:transparent;border:2px solid var(--cor-principal);color:var(--cor-principal);margin-right:8px;";
+            btnEditar.textContent = "Editar";
+            btnEditar.addEventListener("click", () => abrirModalEditarInstituicao(inst));
+            tdAcoes.appendChild(btnEditar);
+
             const btn = document.createElement("button");
             btn.className = "cfg-btn danger";
             btn.textContent = "Desvincular";
@@ -404,6 +411,80 @@
             tbody.appendChild(tr);
         });
     }
+
+    // ── EDIÇÃO DE INSTITUIÇÃO VINCULADA (tipos aceitos, limite, taxa, vencimento) ──
+    const TIPOS_MOVIMENTO = ["Debito", "Credito", "Pix", "Boleto", "Dinheiro", "Voucher"];
+    let _instEditandoId = null;
+
+    function alternarCamposCreditoEditar() {
+        const habilitado = document.getElementById("ed_tipo_Credito")?.checked;
+        const div = document.getElementById("editarCreditoFields");
+        if (div) div.style.display = habilitado ? "flex" : "none";
+    }
+
+    window.abrirModalEditarInstituicao = function (inst) {
+        const info = inst.intituicao || {};
+        _instEditandoId = inst.id;
+
+        const tipos = new Set(info.tiposAceitos || []);
+        TIPOS_MOVIMENTO.forEach(tipo => {
+            const sw = document.getElementById(`ed_tipo_${tipo}`);
+            if (sw) sw.checked = tipos.has(tipo);
+        });
+
+        const iptLimite = document.getElementById("ipt_editar_limite");
+        const iptTaxa = document.getElementById("ipt_editar_taxa");
+        const iptVencimento = document.getElementById("ipt_editar_vencimento");
+        if (iptLimite) iptLimite.value = info.limiteCredito != null ? info.limiteCredito : "";
+        if (iptTaxa) iptTaxa.value = info.taxaJuros != null ? info.taxaJuros : "";
+        if (iptVencimento) iptVencimento.value = info.diaVencimentoFatura != null ? info.diaVencimentoFatura : "";
+
+        alternarCamposCreditoEditar();
+
+        const titulo = document.getElementById("modalEditarInstituicaoTitulo");
+        if (titulo) titulo.textContent = `Editar ${info.nome || "instituição"}`;
+
+        const modal = document.getElementById("modalEditarInstituicao");
+        if (modal) modal.style.display = "flex";
+    };
+
+    window.fecharModalEditarInstituicao = function () {
+        const modal = document.getElementById("modalEditarInstituicao");
+        if (modal) modal.style.display = "none";
+        _instEditandoId = null;
+    };
+
+    window.alternarCamposCreditoEditar = alternarCamposCreditoEditar;
+
+    window.salvarEdicaoInstituicao = async function () {
+        if (!_instEditandoId) return;
+
+        const tiposAceitos = TIPOS_MOVIMENTO.filter(tipo => document.getElementById(`ed_tipo_${tipo}`)?.checked);
+        const limiteCredito = document.getElementById("ipt_editar_limite")?.value;
+        const taxaJuros = document.getElementById("ipt_editar_taxa")?.value;
+        const diaVencimentoFatura = document.getElementById("ipt_editar_vencimento")?.value;
+
+        const payload = { tiposAceitos };
+        if (limiteCredito !== "" && limiteCredito != null) payload.limiteCredito = parseFloat(limiteCredito);
+        if (taxaJuros !== "" && taxaJuros != null) payload.taxaJuros = parseFloat(taxaJuros);
+        if (diaVencimentoFatura !== "" && diaVencimentoFatura != null) payload.diaVencimentoFatura = parseInt(diaVencimentoFatura, 10);
+
+        try {
+            const res = await fetch(`${API}/instituicoes/${_instEditandoId}/configurar`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) { mostrarAlerta(`Erro ao salvar instituição (HTTP ${res.status}).`); return; }
+            window.fecharModalEditarInstituicao();
+            await carregarInstituicoes();
+            window.dispatchEvent(new Event('xp:refresh'));
+            mostrarAlerta("Instituição atualizada com sucesso!");
+        } catch (e) {
+            mostrarAlerta("Erro ao salvar instituição.");
+            console.error(e);
+        }
+    };
 
     function preencherSelectInstituicoes() {
         const sel = document.getElementById("selInstituicaoLimite");
@@ -562,18 +643,47 @@
         }
     };
 
+    function alternarCamposCreditoPersonalizada() {
+        const habilitado = document.getElementById("sw_tipo_Credito")?.checked;
+        const div = document.getElementById("personalizadaCreditoFields");
+        if (div) div.style.display = habilitado ? "flex" : "none";
+    }
+    window.alternarCamposCreditoPersonalizada = alternarCamposCreditoPersonalizada;
+
+    window.alternarVoucherPersonalizada = function () {
+        const isVoucher = document.getElementById("sw_tipo_Voucher")?.checked;
+        // Instituição de voucher normalmente não possui débito/crédito/pix/boleto/dinheiro tradicionais.
+        ["Debito", "Credito", "Pix", "Boleto", "Dinheiro"].forEach(tipo => {
+            const sw = document.getElementById(`sw_tipo_${tipo}`);
+            if (sw) sw.checked = !isVoucher;
+        });
+        alternarCamposCreditoPersonalizada();
+    };
+
     window.abrirPersonalizada = function (tipo) {
         tipoPersonalizada = tipo;
         const modal  = document.getElementById("modalPersonalizada");
         const titulo = document.getElementById("modalPersonalizadaTitulo");
         const label  = document.getElementById("modalPersonalizadaLabel");
         const input  = document.getElementById("ipt_personalizada");
+        const tiposContainer = document.getElementById("personalizadaTiposAceitosContainer");
         if (tipo === "instituicao") {
             if (titulo) titulo.textContent = "Nova Instituição Personalizada";
             if (label)  label.textContent  = "Nome da instituição";
+            if (tiposContainer) tiposContainer.style.display = "flex";
+            TIPOS_MOVIMENTO.forEach(t => {
+                const sw = document.getElementById(`sw_tipo_${t}`);
+                if (sw) sw.checked = (t !== "Voucher");
+            });
+            const iptLimite = document.getElementById("ipt_personalizada_limite");
+            const iptVencimento = document.getElementById("ipt_personalizada_vencimento");
+            if (iptLimite) iptLimite.value = "";
+            if (iptVencimento) iptVencimento.value = "";
+            alternarCamposCreditoPersonalizada();
         } else {
             if (titulo) titulo.textContent = "Nova Categoria Personalizada";
             if (label)  label.textContent  = "Nome da categoria";
+            if (tiposContainer) tiposContainer.style.display = "none";
         }
         if (input) input.value = "";
         if (modal) modal.style.display = "flex";
@@ -591,10 +701,27 @@
         if (!nome) { mostrarAlerta("Informe o nome."); return; }
         try {
             if (tipoPersonalizada === "instituicao") {
-                const resCreate = await postJson(`${API}/instituicoes`, { nome });
+                const isVoucher = document.getElementById("sw_tipo_Voucher")?.checked || false;
+                const tiposAceitos = TIPOS_MOVIMENTO.filter(tipo => document.getElementById(`sw_tipo_${tipo}`)?.checked);
+                if (tiposAceitos.length === 0) { mostrarAlerta("Selecione ao menos um tipo de movimento aceito."); return; }
+
+                const resCreate = await postJson(`${API}/instituicoes`, { nome, isVoucher });
                 if (!resCreate.ok) { mostrarAlerta("Erro ao criar instituição."); return; }
                 const nova = await resCreate.json();
-                const resLink = await fetch(`${API}/instituicoes/${nova.id}/usuarios/${userId}`, { method: "POST" });
+
+                const configuracaoInicial = { tiposAceitos };
+                if (tiposAceitos.includes("Credito")) {
+                    const limite = document.getElementById("ipt_personalizada_limite")?.value;
+                    const vencimento = document.getElementById("ipt_personalizada_vencimento")?.value;
+                    if (limite !== "" && limite != null) configuracaoInicial.limiteCredito = parseFloat(limite);
+                    if (vencimento !== "" && vencimento != null) configuracaoInicial.diaVencimentoFatura = parseInt(vencimento, 10);
+                }
+
+                const resLink = await fetch(`${API}/instituicoes/${nova.id}/usuarios/${userId}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(configuracaoInicial)
+                });
                 if (!resLink.ok) { mostrarAlerta("Erro ao vincular instituição."); return; }
                 fecharPersonalizada();
                 await carregarInstituicoes();

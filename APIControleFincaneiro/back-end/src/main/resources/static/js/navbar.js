@@ -122,11 +122,11 @@ window.addEventListener('resize', function () {
         <div id="uwLogoutModal" style="
             background:var(--cor-fundo-card, #fff);
             border-radius:18px;
-            box-shadow:0 16px 48px rgba(0,0,0,0.28);
+            box-shadow:0 8px 28px rgba(0,0,0,0.22);
             padding:36px 32px 28px;
             max-width:400px; width:90%;
             display:flex; flex-direction:column; align-items:center; gap:16px;
-            animation:uwModalIn 0.2s ease;">
+            animation:uwModalIn 0.16s ease;">
             <div style="
                 width:60px; height:60px; border-radius:50%;
                 background:var(--red-100,#fee2e2);
@@ -149,14 +149,14 @@ window.addEventListener('resize', function () {
                     flex:1; padding:11px; border-radius:10px; cursor:pointer;
                     background:var(--cor-fundo-pagina); color:var(--cor-texto-principal);
                     font-size:0.9rem; font-weight:600; border:1px solid var(--cor-tinte-borda, #ccc);
-                    transition:background 0.18s; margin:0;">
+                    transition:background 0.12s; margin:0;">
                     Cancelar
                 </button>
                 <button id="uwLogoutConfirmar" style="
                     flex:1; padding:11px; border-radius:10px; cursor:pointer;
                     background:var(--red-700,#b91c1c); color:#fff;
                     font-size:0.9rem; font-weight:600; border:none;
-                    transition:background 0.18s; margin:0;">
+                    transition:background 0.12s; margin:0;">
                     Sim, fazer logout
                 </button>
             </div>
@@ -406,8 +406,21 @@ function aplicarModoVidro(ativo) {
     document.body.setAttribute("data-vidro", ativo ? "on" : "off");
 }
 
+function _prepararTrocaTema() {
+    document.body.classList.add("tema-trocando");
+}
+
+function _finalizarTrocaTema() {
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+            document.body.classList.remove("tema-trocando");
+        });
+    });
+}
+
 if (_btnEscolherTema) {
     _btnEscolherTema.addEventListener("click", function () {
+        _prepararTrocaTema();
         document.body.setAttribute("data-tema", _temaSelecionado);
         localStorage.setItem(_themeKey("tema"), _temaSelecionado);
 
@@ -415,6 +428,7 @@ if (_btnEscolherTema) {
         var vidroAtivo = toggleVidro ? toggleVidro.checked : localStorage.getItem(_themeKey("vidro")) === "on";
         aplicarModoVidro(vidroAtivo);
         localStorage.setItem(_themeKey("vidro"), vidroAtivo ? "on" : "off");
+        _finalizarTrocaTema();
     });
 }
 
@@ -445,6 +459,8 @@ window.addEventListener("DOMContentLoaded", function () {
         toggleVidro.checked = vidroSalvo === "on";
         if (estadoVidro) estadoVidro.textContent = vidroSalvo === "on" ? "ON" : "OFF";
     }
+
+    _finalizarTrocaTema();
 });
 
 // ── Botão de alternância claro/escuro (ao lado do user widget) ──
@@ -470,7 +486,7 @@ window.addEventListener("DOMContentLoaded", function () {
         "    position: relative;",
         "    overflow: visible;",
         "    box-shadow: 0px 4px 4px var(--sombra-caixa), 0 0 0 2px var(--cor-tinte-borda);",
-        "    transition: box-shadow 0.35s ease, transform 0.22s cubic-bezier(0.34,1.56,0.64,1), color 0.35s ease;",
+        "    transition: box-shadow 0.18s ease, transform 0.14s ease, color 0.18s ease;",
         "}",
         "#theme-fab:hover {",
         "    box-shadow: 0px 4px 8px var(--sombra-caixa), 0 0 0 2px var(--cor-principal);",
@@ -507,7 +523,7 @@ window.addEventListener("DOMContentLoaded", function () {
         "    display: flex;",
         "    align-items: center;",
         "    justify-content: center;",
-        "    transition: transform 0.55s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease;",
+        "    transition: transform 0.2s ease, opacity 0.16s ease;",
         "    will-change: transform, opacity;",
         "}",
         /* Modo claro: lua visível, sol entra de baixo */
@@ -815,7 +831,7 @@ window.addEventListener("DOMContentLoaded", function () {
         display:flex; align-items:center; justify-content:center;
         background:var(--cor-fundo-card,#fff);
         border:1.5px solid var(--cor-tinte-borda,#e2e8f0);
-        transition:all 0.2s ease;">
+        transition:all 0.12s ease;">
         <i class='bx bx-bell' style="font-size:1.3rem; color:var(--cor-texto-principal);"></i>
         <span id="mf-notification-badge" style="
             position:absolute; top:-4px; right:-4px;
@@ -1518,6 +1534,3 @@ window.addEventListener("DOMContentLoaded", function () {
         _apply();
     }
 })();
-
-
-

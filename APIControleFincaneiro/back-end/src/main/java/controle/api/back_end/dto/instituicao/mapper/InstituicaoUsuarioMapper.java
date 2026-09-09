@@ -28,6 +28,11 @@ public class InstituicaoUsuarioMapper {
 
         entityInstituicao.setId(dtoInstituicao.getId());
         entityInstituicao.setNome(dtoInstituicao.getNome());
+        entityInstituicao.setIsVoucher(dtoInstituicao.getIsVoucher());
+        entityInstituicao.setLimiteCredito(entity.getLimiteCredito());
+        entityInstituicao.setTaxaJuros(entity.getTaxaJuros());
+        entityInstituicao.setTiposAceitos(entity.getTiposAceitos());
+        entityInstituicao.setDiaVencimentoFatura(entity.getDiaVencimentoFatura());
 
         dto.setUltimaAtualizacao(entity.getUltimaModificacao());
         dto.setId(entity.getId());

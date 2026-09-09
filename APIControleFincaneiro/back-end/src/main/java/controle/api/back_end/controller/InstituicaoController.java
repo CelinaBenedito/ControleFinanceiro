@@ -2,6 +2,7 @@ package controle.api.back_end.controller;
 
 import controle.api.back_end.dto.instituicao.in.AtualizarInstituicaoUsuarioDto;
 import controle.api.back_end.dto.instituicao.in.InstituicaoCreateDTO;
+import controle.api.back_end.dto.instituicao.in.VincularInstituicaoDto;
 import controle.api.back_end.dto.instituicao.out.DetalheInstituicaoDto;
 import controle.api.back_end.dto.instituicao.out.InstituicaoResponseDTO;
 import controle.api.back_end.dto.instituicao.out.InstituicaoUsuarioResponseDTO;
@@ -128,7 +129,7 @@ public class InstituicaoController {
 
     @PostMapping("/{instituicao_id}/usuarios/{usuario_id}")
     @Operation(summary = "Vincular uma instituição a um usuario",
-            description = "Vincular por meio de uma tabela associativa no banco de dados uma instituição a um usuario.")
+            description = "Vincular por meio de uma tabela associativa no banco de dados uma instituição a um usuario. Opcionalmente já define quais tipos de movimento são aceitos, limite de crédito, taxa de juros e dia de vencimento da fatura.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Instituição associada a um usuario com sucesso",
                     content = @Content(mediaType = "application/json",
@@ -138,8 +139,9 @@ public class InstituicaoController {
     })
     public ResponseEntity<InstituicaoUsuarioResponseDTO> createInstituicaoForUser(
             @PathVariable Integer instituicao_id,
-            @PathVariable UUID usuario_id){
-        InstituicaoUsuario created = instituicaoService.createInstituicaoForUsuario(instituicao_id, usuario_id);
+            @PathVariable UUID usuario_id,
+            @RequestBody(required = false) VincularInstituicaoDto configuracaoInicial){
+        InstituicaoUsuario created = instituicaoService.createInstituicaoForUsuario(instituicao_id, usuario_id, configuracaoInicial);
         InstituicaoUsuarioResponseDTO response = InstituicaoUsuarioMapper.toDto(created);
         return ResponseEntity.status(201).body(response);
     }
